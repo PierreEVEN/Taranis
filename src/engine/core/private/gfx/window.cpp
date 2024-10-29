@@ -15,4 +15,9 @@ namespace Engine
 	{
 		glfwDestroyWindow(ptr);
 	}
+
+	bool Window::render()
+	{
+		return glfwWindowShouldClose(ptr) || should_close;
+	}
 }

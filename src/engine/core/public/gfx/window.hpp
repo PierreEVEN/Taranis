@@ -21,7 +21,16 @@ namespace Engine
 
 		GLFWwindow* raw() const { return ptr; }
 
+		bool render();
+
+		void close()
+		{
+			should_close = true;
+		}
+
 	private:
+
+		bool should_close;
 		GLFWwindow* ptr;
 	};
 }

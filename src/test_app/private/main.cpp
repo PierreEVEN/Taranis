@@ -12,9 +12,7 @@ int main() {
 
 
 	const auto main_window = engine.new_window(Engine::WindowConfig{});
+	const auto secondary_window = engine.new_window(Engine::WindowConfig{});
 
-
-	while (!glfwWindowShouldClose(main_window->raw())) {
-		glfwPollEvents();
-	}
+	engine.run();
 }
