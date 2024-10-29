@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+.idea
+.xmake
+compile_commands.json
+CMakeLists.txt
