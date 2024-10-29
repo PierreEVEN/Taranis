@@ -1,7 +1,14 @@
+add_rules("mode.debug", "mode.release")
+add_rules("plugin.vsxmake.autoupdate")
+
 set_project("Ashwga")
 
 DEBUG = true;
-BUILD_MONOLITHIC = true;
+BUILD_MONOLITHIC = false;
+
+
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator")
+
 
 function declare_module(module_name, deps, packages, is_executable)
     if DEBUG then
@@ -17,7 +24,9 @@ function declare_module(module_name, deps, packages, is_executable)
         end
 
     add_includedirs("private", { public = false })
-    add_includedirs("public", { public = true })
+    if not is_executable then
+        add_includedirs("public", { public = true })
+    end
     for _, ext in ipairs({ ".c", ".cpp" }) do
         add_files("private/**.cpp")
     end
