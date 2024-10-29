@@ -2,9 +2,10 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.vsxmake.autoupdate")
 
 set_project("Ashwga")
+set_languages("clatest", "cxx20")
 
-DEBUG = true;
-BUILD_MONOLITHIC = false;
+DEBUG = false;
+BUILD_MONOLITHIC = true;
 
 
 add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator")
@@ -43,10 +44,19 @@ function declare_module(module_name, deps, packages, is_executable)
         add_deps(table.unpack(deps))
     end
     if packages then
-        if DEBUG then
-            print(table.unpack({ "\t-- packages :", table.unpack(packages) }))
+        packages_name = "";
+        for _, package in ipairs(packages) do
+            if type(package) == "table" then
+                add_packages(package.name, {public = package.public})
+                packages_name = packages_name..", "..package.name
+            else
+                add_packages(package)
+                packages_name = packages_name..", "..package
+            end
         end
-        add_packages(table.unpack(packages))
+        if DEBUG then
+            print(table.unpack({ "\t-- packages :", packages_name}))
+        end
     end
     target_end()
 end
