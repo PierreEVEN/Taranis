@@ -3,6 +3,8 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 
+#include "gfx/renderer/renderer_definition.hpp"
+
 static size_t WINDOW_ID = 0;
 
 namespace Engine
@@ -31,7 +33,7 @@ namespace Engine
 		return {width, height};
 	}
 
-	void Window::set_renderer()
+	void Window::set_renderer(std::shared_ptr<RenderPass> present_pass)
 	{
 		
 

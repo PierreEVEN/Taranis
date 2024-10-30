@@ -7,6 +7,8 @@ struct GLFWwindow;
 
 namespace Engine
 {
+	class RenderPass;
+
 	struct WindowConfig
 	{
 		std::string name = "no name";
@@ -33,7 +35,7 @@ namespace Engine
 			should_close = true;
 		}
 
-		void set_renderer();
+		void set_renderer(std::shared_ptr<RenderPass> present_pass);
 
 	private:
 

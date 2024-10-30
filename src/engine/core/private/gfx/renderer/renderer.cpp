@@ -4,7 +4,7 @@
 
 namespace Engine
 {
-	RenderPass::RenderPass(const std::shared_ptr<Device>& in_device, const RenderPassInfos& infos) : device(in_device)
+	RenderPassObject::RenderPassObject(const std::shared_ptr<Device>& in_device, const RenderPassInfos& infos) : device(in_device)
 	{
 		std::vector<VkAttachmentDescription> attachments;
 		std::vector<VkAttachmentReference> color_attachment_references;
@@ -72,7 +72,7 @@ namespace Engine
 		         "Failed to create render pass")
 	}
 
-	RenderPass::~RenderPass()
+	RenderPassObject::~RenderPassObject()
 	{
 		vkDestroyRenderPass(device.lock()->raw(), ptr, nullptr);
 	}

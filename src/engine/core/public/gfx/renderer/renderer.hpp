@@ -14,11 +14,11 @@ namespace Engine
 		
 	};
 
-	class RenderPass
+	class RenderPassObject
 	{
 	public:
-		RenderPass(const std::shared_ptr<Device>& device, const RenderPassInfos& infos);
-		~RenderPass();
+		RenderPassObject(const std::shared_ptr<Device>& device, const RenderPassInfos& infos);
+		~RenderPassObject();
 	private:
 		std::weak_ptr<Device> device;
 		VkRenderPass ptr = VK_NULL_HANDLE;

@@ -25,6 +25,9 @@ namespace Engine
 
 		void run();
 
+		std::weak_ptr<Instance> get_instance() const { return gfx_instance; }
+		std::weak_ptr<Device> get_device() const { return gfx_device; }
+
 	private:
 		std::unordered_map<size_t, std::shared_ptr<Window>> windows;
 
