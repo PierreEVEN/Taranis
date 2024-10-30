@@ -18,6 +18,8 @@ namespace Engine
 
 		PhysicalDevice get_physical_device() const{ return physical_device; }
 
+
+		static const std::vector<const char*>& get_device_extensions();
 	private:
 		std::unique_ptr<Queues> queues;
 

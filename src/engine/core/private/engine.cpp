@@ -16,14 +16,16 @@ namespace Engine
 {
 	Engine::Engine(Config& config)
 	{
-		Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG);
+		Logger::get().enable_logs(
+			Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO |
+			Logger::LOG_LEVEL_WARNING | Logger::LOG_LEVEL_TRACE);
 
 		glfwInit();
 
 
 		gfx_instance = std::make_shared<Instance>(config);
 
-		auto physical_device = PhysicalDevice::pick_best_physical_device(*gfx_instance, config);
+		auto physical_device = PhysicalDevice::pick_best_physical_device(gfx_instance, config, nullptr);
 		if (!physical_device)
 			LOG_FATAL("{}", physical_device.error());
 		LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
@@ -44,7 +46,7 @@ namespace Engine
 
 		const auto window = std::make_shared<Window>(config);
 
-		const auto surface = std::make_shared<Surface>(gfx_instance, *window);
+		const auto surface = std::make_shared<Surface>(gfx_instance, window);
 
 		if (first_surface)
 			gfx_device->queues->init_first_surface(*surface, gfx_device->get_physical_device());

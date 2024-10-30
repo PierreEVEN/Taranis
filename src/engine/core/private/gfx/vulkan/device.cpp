@@ -6,6 +6,10 @@
 
 namespace Engine
 {
+	const std::vector device_extensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
 	Device::Device(const Config& config, const PhysicalDevice& physical_device) :
 		queues(std::make_unique<Queues>(physical_device)), physical_device(physical_device)
 	{
@@ -27,6 +31,8 @@ namespace Engine
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 			.queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),
 			.pQueueCreateInfos = queues_info.data(),
+			.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size()),
+			.ppEnabledExtensionNames = device_extensions.data(),
 			.pEnabledFeatures = &deviceFeatures,
 		};
 
@@ -51,5 +57,10 @@ namespace Engine
 	Device::~Device()
 	{
 		vkDestroyDevice(ptr, nullptr);
+	}
+
+	const std::vector<const char*>& Device::get_device_extensions()
+	{
+		return device_extensions;
 	}
 }

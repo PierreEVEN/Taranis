@@ -25,6 +25,8 @@ namespace Engine
 
 		bool render();
 
+		glm::ivec2 internal_extent() const;
+
 		void close()
 		{
 			should_close = true;

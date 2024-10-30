@@ -23,4 +23,11 @@ namespace Engine
 	{
 		return glfwWindowShouldClose(ptr) || should_close;
 	}
+
+	glm::ivec2 Window::internal_extent() const
+	{
+		int width, height;
+		glfwGetWindowSize(ptr, &width, &height);
+		return {width, height};
+	}
 }

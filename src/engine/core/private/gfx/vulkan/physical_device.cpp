@@ -1,19 +1,45 @@
 #include "gfx/vulkan/physical_device.hpp"
 
 #include <map>
+#include <set>
 
 #include "config.hpp"
+#include "gfx/window.hpp"
+#include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/instance.hpp"
+#include "gfx/vulkan/swapchain.hpp"
 
 namespace Engine
 {
+	SwapChainSupportDetails PhysicalDevice::query_swapchain_support(const Surface& surface) const
+	{
+		SwapChainSupportDetails details;
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ptr, surface.raw(), &details.capabilities);
+		uint32_t formatCount;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(ptr, surface.raw(), &formatCount, nullptr);
+
+		if (formatCount != 0)
+		{
+			details.formats.resize(formatCount);
+			vkGetPhysicalDeviceSurfaceFormatsKHR(ptr, surface.raw(), &formatCount, details.formats.data());
+		}
+		uint32_t presentModeCount;
+		vkGetPhysicalDeviceSurfacePresentModesKHR(ptr, surface.raw(), &presentModeCount, nullptr);
+
+		if (presentModeCount != 0)
+		{
+			details.presentModes.resize(presentModeCount);
+			vkGetPhysicalDeviceSurfacePresentModesKHR(ptr, surface.raw(), &presentModeCount,
+			                                          details.presentModes.data());
+		}
+		return details;
+	}
+
 	PhysicalDevice::PhysicalDevice(VkPhysicalDevice device) : ptr(device)
 	{
 	}
 
-	PhysicalDevice::~PhysicalDevice()
-	{
-	}
+	PhysicalDevice::~PhysicalDevice() = default;
 
 	std::vector<PhysicalDevice> PhysicalDevice::get_all_physical_devices(const Instance& instance)
 	{
@@ -27,14 +53,22 @@ namespace Engine
 		return found_devices;
 	}
 
-	Result<PhysicalDevice> PhysicalDevice::pick_best_physical_device(const Instance& instance, const Config& config)
+	Result<PhysicalDevice> PhysicalDevice::pick_best_physical_device(const std::weak_ptr<Instance>& instance,
+	                                                                 const Config& config,
+	                                                                 std::shared_ptr<Surface> optional_surface)
 	{
-		std::vector<PhysicalDevice> devices = get_all_physical_devices(instance);
+		std::vector<PhysicalDevice> devices = get_all_physical_devices(*instance.lock().get());
 		std::multimap<int32_t, PhysicalDevice> candidates;
 		std::vector<std::string> errors;
+
+		if (!optional_surface)
+		{
+			const auto temp_window = std::make_shared<Window>(WindowConfig{});
+			optional_surface = std::make_shared<Surface>(instance, temp_window);
+		}
 		for (const auto& device : devices)
 		{
-			auto score = device.rate_device(config);
+			auto score = device.rate_device(config, *optional_surface);
 			if (score)
 				candidates.insert(std::make_pair(score.get(), device));
 			else
@@ -52,7 +86,7 @@ namespace Engine
 		return Result<PhysicalDevice>::Ok(candidates.begin()->second);
 	}
 
-	Result<int32_t> PhysicalDevice::rate_device(const Config& config) const
+	Result<int32_t> PhysicalDevice::rate_device(const Config& config, const Surface& surface) const
 	{
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(ptr, &deviceProperties);
@@ -61,7 +95,15 @@ namespace Engine
 
 		if (config.allow_integrated_gpus && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 			return Result<int32_t>::Error(
-				"The required device {} is an integrated GPU but integrated gpu are not currently allowed");
+				"This device is an integrated GPU but integrated gpu are not currently allowed");
+
+		if (!check_extension_support())
+			return Result<int32_t>::Error("This device doesn't support swapchain extension");
+
+
+		SwapChainSupportDetails swapChainSupport = query_swapchain_support(surface);
+		if (swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty())
+			return Result<int32_t>::Error("This device doesn't support required swapchain configuration");
 
 		int32_t score = 0;
 
@@ -80,5 +122,22 @@ namespace Engine
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(ptr, &deviceProperties);
 		return deviceProperties.deviceName;
+	}
+
+	bool PhysicalDevice::check_extension_support() const
+	{
+		uint32_t extensionCount;
+		vkEnumerateDeviceExtensionProperties(ptr, nullptr, &extensionCount, nullptr);
+
+		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+		vkEnumerateDeviceExtensionProperties(ptr, nullptr, &extensionCount, availableExtensions.data());
+
+		std::set<std::string> requiredExtensions(Device::get_device_extensions().begin(),
+		                                         Device::get_device_extensions().end());
+
+		for (const auto& extension : availableExtensions)
+			requiredExtensions.erase(extension.extensionName);
+
+		return requiredExtensions.empty();
 	}
 }

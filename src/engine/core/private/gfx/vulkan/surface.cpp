@@ -14,9 +14,9 @@
 
 namespace Engine
 {
-	Surface::Surface(const std::weak_ptr<Instance>& instance, const Window& window): instance_ref(instance)
+	Surface::Surface(const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& in_window): window(in_window), instance_ref(instance)
 	{
-		VK_CHECK(glfwCreateWindowSurface(instance.lock()->raw(), window.raw(), nullptr, &ptr),
+		VK_CHECK(glfwCreateWindowSurface(instance.lock()->raw(), window.lock()->raw(), nullptr, &ptr),
 		         "Failed to create window surface");
 	}
 
