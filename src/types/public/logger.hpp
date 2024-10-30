@@ -1,6 +1,5 @@
 #pragma once
 
-#include "stringutils.hpp"
 #include "simplemacros.hpp"
 
 #if __has_include("filesystem")
@@ -13,22 +12,22 @@
 
 #if CXX_MSVC
 #if CXX_LEVEL_DEBUG
-#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__))
-#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__))
-#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__)); __debugbreak(); exit(EXIT_FAILURE); }
+#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__))
+#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__))
+#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, std::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__)); __debugbreak(); exit(EXIT_FAILURE); }
 #else
-#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, __VA_ARGS__)))
-#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__))
-#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__)); exit(EXIT_FAILURE); }
+#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str, __VA_ARGS__)))
+#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__))
+#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, std::format(format_str, __VA_ARGS__), ##__FUNCTION__, __LINE__, ##__FILE__)); exit(EXIT_FAILURE); }
 #endif
 #elif CXX_GCC
-#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, ##__VA_ARGS__), __FUNCTION__, __LINE__))
-#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, ##__VA_ARGS__), __FUNCTION__, __LINE__, __FILE__))
-#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str, ##__VA_ARGS__), __FUNCTION__, __LINE__, __FILE__)); exit(EXIT_FAILURE); }
+#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str, ##__VA_ARGS__), __FUNCTION__, __LINE__))
+#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str, ##__VA_ARGS__), __FUNCTION__, __LINE__, __FILE__))
+#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, std::format(format_str, ##__VA_ARGS__), __FUNCTION__, __LINE__, __FILE__)); exit(EXIT_FAILURE); }
 #elif CXX_CLANG
-#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str __VA_OPT__(,) __VA_ARGS__)))
-#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str __VA_OPT__(,) __VA_ARGS__), __FUNCTION__, __LINE__, __FILE__))
-#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, stringutils::format(format_str __VA_OPT__(,) __VA_ARGS__), __FUNCTION__, __LINE__, __FILE__)); exit(EXIT_FAILURE); }
+#define __SIMPLE_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str __VA_OPT__(,) __VA_ARGS__)))
+#define __ADVANCED_LOG(format_str, log_level, ...) Logger::get().print(Logger::LogItem(log_level, std::format(format_str __VA_OPT__(,) __VA_ARGS__), __FUNCTION__, __LINE__, __FILE__))
+#define __LOG_FULL_ASSERT(format_str, log_level, ...) { Logger::get().print(Logger::LogItem(log_level, std::format(format_str __VA_OPT__(,) __VA_ARGS__), __FUNCTION__, __LINE__, __FILE__)); exit(EXIT_FAILURE); }
 #endif
 
 #if CXX_MSVC

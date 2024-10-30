@@ -14,7 +14,7 @@ namespace Engine
 
 		[[nodiscard]] VkInstance raw() const { return ptr; }
 
-		static std::vector<const char*> validation_layers();
+		static const std::vector<const char*>& validation_layers();
 
 	private:
 		VkInstance ptr = VK_NULL_HANDLE;

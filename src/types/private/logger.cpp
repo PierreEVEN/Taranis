@@ -85,17 +85,17 @@ void Logger::file_print(const LogItem& in_log)
 #else
     localtime_r(&now, &time_str);
 #endif
-	strftime(time_buffer, sizeof(time_buffer), "%X", &time_str);
+	strftime(time_buffer, sizeof(time_buffer), "{}", &time_str);
 
 
 	auto worker_id = static_cast<uint8_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-	auto worker_id_str = stringutils::format("~%x", std::this_thread::get_id());
+	auto worker_id_str = stringutils::format("~{}", std::this_thread::get_id());
 	if (thread_identifier_func && thread_identifier_func() != 255)
 	{
-		worker_id_str = stringutils::format("#W%d", thread_identifier_func());
+		worker_id_str = stringutils::format("#W{}", thread_identifier_func());
 		worker_id = thread_identifier_func();
 	}
 
-	*log_file << stringutils::format("[%s %s] [%c] % s::% d : %s\n", time_buffer, worker_id_str.c_str(), get_log_level_char(in_log.log_level), in_log.function_name, in_log.line, in_log.message.c_str());
+	*log_file << stringutils::format("[{} {}] [{}] {}::{} : {}\n", time_buffer, worker_id_str.c_str(), get_log_level_char(in_log.log_level), in_log.function_name, in_log.line, in_log.message.c_str());
 	log_file->flush();
 }

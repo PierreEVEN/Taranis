@@ -88,17 +88,18 @@ void Logger::console_print(const LogItem& in_log)
 	static char time_buffer[80];
 	auto now = time(0);
 	localtime_s(&time_str, &now);
-	strftime(time_buffer, sizeof(time_buffer), "%X", &time_str);
+	strftime(time_buffer, sizeof(time_buffer), "{}", &time_str);
 
 	SetConsoleTextAttribute(h_console_out, get_log_level_color(in_log.log_level));
-	std::cerr << stringutils::format("[%s  ", time_buffer);
+	std::cerr << std::format("[{}  ", time_buffer);
 
-	auto worker_id = static_cast<uint8_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-	auto worker_id_str = stringutils::format("~%x", std::this_thread::get_id());
+	std::stringstream thread_id;
+	thread_id << std::this_thread::get_id();
+	auto worker_id_str = std::format("~{}", thread_id.str());
 	if (thread_identifier_func && thread_identifier_func() != 255)
 	{
-		worker_id_str = stringutils::format("#W%d", thread_identifier_func());
-		worker_id = thread_identifier_func();
+		worker_id_str = std::format("#W{}", thread_identifier_func());
+		auto worker_id = thread_identifier_func();
 
 		if (thread_identifier_func && worker_id != 255) SetConsoleTextAttribute(h_console_out, allowed_thread_colors[worker_id % allowed_thread_colors.size()]);
 	}
@@ -107,12 +108,12 @@ void Logger::console_print(const LogItem& in_log)
 		SetConsoleTextAttribute(h_console_out, CONSOLE_ASSERT);
 	}
 
-	std::cerr << stringutils::format("%s", worker_id_str.c_str());
+	std::cerr << std::format("{}", worker_id_str.c_str());
 	SetConsoleTextAttribute(h_console_out, get_log_level_color(in_log.log_level));
-	if (in_log.function_name) std::cerr << stringutils::format("] [%c] % s::% d : %s", get_log_level_char(in_log.log_level), in_log.function_name, in_log.line, in_log.message.c_str());
-	else std::cerr << stringutils::format("] [%c] : %s", get_log_level_char(in_log.log_level), in_log.message.c_str());
+	if (in_log.function_name) std::cerr << std::format("] [{}] {}::{} : {}", get_log_level_char(in_log.log_level), in_log.function_name, in_log.line, in_log.message.c_str());
+	else std::cerr << std::format("] [{}] : {}", get_log_level_char(in_log.log_level), in_log.message.c_str());
 
-	if (in_log.file) std::cerr << stringutils::format("\n\t=>%s", in_log.file);
+	if (in_log.file) std::cerr << std::format("\n\t=>{}", in_log.file);
 
 	std::cerr << std::endl;
 	SetConsoleTextAttribute(h_console_out, CONSOLE_DEFAULT);

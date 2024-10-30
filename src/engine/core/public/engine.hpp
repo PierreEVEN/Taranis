@@ -21,7 +21,7 @@ namespace Engine
 		Engine(Config& config);
 		~Engine();
 
-		std::shared_ptr<Window> new_window(const WindowConfig& config);
+		std::weak_ptr<Window> new_window(const WindowConfig& config);
 
 		void run();
 

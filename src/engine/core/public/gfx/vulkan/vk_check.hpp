@@ -7,7 +7,7 @@
 #define VK_CHECK(condition, text, ...)                                                            \
     if ((condition) != VK_SUCCESS)                                                                \
     {                                                                                             \
-        LOG_FATAL("%s : %s", magic_enum::enum_name(static_cast<VkResult>(condition)).data(), stringutils::format(text, __VA_ARGS__).c_str()); \
+        LOG_FATAL("{} : {}", magic_enum::enum_name(static_cast<VkResult>(condition)).data(), stringutils::format(text, __VA_ARGS__).c_str()); \
     }
 
 template <class T>
@@ -21,7 +21,7 @@ public:
 	T get()
 	{
 		if (!valid)
-			LOG_FATAL("Reading invalid result value : %s", result_error.c_str())
+			LOG_FATAL("Reading invalid result value : {}", result_error.c_str())
 		return value;
 	}
 

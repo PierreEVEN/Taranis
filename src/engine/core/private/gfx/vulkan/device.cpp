@@ -23,14 +23,12 @@ namespace Engine
 		}
 
 		VkPhysicalDeviceFeatures deviceFeatures{};
-		VkDeviceCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		createInfo.pQueueCreateInfos = queues_info.data();
-		createInfo.queueCreateInfoCount = queues_info.size();
-
-		createInfo.pEnabledFeatures = &deviceFeatures;
-
-		createInfo.enabledExtensionCount = 0;
+		VkDeviceCreateInfo createInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			.queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),
+			.pQueueCreateInfos = queues_info.data(),
+			.pEnabledFeatures = &deviceFeatures,
+		};
 
 		if (config.enable_validation_layers)
 		{
@@ -44,7 +42,8 @@ namespace Engine
 
 		VK_CHECK(vkCreateDevice(physical_device.raw(), &createInfo, nullptr, &ptr), "Failed to create device");
 
-		for (const auto& queue : queues->all_families()) {
+		for (const auto& queue : queues->all_families())
+		{
 			queue->init_queue(*this);
 		}
 	}

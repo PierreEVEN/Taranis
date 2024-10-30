@@ -21,6 +21,8 @@ namespace Engine
 
 		GLFWwindow* raw() const { return ptr; }
 
+		size_t get_id() const { return id; }
+
 		bool render();
 
 		void close()
@@ -29,8 +31,8 @@ namespace Engine
 		}
 
 	private:
-
-		bool should_close;
+		size_t id;
+		bool should_close = false;
 		GLFWwindow* ptr;
 	};
 }

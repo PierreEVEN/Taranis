@@ -16,6 +16,8 @@ namespace Engine
 {
 	Engine::Engine(Config& config)
 	{
+		Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG);
+
 		glfwInit();
 
 
@@ -23,8 +25,8 @@ namespace Engine
 
 		auto physical_device = PhysicalDevice::pick_best_physical_device(*gfx_instance, config);
 		if (!physical_device)
-			LOG_FATAL("%s", physical_device.error().c_str());
-		std::cout << "selected physical device " << physical_device.get().get_device_name() << std::endl;
+			LOG_FATAL("{}", physical_device.error());
+		LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
 
 		gfx_device = std::make_shared<Device>(config, physical_device.get());
 	}
@@ -34,7 +36,7 @@ namespace Engine
 		glfwTerminate();
 	}
 
-	std::shared_ptr<Window> Engine::new_window(const WindowConfig& config)
+	std::weak_ptr<Window> Engine::new_window(const WindowConfig& config)
 	{
 		bool first_surface = false;
 		if (windows.empty())
@@ -44,10 +46,9 @@ namespace Engine
 
 		const auto surface = std::make_shared<Surface>(gfx_instance, *window);
 
-
 		if (first_surface)
 			gfx_device->queues->init_first_surface(*surface, gfx_device->get_physical_device());
-		windows.emplace(reinterpret_cast<size_t>(window->raw()), window);
+		windows.emplace(window->get_id(), window);
 		return window;
 	}
 
@@ -65,6 +66,7 @@ namespace Engine
 
 			for (const auto& window : windows_to_remove)
 				windows.erase(window);
+
 
 			glfwPollEvents();
 		}
