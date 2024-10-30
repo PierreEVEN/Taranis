@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <string>
 #include <glm/vec2.hpp>
 
@@ -13,7 +14,7 @@ namespace Engine
 	};
 
 
-	class Window
+	class Window : public std::enable_shared_from_this<Window>
 	{
 	public:
 		Window(const WindowConfig& config);
@@ -32,7 +33,11 @@ namespace Engine
 			should_close = true;
 		}
 
+		void set_renderer();
+
 	private:
+
+		const	
 		size_t id;
 		bool should_close = false;
 		GLFWwindow* ptr;

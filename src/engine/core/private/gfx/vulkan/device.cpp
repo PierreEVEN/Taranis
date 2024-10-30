@@ -1,6 +1,7 @@
 #include "gfx/vulkan/device.hpp"
 
 #include "config.hpp"
+#include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 
@@ -62,5 +63,28 @@ namespace Engine
 	const std::vector<const char*>& Device::get_device_extensions()
 	{
 		return device_extensions;
+	}
+
+	void Device::declare_render_pass(const std::string& render_pass, const RenderPassInfos& render_pass_infos)
+	{
+		render_passes_declarations.emplace(render_pass, render_pass_infos);
+	}
+
+	std::shared_ptr<RenderPass> Device::get_render_pass(const std::string& render_pass)
+	{
+		const auto existing = render_passes.find(render_pass);
+
+		if (existing != render_passes.end())
+			return existing->second;
+
+		const auto infos = render_passes_declarations.find(render_pass);
+
+		if (infos != render_passes_declarations.end()) {
+			const auto new_render_pass = std::make_shared<RenderPass>(shared_from_this(), infos->second);
+			render_passes.emplace(render_pass, new_render_pass);
+			return new_render_pass;
+		}
+		return nullptr;
+
 	}
 }

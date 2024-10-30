@@ -30,4 +30,10 @@ namespace Engine
 		glfwGetWindowSize(ptr, &width, &height);
 		return {width, height};
 	}
+
+	void Window::set_renderer()
+	{
+		
+
+	}
 }
