@@ -1,14 +1,22 @@
 #include "gfx/window.hpp"
 
-#include <iostream>
 #include <GLFW/glfw3.h>
 
+#include "engine.hpp"
+#include "gfx/renderer/renderer.hpp"
 #include "gfx/renderer/renderer_definition.hpp"
 
 static size_t WINDOW_ID = 0;
 
 namespace Engine
 {
+	std::shared_ptr<Window> Window::create(const std::weak_ptr<Instance>& instance, const WindowConfig& config)
+	{
+		const auto window = std::shared_ptr<Window>(new Window(config));
+		window->surface = std::make_shared<Surface>(instance, window);
+		return window;
+	}
+
 	Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -33,9 +41,8 @@ namespace Engine
 		return {width, height};
 	}
 
-	void Window::set_renderer(std::shared_ptr<RenderPass> present_pass)
+	void Window::set_renderer(const std::shared_ptr<RenderPass>& present_pass)
 	{
-		
-
+		surface->set_renderer(present_pass);
 	}
 }

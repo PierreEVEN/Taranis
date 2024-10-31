@@ -11,8 +11,8 @@ namespace Engine
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
-	Device::Device(const Config& config, const PhysicalDevice& physical_device) :
-		queues(std::make_unique<Queues>(physical_device)), physical_device(physical_device)
+	Device::Device(const Config& config, const PhysicalDevice& physical_device, const Surface& surface) :
+		queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device)
 	{
 		float queuePriority = 1.0f;
 
@@ -48,11 +48,17 @@ namespace Engine
 		}
 
 		VK_CHECK(vkCreateDevice(physical_device.raw(), &createInfo, nullptr, &ptr), "Failed to create device");
+	}
 
-		for (const auto& queue : queues->all_families())
-		{
-			queue->init_queue(*this);
-		}
+
+	std::shared_ptr<Device> Device::create(const Config& config, const PhysicalDevice& physical_device,
+	                                       const Surface& surface)
+	{
+		const auto device = std::shared_ptr<Device>(new Device(config, physical_device, surface));
+		for (const auto& queue : device->queues->all_families())
+			queue->init_queue(device->weak_from_this());
+
+		return device;
 	}
 
 	Device::~Device()
@@ -60,31 +66,31 @@ namespace Engine
 		vkDestroyDevice(ptr, nullptr);
 	}
 
+	const Queues& Device::get_queues() const
+	{
+		return *queues;
+	}
+
 	const std::vector<const char*>& Device::get_device_extensions()
 	{
 		return device_extensions;
 	}
 
-	void Device::declare_render_pass(const RenderPassInfos& render_pass_infos)
+	std::shared_ptr<RenderPassObject> Device::find_or_create_render_pass(const RenderPassInfos& infos)
 	{
-		render_passes_declarations.emplace(render_pass_infos.name, render_pass_infos);
-	}
-
-	std::shared_ptr<RenderPassObject> Device::get_render_pass(const std::string& render_pass)
-	{
-		const auto existing = render_passes.find(render_pass);
+		const auto existing = render_passes.find(infos);
 
 		if (existing != render_passes.end())
 			return existing->second;
 
-		const auto infos = render_passes_declarations.find(render_pass);
+		const auto new_render_pass = std::make_shared<RenderPassObject>(shared_from_this(), infos);
+		render_passes.emplace(infos, new_render_pass);
+		return new_render_pass;
+	}
 
-		if (infos != render_passes_declarations.end()) {
-			const auto new_render_pass = std::make_shared<RenderPassObject>(shared_from_this(), infos->second);
-			render_passes.emplace(render_pass, new_render_pass);
-			return new_render_pass;
-		}
-		return nullptr;
-
+	void Device::destroy_resources()
+	{
+		render_passes.clear();
+		queues = nullptr;
 	}
 }

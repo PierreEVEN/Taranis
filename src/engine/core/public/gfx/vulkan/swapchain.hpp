@@ -3,7 +3,10 @@
 #include <memory>
 #include <vector>
 
+#include "gfx/renderer/renderer_definition.hpp"
+
 namespace Engine {
+	class Renderer;
 	class Surface;
 
 	class Device;
@@ -14,7 +17,7 @@ namespace Engine {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
-	class Swapchain
+	class Swapchain : public std::enable_shared_from_this<Swapchain>
 	{
 	public:
 		Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& Surface);
@@ -31,6 +34,9 @@ namespace Engine {
 
 		void render();
 
+		std::weak_ptr<Surface> get_surface() const { return surface; }
+
+		void set_renderer(const std::shared_ptr<RenderPass>& present_pass);
 	private:
 
 		void destroy();
@@ -42,6 +48,6 @@ namespace Engine {
 		VkExtent2D extent = {};
 		std::vector<VkImage> swapChainImages;
 		std::vector<VkImageView> image_views;
-
+		std::shared_ptr<Renderer> renderer;
 	};
 }

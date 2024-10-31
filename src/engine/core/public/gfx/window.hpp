@@ -3,6 +3,13 @@
 #include <string>
 #include <glm/vec2.hpp>
 
+namespace Engine
+{
+	class Device;
+	class Instance;
+	class Surface;
+}
+
 struct GLFWwindow;
 
 namespace Engine
@@ -19,7 +26,6 @@ namespace Engine
 	class Window : public std::enable_shared_from_this<Window>
 	{
 	public:
-		Window(const WindowConfig& config);
 		~Window();
 
 		GLFWwindow* raw() const { return ptr; }
@@ -35,11 +41,16 @@ namespace Engine
 			should_close = true;
 		}
 
-		void set_renderer(std::shared_ptr<RenderPass> present_pass);
+		void set_renderer(const std::shared_ptr<RenderPass>& present_pass);
+
+		std::shared_ptr<Surface> get_surface() const { return surface; }
+
+		static std::shared_ptr<Window> create(const std::weak_ptr<Instance>& instance, const WindowConfig& config);
 
 	private:
 
-		const	
+		Window(const WindowConfig& config);
+		std::shared_ptr<Surface> surface;
 		size_t id;
 		bool should_close = false;
 		GLFWwindow* ptr;

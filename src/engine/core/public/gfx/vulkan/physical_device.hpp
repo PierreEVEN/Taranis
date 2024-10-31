@@ -20,7 +20,7 @@ namespace Engine
 		~PhysicalDevice();
 
 		static std::vector<PhysicalDevice> get_all_physical_devices(const Instance& instance);
-		static Result<PhysicalDevice> pick_best_physical_device(const std::weak_ptr<Instance>& instance, const Config& config, std::shared_ptr<Surface> optional_surface);
+		static Result<PhysicalDevice> pick_best_physical_device(const std::weak_ptr<Instance>& instance, const Config& config, const std::shared_ptr<Surface>& surface);
 
 		Result<int32_t> rate_device(const Config& config, const Surface& surface) const;
 

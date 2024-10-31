@@ -2,6 +2,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "config.hpp"
+
 
 namespace Engine
 {
@@ -18,7 +20,7 @@ namespace Engine
 	class Engine
 	{
 	public:
-		Engine(Config& config);
+		Engine(Config config);
 		~Engine();
 
 		std::weak_ptr<Window> new_window(const WindowConfig& config);
@@ -33,6 +35,8 @@ namespace Engine
 
 		std::shared_ptr<Instance> gfx_instance;
 		std::shared_ptr<Device> gfx_device;
+
+		Config app_config;
 
 	};
 }

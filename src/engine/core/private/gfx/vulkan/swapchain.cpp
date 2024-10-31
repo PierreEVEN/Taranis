@@ -1,6 +1,7 @@
 #include "gfx/vulkan/swapchain.hpp"
 
 #include "gfx/window.hpp"
+#include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 #include "gfx/vulkan/surface.hpp"
@@ -165,5 +166,10 @@ namespace Engine
 			vkDestroySwapchainKHR(device.lock()->raw(), ptr, nullptr);
 			ptr = VK_NULL_HANDLE;
 		}
+	}
+
+	void Swapchain::set_renderer(const std::shared_ptr<RenderPass>& present_pass)
+	{
+		renderer = std::make_shared<Renderer>(device, present_pass, Renderer::Target::swapchain(weak_from_this()));
 	}
 }

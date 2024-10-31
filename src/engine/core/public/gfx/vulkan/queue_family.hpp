@@ -6,6 +6,7 @@
 
 namespace Engine
 {
+	class CommandPool;
 	class Surface;
 	class Device;
 }
@@ -24,6 +25,7 @@ namespace Engine
 		Compute,
 		AsyncCompute
 	};
+	const char* get_queue_specialization_name(QueueSpecialization elem);
 
 	static bool operator==(const QueueSpecialization& A, const QueueSpecialization& B)
 	{
@@ -40,8 +42,7 @@ namespace Engine
 
 		VkQueueFlags flags() const { return queue_flags; }
 		uint32_t index() const { return queue_index; }
-		void init_queue(const Device& device);
-		void mark_as_present_queue() { queue_support_present = true; };
+		void init_queue(const std::weak_ptr<Device>& device);
 
 	private:
 		uint32_t queue_index;
@@ -49,18 +50,17 @@ namespace Engine
 		bool queue_support_present;
 		std::mutex queue_lock;
 		VkQueue ptr = VK_NULL_HANDLE;
+		std::unique_ptr<CommandPool> command_pool;
 	};
 
 	class Queues
 	{
 	public:
-		Queues(const PhysicalDevice& physical_device);
+		Queues(const PhysicalDevice& physical_device, const Surface& surface);
 
 		std::shared_ptr<QueueFamily> get_queue(QueueSpecialization specialization) const;
 
 		std::vector<std::shared_ptr<QueueFamily>> all_families() const { return all_queues; }
-
-		void init_first_surface(const Surface& surface, const PhysicalDevice& device);
 
 	private:
 		void update_specializations();

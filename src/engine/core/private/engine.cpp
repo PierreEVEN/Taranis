@@ -14,42 +14,43 @@
 
 namespace Engine
 {
-	Engine::Engine(Config& config)
+	Engine::Engine(Config config) : app_config(std::move(config))
 	{
 		Logger::get().enable_logs(
 			Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO |
 			Logger::LOG_LEVEL_WARNING | Logger::LOG_LEVEL_TRACE);
 
 		glfwInit();
-
-
-		gfx_instance = std::make_shared<Instance>(config);
-
-		auto physical_device = PhysicalDevice::pick_best_physical_device(gfx_instance, config, nullptr);
-		if (!physical_device)
-			LOG_FATAL("{}", physical_device.error());
-		LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
-
-		gfx_device = std::make_shared<Device>(config, physical_device.get());
+		gfx_instance = std::make_shared<Instance>(app_config);
 	}
 
 	Engine::~Engine()
 	{
+		windows.clear();
+		if (gfx_device)
+			gfx_device->destroy_resources();
+		gfx_device = nullptr;
+		gfx_instance = nullptr;
 		glfwTerminate();
 	}
 
 	std::weak_ptr<Window> Engine::new_window(const WindowConfig& config)
 	{
-		bool first_surface = false;
-		if (windows.empty())
-			first_surface = true;
+		const auto window = Window::create(gfx_instance, config);
 
-		const auto window = std::make_shared<Window>(config);
-
-		const auto surface = std::make_shared<Surface>(gfx_instance, window);
-
-		if (first_surface)
-			gfx_device->queues->init_first_surface(*surface, gfx_device->get_physical_device());
+		if (!gfx_device)
+		{
+			if (auto physical_device = PhysicalDevice::pick_best_physical_device(
+				gfx_instance, app_config, window->get_surface()))
+			{
+				LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
+				gfx_device = Device::create(app_config, physical_device.get(), *window->get_surface());
+			}
+			else
+				LOG_FATAL("{}", physical_device.error())
+		}
+		window->get_surface()->create_swapchain(gfx_device);
+		//Todo : OnCreateWindow
 		windows.emplace(window->get_id(), window);
 		return window;
 	}

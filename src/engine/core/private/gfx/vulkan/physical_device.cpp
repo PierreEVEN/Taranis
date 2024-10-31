@@ -55,20 +55,15 @@ namespace Engine
 
 	Result<PhysicalDevice> PhysicalDevice::pick_best_physical_device(const std::weak_ptr<Instance>& instance,
 	                                                                 const Config& config,
-	                                                                 std::shared_ptr<Surface> optional_surface)
+	                                                                 const std::shared_ptr<Surface>& surface)
 	{
-		std::vector<PhysicalDevice> devices = get_all_physical_devices(*instance.lock().get());
+		std::vector<PhysicalDevice> devices = get_all_physical_devices(*instance.lock());
 		std::multimap<int32_t, PhysicalDevice> candidates;
 		std::vector<std::string> errors;
 
-		if (!optional_surface)
-		{
-			const auto temp_window = std::make_shared<Window>(WindowConfig{});
-			optional_surface = std::make_shared<Surface>(instance, temp_window);
-		}
 		for (const auto& device : devices)
 		{
-			auto score = device.rate_device(config, *optional_surface);
+			auto score = device.rate_device(config, *surface);
 			if (score)
 				candidates.insert(std::make_pair(score.get(), device));
 			else
