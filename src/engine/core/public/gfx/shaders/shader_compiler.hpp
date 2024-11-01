@@ -4,6 +4,7 @@
 
 #include "gfx/vulkan/shader_module.hpp"
 
+struct IDxcUtils;
 struct IDxcCompiler;
 
 namespace std::filesystem
@@ -22,6 +23,7 @@ namespace Engine
 		Spirv load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage);
 
 	private:
-		IDxcCompiler* compiler;
+		IDxcCompiler* compiler = nullptr;
+		IDxcUtils* utils = nullptr;
 	};
 }
