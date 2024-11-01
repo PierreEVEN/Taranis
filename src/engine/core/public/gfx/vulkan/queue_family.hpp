@@ -25,6 +25,7 @@ namespace Engine
 		Compute,
 		AsyncCompute
 	};
+
 	const char* get_queue_specialization_name(QueueSpecialization elem);
 
 	static bool operator==(const QueueSpecialization& A, const QueueSpecialization& B)
@@ -43,6 +44,8 @@ namespace Engine
 		VkQueueFlags flags() const { return queue_flags; }
 		uint32_t index() const { return queue_index; }
 		void init_queue(const std::weak_ptr<Device>& device);
+		VkQueue raw() const { return ptr; }
+		CommandPool& get_command_pool() const { return *command_pool; }
 
 	private:
 		uint32_t queue_index;

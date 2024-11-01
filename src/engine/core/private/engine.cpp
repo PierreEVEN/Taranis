@@ -44,7 +44,7 @@ namespace Engine
 				gfx_instance, app_config, window->get_surface()))
 			{
 				LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
-				gfx_device = Device::create(app_config, physical_device.get(), *window->get_surface());
+				gfx_device = Device::create(app_config, *gfx_instance, physical_device.get(), *window->get_surface());
 			}
 			else
 				LOG_FATAL("{}", physical_device.error())

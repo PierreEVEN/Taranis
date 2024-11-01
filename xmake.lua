@@ -3,11 +3,19 @@ add_rules("plugin.vsxmake.autoupdate")
 
 set_project("Ashwga")
 set_languages("clatest", "cxx20")
+set_allowedarchs("windows|x64")
+set_warnings("allextra")
+set_allowedmodes("debug", "release")
+set_defaultmode("release")
+set_rundir(".")
 
-DEBUG = false;
+DEBUG = true;
 BUILD_MONOLITHIC = true;
 
 
+
+set_runtimes(is_mode("debug") and "MTd" or "MT")
+		
 add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator")
 
 

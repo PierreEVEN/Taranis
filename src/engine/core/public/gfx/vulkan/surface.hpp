@@ -22,7 +22,7 @@ namespace Engine
 		std::weak_ptr<Window> get_window() const { return window; }
 
 		void create_swapchain(const std::weak_ptr<Device>& device);
-		void set_renderer(const std::shared_ptr<RenderPass>& present_pass);
+		void set_renderer(const std::shared_ptr<RendererStep>& present_pass);
 
 	private:
 

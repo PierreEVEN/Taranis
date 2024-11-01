@@ -15,11 +15,13 @@ namespace Engine
 	public:
 		CommandPool(std::weak_ptr<Device> device, const uint32_t& queue_family);
 		~CommandPool();
-		VkCommandBuffer allocate() const;
-		void free(VkCommandBuffer command_buffer) const;
+		VkCommandBuffer allocate();
+		void free(VkCommandBuffer command_buffer, std::thread::id thread);
+
 	private:
 		std::weak_ptr<Device> device;
 		std::mutex pool_mutex;
-		VkCommandPool ptr = VK_NULL_HANDLE;
+		uint32_t queue_family;
+		std::unordered_map<std::thread::id, VkCommandPool> command_pools;
 	};
 }

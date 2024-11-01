@@ -1,5 +1,8 @@
 #include "gfx/vulkan/device.hpp"
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
 #include "config.hpp"
 #include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/instance.hpp"
@@ -11,7 +14,19 @@ namespace Engine
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
-	Device::Device(const Config& config, const PhysicalDevice& physical_device, const Surface& surface) :
+	void Device::next_frame()
+	{
+		std::lock_guard lock(resource_mutex);
+		pending_kill_resources[current_image].clear();
+		current_image = (current_image + 1) % image_count;
+	}
+
+	void Device::wait() const
+	{
+		vkDeviceWaitIdle(ptr);
+	}
+
+	Device::Device(const Config& config, const Instance& instance, const PhysicalDevice& physical_device, const Surface& surface) :
 		queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device)
 	{
 		float queuePriority = 1.0f;
@@ -48,13 +63,23 @@ namespace Engine
 		}
 
 		VK_CHECK(vkCreateDevice(physical_device.raw(), &createInfo, nullptr, &ptr), "Failed to create device");
+
+
+
+		VmaAllocatorCreateInfo allocatorInfo = {
+			.physicalDevice = physical_device.raw(),
+			.device = ptr,
+			.instance = instance.raw(),
+		};
+		VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator), "failed to create vma allocator");
+
 	}
 
 
-	std::shared_ptr<Device> Device::create(const Config& config, const PhysicalDevice& physical_device,
+	std::shared_ptr<Device> Device::create(const Config& config, const Instance& instance, const PhysicalDevice& physical_device,
 	                                       const Surface& surface)
 	{
-		const auto device = std::shared_ptr<Device>(new Device(config, physical_device, surface));
+		const auto device = std::shared_ptr<Device>(new Device(config, instance, physical_device, surface));
 		for (const auto& queue : device->queues->all_families())
 			queue->init_queue(device->weak_from_this());
 

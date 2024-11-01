@@ -14,7 +14,7 @@ struct GLFWwindow;
 
 namespace Engine
 {
-	class RenderPass;
+	class RendererStep;
 
 	struct WindowConfig
 	{
@@ -34,14 +34,14 @@ namespace Engine
 
 		bool render();
 
-		glm::ivec2 internal_extent() const;
+		glm::uvec2 internal_extent() const;
 
 		void close()
 		{
 			should_close = true;
 		}
 
-		void set_renderer(const std::shared_ptr<RenderPass>& present_pass);
+		void set_renderer(const std::shared_ptr<RendererStep>& present_pass);
 
 		std::shared_ptr<Surface> get_surface() const { return surface; }
 

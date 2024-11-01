@@ -34,14 +34,14 @@ namespace Engine
 		return glfwWindowShouldClose(ptr) || should_close;
 	}
 
-	glm::ivec2 Window::internal_extent() const
+	glm::uvec2 Window::internal_extent() const
 	{
 		int width, height;
 		glfwGetWindowSize(ptr, &width, &height);
 		return {width, height};
 	}
 
-	void Window::set_renderer(const std::shared_ptr<RenderPass>& present_pass)
+	void Window::set_renderer(const std::shared_ptr<RendererStep>& present_pass)
 	{
 		surface->set_renderer(present_pass);
 	}

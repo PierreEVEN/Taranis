@@ -3,6 +3,7 @@
 #include "gfx/window.hpp"
 #include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 #include "gfx/vulkan/surface.hpp"
 
@@ -46,16 +47,16 @@ namespace Engine
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-	VkExtent2D Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D base_extent)
+	glm::uvec2 Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities, glm::uvec2 base_extent)
 	{
 		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 		{
-			return capabilities.currentExtent;
+			return glm::uvec2{capabilities.currentExtent.width, capabilities.currentExtent.height};
 		}
-		base_extent.width = std::clamp(base_extent.width, capabilities.minImageExtent.width,
-		                               capabilities.maxImageExtent.width);
-		base_extent.height = std::clamp(base_extent.height, capabilities.minImageExtent.height,
-		                                capabilities.maxImageExtent.height);
+		base_extent.x = std::clamp(static_cast<uint32_t>(base_extent.x), capabilities.minImageExtent.width,
+		                           capabilities.maxImageExtent.width);
+		base_extent.y = std::clamp(static_cast<uint32_t>(base_extent.y), capabilities.minImageExtent.height,
+		                           capabilities.maxImageExtent.height);
 
 		return base_extent;
 	}
@@ -70,14 +71,10 @@ namespace Engine
 			*surface.lock());
 
 		VkSurfaceFormatKHR surfaceFormat = choose_surface_format(swapchain_support.formats);
-		swapchain_format = surfaceFormat.format;
+		swapchain_format = static_cast<ColorFormat>(surfaceFormat.format);
 		VkPresentModeKHR presentMode = choose_present_mode(swapchain_support.presentModes);
 		const auto window_extent = surface.lock()->get_window().lock()->internal_extent();
-		extent = choose_extent(swapchain_support.capabilities,
-		                       VkExtent2D{
-			                       static_cast<uint32_t>(window_extent.x),
-			                       static_cast<uint32_t>(window_extent.y)
-		                       });
+		extent = choose_extent(swapchain_support.capabilities, window_extent);
 
 		uint32_t imageCount = swapchain_support.capabilities.minImageCount + 1;
 
@@ -93,7 +90,7 @@ namespace Engine
 			.minImageCount = imageCount,
 			.imageFormat = surfaceFormat.format,
 			.imageColorSpace = surfaceFormat.colorSpace,
-			.imageExtent = extent,
+			.imageExtent = VkExtent2D{static_cast<uint32_t>(extent.x), static_cast<uint32_t>(extent.y)},
 			.imageArrayLayers = 1,
 			.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			.preTransform = swapchain_support.capabilities.currentTransform,
@@ -124,31 +121,8 @@ namespace Engine
 		swapChainImages.resize(imageCount);
 		vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, swapChainImages.data());
 
-		image_views.resize(swapChainImages.size());
-		VkImageViewCreateInfo image_view_infos{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = swapchain_format,
-			.components = {
-				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-				.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-			},
-			.subresourceRange = {
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			}
-		};
-		for (size_t i = 0; i < swapChainImages.size(); i++)
-		{
-			image_view_infos.image = swapChainImages[i];
-			VK_CHECK(vkCreateImageView(device_ptr->raw(), &image_view_infos, nullptr, &image_views[i]),
-			         "failed to create swapchain image views");
-		}
+		image_view = std::make_shared<ImageView>(device, swapChainImages,
+		                                         ImageView::CreateInfos{.format = swapchain_format});
 	}
 
 	void Swapchain::render()
@@ -157,9 +131,7 @@ namespace Engine
 
 	void Swapchain::destroy()
 	{
-		for (const auto& view : image_views)
-			vkDestroyImageView(device.lock()->raw(), view, nullptr);
-		image_views.clear();
+		image_view = nullptr;
 
 		if (ptr != VK_NULL_HANDLE)
 		{
@@ -168,8 +140,14 @@ namespace Engine
 		}
 	}
 
-	void Swapchain::set_renderer(const std::shared_ptr<RenderPass>& present_pass)
+	void Swapchain::set_renderer(const std::shared_ptr<RendererStep>& present_step)
 	{
-		renderer = std::make_shared<Renderer>(device, present_pass, Renderer::Target::swapchain(weak_from_this()));
+		renderer = std::make_shared<SwapchainPresentPass>(
+			device.lock()->find_or_create_render_pass(present_step->get_infos()), weak_from_this(), present_step);
+	}
+
+	std::weak_ptr<ImageView> Swapchain::get_image_view() const
+	{
+		return image_view;
 	}
 }

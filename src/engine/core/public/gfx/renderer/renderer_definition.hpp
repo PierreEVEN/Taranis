@@ -7,6 +7,8 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+#include "gfx/types.hpp"
+
 namespace Engine
 {
 	class Window;
@@ -26,19 +28,19 @@ namespace Engine
 	class Attachment
 	{
 	public:
-		VkFormat get_format() const { return format; }
+		ColorFormat get_format() const { return format; }
 		bool is_present_pass() const { return target_type == AttachmentTargetType::Window; }
 		std::optional<ClearValue> clear_value() const;
 		bool is_depth() const { return target_type == AttachmentTargetType::InternalDepth; }
 
-		static Attachment depth(std::string name, VkFormat format)
+		static Attachment depth(std::string name, ColorFormat format)
 		{
 			Attachment attachment(AttachmentTargetType::InternalDepth, std::move(name));
 			attachment.format = format;
 			return attachment;
 		}
 
-		static Attachment color(std::string name, VkFormat format)
+		static Attachment color(std::string name, ColorFormat format)
 		{
 			Attachment attachment(AttachmentTargetType::InternalColor, std::move(name));
 			attachment.format = format;
@@ -64,7 +66,7 @@ namespace Engine
 
 		std::string name;
 		AttachmentTargetType target_type;
-		VkFormat format = VK_FORMAT_UNDEFINED;
+		ColorFormat format = ColorFormat::UNDEFINED;
 	};
 
 	class RenderPassInfos
@@ -78,15 +80,15 @@ namespace Engine
 		std::vector<Attachment> attachments;
 	};
 
-	class RenderPass : public std::enable_shared_from_this<RenderPass>
+	class RendererStep : public std::enable_shared_from_this<RendererStep>
 	{
 	public:
-		static std::shared_ptr<RenderPass> create(RenderPassName name, std::vector<Attachment> in_attachments)
+		static std::shared_ptr<RendererStep> create(RenderPassName name, std::vector<Attachment> in_attachments)
 		{
-			return std::shared_ptr<RenderPass>(new RenderPass(std::move(name), std::move(in_attachments)));
+			return std::shared_ptr<RendererStep>(new RendererStep(std::move(name), std::move(in_attachments)));
 		}
 
-		std::shared_ptr<RenderPass> attach(std::shared_ptr<RenderPass> dependency)
+		std::shared_ptr<RendererStep> attach(std::shared_ptr<RendererStep> dependency)
 		{
 			dependencies.emplace(std::move(dependency));
 			return shared_from_this();
@@ -94,12 +96,14 @@ namespace Engine
 
 		const RenderPassInfos& get_infos() const { return infos; }
 
+		const std::unordered_set<std::shared_ptr<RendererStep>>& get_dependencies() const { return dependencies; }
+
 	private:
 		std::string pass_name;
 		RenderPassInfos infos;
-		std::unordered_set<std::shared_ptr<RenderPass>> dependencies;
+		std::unordered_set<std::shared_ptr<RendererStep>> dependencies;
 
-		RenderPass(RenderPassName name, std::vector<Attachment> in_attachments) : pass_name(std::move(name))
+		RendererStep(RenderPassName name, std::vector<Attachment> in_attachments) : pass_name(std::move(name))
 		{
 			infos.attachments = std::move(in_attachments);
 		}
@@ -114,10 +118,10 @@ struct std::hash<Engine::RenderPassInfos>
 		auto ite = val.attachments.begin();
 		if (ite == val.attachments.end())
 			return 0;
-		size_t hash = std::hash<int32_t>()(ite->get_format() + 1);
+		size_t hash = std::hash<int32_t>()(static_cast<uint32_t>(ite->get_format()) + 1);
 		for (; ite != val.attachments.end(); ++ite)
 		{
-			hash ^= std::hash<int32_t>()(ite->get_format() + 1) * 13;
+			hash ^= std::hash<int32_t>()(static_cast<uint32_t>(ite->get_format()) + 1) * 13;
 		}
 		return hash;
 	}
