@@ -19,8 +19,8 @@ namespace Engine
 
 	Swapchain::~Swapchain()
 	{
-		renderer = nullptr;
 		destroy();
+		renderer = nullptr;
 	}
 
 	VkSurfaceFormatKHR Swapchain::choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats)
@@ -172,9 +172,9 @@ namespace Engine
 		                                                      VK_NULL_HANDLE, &image_index);
 		if (acquire_result != VK_SUCCESS)
 		{
-			if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
+			if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR || acquire_result == VK_SUBOPTIMAL_KHR)
 				return true;
-			LOG_FATAL("Failed to acquire next swapchain image");
+			VK_CHECK(acquire_result, "Failed to acquire next swapchain image");
 		}
 
 		renderer->render(image_index, current_frame);
@@ -196,7 +196,7 @@ namespace Engine
 		if (submit_result == VK_ERROR_OUT_OF_DATE_KHR || submit_result == VK_SUBOPTIMAL_KHR)
 			return true;
 		if (submit_result != VK_SUCCESS)
-			LOG_FATAL("Failed to present images to swap chain");
+			VK_CHECK(acquire_result, "Failed to present swapchain image");
 
 		return false;
 	}

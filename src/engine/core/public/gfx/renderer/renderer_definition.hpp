@@ -122,9 +122,9 @@ namespace Engine
 	class PresentStep : public std::enable_shared_from_this<PresentStep>
 	{
 	public:
-		static std::shared_ptr<PresentStep> create(RenderPassName name)
+		static std::shared_ptr<PresentStep> create(RenderPassName name, ClearValue clear_value = ClearValue::none())
 		{
-			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name)));
+			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name), std::move(clear_value)));
 		}
 
 		std::shared_ptr<PresentStep> attach(std::shared_ptr<RendererStep> dependency)
@@ -136,10 +136,10 @@ namespace Engine
 		std::shared_ptr<RendererStep> init_for_swapchain(const Swapchain& swapchain) const;
 
 	private:
-		PresentStep(RenderPassName name) : pass_name(std::move(name))
+		PresentStep(RenderPassName name, ClearValue in_clear_value) : clear_value(in_clear_value), pass_name(std::move(name))
 		{
 		}
-
+		ClearValue clear_value;
 		RenderPassName pass_name;
 		std::unordered_set<std::shared_ptr<RendererStep>> dependencies;
 	};

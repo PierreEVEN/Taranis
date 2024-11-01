@@ -12,7 +12,7 @@ int main()
 
 	const auto main_window = engine.new_window(Engine::WindowConfig{});
 	main_window.lock()->set_renderer(
-		Engine::PresentStep::create("present_pass")
+		Engine::PresentStep::create("present_pass", Engine::ClearValue::color({ 1, 0, 0 ,1 }))
 		->attach(Engine::RendererStep::create("forward_pass", {
 			                                      Engine::Attachment::color(
 				                                      "color", Engine::ColorFormat::R8G8B8A8_UNORM),
