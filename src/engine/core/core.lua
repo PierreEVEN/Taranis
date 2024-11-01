@@ -1,4 +1,4 @@
-declare_module("core", {"types"}, {"vulkan-loader", "vulkan-validationlayers",{name =  "vulkan-memory-allocator", public = true}, "glfw", {name = "glm", public = true}, "imgui docking", "stb"}, false)
+declare_module("core", {"types"}, {"vulkan-loader", "directxshadercompiler", "vulkan-validationlayers", "vulkan-memory-allocator", "glfw", {name = "glm", public = true}, "imgui docking", "stb"}, false)
 
 target("core")
 set_group("engine")
