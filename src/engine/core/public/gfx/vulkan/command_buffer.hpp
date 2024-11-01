@@ -17,7 +17,7 @@ namespace Engine
 
 		void begin(bool one_time) const;
 		void end() const;
-		void submit(const Fence* optional_fence = nullptr) const;
+		void submit(VkSubmitInfo submit_infos, const Fence* optional_fence = nullptr) const;
 
 	private:
 		VkCommandBuffer ptr;

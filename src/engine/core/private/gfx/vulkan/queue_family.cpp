@@ -130,10 +130,17 @@ namespace Engine
 	{
 	}
 
+
 	void QueueFamily::init_queue(const std::weak_ptr<Device>& device)
 	{
 		vkGetDeviceQueue(device.lock()->raw(), index(), 0, &ptr);
 		command_pool = std::make_unique<CommandPool>(device, index());
+	}
+
+	VkResult QueueFamily::present(const VkPresentInfoKHR& present_infos) const
+	{
+		assert(queue_support_present);
+		return vkQueuePresentKHR(ptr, &present_infos);
 	}
 
 	auto Queues::find_best_suited_queue_family(
@@ -151,7 +158,7 @@ namespace Engine
 				continue;
 			uint32_t score = 0;
 			best_queue = family;
-			uint32_t max_value = desired_queue_flags.size();
+			uint32_t max_value = static_cast<uint32_t>(desired_queue_flags.size());
 			for (int power = 0; power < desired_queue_flags.size(); ++power)
 				if (family->flags() & desired_queue_flags[power])
 					score += max_value - power;

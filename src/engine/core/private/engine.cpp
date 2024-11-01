@@ -60,7 +60,6 @@ namespace Engine
 		while (!windows.empty())
 		{
 			std::vector<size_t> windows_to_remove;
-
 			for (const auto& [id, window] : windows)
 			{
 				if (window->render())
@@ -69,9 +68,8 @@ namespace Engine
 
 			for (const auto& window : windows_to_remove)
 				windows.erase(window);
-
-
 			glfwPollEvents();
+			gfx_device->next_frame();
 		}
 	}
 }

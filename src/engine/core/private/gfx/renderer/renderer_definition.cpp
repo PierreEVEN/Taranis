@@ -1,9 +1,13 @@
 #include "gfx/renderer/renderer_definition.hpp"
 
+#include "gfx/vulkan/swapchain.hpp"
+
 namespace Engine
 {
-	std::optional<ClearValue> Attachment::clear_value() const
+	std::shared_ptr<RendererStep> PresentStep::init_for_swapchain(const Swapchain& swapchain) const
 	{
-		return {};
+		auto renderer_step = RendererStep::create(pass_name, { Attachment::color("color", swapchain.get_format()) });
+		renderer_step->mark_as_present_pass();
+		return renderer_step;
 	}
 }

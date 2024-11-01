@@ -3,20 +3,23 @@
 #include "gfx/window.hpp"
 #include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/queue_family.hpp"
+#include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/surface.hpp"
 
 namespace Engine
 {
 	Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface) : surface(
-		in_surface), device(in_device)
+			in_surface), device(in_device)
 	{
 		create_or_recreate();
 	}
 
 	Swapchain::~Swapchain()
 	{
+		renderer = nullptr;
 		destroy();
 	}
 
@@ -90,7 +93,7 @@ namespace Engine
 			.minImageCount = imageCount,
 			.imageFormat = surfaceFormat.format,
 			.imageColorSpace = surfaceFormat.colorSpace,
-			.imageExtent = VkExtent2D{static_cast<uint32_t>(extent.x), static_cast<uint32_t>(extent.y)},
+			.imageExtent = VkExtent2D{(extent.x), (extent.y)},
 			.imageArrayLayers = 1,
 			.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			.preTransform = swapchain_support.capabilities.currentTransform,
@@ -123,14 +126,84 @@ namespace Engine
 
 		image_view = std::make_shared<ImageView>(device, swapChainImages,
 		                                         ImageView::CreateInfos{.format = swapchain_format});
+
+		image_available_semaphores.clear();
+		in_flight_fences.clear();
+		for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
+		{
+			image_available_semaphores.emplace_back(std::make_shared<Semaphore>(device));
+			in_flight_fences.emplace_back(std::make_shared<Fence>(device, true));
+		}
 	}
 
 	void Swapchain::render()
 	{
+		if (!renderer)
+			return;
+		if (!render_internal())
+			return;
+
+		create_or_recreate();
+		renderer->resize(extent);
+		if (render_internal())
+			LOG_ERROR("Failed to render frame");
+	}
+
+	const Semaphore& Swapchain::get_image_available_semaphore(uint32_t image_index) const
+	{
+		return *image_available_semaphores[image_index];
+	}
+
+	const Fence& Swapchain::get_in_flight_fence(uint32_t image_index) const
+	{
+		return *in_flight_fences[image_index];
+	}
+
+	bool Swapchain::render_internal()
+	{
+		const auto device_ref = device.lock();
+		uint32_t current_frame = device.lock()->get_current_image();
+
+		in_flight_fences[current_frame]->wait();
+
+		uint32_t image_index;
+		const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX,
+		                                                      image_available_semaphores[current_frame]->raw(),
+		                                                      VK_NULL_HANDLE, &image_index);
+		if (acquire_result != VK_SUCCESS)
+		{
+			if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
+				return true;
+			LOG_FATAL("Failed to acquire next swapchain image");
+		}
+
+		renderer->render(image_index, current_frame);
+
+		// Submit to present queue
+		const auto render_finished_semaphore = renderer->get_render_finished_semaphore(image_index).raw();
+		const VkPresentInfoKHR present_infos{
+			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &render_finished_semaphore,
+			.swapchainCount = 1,
+			.pSwapchains = &ptr,
+			.pImageIndices = &image_index,
+			.pResults = nullptr,
+		};
+
+		const VkResult submit_result = device_ref->get_queues().get_queue(QueueSpecialization::Present)->present(
+			present_infos);
+		if (submit_result == VK_ERROR_OUT_OF_DATE_KHR || submit_result == VK_SUBOPTIMAL_KHR)
+			return true;
+		if (submit_result != VK_SUCCESS)
+			LOG_FATAL("Failed to present images to swap chain");
+
+		return false;
 	}
 
 	void Swapchain::destroy()
 	{
+		device.lock()->wait();
 		image_view = nullptr;
 
 		if (ptr != VK_NULL_HANDLE)
@@ -140,10 +213,11 @@ namespace Engine
 		}
 	}
 
-	void Swapchain::set_renderer(const std::shared_ptr<RendererStep>& present_step)
+	void Swapchain::set_renderer(const std::shared_ptr<PresentStep>& present_step)
 	{
+		const auto render_step = present_step->init_for_swapchain(*this);
 		renderer = std::make_shared<SwapchainPresentPass>(
-			device.lock()->find_or_create_render_pass(present_step->get_infos()), weak_from_this(), present_step);
+			device.lock()->find_or_create_render_pass(render_step->get_infos()), weak_from_this(), render_step);
 	}
 
 	std::weak_ptr<ImageView> Swapchain::get_image_view() const

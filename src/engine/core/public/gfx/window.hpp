@@ -5,6 +5,11 @@
 
 namespace Engine
 {
+	class PresentStep;
+}
+
+namespace Engine
+{
 	class Device;
 	class Instance;
 	class Surface;
@@ -19,7 +24,7 @@ namespace Engine
 	struct WindowConfig
 	{
 		std::string name = "no name";
-		glm::vec2 resolution = {800, 600};
+		glm::uvec2 resolution = {800, 600};
 	};
 
 
@@ -41,7 +46,7 @@ namespace Engine
 			should_close = true;
 		}
 
-		void set_renderer(const std::shared_ptr<RendererStep>& present_pass);
+		void set_renderer(const std::shared_ptr<PresentStep>& present_pass) const;
 
 		std::shared_ptr<Surface> get_surface() const { return surface; }
 

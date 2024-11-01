@@ -13,8 +13,8 @@ namespace Engine
 	ImageView::ImageView(std::weak_ptr<Device> in_device, std::vector<VkImage> raw_image,
 	                     CreateInfos create_infos): device(in_device)
 	{
-		for (const auto image : raw_image)
-			views.emplace_back(std::make_shared<ImageViewResource>(device, image, create_infos));
+		for (const auto img : raw_image)
+			views.emplace_back(std::make_shared<ImageViewResource>(device, img, create_infos));
 	}
 
 	ImageView::~ImageView()
@@ -31,8 +31,8 @@ namespace Engine
 	std::vector<VkImageView> ImageView::raw() const
 	{
 		std::vector<VkImageView> ptrs;
-		for (const auto& views : views)
-			ptrs.emplace_back(views->ptr);
+		for (const auto& view : views)
+			ptrs.emplace_back(view->ptr);
 		return ptrs;
 	}
 

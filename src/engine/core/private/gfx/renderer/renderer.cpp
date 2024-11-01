@@ -1,8 +1,10 @@
 #include "gfx/renderer/renderer.hpp"
 
+#include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
+#include "gfx/vulkan/semaphore.hpp"
 
 namespace Engine
 {
@@ -30,12 +32,14 @@ namespace Engine
 			attachments.emplace_back(VkAttachmentDescription{
 				.format = static_cast<VkFormat>(attachment.get_format()),
 				.samples = VK_SAMPLE_COUNT_1_BIT,
-				.loadOp = attachment.clear_value() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.loadOp = attachment.clear_value().is_none()
+					          ? VK_ATTACHMENT_LOAD_OP_DONT_CARE
+					          : VK_ATTACHMENT_LOAD_OP_CLEAR,
 				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-				.finalLayout = attachment.is_present_pass()
+				.finalLayout = infos.present_pass
 					               ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 					               : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			});
@@ -94,16 +98,104 @@ namespace Engine
 	}
 
 	RenderPassInstanceBase::RenderPassInstanceBase(std::shared_ptr<RenderPassObject> in_render_pass) : render_pass(
-			in_render_pass), device(in_render_pass->get_device())
+		in_render_pass), device(in_render_pass->get_device())
 	{
 	}
 
-	void RenderPassInstanceBase::render()
+	void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t current_frame)
 	{
 		rendered = true;
 
 		for (const auto& child : children)
-			child->render();
+			child->render(current_frame, current_frame);
+
+		// Begin get record
+		const auto framebuffer = framebuffers[output_framebuffer];
+		framebuffer->get_command_buffer().begin(false);
+
+		// Begin render pass
+		std::vector<VkClearValue> clear_values;
+		for (auto& attachment : render_pass.lock()->get_infos().attachments)
+		{
+			VkClearValue clear_value;
+			if (attachment.clear_value().is_color())
+				clear_value.color = VkClearColorValue{
+					.float32 = {
+						attachment.clear_value().color().x, attachment.clear_value().color().y,
+						attachment.clear_value().color().z, attachment.clear_value().color().w
+					}
+				};
+			else if (attachment.clear_value().is_depth_stencil())
+				clear_value.depthStencil = VkClearDepthStencilValue{
+					attachment.clear_value().depth_stencil().x, (uint32_t)attachment.clear_value().depth_stencil().y
+				};
+			clear_values.emplace_back(clear_value);
+		}
+
+		const VkRenderPassBeginInfo begin_infos = {
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.renderPass = render_pass.lock()->raw(),
+			.framebuffer = framebuffer->raw(),
+			.renderArea =
+			{
+				.offset = {0, 0},
+				.extent = {resolution().x, resolution().y},
+			},
+			.clearValueCount = static_cast<uint32_t>(clear_values.size()),
+			.pClearValues = clear_values.data(),
+		};
+		vkCmdBeginRenderPass(framebuffer->get_command_buffer().raw(), &begin_infos, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Set viewport and scissor
+		const VkViewport viewport{
+			.x = 0,
+			.y = static_cast<float>(resolution().y),
+			// Flip viewport vertically to avoid textures to being displayed upside down
+			.width = static_cast<float>(resolution().x),
+			.height = -static_cast<float>(resolution().y),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f,
+		};
+		vkCmdSetViewport(framebuffer->get_command_buffer().raw(), 0, 1, &viewport);
+
+		const VkRect2D scissor{
+			.offset = VkOffset2D{0, 0},
+			.extent = VkExtent2D{resolution().x, resolution().y},
+		};
+		vkCmdSetScissor(framebuffer->get_command_buffer().raw(), 0, 1, &scissor);
+
+
+		// @TODO DRAWW
+
+
+		// End command get
+		vkCmdEndRenderPass(framebuffer->get_command_buffer().raw());
+
+		framebuffer->get_command_buffer().end();
+
+		// Submit get (wait children completion using children_semaphores)
+		std::vector<VkSemaphore> children_semaphores;
+		for (const auto& child : children)
+			children_semaphores.emplace_back(child->framebuffers[current_frame]->render_finished_semaphore().raw());
+		if (const auto& wait_semaphore = get_wait_semaphores(current_frame))
+			children_semaphores.emplace_back(wait_semaphore->raw());
+		
+		std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(),
+		                                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+		const auto command_buffer_ptr = framebuffer->get_command_buffer().raw();
+		const auto render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
+		const VkSubmitInfo submit_infos{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.waitSemaphoreCount = static_cast<uint32_t>(children_semaphores.size()),
+			.pWaitSemaphores = children_semaphores.data(),
+			.pWaitDstStageMask = wait_stage.data(),
+			.commandBufferCount = 1,
+			.pCommandBuffers = &command_buffer_ptr,
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = &render_finished_semaphore_ptr,
+		};
+
+		framebuffer->get_command_buffer().submit(submit_infos, get_signal_fence(current_frame));
 	}
 
 	void RenderPassInstanceBase::new_frame_internal()
@@ -116,14 +208,14 @@ namespace Engine
 	SwapchainPresentPass::SwapchainPresentPass(std::shared_ptr<RenderPassObject> render_pass,
 	                                           std::weak_ptr<Swapchain> in_target,
 	                                           std::shared_ptr<RendererStep> present_step): RenderPassRoot(
-			render_pass, present_step), swapchain(in_target)
+		render_pass, present_step), swapchain(in_target)
 	{
 		resize(swapchain.lock()->get_extent());
 	}
 
 	std::vector<std::weak_ptr<ImageView>> SwapchainPresentPass::get_attachments() const
 	{
-		return { swapchain.lock()->get_image_view() };
+		return {swapchain.lock()->get_image_view()};
 	}
 
 	glm::uvec2 SwapchainPresentPass::resolution() const
@@ -138,8 +230,25 @@ namespace Engine
 
 		int image_index = 0;
 		framebuffers.clear();
-		for (const auto& _ : swapchain.lock()->get_image_view().lock()->raw())
-			framebuffers.emplace_back(render_pass.lock()->get_device(), *this, image_index++);
+		const size_t image_count = swapchain.lock()->get_image_view().lock()->raw().size();
+		for (size_t i = 0; i < image_count; ++i)
+			framebuffers.emplace_back(
+				std::make_shared<Framebuffer>(render_pass.lock()->get_device(), *this, image_index++));
+	}
+
+	const Semaphore& SwapchainPresentPass::get_render_finished_semaphore(uint32_t image_index) const
+	{
+		return framebuffers[image_index]->render_finished_semaphore();
+	}
+
+	const Semaphore* SwapchainPresentPass::get_wait_semaphores(uint32_t image_index) const
+	{
+		return &swapchain.lock()->get_image_available_semaphore(image_index);
+	}
+
+	const Fence* SwapchainPresentPass::get_signal_fence(uint32_t image_index) const
+	{
+		return &swapchain.lock()->get_in_flight_fence(image_index);
 	}
 
 	InternalPassInstance::InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass)
@@ -206,9 +315,9 @@ namespace Engine
 		}
 	}
 
-	void RenderPassRoot::render()
+	void RenderPassRoot::render(uint32_t output_framebuffer, uint32_t current_frame)
 	{
 		new_frame_internal();
-		RenderPassInstanceBase::render();
+		RenderPassInstanceBase::render(output_framebuffer, current_frame);
 	}
 }

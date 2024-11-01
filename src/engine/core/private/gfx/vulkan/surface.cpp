@@ -32,8 +32,14 @@ namespace Engine
 		swapchain = std::make_shared<Swapchain>(device, weak_from_this());
 	}
 
-	void Surface::set_renderer(const std::shared_ptr<RendererStep>& present_pass)
+	void Surface::set_renderer(const std::shared_ptr<PresentStep>& present_pass)
 	{
 		swapchain->set_renderer(present_pass);
+	}
+
+	void Surface::render()
+	{
+		if (swapchain)
+			swapchain->render();
 	}
 }

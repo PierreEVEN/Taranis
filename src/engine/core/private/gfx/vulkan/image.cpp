@@ -87,6 +87,7 @@ namespace Engine
 		case EBufferType::IMMEDIATE:
 			return images[device.lock()->get_current_image()]->ptr;
 		}
+		LOG_FATAL("Unhandled buffer type");
 	}
 
 	bool Image::resize(glm::uvec2 new_size)
@@ -268,14 +269,14 @@ namespace Engine
 		command_buffer.end();
 
 		const Fence fence(device());
-		command_buffer.submit(&fence);
+		command_buffer.submit({}, &fence);
 		fence.wait();
 
 		command_buffer = CommandBuffer(device(), QueueSpecialization::Graphic);
 		command_buffer.begin(true);
 		set_image_layout(command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		command_buffer.end();
-		command_buffer.submit(&fence);
+		command_buffer.submit({}, &fence);
 		fence.wait();
 	}
 

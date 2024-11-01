@@ -11,7 +11,7 @@ static const std::vector validationLayers = {
 };
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-                                                    VkDebugUtilsMessageTypeFlagsEXT message_type,
+                                                    VkDebugUtilsMessageTypeFlagsEXT,
                                                     const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*)
 {
 	std::string context = "FAILED TO PARSE MESSAGE";

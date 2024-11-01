@@ -5,68 +5,76 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include "gfx/types.hpp"
 
 namespace Engine
 {
+	class Swapchain;
 	class Window;
 	using RenderPassName = std::string;
 
 	class ClearValue
 	{
-	};
+	public:
+		static ClearValue none() { return {{}, {}}; }
+		static ClearValue color(glm::vec4 color) { return {color, {}}; }
+		static ClearValue depth_stencil(glm::vec2 depth_stencil) { return {{}, depth_stencil}; }
+		bool is_none() const { return color_val && depth_stencil_val; }
+		bool is_color() const { return color_val.has_value(); }
+		bool is_depth_stencil() const { return depth_stencil_val.has_value(); }
+		glm::vec4 color() const { return *color_val; }
+		glm::vec2 depth_stencil() const { return *depth_stencil_val; }
 
-	enum class AttachmentTargetType
-	{
-		InternalColor,
-		InternalDepth,
-		Window
+	private:
+		ClearValue(const std::optional<glm::vec4>& col, std::optional<glm::vec2> depth) : color_val(col),
+			depth_stencil_val(depth)
+		{
+		}
+
+		std::optional<glm::vec4> color_val;
+		std::optional<glm::vec2> depth_stencil_val;
 	};
 
 	class Attachment
 	{
 	public:
 		ColorFormat get_format() const { return format; }
-		bool is_present_pass() const { return target_type == AttachmentTargetType::Window; }
-		std::optional<ClearValue> clear_value() const;
-		bool is_depth() const { return target_type == AttachmentTargetType::InternalDepth; }
+		ClearValue clear_value() const { return clear_value_val; }
+		bool is_depth() const { return is_depth_format(format); }
 
-		static Attachment depth(std::string name, ColorFormat format)
+		static Attachment depth(std::string name, ColorFormat format, ClearValue clear_value = ClearValue::none())
 		{
-			Attachment attachment(AttachmentTargetType::InternalDepth, std::move(name));
+			Attachment attachment(std::move(name), clear_value);
 			attachment.format = format;
 			return attachment;
 		}
 
-		static Attachment color(std::string name, ColorFormat format)
+		static Attachment color(std::string name, ColorFormat format, ClearValue clear_value = ClearValue::none())
 		{
-			Attachment attachment(AttachmentTargetType::InternalColor, std::move(name));
+			Attachment attachment(std::move(name), clear_value);
 			attachment.format = format;
-			return attachment;
-		}
-
-		static Attachment window(std::string name)
-		{
-			Attachment attachment(AttachmentTargetType::Window, std::move(name));
 			return attachment;
 		}
 
 		bool operator==(const Attachment& other) const
 		{
-			return get_format() == other.get_format() && target_type == other.target_type;
+			assert(format != ColorFormat::UNDEFINED);
+			return get_format() == other.get_format() && clear_value().is_none() == other.clear_value().is_none();
 		}
 
 	private:
-		Attachment(AttachmentTargetType in_target_type, std::string in_name) : name(std::move(in_name)), target_type(
-			                                                                       in_target_type)
+		Attachment(std::string in_name, const ClearValue& in_clear_value) :
+			name(std::move(in_name)), clear_value_val(in_clear_value)
 		{
 		}
 
 		std::string name;
-		AttachmentTargetType target_type;
 		ColorFormat format = ColorFormat::UNDEFINED;
+		ClearValue clear_value_val;
 	};
 
 	class RenderPassInfos
@@ -74,9 +82,10 @@ namespace Engine
 	public:
 		bool operator==(const RenderPassInfos& other) const
 		{
-			return attachments == other.attachments;
+			return attachments == other.attachments && present_pass == other.present_pass;
 		}
 
+		bool present_pass = false;
 		std::vector<Attachment> attachments;
 	};
 
@@ -95,6 +104,7 @@ namespace Engine
 		}
 
 		const RenderPassInfos& get_infos() const { return infos; }
+		void mark_as_present_pass() { infos.present_pass = true; }
 
 		const std::unordered_set<std::shared_ptr<RendererStep>>& get_dependencies() const { return dependencies; }
 
@@ -107,6 +117,31 @@ namespace Engine
 		{
 			infos.attachments = std::move(in_attachments);
 		}
+	};
+
+	class PresentStep : public std::enable_shared_from_this<PresentStep>
+	{
+	public:
+		static std::shared_ptr<PresentStep> create(RenderPassName name)
+		{
+			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name)));
+		}
+
+		std::shared_ptr<PresentStep> attach(std::shared_ptr<RendererStep> dependency)
+		{
+			dependencies.emplace(std::move(dependency));
+			return shared_from_this();
+		}
+
+		std::shared_ptr<RendererStep> init_for_swapchain(const Swapchain& swapchain) const;
+
+	private:
+		PresentStep(RenderPassName name) : pass_name(std::move(name))
+		{
+		}
+
+		RenderPassName pass_name;
+		std::unordered_set<std::shared_ptr<RendererStep>> dependencies;
 	};
 }
 

@@ -20,7 +20,7 @@ namespace Engine
 	Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		ptr = glfwCreateWindow(config.resolution.x, config.resolution.y, config.name.c_str(), nullptr, nullptr);
+		ptr = glfwCreateWindow(static_cast<int>(config.resolution.x), static_cast<int>(config.resolution.y), config.name.c_str(), nullptr, nullptr);
 		glfwShowWindow(ptr);
 	}
 
@@ -31,6 +31,8 @@ namespace Engine
 
 	bool Window::render()
 	{
+		surface->render();
+
 		return glfwWindowShouldClose(ptr) || should_close;
 	}
 
@@ -41,7 +43,7 @@ namespace Engine
 		return {width, height};
 	}
 
-	void Window::set_renderer(const std::shared_ptr<RendererStep>& present_pass)
+	void Window::set_renderer(const std::shared_ptr<PresentStep>& present_pass) const
 	{
 		surface->set_renderer(present_pass);
 	}

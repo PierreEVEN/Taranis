@@ -42,7 +42,10 @@ namespace Engine
 		[[nodiscard]] const std::weak_ptr<RenderPassObject>& get_render_pass() const { return render_pass; }
 		virtual std::vector<std::weak_ptr<ImageView>> get_attachments() const = 0;
 
-		virtual void render();
+		virtual void render(uint32_t output_framebuffer, uint32_t current_frame);
+
+		virtual const Semaphore* get_wait_semaphores(uint32_t) const { return nullptr; }
+		virtual const Fence* get_signal_fence(uint32_t) const { return nullptr; }
 
 
 		void add_child_render_pass(std::shared_ptr<InternalPassInstance> child)
@@ -59,25 +62,29 @@ namespace Engine
 		std::weak_ptr<Device> device;
 		std::vector<std::shared_ptr<InternalPassInstance>> children;
 		std::weak_ptr<RenderPassObject> render_pass;
-		std::vector<Framebuffer> framebuffers;
+		std::vector<std::shared_ptr<Framebuffer>> framebuffers;
 	};
 
 	class RenderPassRoot : public RenderPassInstanceBase
 	{
 	public:
 		RenderPassRoot(std::shared_ptr<RenderPassObject> render_pass, std::shared_ptr<RendererStep> present_pass);
-		void render() override;
+		void render(uint32_t output_framebuffer, uint32_t current_frame) override;
 	};
 
 	class SwapchainPresentPass : public RenderPassRoot
 	{
 	public:
 		SwapchainPresentPass(std::shared_ptr<RenderPassObject> render_pass, std::weak_ptr<Swapchain> target,
-		                    std::shared_ptr<RendererStep> present_step);
+		                     std::shared_ptr<RendererStep> present_step);
 		std::vector<std::weak_ptr<ImageView>> get_attachments() const override;
 
 		glm::uvec2 resolution() const override;
 		void resize(glm::uvec2 parent_resolution);
+
+		const Semaphore& get_render_finished_semaphore(uint32_t image_index) const;
+		const Semaphore* get_wait_semaphores(uint32_t image_index) const override;
+		const Fence* get_signal_fence(uint32_t image_index) const override;
 
 	private:
 		std::weak_ptr<Swapchain> swapchain;
@@ -96,14 +103,14 @@ namespace Engine
 			return attachments;
 		}
 
-		glm::uvec2 resolution() const override {
+		glm::uvec2 resolution() const override
+		{
 			return framebuffer_resolution;
 		}
 
 		void resize(glm::uvec2 base_resolution);
 
 	private:
-
 		glm::uvec2 framebuffer_resolution;
 
 		std::vector<std::shared_ptr<Image>> framebuffer_images;

@@ -9,7 +9,7 @@ namespace Engine
 	class Fence
 	{
 	public:
-		Fence(std::weak_ptr<Device> device);
+		Fence(std::weak_ptr<Device> device, bool signaled = false);
 		~Fence();
 
 		VkFence raw() const { return ptr; }

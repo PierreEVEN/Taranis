@@ -28,17 +28,10 @@ namespace Engine
 
 	const char* get_queue_specialization_name(QueueSpecialization elem);
 
-	static bool operator==(const QueueSpecialization& A, const QueueSpecialization& B)
-	{
-		return static_cast<uint8_t>(A) == static_cast<uint8_t>(B);
-	}
-
-
 	class QueueFamily
 	{
 	public:
 		QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present);
-
 		bool support_present() const { return queue_support_present; }
 
 		VkQueueFlags flags() const { return queue_flags; }
@@ -46,6 +39,9 @@ namespace Engine
 		void init_queue(const std::weak_ptr<Device>& device);
 		VkQueue raw() const { return ptr; }
 		CommandPool& get_command_pool() const { return *command_pool; }
+
+
+		VkResult present(const VkPresentInfoKHR& present_infos) const;
 
 	private:
 		uint32_t queue_index;

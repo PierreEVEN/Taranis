@@ -83,6 +83,8 @@ namespace Engine
 		for (const auto& queue : device->queues->all_families())
 			queue->init_queue(device->weak_from_this());
 
+		device->pending_kill_resources.resize(device->image_count, {});
+
 		return device;
 	}
 

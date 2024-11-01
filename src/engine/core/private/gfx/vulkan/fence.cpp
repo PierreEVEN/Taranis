@@ -4,9 +4,12 @@
 
 namespace Engine
 {
-	Fence::Fence(std::weak_ptr<Device> in_device) : device(std::move(in_device))
+	Fence::Fence(std::weak_ptr<Device> in_device, bool signaled) : device(std::move(in_device))
 	{
-		VkFenceCreateInfo create_infos = {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+		VkFenceCreateInfo create_infos = {
+			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : static_cast<VkFenceCreateFlags>(0)
+		};
 
 		VK_CHECK(vkCreateFence(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create fence");
 	}
