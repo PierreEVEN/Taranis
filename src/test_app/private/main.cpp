@@ -7,10 +7,26 @@
 
 int main()
 {
+	Logger::get().enable_logs(
+		Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO |
+		Logger::LOG_LEVEL_WARNING | Logger::LOG_LEVEL_TRACE);
 
 	Engine::ShaderCompiler cmp;
 
-	cmp.load_from_path("./resources/test.hlsl", "VSMain", Engine::EShaderStage::Vertex, true);
+	if (auto res = cmp.load_from_path("./resources/test.hlsl", "VSMain", Engine::EShaderStage::Vertex, true))
+	{
+
+		LOG_INFO("PC size : {}", res.get().push_constant_size);
+
+		for (const auto& binding : res.get().bindings)
+			LOG_INFO("\t Binding : {} ({}) => {}", binding.name, binding.binding, magic_enum::enum_name(binding.type).data());
+		
+	} else
+	{
+		LOG_FATAL("{}", res.error());
+	}
+
+	LOG_INFO("DONE !");
 
 
 	exit(0);

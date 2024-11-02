@@ -16,9 +16,6 @@ namespace Engine
 {
 	Engine::Engine(Config config) : app_config(std::move(config))
 	{
-		Logger::get().enable_logs(
-			Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO |
-			Logger::LOG_LEVEL_WARNING | Logger::LOG_LEVEL_TRACE);
 
 		glfwInit();
 		gfx_instance = std::make_shared<Instance>(app_config);

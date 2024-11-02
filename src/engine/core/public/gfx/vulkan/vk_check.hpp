@@ -27,7 +27,7 @@ public:
 
 	std::string error()
 	{
-		if (valid)
+		if (!valid)
 			return result_error;
 		return "";
 	}

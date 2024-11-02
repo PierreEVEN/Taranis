@@ -39,6 +39,15 @@ cbuffer SceneConstantBuffer : register(b0)
     LightState lights[NUM_LIGHTS];
 };
 
+
+struct CbDefinition
+{
+    float4x4 a;
+};
+
+[[vk::push_constant]]
+CbDefinition push_constants;
+
 struct PSInput
 {
     float4 position : SV_POSITION;
@@ -139,7 +148,7 @@ PSInput VSMain(float3 position : POSITION, float3 normal : NORMAL, float2 uv : T
     float4 newPosition = float4(position, 1.0f);
 
     normal.z *= -1.0f;
-    newPosition = mul(newPosition, model);
+    newPosition = mul(newPosition, push_constants.a);
 
     result.worldpos = newPosition;
 

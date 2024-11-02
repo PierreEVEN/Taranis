@@ -6,7 +6,7 @@
 
 namespace Engine
 {
-	ShaderModule::ShaderModule(std::weak_ptr<Device> in_device, const Spirv& spirv, const std::vector<Bindings>& in_bindings, const CreateInfos& in_create_infos) : bindings(in_bindings), create_infos(in_create_infos), device(std::move(in_device))
+	ShaderModule::ShaderModule(std::weak_ptr<Device> in_device, const std::vector<uint32_t>& spirv, const std::vector<Bindings>& in_bindings, const CreateInfos& in_create_infos) : bindings(in_bindings), create_infos(in_create_infos), device(std::move(in_device))
 	{
 		const VkShaderModuleCreateInfo vertex_create_infos{
 			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,

@@ -29,17 +29,16 @@ namespace Engine
 		INPUT_ATTACHMENT
 	};
 
-	using Spirv = std::vector<uint32_t>;
-
 	class ShaderModule
 	{
 	public:
 		struct Bindings
 		{
-			Bindings(uint32_t in_binding, EBindingType in_type) : binding(in_binding), type(in_type)
+			Bindings(std::string in_name, uint32_t in_binding, EBindingType in_type) : name(std::move(in_name)), binding(in_binding), type(in_type)
 			{
 			}
 
+			std::string name;
 			uint32_t binding;
 			EBindingType type;
 		};
@@ -51,7 +50,7 @@ namespace Engine
 			std::string entry_point = "main";
 		};
 
-		ShaderModule(std::weak_ptr<Device> device, const Spirv& spirv, const std::vector<Bindings>& bindings,
+		ShaderModule(std::weak_ptr<Device> device, const std::vector<uint32_t>& spirv, const std::vector<Bindings>& bindings,
 		             const CreateInfos& create_infos);
 		~ShaderModule();
 
