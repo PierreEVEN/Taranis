@@ -3,9 +3,11 @@
 #include <vector>
 
 #include "gfx/vulkan/shader_module.hpp"
+#include "gfx/vulkan/vk_check.hpp"
 
+struct IDxcCompiler3;
+struct IDxcIncludeHandler;
 struct IDxcUtils;
-struct IDxcCompiler;
 
 namespace std::filesystem
 {
@@ -19,11 +21,12 @@ namespace Engine
 	public:
 		ShaderCompiler();
 
-		Spirv compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage);
-		Spirv load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage);
+		Result<Spirv> compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, bool b_debug = false);
+		Result<Spirv> load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, bool b_debug = false);
 
 	private:
-		IDxcCompiler* compiler = nullptr;
+		IDxcIncludeHandler* include_handler;
+		IDxcCompiler3* compiler = nullptr;
 		IDxcUtils* utils = nullptr;
 	};
 }

@@ -2,10 +2,19 @@
 #include "engine.hpp"
 #include <gfx/window.hpp>
 
+#include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/vulkan/device.hpp"
 
 int main()
 {
+
+	Engine::ShaderCompiler cmp;
+
+	cmp.load_from_path("./resources/test.hlsl", "VSMain", Engine::EShaderStage::Vertex, true);
+
+
+	exit(0);
+
 	Engine::Config config = {};
 
 	Engine::Engine engine(config);
