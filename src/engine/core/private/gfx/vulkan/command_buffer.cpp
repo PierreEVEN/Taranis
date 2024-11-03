@@ -131,7 +131,7 @@ namespace Engine
 					LOG_FATAL("Unhandled index type");
 				}
 				vkCmdBindIndexBuffer(ptr, indices->raw_current(), 0, index_buffer_type);
-				vkCmdDrawIndexed(ptr, std::min(index_count, static_cast<uint32_t>(indices->get_element_count()) - first_index), instance_count, first_index, static_cast<int32_t>(vertex_offset), first_instance);
+				vkCmdDrawIndexed(ptr, index_count, instance_count, first_index, static_cast<int32_t>(vertex_offset), first_instance);
 			}
 			else
 			{

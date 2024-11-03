@@ -220,6 +220,18 @@ namespace Engine
 		/**
 		 * BUILD VERTEX BUFFERS
 		 */
+
+
+		size_t vtx_size = 0;
+		size_t idx_size = 0;
+		for (int n = 0; n < draw_data->CmdListsCount; n++) {
+			const ImDrawList* cmd_list = draw_data->CmdLists[n];
+			vtx_size += cmd_list->VtxBuffer.Size;
+			idx_size += cmd_list->IdxBuffer.Size;
+		}
+		mesh->reserve_indices(idx_size, IndexBufferType::Uint16);
+		mesh->reserve_vertices(vtx_size);
+
 		size_t vtx_offset = 0;
 		size_t idx_offset = 0;
 		for (int n = 0; n < draw_data->CmdListsCount; n++)
@@ -268,6 +280,8 @@ namespace Engine
 		int global_vtx_offset = 0;
 		int global_idx_offset = 0;
 
+		cmd.bind_pipeline(*imgui_material);
+		cmd.bind_descriptors(*imgui_descriptors, *imgui_material);
 		for (int n = 0; n < draw_data->CmdListsCount; n++)
 		{
 			const ImDrawList* cmd_list = draw_data->CmdLists[n];
@@ -302,15 +316,12 @@ namespace Engine
 						});
 
 						// Bind descriptor set with font or user texture
-						if (pcmd->TextureId)
-							;// @TODO imgui_descriptors->bind_image("test", pcmd->TextureId);
+						if (pcmd->TextureId); // @TODO imgui_descriptors->bind_image("test", pcmd->TextureId);
 
-						cmd.bind_descriptors(*imgui_descriptors, *imgui_material);
-
-						cmd.bind_pipeline(*imgui_material),
-
-							cmd.draw_mesh(*mesh, pcmd->IdxOffset + global_idx_offset,
-							              pcmd->VtxOffset + global_vtx_offset, pcmd->ElemCount);
+						cmd.draw_mesh(*mesh,
+						              pcmd->IdxOffset + global_idx_offset,
+						              pcmd->VtxOffset + global_vtx_offset,
+						              pcmd->ElemCount);
 					}
 				}
 			}

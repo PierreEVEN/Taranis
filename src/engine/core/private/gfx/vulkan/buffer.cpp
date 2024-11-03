@@ -9,25 +9,25 @@ namespace Engine
 		memcpy(destination, ptr, stride * element_count);
 	}
 
-	Buffer::Buffer(std::weak_ptr<Device> in_device, const CreateInfos& create_infos) : params(create_infos),
+	Buffer::Buffer(std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count) : stride(in_stride), element_count(in_element_count), params(create_infos),
 		device(std::move(in_device))
 	{
 		switch (params.type)
 		{
 		case EBufferType::STATIC:
 		case EBufferType::IMMUTABLE:
-			buffers = {std::make_shared<BufferResource>(device, create_infos)};
+			buffers = {std::make_shared<BufferResource>(device, create_infos, in_stride, in_element_count)};
 			break;
 		case EBufferType::DYNAMIC:
 		case EBufferType::IMMEDIATE:
 			for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-				buffers.emplace_back(std::make_shared<BufferResource>(device, create_infos));
+				buffers.emplace_back(std::make_shared<BufferResource>(device, create_infos, in_stride, in_element_count));
 			break;
 		}
 	}
 
 	Buffer::Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos,
-	               const BufferData& data) : Buffer(std::move(device), create_infos.from_buffer_data(data))
+	               const BufferData& data) : Buffer(std::move(device), create_infos, data.get_stride(), data.get_element_count())
 	{
 		for (const auto& buffer : buffers)
 			buffer->set_data(0, data);
@@ -41,9 +41,8 @@ namespace Engine
 
 	bool Buffer::resize(size_t new_stride, size_t new_element_count)
 	{
-		if (new_stride == stride && new_element_count == element_count)
+		if (new_stride == get_stride() && new_element_count == get_element_count())
 			return false;
-
 		switch (params.type)
 		{
 		case EBufferType::IMMUTABLE:
@@ -51,25 +50,26 @@ namespace Engine
 		case EBufferType::STATIC:
 			for (const auto& image : buffers)
 				device.lock()->drop_resource(image);
-			buffers = {std::make_shared<BufferResource>(device, params)};
+			buffers = {std::make_shared<BufferResource>(device, params, new_stride, new_element_count)};
 			break;
 		case EBufferType::DYNAMIC:
-		case EBufferType::IMMEDIATE:
-			for (const auto& image : buffers)
-				device.lock()->drop_resource(image);
+			for (const auto& buffer : buffers)
+				device.lock()->drop_resource(buffer);
 			buffers.clear();
 			for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-				buffers.emplace_back(std::make_shared<BufferResource>(device, params));
+				buffers.emplace_back(std::make_shared<BufferResource>(device, params, new_stride, new_element_count));
 			break;
+		case EBufferType::IMMEDIATE:
+			auto& current_buffer = buffers[device.lock()->get_current_image()];
+			device.lock()->drop_resource(current_buffer);
+			buffers[device.lock()->get_current_image()] = std::make_shared<BufferResource>(device, params, new_stride, new_element_count);
 		}
-		stride = new_stride;
-		element_count = new_element_count;
 		return true;
 	}
 
 	void Buffer::set_data(size_t start_index, const BufferData& data)
 	{
-		if (data.get_stride() * (start_index + data.get_element_count()) > stride * element_count)
+		if (data.get_stride() * (start_index + data.get_element_count()) > get_stride() * get_element_count())
 			resize(data.get_stride(), data.get_element_count() + start_index);
 
 		switch (params.type)
@@ -131,10 +131,28 @@ namespace Engine
 		LOG_FATAL("Unhandled case");
 	}
 
-	BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos):
-		DeviceResource(std::move(in_device))
+	size_t Buffer::get_element_count() const
 	{
-		assert(create_infos.element_count != 0 && create_infos.stride != 0);
+		if (buffers.size() != 1)
+		{
+			return buffers[device.lock()->get_current_image()]->element_count;
+		}
+		return buffers[0]->element_count;
+	}
+
+	size_t Buffer::get_stride() const
+	{
+		if (buffers.size() != 1)
+		{
+			return buffers[device.lock()->get_current_image()]->stride;
+		}
+		return buffers[0]->stride;
+	}
+
+	BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos, size_t in_stride, size_t in_element_count): stride(in_stride), element_count(in_element_count),
+	                                                                                                                                                     DeviceResource(std::move(in_device))
+	{
+		assert(element_count != 0 && stride != 0);
 
 		VkBufferUsageFlags vk_usage = 0;
 		VmaMemoryUsage vma_usage = VMA_MEMORY_USAGE_UNKNOWN;
@@ -185,7 +203,7 @@ namespace Engine
 
 		const VkBufferCreateInfo buffer_create_info = {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			.size = create_infos.element_count * create_infos.stride,
+			.size = element_count * stride,
 			.usage = vk_usage,
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		};

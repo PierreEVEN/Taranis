@@ -94,19 +94,9 @@ namespace Engine
 			EBufferUsage usage;
 			EBufferAccess access = EBufferAccess::DEFAULT;
 			EBufferType type = EBufferType::IMMUTABLE;
-			size_t stride = 0;
-			size_t element_count = 0;
-
-			CreateInfos from_buffer_data(const BufferData& data) const
-			{
-				CreateInfos copy = *this;
-				copy.element_count = data.get_element_count();
-				copy.stride = data.get_stride();
-				return copy;
-			}
 		};
 
-		Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos);
+		Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
 		Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos, const BufferData& data);
 		~Buffer();
 
@@ -117,14 +107,14 @@ namespace Engine
 		std::vector<VkBuffer> raw() const;
 		VkBuffer raw_current();
 
-		size_t get_element_count() const { return element_count; }
-		size_t get_stride() const { return stride; }
-		size_t get_byte_size() const { return stride * element_count; }
+		size_t get_element_count() const;
+		size_t get_stride() const;
+		size_t get_byte_size() const { return get_stride() * get_element_count(); }
 
 	private:
-		CreateInfos params;
-		size_t element_count = 0;
 		size_t stride = 0;
+		size_t element_count = 0;
+		CreateInfos params;
 		BufferData temp_buffer_data;
 		std::vector<std::shared_ptr<BufferResource>> buffers;
 		std::weak_ptr<Device> device;
@@ -134,10 +124,11 @@ namespace Engine
 	class BufferResource : public DeviceResource
 	{
 	public:
-		BufferResource(std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos);
+		BufferResource(std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
 		~BufferResource();
 		void set_data(size_t start_index, const BufferData& data);
-
+		size_t stride = 0;
+		size_t element_count = 0;
 		bool outdated = false;
 		VkBuffer ptr = VK_NULL_HANDLE;
 		VmaAllocation allocation = VK_NULL_HANDLE;

@@ -15,9 +15,7 @@ namespace Engine
 				                                         .usage = EBufferUsage::VERTEX_DATA,
 				                                         .access = EBufferAccess::CPU_TO_GPU,
 				                                         .type = buffer_type,
-				                                         .stride = vertex_structure_size,
-				                                         .element_count = vertex_count,
-			                                         });
+			                                         }, vertex_structure_size, vertex_count);
 		}
 		vertex_buffer->resize(vertex_structure_size, vertex_count);
 	}
@@ -48,17 +46,14 @@ namespace Engine
 				                                        .usage = EBufferUsage::INDEX_DATA,
 				                                        .access = EBufferAccess::CPU_TO_GPU,
 				                                        .type = buffer_type,
-				                                        .stride = size,
-				                                        .element_count = index_count,
-			                                        });
+			                                        }, size, index_count);
 		}
 		index_buffer->resize(size, index_count);
 	}
 
 	void Mesh::set_vertices(size_t start_vertex, const BufferData& vertex_data)
 	{
-		if (!vertex_buffer)
-			reserve_vertices(start_vertex + vertex_data.get_element_count());
+		reserve_vertices(start_vertex + vertex_data.get_element_count());
 		vertex_buffer->set_data(start_vertex, vertex_data);
 	}
 
@@ -83,8 +78,7 @@ namespace Engine
 			LOG_FATAL("Unhandled index buffer size");
 		}
 
-		if (!index_buffer)
-			reserve_indices(start_index + index_data.get_element_count(), type);
-		index_buffer->set_data(start_vertex, index_data);
+		reserve_indices(start_index + index_data.get_element_count(), type);
+		index_buffer->set_data(start_index, index_data);
 	}
 }
