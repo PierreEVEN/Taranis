@@ -5,7 +5,9 @@
 #include <imgui.h>
 
 #include "engine.hpp"
+#include "../../../../../../../../../AppData/Local/.xmake/packages/g/glfw/3.4/d4249eb3072844719d5a737fb01aeb0d/include/GLFW/glfw3.h"
 #include "gfx/mesh.hpp"
+#include "gfx/window.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/image.hpp"
@@ -51,12 +53,11 @@ float4 main(VsToFs input) : SV_TARGET{\
     return input.Color * sTexture.Sample(sSampler, input.UV);\
 }";
 
-
 namespace Engine
 {
-	ImGuiWrapper::ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, std::weak_ptr<Device> in_device) :
-		device(std::move(
-			in_device))
+	ImGuiWrapper::ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, std::weak_ptr<Device> in_device,
+	                           std::weak_ptr<Window> in_target_window) :
+		device(std::move(in_device)), target_window(std::move(in_target_window))
 	{
 		mesh = std::make_shared<Mesh>(device, sizeof(ImDrawVert), EBufferType::IMMEDIATE);
 
@@ -74,17 +75,23 @@ namespace Engine
 		const auto vertex_temp = std::make_shared<ShaderModule>(device, vertex_code.get());
 
 		imgui_material = std::make_shared<Pipeline>(device, render_pass, std::vector{
-													   std::make_shared<ShaderModule>(device, vertex_code.get()),
+			                                            std::make_shared<ShaderModule>(device, vertex_code.get()),
 			                                            std::make_shared<ShaderModule>(device, fragment_code.get())
 		                                            }, Pipeline::CreateInfos{
 			                                            .culling = ECulling::None,
 			                                            .alpha_mode = EAlphaMode::Translucent,
 			                                            .depth_test = false,
-														.stage_input_override = std::vector{
-															StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
-															StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
-															StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
-														}
+			                                            .stage_input_override = std::vector{
+				                                            StageInputOutputDescription{
+					                                            0, 0, ColorFormat::R32G32_SFLOAT
+				                                            },
+				                                            StageInputOutputDescription{
+					                                            1, 8, ColorFormat::R32G32_SFLOAT
+				                                            },
+				                                            StageInputOutputDescription{
+					                                            2, 16, ColorFormat::R8G8B8A8_UNORM
+				                                            },
+			                                            }
 		                                            });
 
 		imgui_descriptors = std::make_shared<DescriptorSet>(device, imgui_material);
@@ -109,33 +116,32 @@ namespace Engine
 		io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;
 		// We can create multi-viewports on the Platform side (optional)
 		// io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport; // We can set io.MouseHoveredViewport correctly (optional, not easy)
-		/*
-		io.KeyMap[ImGuiKey_Tab] = static_cast<int>(application::inputs::EButtons::Keyboard_Tab);
-		io.KeyMap[ImGuiKey_LeftArrow] = static_cast<int>(application::inputs::EButtons::Keyboard_Left);
-		io.KeyMap[ImGuiKey_RightArrow] = static_cast<int>(application::inputs::EButtons::Keyboard_Right);
-		io.KeyMap[ImGuiKey_UpArrow] = static_cast<int>(application::inputs::EButtons::Keyboard_Up);
-		io.KeyMap[ImGuiKey_DownArrow] = static_cast<int>(application::inputs::EButtons::Keyboard_Down);
-		io.KeyMap[ImGuiKey_PageUp] = static_cast<int>(application::inputs::EButtons::Keyboard_PageUp);
-		io.KeyMap[ImGuiKey_PageDown] = static_cast<int>(application::inputs::EButtons::Keyboard_PageDown);
-		io.KeyMap[ImGuiKey_Home] = static_cast<int>(application::inputs::EButtons::Keyboard_Home);
-		io.KeyMap[ImGuiKey_End] = static_cast<int>(application::inputs::EButtons::Keyboard_End);
-		io.KeyMap[ImGuiKey_Insert] = static_cast<int>(application::inputs::EButtons::Keyboard_Insert);
-		io.KeyMap[ImGuiKey_Delete] = static_cast<int>(application::inputs::EButtons::Keyboard_Delete);
-		io.KeyMap[ImGuiKey_Backspace] = static_cast<int>(application::inputs::EButtons::Keyboard_Backspace);
-		io.KeyMap[ImGuiKey_Space] = static_cast<int>(application::inputs::EButtons::Keyboard_Space);
-		io.KeyMap[ImGuiKey_Enter] = static_cast<int>(application::inputs::EButtons::Keyboard_Enter);
-		io.KeyMap[ImGuiKey_Escape] = static_cast<int>(application::inputs::EButtons::Keyboard_Escape);
-		io.KeyMap[ImGuiKey_KeyPadEnter] = static_cast<int>(application::inputs::EButtons::Keyboard_Enter);
-		io.KeyMap[ImGuiKey_A] = static_cast<int>(application::inputs::EButtons::Keyboard_A);
-		io.KeyMap[ImGuiKey_C] = static_cast<int>(application::inputs::EButtons::Keyboard_C);
-		io.KeyMap[ImGuiKey_V] = static_cast<int>(application::inputs::EButtons::Keyboard_V);
-		io.KeyMap[ImGuiKey_X] = static_cast<int>(application::inputs::EButtons::Keyboard_X);
-		io.KeyMap[ImGuiKey_Y] = static_cast<int>(application::inputs::EButtons::Keyboard_Y);
-		io.KeyMap[ImGuiKey_Z] = static_cast<int>(application::inputs::EButtons::Keyboard_Z);
-		
-		io.SetClipboardTextFn = set_clipboard_text;
-		io.GetClipboardTextFn = get_clipboard_text;
-		*/
+
+		io.KeyMap[ImGuiKey_Tab] = static_cast<int>(GLFW_KEY_TAB);
+		io.KeyMap[ImGuiKey_LeftArrow] = static_cast<int>(GLFW_KEY_LEFT);
+		io.KeyMap[ImGuiKey_RightArrow] = static_cast<int>(GLFW_KEY_RIGHT);
+		io.KeyMap[ImGuiKey_UpArrow] = static_cast<int>(GLFW_KEY_UP);
+		io.KeyMap[ImGuiKey_DownArrow] = static_cast<int>(GLFW_KEY_DOWN);
+		io.KeyMap[ImGuiKey_PageUp] = static_cast<int>(GLFW_KEY_PAGE_UP);
+		io.KeyMap[ImGuiKey_PageDown] = static_cast<int>(GLFW_KEY_PAGE_DOWN);
+		io.KeyMap[ImGuiKey_Home] = static_cast<int>(GLFW_KEY_HOME);
+		io.KeyMap[ImGuiKey_End] = static_cast<int>(GLFW_KEY_END);
+		io.KeyMap[ImGuiKey_Insert] = static_cast<int>(GLFW_KEY_INSERT);
+		io.KeyMap[ImGuiKey_Delete] = static_cast<int>(GLFW_KEY_DELETE);
+		io.KeyMap[ImGuiKey_Backspace] = static_cast<int>(GLFW_KEY_BACKSPACE);
+		io.KeyMap[ImGuiKey_Space] = static_cast<int>(GLFW_KEY_SPACE);
+		io.KeyMap[ImGuiKey_Enter] = static_cast<int>(GLFW_KEY_ENTER);
+		io.KeyMap[ImGuiKey_Escape] = static_cast<int>(GLFW_KEY_ESCAPE);
+		io.KeyMap[ImGuiKey_A] = static_cast<int>(GLFW_KEY_A);
+		io.KeyMap[ImGuiKey_C] = static_cast<int>(GLFW_KEY_C);
+		io.KeyMap[ImGuiKey_V] = static_cast<int>(GLFW_KEY_V);
+		io.KeyMap[ImGuiKey_X] = static_cast<int>(GLFW_KEY_X);
+		io.KeyMap[ImGuiKey_Y] = static_cast<int>(GLFW_KEY_Y);
+		io.KeyMap[ImGuiKey_Z] = static_cast<int>(GLFW_KEY_Z);
+
+		//io.SetClipboardTextFn = set_clipboard_text;
+		//io.GetClipboardTextFn = get_clipboard_text;
+
 		ImGuiStyle& style = ImGui::GetStyle();
 		ImGui::StyleColorsDark();
 		style.WindowRounding = 0;
@@ -154,32 +160,39 @@ namespace Engine
 
 		ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 		main_viewport->PlatformHandle = nullptr;
-		/*
-		cursor_map[ImGuiMouseCursor_Arrow] = application::ECursorStyle::ARROW;
-		cursor_map[ImGuiMouseCursor_TextInput] = application::ECursorStyle::I_BEAM;
-		cursor_map[ImGuiMouseCursor_ResizeAll] = application::ECursorStyle::SIZE_ALL;
-		cursor_map[ImGuiMouseCursor_ResizeNS] = application::ECursorStyle::SIZE_NS;
-		cursor_map[ImGuiMouseCursor_ResizeEW] = application::ECursorStyle::SIZE_WE;
-		cursor_map[ImGuiMouseCursor_ResizeNESW] = application::ECursorStyle::SIZE_NESW;
-		cursor_map[ImGuiMouseCursor_ResizeNWSE] = application::ECursorStyle::SIZE_NWSE;
-		cursor_map[ImGuiMouseCursor_Hand] = application::ECursorStyle::HAND;
-		cursor_map[ImGuiMouseCursor_NotAllowed] = application::ECursorStyle::NOT_ALLOWED;
-		*/
+
+		cursor_map[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+		cursor_map[ImGuiMouseCursor_TextInput] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+		cursor_map[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
+		cursor_map[ImGuiMouseCursor_ResizeNS] = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
+		cursor_map[ImGuiMouseCursor_ResizeEW] = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
+		cursor_map[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+		cursor_map[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+		cursor_map[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+		cursor_map[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
+
 		// Create font texture
 		uint8_t* pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		font_texture = std::make_shared<Image>(device, ImageParameter{
-												   .format = ColorFormat::R8G8B8A8_UNORM,
-												   .buffer_type = EBufferType::IMMUTABLE,
-												   .width = static_cast<uint32_t>(width),
-												   .height = static_cast<uint32_t>(height),
-			}, BufferData(pixels, 4, width * height));
+			                                       .format = ColorFormat::R8G8B8A8_UNORM,
+			                                       .buffer_type = EBufferType::IMMUTABLE,
+			                                       .width = static_cast<uint32_t>(width),
+			                                       .height = static_cast<uint32_t>(height),
+		                                       }, BufferData(pixels, 4, width * height));
 		font_texture_view = std::make_shared<ImageView>(font_texture);
 
 		imgui_descriptors->bind_image("sTexture", font_texture_view);
 		imgui_descriptors->bind_sampler("sSampler", image_sampler);
+	}
+
+	ImGuiWrapper::~ImGuiWrapper()
+	{
+		for (size_t i = 0; i < ImGuiMouseCursor_COUNT; ++i)
+			if (cursor_map[i])
+				glfwDestroyCursor(cursor_map[i]);
 	}
 
 	void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
@@ -191,31 +204,34 @@ namespace Engine
 		io.DeltaTime = static_cast<float>(Engine::get().delta_second);
 
 		// Update mouse
-		/*
-		io.MouseDown[0] = application::inputs::Key(application::inputs::EButtons::Mouse_Left).get_bool_value();
-		io.MouseDown[1] = application::inputs::Key(application::inputs::EButtons::Mouse_Right).get_bool_value();
-		io.MouseDown[2] = application::inputs::Key(application::inputs::EButtons::Mouse_Middle).get_bool_value();
-		io.MouseDown[3] = application::inputs::Key(application::inputs::EButtons::Mouse_1).get_bool_value();
-		io.MouseDown[4] = application::inputs::Key(application::inputs::EButtons::Mouse_2).get_bool_value();
+		;
+		io.MouseDown[0] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_1);
+		io.MouseDown[1] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_2);
+		io.MouseDown[2] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_3);
+		io.MouseDown[3] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_4);
+		io.MouseDown[4] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_5);
 		io.MouseHoveredViewport = 0;
-		io.MousePos = ImVec2(application::inputs::Key(application::inputs::EAxis::Mouse_X).get_float_value(), application::inputs::Key(application::inputs::EAxis::Mouse_Y).get_float_value());
+
+		double x_pos, y_pos;
+		glfwGetCursorPos(target_window.lock()->raw(), &x_pos, &y_pos);
+
+		io.MousePos = ImVec2(static_cast<float>(x_pos), static_cast<float>(y_pos));
 
 		const ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
 		if (imgui_cursor != ImGuiMouseCursor_None)
-		    application::get()->set_cursor(cursor_map[imgui_cursor]);
+			glfwSetCursor(target_window.lock()->raw(), cursor_map[imgui_cursor]);
 		else
 		    LOG_WARNING("//@TODO : handle none cursor");
-			*/
 		ImGui::NewFrame();
-
-		//ImGui::ShowDemoWindow(nullptr);
 
 		if (ImGui::Begin("test"))
 		{
 			ImGui::LabelText("ms", "%lf", Engine::get().delta_second * 1000);
 			ImGui::LabelText("fps", "%lf", 1.0 / Engine::get().delta_second);
-			ImGui::End();
 		}
+		ImGui::End();
+
+		ImGui::ShowDemoWindow(nullptr);
 
 
 		ImGui::EndFrame();
@@ -234,7 +250,8 @@ namespace Engine
 
 		size_t vtx_size = 0;
 		size_t idx_size = 0;
-		for (int n = 0; n < draw_data->CmdListsCount; n++) {
+		for (int n = 0; n < draw_data->CmdListsCount; n++)
+		{
 			const ImDrawList* cmd_list = draw_data->CmdLists[n];
 			vtx_size += cmd_list->VtxBuffer.Size;
 			idx_size += cmd_list->IdxBuffer.Size;
@@ -247,20 +264,12 @@ namespace Engine
 		for (int n = 0; n < draw_data->CmdListsCount; n++)
 		{
 			const ImDrawList* cmd_list = draw_data->CmdLists[n];
-
-			std::vector<ImDrawVert> test_mem = std::vector<ImDrawVert>(cmd_list->VtxBuffer.Size, ImDrawVert{ {1, 2}, {3, 4 }, {5} });
-
+			LOG_WARNING("write : {}-{}  => {}-{}", vtx_offset, cmd_list->VtxBuffer.Size, idx_offset, cmd_list->IdxBuffer.Size);
 			mesh->set_indexed_vertices(
 				vtx_offset,
 				BufferData(cmd_list->VtxBuffer.Data, sizeof(ImDrawVert), cmd_list->VtxBuffer.Size),
 				idx_offset,
 				BufferData(cmd_list->IdxBuffer.Data, sizeof(ImDrawIdx), cmd_list->IdxBuffer.Size));
-			/*mesh->set_vertices(0, BufferData(std::vector{
-				ImDrawVert{ {1.5, 2.5}, {3.5, 4.5},ImU32 {ImGui::ColorConvertFloat4ToU32(ImVec4{1.f, 0.f, 0.f, 1.f})} },
-
-				ImDrawVert{ {5.5, 6.5}, {7.5, 8.5},ImU32 {ImGui::ColorConvertFloat4ToU32(ImVec4{0.f, 1.f, 1.f, 0.f})} }
-				}
-			));*/
 			vtx_offset += cmd_list->VtxBuffer.Size;
 			idx_offset += cmd_list->IdxBuffer.Size;
 		}

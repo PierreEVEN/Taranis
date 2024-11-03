@@ -17,9 +17,14 @@ namespace Engine
 class TestFirstPassInterface : public Engine::RenderPassInterface
 {
 public:
+	TestFirstPassInterface(std::weak_ptr<Engine::Window> parent_window) : window(parent_window)
+	{
+		
+	}
+
 	void init(const std::weak_ptr<Engine::Device>& device, const Engine::RenderPassInstanceBase& render_pass) override
 	{
-		imgui = std::make_unique<Engine::ImGuiWrapper>(render_pass.get_render_pass(), device);
+		imgui = std::make_unique<Engine::ImGuiWrapper>(render_pass.get_render_pass(), device, window);
 	}
 	void render(const Engine::RenderPassInstanceBase& render_pass, const Engine::CommandBuffer& command_buffer) override
 	{
@@ -27,6 +32,7 @@ public:
 	}
 private:
 	std::unique_ptr<Engine::ImGuiWrapper> imgui;
+	std::weak_ptr<Engine::Window> window;
 };
 
 int main()
@@ -41,7 +47,7 @@ int main()
 
 	const auto main_window = engine.new_window(Engine::WindowConfig{});
 	main_window.lock()->set_renderer(
-		Engine::PresentStep::create<TestFirstPassInterface>("present_pass", Engine::ClearValue::color({ 1, 0, 0 ,1 }))
+		Engine::PresentStep::create<TestFirstPassInterface>("present_pass", Engine::ClearValue::color({ 0.2, 0.2, 0.5,1 }), main_window)
 		->attach(Engine::RendererStep::create("forward_pass", {
 			                                      Engine::Attachment::color(
 				                                      "color", Engine::ColorFormat::R8G8B8A8_UNORM),

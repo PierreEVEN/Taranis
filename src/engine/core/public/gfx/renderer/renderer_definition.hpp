@@ -148,10 +148,10 @@ namespace Engine
 	class PresentStep : public std::enable_shared_from_this<PresentStep>
 	{
 	public:
-		template <typename T = DefaultRenderPassInterface>
-		static std::shared_ptr<PresentStep> create(RenderPassName name, ClearValue clear_value = ClearValue::none())
+		template <typename T = DefaultRenderPassInterface, typename...Args>
+		static std::shared_ptr<PresentStep> create(RenderPassName name, ClearValue clear_value = ClearValue::none(), Args&&...args)
 		{
-			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name), std::move(clear_value), std::make_shared<T>()));
+			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name), std::move(clear_value), std::make_shared<T>(std::forward<Args>(args)...)));
 		}
 
 		std::shared_ptr<PresentStep> attach(std::shared_ptr<RendererStep> dependency)

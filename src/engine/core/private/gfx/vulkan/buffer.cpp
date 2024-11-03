@@ -98,6 +98,7 @@ namespace Engine
 				temp_buffer_data = data.copy();
 			break;
 		case EBufferType::IMMEDIATE:
+			LOG_WARNING("UPDATE BUFFER AAA : {}-{}", start_index, data.get_element_count());
 			buffers[device.lock()->get_current_image()]->set_data(start_index, data);
 			break;
 		}
@@ -229,6 +230,7 @@ namespace Engine
 
 	void BufferResource::set_data(size_t start_index, const BufferData& data)
 	{
+		LOG_WARNING("UPDATE BUFFER BBB : {}-{}", start_index, data.get_element_count());
 		outdated = false;
 		void* dst_ptr = nullptr;
 		VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory");

@@ -130,6 +130,7 @@ namespace Engine
 				default:
 					LOG_FATAL("Unhandled index type");
 				}
+				LOG_WARNING("draw : {}-{}  =>  {}-{}", vertex_offset, "?", first_index, index_count);
 				vkCmdBindIndexBuffer(ptr, indices->raw_current(), 0, index_buffer_type);
 				vkCmdDrawIndexed(ptr, index_count, instance_count, first_index, static_cast<int32_t>(vertex_offset), first_instance);
 			}

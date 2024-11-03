@@ -1,12 +1,16 @@
 #pragma once
 #include <memory>
+#include <vector>
+#include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
+#include <imgui.h>
 
 
 struct ImGuiContext;
 
 namespace Engine
 {
+	class Window;
 	class DescriptorSet;
 	class Sampler;
 	class ImageView;
@@ -23,8 +27,8 @@ namespace Engine
 	class ImGuiWrapper
 	{
 	public:
-		ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, std::weak_ptr<Device> device);
-
+		ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
+		~ImGuiWrapper();
 		void draw(const CommandBuffer& cmd, glm::uvec2 draw_res);
 
 	private:
@@ -35,7 +39,8 @@ namespace Engine
 		std::shared_ptr<Sampler> image_sampler;
 		std::shared_ptr<ImageView> font_texture_view;
 		std::weak_ptr<Device> device;
+		std::weak_ptr<Window> target_window;
 		ImGuiContext* imgui_context = nullptr;
-
+		std::vector<GLFWcursor*> cursor_map = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 	};
 }
