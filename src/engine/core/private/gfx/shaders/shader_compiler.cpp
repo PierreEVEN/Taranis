@@ -15,6 +15,7 @@
 
 
 #include <wrl/client.h>
+#include <spirv_reflect.h>
 
 
 #include "gfx/types.hpp"
@@ -75,17 +76,17 @@ namespace Engine
 			w_entry_point.c_str(),
 			L"-T",
 			target_profile.c_str(),
-			//DXC_ARG_PACK_MATRIX_ROW_MAJOR,
-			//DXC_ARG_WARNINGS_ARE_ERRORS,
-			//DXC_ARG_ALL_RESOURCES_BOUND,
+			DXC_ARG_PACK_MATRIX_ROW_MAJOR,
+			DXC_ARG_WARNINGS_ARE_ERRORS,
+			DXC_ARG_ALL_RESOURCES_BOUND,
 			L"-spirv",
 		};
 		// Indicate that the shader should be in a debuggable state if in debug mode.
 		// Else, set optimization level to 3.
-		/*if (b_debug)
+		if (b_debug)
 			arguments.push_back(DXC_ARG_DEBUG);
 		else
-			arguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);*/
+			arguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 
 
 		// Load the shader source file to a blob.
@@ -121,14 +122,15 @@ namespace Engine
 		}
 
 
-
-
 		Microsoft::WRL::ComPtr<IDxcBlob> compiledShaderBlob{nullptr};
 		compiledShaderBuffer->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&compiledShaderBlob), nullptr);
 
 
-		result.spirv.resize(compiledShaderBlob->GetBufferSize() / 4 + (compiledShaderBlob->GetBufferSize() % 4 == 0 ? 0 : 1));
+		result.spirv.resize(compiledShaderBlob->GetBufferSize());
 		memcpy(result.spirv.data(), compiledShaderBlob->GetBufferPointer(), compiledShaderBlob->GetBufferSize());
+
+		if (auto reflection = extract_spirv_properties(result))
+			return Result<ShaderProperties>::Error(*reflection);
 
 		return Result<ShaderProperties>::Ok(result);
 	}
@@ -149,5 +151,43 @@ namespace Engine
 			}
 		}
 		return compile_raw(shader_code, entry_point, stage, path, b_debug);
+	}
+
+	std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProperties& properties)
+	{
+		// Generate reflection data for a shader
+		SpvReflectShaderModule module;
+		SpvReflectResult result = spvReflectCreateShaderModule(properties.spirv.size(), properties.spirv.data(),
+			&module);
+
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to get spirv reflection : Code {}",
+				static_cast<uint32_t>(result));
+
+		// Enumerate and extract shader's input variables
+		uint32_t var_count = 0;
+		result = spvReflectEnumerateEntryPointInputVariables(&module, properties.entry_point.c_str(), &var_count, NULL);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv input variables count : Code {}",
+				static_cast<uint32_t>(result));
+		std::vector<SpvReflectInterfaceVariable*> input_vars(var_count, nullptr);
+		result = spvReflectEnumerateEntryPointInputVariables(&module, properties.entry_point.c_str(), &var_count,
+			input_vars.data());
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv input variables values : Code {}",
+				static_cast<uint32_t>(result));
+
+		for (const auto& var : input_vars)
+		{
+			LOG_WARNING("TEST : {} / {}", var->name, var->member_count);
+		}
+
+
+		// Output variables, descriptor bindings, descriptor sets, and push constants
+		// can be enumerated and extracted using a similar mechanism.
+
+		// Destroy the reflection data when no longer required.
+		spvReflectDestroyShaderModule(&module);
+		return{};
 	}
 }

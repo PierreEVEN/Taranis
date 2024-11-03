@@ -24,7 +24,7 @@ namespace Engine
 		std::vector<ShaderModule::Bindings> bindings;
 		std::vector<Pipeline::VertexInput> vertex_inputs;
 		uint32_t push_constant_size = 0;
-		std::vector<uint32_t> spirv;
+		std::vector<uint8_t> spirv;
 	};
 
 
@@ -37,6 +37,8 @@ namespace Engine
 		Result<ShaderProperties> load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, bool b_debug = false);
 
 	private:
+		std::optional<std::string> extract_spirv_properties(ShaderProperties& properties);
+
 		IDxcIncludeHandler* include_handler;
 		IDxcCompiler3* compiler = nullptr;
 		IDxcUtils* utils = nullptr;
