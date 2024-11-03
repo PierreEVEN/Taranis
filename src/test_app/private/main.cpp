@@ -6,7 +6,6 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/device.hpp"
-#include "imgui.h"
 
 
 namespace Engine
@@ -19,17 +18,18 @@ class TestFirstPassInterface : public Engine::RenderPassInterface
 public:
 	TestFirstPassInterface(std::weak_ptr<Engine::Window> parent_window) : window(parent_window)
 	{
-		
 	}
 
 	void init(const std::weak_ptr<Engine::Device>& device, const Engine::RenderPassInstanceBase& render_pass) override
 	{
 		imgui = std::make_unique<Engine::ImGuiWrapper>(render_pass.get_render_pass(), device, window);
 	}
+
 	void render(const Engine::RenderPassInstanceBase& render_pass, const Engine::CommandBuffer& command_buffer) override
 	{
 		imgui->draw(command_buffer, render_pass.resolution());
 	}
+
 private:
 	std::unique_ptr<Engine::ImGuiWrapper> imgui;
 	std::weak_ptr<Engine::Window> window;
@@ -45,9 +45,10 @@ int main()
 
 	Engine::Engine engine(config);
 
-	const auto main_window = engine.new_window(Engine::WindowConfig{});
+	const auto main_window = engine.new_window(Engine::WindowConfig{.name = "primary"});
 	main_window.lock()->set_renderer(
-		Engine::PresentStep::create<TestFirstPassInterface>("present_pass", Engine::ClearValue::color({ 0.2, 0.2, 0.5,1 }), main_window)
+		Engine::PresentStep::create<TestFirstPassInterface>("present_pass",
+		                                                    Engine::ClearValue::color({0.2, 0.2, 0.5, 1}), main_window)
 		->attach(Engine::RendererStep::create("forward_pass", {
 			                                      Engine::Attachment::color(
 				                                      "color", Engine::ColorFormat::R8G8B8A8_UNORM),
@@ -61,6 +62,30 @@ int main()
 				                                      "normal", Engine::ColorFormat::R8G8B8A8_UNORM),
 			                                      Engine::Attachment::depth("depth", Engine::ColorFormat::D32_SFLOAT)
 		                                      })));
-	//const auto secondary_window = engine.new_window(Engine::WindowConfig{});
+
+
+	const auto secondary_window = engine.new_window(Engine::WindowConfig{.name = "secondary"});
+	secondary_window.lock()->set_renderer(
+		Engine::PresentStep::create<TestFirstPassInterface>("present_pass",
+		                                                    Engine::ClearValue::color({0.2, 0.2, 0.5, 1}),
+		                                                    secondary_window)
+		->attach(Engine::RendererStep::create<TestFirstPassInterface>("forward_pass", {
+			                                                              Engine::Attachment::color(
+				                                                              "color",
+				                                                              Engine::ColorFormat::R8G8B8A8_UNORM,
+				                                                              Engine::ClearValue::color(
+					                                                              {1, 0.2, 0.5, 1})),
+			                                                              Engine::Attachment::depth(
+				                                                              "depth",
+				                                                              Engine::ColorFormat::D24_UNORM_S8_UINT,
+				                                                              Engine::ClearValue::depth_stencil({1, 0}))
+		                                                              }, secondary_window))
+		->attach(Engine::RendererStep::create("forward_test", {
+			                                      Engine::Attachment::color(
+				                                      "color", Engine::ColorFormat::R8G8B8A8_UNORM),
+			                                      Engine::Attachment::color(
+				                                      "normal", Engine::ColorFormat::R8G8B8A8_UNORM),
+			                                      Engine::Attachment::depth("depth", Engine::ColorFormat::D32_SFLOAT)
+		                                      })));
 	engine.run();
 }

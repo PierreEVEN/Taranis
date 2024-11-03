@@ -115,10 +115,10 @@ namespace Engine
 		friend class PresentStep;
 
 	public:
-		template <typename T = DefaultRenderPassInterface>
-		static std::shared_ptr<RendererStep> create(RenderPassName name, std::vector<Attachment> in_attachments)
+		template <typename T = DefaultRenderPassInterface, typename...Args>
+		static std::shared_ptr<RendererStep> create(RenderPassName name, std::vector<Attachment> in_attachments, Args&&...args)
 		{
-			return std::shared_ptr<RendererStep>(new RendererStep(std::move(name), std::move(in_attachments), std::make_shared<T>()));
+			return std::shared_ptr<RendererStep>(new RendererStep(std::move(name), std::move(in_attachments), std::make_shared<T>(std::forward<Args>(args)...)));
 		}
 
 		std::shared_ptr<RendererStep> attach(std::shared_ptr<RendererStep> dependency)

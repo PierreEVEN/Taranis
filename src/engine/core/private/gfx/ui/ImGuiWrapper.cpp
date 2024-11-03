@@ -97,6 +97,7 @@ namespace Engine
 		imgui_descriptors = std::make_shared<DescriptorSet>(device, imgui_material);
 
 		imgui_context = ImGui::CreateContext();
+		ImGui::SetCurrentContext(imgui_context);
 		IMGUI_CHECKVERSION();
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -197,6 +198,7 @@ namespace Engine
 
 	void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
 	{
+		ImGui::SetCurrentContext(imgui_context);
 		ImGuiIO& io = ImGui::GetIO();
 		// Setup display size (every frame to accommodate for start_window resizing)
 		io.DisplaySize = ImVec2(static_cast<float>(draw_res.x), static_cast<float>(draw_res.y));
