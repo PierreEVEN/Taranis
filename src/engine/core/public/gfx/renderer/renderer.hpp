@@ -116,6 +116,5 @@ namespace Engine
 
 		std::vector<std::shared_ptr<Image>> framebuffer_images;
 		std::vector<std::shared_ptr<ImageView>> framebuffer_image_views;
-		size_t image_count;
 	};
 }

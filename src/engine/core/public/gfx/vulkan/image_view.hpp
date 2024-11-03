@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "image.hpp"
+#include "gfx/types.hpp"
 
 namespace Engine
 {
@@ -36,9 +37,11 @@ namespace Engine
 	class ImageViewResource : public DeviceResource
 	{
 	public:
+		ImageViewResource(const std::weak_ptr<Device>& device, std::shared_ptr<Image::ImageResource> resource, ImageView::CreateInfos create_infos);
 		ImageViewResource(const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos);
 		~ImageViewResource();
 		VkImageView ptr = VK_NULL_HANDLE;
 		VkDescriptorImageInfo descriptor_infos;
+		std::shared_ptr<Image::ImageResource> image_resource;
 	};
 }

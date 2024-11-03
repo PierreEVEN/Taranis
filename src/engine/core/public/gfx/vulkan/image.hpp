@@ -60,23 +60,8 @@ namespace Engine
 
 	class Image
 	{
+		friend class ImageView;
 	public:
-
-		Image(std::weak_ptr<Device> device, ImageParameter params);
-		Image(std::weak_ptr<Device> device, ImageParameter params, const BufferData& data);
-		~Image();
-
-		std::vector<VkImage> raw() const;
-		VkImage raw_current() ;
-		std::weak_ptr<Device> get_device() const { return device; }
-		glm::uvec2 get_extent() const { return extent; }
-
-		bool resize(glm::uvec2 new_size);
-		void set_data(glm::uvec2 new_size, const BufferData& data);
-
-		const ImageParameter& get_params() const { return params; }
-	private:
-
 
 		class ImageResource : public DeviceResource, public std::enable_shared_from_this<ImageResource>
 		{
@@ -96,6 +81,22 @@ namespace Engine
 			uint32_t depth = 0;
 		};
 
+		Image(std::weak_ptr<Device> device, ImageParameter params);
+		Image(std::weak_ptr<Device> device, ImageParameter params, const BufferData& data);
+		~Image();
+
+		std::vector<VkImage> raw() const;
+		VkImage raw_current() ;
+		std::weak_ptr<Device> get_device() const { return device; }
+		glm::uvec2 get_extent() const { return extent; }
+
+		bool resize(glm::uvec2 new_size);
+		void set_data(glm::uvec2 new_size, const BufferData& data);
+
+		const std::vector<std::shared_ptr<ImageResource>>& get_resource() const { return images; }
+
+		const ImageParameter& get_params() const { return params; }
+	private:
 		glm::uvec2 extent;
 		ImageParameter params;
 		std::weak_ptr<Device> device;

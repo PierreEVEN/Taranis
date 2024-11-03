@@ -56,8 +56,8 @@ namespace Engine
 		{
 		}
 
-		std::optional<glm::vec4> color_val;
-		std::optional<glm::vec2> depth_stencil_val;
+		std::optional<glm::vec4> color_val = {};
+		std::optional<glm::vec2> depth_stencil_val = {};
 	};
 
 	class Attachment
@@ -132,6 +132,8 @@ namespace Engine
 		const std::unordered_set<std::shared_ptr<RendererStep>>& get_dependencies() const { return dependencies; }
 
 		const std::shared_ptr<RenderPassInterface>& get_interface() const { return interface; }
+
+		const std::string& get_name() const { return pass_name; }
 
 	private:
 		std::string pass_name;

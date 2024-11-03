@@ -107,12 +107,11 @@ namespace Engine
 	void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t current_frame)
 	{
 		rendered = true;
-
 		for (const auto& child : children)
 			child->render(current_frame, current_frame);
 
 		// Begin get record
-		const auto framebuffer = framebuffers[output_framebuffer];
+		const auto& framebuffer = framebuffers[output_framebuffer];
 		framebuffer->get_command_buffer().begin(false);
 
 		// Begin render pass
@@ -120,6 +119,9 @@ namespace Engine
 		for (auto& attachment : render_pass.lock()->get_infos().attachments)
 		{
 			VkClearValue clear_value;
+			clear_value.color = {0, 0, 0, 1};
+			if (attachment.is_depth())
+				clear_value.depthStencil = {0, 0};
 			if (attachment.clear_value().is_color())
 				clear_value.color = VkClearColorValue{
 					.float32 = {
@@ -129,7 +131,8 @@ namespace Engine
 				};
 			else if (attachment.clear_value().is_depth_stencil())
 				clear_value.depthStencil = VkClearDepthStencilValue{
-					attachment.clear_value().depth_stencil().x, (uint32_t)attachment.clear_value().depth_stencil().y
+					attachment.clear_value().depth_stencil().x,
+					static_cast<uint32_t>(attachment.clear_value().depth_stencil().y)
 				};
 			clear_values.emplace_back(clear_value);
 		}
@@ -284,12 +287,16 @@ namespace Engine
 				                                           .format = attachment.get_format(),
 				                                           .gpu_write_capabilities =
 				                                           ETextureGPUWriteCapabilities::Enabled,
+				.buffer_type = EBufferType::IMMEDIATE,
 				                                           .width = framebuffer_resolution.x,
 				                                           .height = framebuffer_resolution.y,
 			                                           });
 			framebuffer_images.emplace_back();
 			framebuffer_image_views.emplace_back(std::make_shared<ImageView>(image));
 		}
+		framebuffers.clear();
+		for (size_t i = 0; i < framebuffer_image_views[0]->raw().size(); ++i)
+			framebuffers.emplace_back(std::make_shared<Framebuffer>(render_pass.lock()->get_device(), *this, i));
 	}
 
 	RenderPassRoot::RenderPassRoot(std::shared_ptr<RenderPassObject> render_pass_object,
@@ -313,8 +320,7 @@ namespace Engine
 		}
 
 		// Construct render pass tree
-		for (const auto& dep : present_pass->get_dependencies())
-			remaining.push_back(dep);
+		remaining.push_back(present_pass);
 		while (!remaining.empty())
 		{
 			const std::shared_ptr<RendererStep> def = remaining.back();
@@ -322,7 +328,12 @@ namespace Engine
 
 			for (const auto& dep : def->get_dependencies())
 			{
-				instanced_passes.find(def)->second->add_child_render_pass(instanced_passes.find(dep)->second);
+				auto instanced_parent = instanced_passes.find(def);
+
+				if (instanced_parent != instanced_passes.end())
+					instanced_parent->second->add_child_render_pass(instanced_passes.find(dep)->second);
+				else
+					add_child_render_pass(instanced_passes.find(dep)->second);
 				remaining.emplace_back(dep);
 			}
 		}

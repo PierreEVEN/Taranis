@@ -5,9 +5,11 @@
 
 namespace Engine
 {
-	ImageView::ImageView(const std::shared_ptr<Image>& in_image) : ImageView(
-		in_image->get_device(), in_image->raw(), CreateInfos{.format = in_image->get_params().format})
+	ImageView::ImageView(const std::shared_ptr<Image>& in_image) : device(in_image->get_device())
 	{
+		for (const auto img : in_image->get_resource())
+			views.emplace_back(
+				std::make_shared<ImageViewResource>(device, img, CreateInfos{.format = in_image->get_params().format}));
 	}
 
 	ImageView::ImageView(std::weak_ptr<Device> in_device, std::vector<VkImage> raw_image,
@@ -43,8 +45,16 @@ namespace Engine
 		return views[device.lock()->get_current_image()]->descriptor_infos;
 	}
 
+	ImageViewResource::ImageViewResource(const std::weak_ptr<Device>& device,
+	                                     std::shared_ptr<Image::ImageResource> resource,
+	                                     ImageView::CreateInfos create_infos) :
+		ImageViewResource(device, resource->ptr, create_infos)
+	{
+		image_resource = resource;
+	}
+
 	ImageViewResource::ImageViewResource(const std::weak_ptr<Device>& device, VkImage image,
-	                                     ImageView::CreateInfos create_infos):
+	                                     ImageView::CreateInfos create_infos) :
 		DeviceResource(device)
 	{
 		VkImageViewCreateInfo image_view_infos{
@@ -59,7 +69,9 @@ namespace Engine
 				.a = VK_COMPONENT_SWIZZLE_IDENTITY,
 			},
 			.subresourceRange = {
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.aspectMask = static_cast<VkImageAspectFlags>(is_depth_format(create_infos.format)
+					                                              ? VK_IMAGE_ASPECT_DEPTH_BIT
+					                                              : VK_IMAGE_ASPECT_COLOR_BIT),
 				.baseMipLevel = 0,
 				.levelCount = 1,
 				.baseArrayLayer = 0,
