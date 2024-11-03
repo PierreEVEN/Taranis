@@ -97,9 +97,10 @@ namespace Engine
 		vkDestroyRenderPass(device.lock()->raw(), ptr, nullptr);
 	}
 
-	RenderPassInstanceBase::RenderPassInstanceBase(std::shared_ptr<RenderPassObject> in_render_pass) : render_pass(
-		in_render_pass), device(in_render_pass->get_device())
+	RenderPassInstanceBase::RenderPassInstanceBase(std::shared_ptr<RenderPassObject> in_render_pass, std::shared_ptr<RenderPassInterface> in_interface) : render_pass(
+		in_render_pass), device(in_render_pass->get_device()), interface(in_interface)
 	{
+		interface->init(device, *this);
 	}
 
 	void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t current_frame)
@@ -164,9 +165,7 @@ namespace Engine
 		};
 		vkCmdSetScissor(framebuffer->get_command_buffer().raw(), 0, 1, &scissor);
 
-
-		// @TODO DRAWW
-
+		interface->render(*this);
 
 		// End command get
 		vkCmdEndRenderPass(framebuffer->get_command_buffer().raw());
@@ -251,8 +250,8 @@ namespace Engine
 		return &swapchain.lock()->get_in_flight_fence(image_index);
 	}
 
-	InternalPassInstance::InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass)
-		: RenderPassInstanceBase(render_pass)
+	InternalPassInstance::InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass, std::shared_ptr<RenderPassInterface> interface)
+		: RenderPassInstanceBase(render_pass, interface)
 	{
 	}
 
@@ -284,7 +283,7 @@ namespace Engine
 
 	RenderPassRoot::RenderPassRoot(std::shared_ptr<RenderPassObject> render_pass_object,
 	                               std::shared_ptr<RendererStep> present_pass): RenderPassInstanceBase(
-		render_pass_object)
+		render_pass_object, present_pass->get_interface())
 	{
 		// Instantiate all unique render passes
 		std::unordered_map<std::shared_ptr<RendererStep>, std::shared_ptr<InternalPassInstance>> instanced_passes;
@@ -295,7 +294,7 @@ namespace Engine
 			remaining.pop_back();
 			instanced_passes.emplace(def, std::make_shared<InternalPassInstance>(
 				                         render_pass_object->get_device().lock()->find_or_create_render_pass(
-					                         def->get_infos())));
+					                         def->get_infos()), def->get_interface()));
 			for (const auto& dep : def->get_dependencies())
 				remaining.emplace_back(dep);
 		}

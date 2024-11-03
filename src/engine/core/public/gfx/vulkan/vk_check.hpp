@@ -18,14 +18,14 @@ public:
 	{
 	}
 
-	T get()
+	T get() const
 	{
 		if (!valid)
 			LOG_FATAL("Reading invalid result value : {}", result_error.c_str())
 		return value;
 	}
 
-	std::string error()
+	std::string error() const
 	{
 		if (!valid)
 			return result_error;

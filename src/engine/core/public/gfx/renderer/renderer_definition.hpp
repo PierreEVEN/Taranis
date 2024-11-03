@@ -7,15 +7,31 @@
 #include <vector>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
-#include <vulkan/vulkan_core.h>
 
 #include "gfx/types.hpp"
 
 namespace Engine
 {
+	class Device;
+	class RenderPassInstanceBase;
+	class RenderPassInterface;
 	class Swapchain;
 	class Window;
 	using RenderPassName = std::string;
+
+	class RenderPassInterface
+	{
+	public:
+		virtual void init(const std::weak_ptr<Device>& device, const RenderPassInstanceBase& render_pass) = 0;
+		virtual void render(const RenderPassInstanceBase& render_pass) = 0;
+	};
+
+	class DefaultRenderPassInterface : public RenderPassInterface
+	{
+	public:
+		void init(const std::weak_ptr<Device>&, const RenderPassInstanceBase&) override {}
+		void render(const RenderPassInstanceBase&) override {}
+	};
 
 	class ClearValue
 	{
@@ -91,10 +107,13 @@ namespace Engine
 
 	class RendererStep : public std::enable_shared_from_this<RendererStep>
 	{
+		friend class PresentStep;
+
 	public:
+		template <typename T = DefaultRenderPassInterface>
 		static std::shared_ptr<RendererStep> create(RenderPassName name, std::vector<Attachment> in_attachments)
 		{
-			return std::shared_ptr<RendererStep>(new RendererStep(std::move(name), std::move(in_attachments)));
+			return std::shared_ptr<RendererStep>(new RendererStep(std::move(name), std::move(in_attachments), std::make_shared<T>()));
 		}
 
 		std::shared_ptr<RendererStep> attach(std::shared_ptr<RendererStep> dependency)
@@ -104,16 +123,18 @@ namespace Engine
 		}
 
 		const RenderPassInfos& get_infos() const { return infos; }
-		void mark_as_present_pass() { infos.present_pass = true; }
 
 		const std::unordered_set<std::shared_ptr<RendererStep>>& get_dependencies() const { return dependencies; }
+
+		const std::shared_ptr<RenderPassInterface>& get_interface() const { return interface; }
 
 	private:
 		std::string pass_name;
 		RenderPassInfos infos;
 		std::unordered_set<std::shared_ptr<RendererStep>> dependencies;
+		std::shared_ptr<RenderPassInterface> interface;
 
-		RendererStep(RenderPassName name, std::vector<Attachment> in_attachments) : pass_name(std::move(name))
+		RendererStep(RenderPassName name, std::vector<Attachment> in_attachments, const std::shared_ptr<RenderPassInterface>& in_interface) : pass_name(std::move(name)), interface(in_interface)
 		{
 			infos.attachments = std::move(in_attachments);
 		}
@@ -122,9 +143,10 @@ namespace Engine
 	class PresentStep : public std::enable_shared_from_this<PresentStep>
 	{
 	public:
+		template <typename T = DefaultRenderPassInterface>
 		static std::shared_ptr<PresentStep> create(RenderPassName name, ClearValue clear_value = ClearValue::none())
 		{
-			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name), std::move(clear_value)));
+			return std::shared_ptr<PresentStep>(new PresentStep(std::move(name), std::move(clear_value), std::make_shared<T>()));
 		}
 
 		std::shared_ptr<PresentStep> attach(std::shared_ptr<RendererStep> dependency)
@@ -136,11 +158,14 @@ namespace Engine
 		std::shared_ptr<RendererStep> init_for_swapchain(const Swapchain& swapchain) const;
 
 	private:
-		PresentStep(RenderPassName name, ClearValue in_clear_value) : clear_value(in_clear_value), pass_name(std::move(name))
+		PresentStep(RenderPassName name, ClearValue in_clear_value, const std::shared_ptr<RenderPassInterface>& in_interface) : clear_value(in_clear_value),
+		                                                              pass_name(std::move(name)), interface(in_interface)
 		{
 		}
+
 		ClearValue clear_value;
 		RenderPassName pass_name;
+		std::shared_ptr<RenderPassInterface> interface;
 		std::unordered_set<std::shared_ptr<RendererStep>> dependencies;
 	};
 }

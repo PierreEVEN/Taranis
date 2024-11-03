@@ -158,36 +158,138 @@ namespace Engine
 		// Generate reflection data for a shader
 		SpvReflectShaderModule module;
 		SpvReflectResult result = spvReflectCreateShaderModule(properties.spirv.size(), properties.spirv.data(),
-			&module);
+		                                                       &module);
 
 		if (result != SPV_REFLECT_RESULT_SUCCESS)
 			return std::format("Failed to get spirv reflection : Code {}",
-				static_cast<uint32_t>(result));
+			                   static_cast<uint32_t>(result));
 
 		// Enumerate and extract shader's input variables
 		uint32_t var_count = 0;
-		result = spvReflectEnumerateEntryPointInputVariables(&module, properties.entry_point.c_str(), &var_count, NULL);
+		result = spvReflectEnumerateEntryPointInputVariables(&module, properties.entry_point.c_str(), &var_count,
+		                                                     nullptr);
 		if (result != SPV_REFLECT_RESULT_SUCCESS)
 			return std::format("Failed to enumerate spirv input variables count : Code {}",
-				static_cast<uint32_t>(result));
+			                   static_cast<uint32_t>(result));
 		std::vector<SpvReflectInterfaceVariable*> input_vars(var_count, nullptr);
 		result = spvReflectEnumerateEntryPointInputVariables(&module, properties.entry_point.c_str(), &var_count,
-			input_vars.data());
+		                                                     input_vars.data());
 		if (result != SPV_REFLECT_RESULT_SUCCESS)
 			return std::format("Failed to enumerate spirv input variables values : Code {}",
-				static_cast<uint32_t>(result));
+			                   static_cast<uint32_t>(result));
 
-		for (const auto& var : input_vars)
+		if (!input_vars.empty())
 		{
-			LOG_WARNING("TEST : {} / {}", var->name, var->member_count);
+			uint32_t first_offset = input_vars[0]->word_offset.location;
+			for (const auto& var : input_vars)
+				properties.stage_inputs.emplace_back(var->location, var->word_offset.location - first_offset,
+				                                     static_cast<ColorFormat>(var->format));
 		}
 
+		// Enumerate and extract shader's bindings
+		result = spvReflectEnumerateEntryPointDescriptorBindings(&module, properties.entry_point.c_str(), &var_count,
+		                                                         nullptr);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv bindings count : Code {}",
+			                   static_cast<uint32_t>(result));
+		std::vector<SpvReflectDescriptorBinding*> descriptor_bindings(var_count, nullptr);
+		result = spvReflectEnumerateEntryPointDescriptorBindings(&module, properties.entry_point.c_str(), &var_count,
+		                                                         descriptor_bindings.data());
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv bindings values : Code {}",
+			                   static_cast<uint32_t>(result));
+
+		for (const auto& binding : descriptor_bindings)
+		{
+			EBindingType binding_type;
+			switch (binding->descriptor_type)
+			{
+			case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+				binding_type = EBindingType::SAMPLER;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+				binding_type = EBindingType::COMBINED_IMAGE_SAMPLER;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+				binding_type = EBindingType::SAMPLED_IMAGE;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+				binding_type = EBindingType::STORAGE_IMAGE;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+				binding_type = EBindingType::UNIFORM_TEXEL_BUFFER;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+				binding_type = EBindingType::STORAGE_TEXEL_BUFFER;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				binding_type = EBindingType::UNIFORM_BUFFER;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				binding_type = EBindingType::STORAGE_BUFFER;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+				binding_type = EBindingType::UNIFORM_BUFFER_DYNAMIC;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+				binding_type = EBindingType::STORAGE_BUFFER_DYNAMIC;
+				break;
+			case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+				binding_type = EBindingType::INPUT_ATTACHMENT;
+				break;
+			default:
+				LOG_FATAL("Unhandled descriptor type : {}", static_cast<int>(binding->descriptor_type))
+			}
+			properties.bindings.emplace_back(binding->name, binding->binding, binding_type);
+		}
+
+
+		// Enumerate and extract shader's output
+		result = spvReflectEnumerateEntryPointOutputVariables(&module, properties.entry_point.c_str(), &var_count,
+		                                                      nullptr);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv output variables count : Code {}",
+			                   static_cast<uint32_t>(result));
+		std::vector<SpvReflectInterfaceVariable*> output_variables(var_count, nullptr);
+		result = spvReflectEnumerateEntryPointOutputVariables(&module, properties.entry_point.c_str(), &var_count,
+		                                                      output_variables.data());
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv output variables values : Code {}",
+			                   static_cast<uint32_t>(result));
+
+		if (!output_variables.empty())
+		{
+			uint32_t first_offset = output_variables[0]->word_offset.location;
+			for (const auto& var : output_variables)
+				properties.stage_outputs.emplace_back(var->location, var->word_offset.location - first_offset,
+					static_cast<ColorFormat>(var->format));
+		}
+
+		// Enumerate and extract push constants
+		result = spvReflectEnumerateEntryPointPushConstantBlocks(&module, properties.entry_point.c_str(), &var_count,
+		                                                         nullptr);
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv output push constants count : Code {}",
+			                   static_cast<uint32_t>(result));
+		std::vector<SpvReflectBlockVariable*> push_constants(var_count, nullptr);
+		result = spvReflectEnumerateEntryPointPushConstantBlocks(&module, properties.entry_point.c_str(), &var_count,
+		                                                         push_constants.data());
+		if (result != SPV_REFLECT_RESULT_SUCCESS)
+			return std::format("Failed to enumerate spirv output push constants values : Code {}",
+			                   static_cast<uint32_t>(result));
+
+		if (!push_constants.empty())
+		{
+			if (push_constants.size() != 1)
+				return "multiple push constants are not supported";
+			properties.push_constant_size = push_constants[0]->size;
+		}
 
 		// Output variables, descriptor bindings, descriptor sets, and push constants
 		// can be enumerated and extracted using a similar mechanism.
 
 		// Destroy the reflection data when no longer required.
 		spvReflectDestroyShaderModule(&module);
-		return{};
+		return {};
 	}
 }

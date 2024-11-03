@@ -2,8 +2,32 @@
 #include "engine.hpp"
 #include <gfx/window.hpp>
 
+#include "gfx/renderer/renderer.hpp"
 #include "gfx/shaders/shader_compiler.hpp"
+#include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "imgui.h"
+
+
+namespace Engine
+{
+	class ImGuiWrapper;
+}
+
+class TestFirstPassInterface : public Engine::RenderPassInterface
+{
+public:
+	void init(const std::weak_ptr<Engine::Device>& device, const Engine::RenderPassInstanceBase& render_pass) override
+	{
+		imgui = std::make_unique<Engine::ImGuiWrapper>(render_pass.get_render_pass(), device);
+	}
+	void render(const Engine::RenderPassInstanceBase&) override
+	{
+
+	}
+private:
+	std::unique_ptr<Engine::ImGuiWrapper> imgui;
+};
 
 int main()
 {
@@ -11,33 +35,13 @@ int main()
 		Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO |
 		Logger::LOG_LEVEL_WARNING | Logger::LOG_LEVEL_TRACE);
 
-	Engine::ShaderCompiler cmp;
-
-	if (auto res = cmp.load_from_path("./resources/test.hlsl", "VSMain", Engine::EShaderStage::Vertex, true))
-	{
-
-		LOG_INFO("PC size : {}", res.get().push_constant_size);
-
-		for (const auto& binding : res.get().bindings)
-			LOG_INFO("\t Binding : {} ({}) => {}", binding.name, binding.binding, magic_enum::enum_name(binding.type).data());
-		
-	} else
-	{
-		LOG_FATAL("{}", res.error());
-	}
-
-	LOG_INFO("DONE !");
-
-
-	exit(0);
-
 	Engine::Config config = {};
 
 	Engine::Engine engine(config);
 
 	const auto main_window = engine.new_window(Engine::WindowConfig{});
 	main_window.lock()->set_renderer(
-		Engine::PresentStep::create("present_pass", Engine::ClearValue::color({ 1, 0, 0 ,1 }))
+		Engine::PresentStep::create<TestFirstPassInterface>("present_pass", Engine::ClearValue::color({ 1, 0, 0 ,1 }))
 		->attach(Engine::RendererStep::create("forward_pass", {
 			                                      Engine::Attachment::color(
 				                                      "color", Engine::ColorFormat::R8G8B8A8_UNORM),

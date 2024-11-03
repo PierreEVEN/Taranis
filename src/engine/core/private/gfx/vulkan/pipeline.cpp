@@ -33,7 +33,7 @@ namespace Engine
 			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 		case EBindingType::INPUT_ATTACHMENT:
 			return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-		default:;
+		default: ;
 			LOG_FATAL("unhandled case");
 		}
 	}
@@ -98,22 +98,22 @@ namespace Engine
 		}
 	}
 
-	Pipeline::Pipeline(std::weak_ptr<Device> device, std::shared_ptr<RenderPassObject> render_pass,
-	                   std::vector<VertexInput> vertex_inputs,
+	Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObject> render_pass,
 	                   std::vector<std::shared_ptr<ShaderModule>> shader_stage,
-	                   const CreateInfos& create_infos)
+	                   const CreateInfos& create_infos) : device(in_device)
 	{
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 		for (const auto& stage : shader_stage)
 		{
-			for (const auto& binding : stage->get_bindings()) {
+			for (const auto& binding : stage->infos().bindings)
+			{
 				bindings.emplace_back(VkDescriptorSetLayoutBinding{
 					.binding = binding.binding,
 					.descriptorType = vk_descriptor_type(binding.type),
 					.descriptorCount = 1,
 					.stageFlags = static_cast<VkShaderStageFlags>(stage->infos().stage),
 					.pImmutableSamplers = nullptr,
-					});
+				});
 			}
 		}
 
@@ -152,18 +152,21 @@ namespace Engine
 		std::vector<VkVertexInputAttributeDescription> vertex_attribute_description;
 
 		uint32_t vertex_input_size = 0;
-		for (const auto& input_property : vertex_inputs)
+
+		for (const auto& stage : shader_stage)
 		{
-			if (input_property.location == -1)
-				continue;
+			if (stage->infos().stage == EShaderStage::Vertex)
+				for (const auto& input_property : stage->infos().stage_inputs)
+				{
+					vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
+						.location = static_cast<uint32_t>(input_property.location),
+						.format = static_cast<VkFormat>(input_property.format),
+						.offset = input_property.offset,
+					});
 
-			vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
-				.location = static_cast<uint32_t>(input_property.location),
-				.format = static_cast<VkFormat>(input_property.format),
-				.offset = input_property.offset,
-			});
-
-			vertex_input_size += get_format_channel_count(input_property.format) * get_format_bytes_per_pixel(input_property.format);
+					vertex_input_size += get_format_channel_count(input_property.format) * get_format_bytes_per_pixel(
+						input_property.format);
+				}
 		}
 
 		const VkVertexInputBindingDescription bindingDescription{
@@ -228,7 +231,7 @@ namespace Engine
 		};
 
 		std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment;
-		for (const auto& attachment : render_pass->get_infos().attachments)
+		for (const auto& attachment : render_pass.lock()->get_infos().attachments)
 		{
 			if (attachment.is_depth())
 			{
@@ -295,7 +298,7 @@ namespace Engine
 			.pColorBlendState = &color_blending,
 			.pDynamicState = &dynamic_states,
 			.layout = layout,
-			.renderPass = render_pass->raw(),
+			.renderPass = render_pass.lock()->raw(),
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE,
 			.basePipelineIndex = -1,

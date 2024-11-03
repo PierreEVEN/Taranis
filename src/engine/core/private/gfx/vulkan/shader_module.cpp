@@ -6,14 +6,14 @@
 
 namespace Engine
 {
-	ShaderModule::ShaderModule(std::weak_ptr<Device> in_device, const std::vector<uint32_t>& spirv, const std::vector<Bindings>& in_bindings, const CreateInfos& in_create_infos) : bindings(in_bindings), create_infos(in_create_infos), device(std::move(in_device))
+	ShaderModule::ShaderModule(const std::weak_ptr<Device>& in_device, ShaderProperties in_properties) : properties(std::move(in_properties)), device(in_device)
 	{
 		const VkShaderModuleCreateInfo vertex_create_infos{
 			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.codeSize = spirv.size() * sizeof(uint32_t),
-			.pCode = spirv.data(),
+			.codeSize = properties.spirv.size(),
+			.pCode = reinterpret_cast<uint32_t*>(properties.spirv.data()),
 		};
 		VK_CHECK(vkCreateShaderModule(device.lock()->raw(), &vertex_create_infos, nullptr, &ptr), "failed to create vertex shader module");
 	}

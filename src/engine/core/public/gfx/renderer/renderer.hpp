@@ -37,7 +37,7 @@ namespace Engine
 	class RenderPassInstanceBase
 	{
 	public:
-		RenderPassInstanceBase(std::shared_ptr<RenderPassObject> render_pass);
+		RenderPassInstanceBase(std::shared_ptr<RenderPassObject> render_pass, std::shared_ptr<RenderPassInterface> interface);
 
 		[[nodiscard]] const std::weak_ptr<RenderPassObject>& get_render_pass() const { return render_pass; }
 		virtual std::vector<std::weak_ptr<ImageView>> get_attachments() const = 0;
@@ -57,7 +57,7 @@ namespace Engine
 
 	protected:
 		void new_frame_internal();
-
+		std::shared_ptr<RenderPassInterface> interface;
 		bool rendered = false;
 		std::weak_ptr<Device> device;
 		std::vector<std::shared_ptr<InternalPassInstance>> children;
@@ -93,7 +93,7 @@ namespace Engine
 	class InternalPassInstance : public RenderPassInstanceBase
 	{
 	public:
-		InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass);
+		InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass, std::shared_ptr<RenderPassInterface> interface);
 
 		std::vector<std::weak_ptr<ImageView>> get_attachments() const override
 		{

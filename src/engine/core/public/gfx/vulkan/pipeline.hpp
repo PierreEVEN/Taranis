@@ -66,14 +66,7 @@ namespace Engine
 			float line_width = 1.0f;
 		};
 
-		struct VertexInput
-		{
-			uint32_t location;
-			uint32_t offset;
-			ColorFormat format;
-		};
-
-		Pipeline(std::weak_ptr<Device> device, std::shared_ptr<RenderPassObject> render_pass, std::vector<VertexInput> vertex_inputs, std::vector<std::shared_ptr<ShaderModule>> shader_stage, const CreateInfos& create_infos);
+		Pipeline(std::weak_ptr<Device> device, std::weak_ptr<RenderPassObject> render_pass, std::vector<std::shared_ptr<ShaderModule>> shader_stage, const CreateInfos& create_infos);
 		~Pipeline();
 
 	private:
