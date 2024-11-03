@@ -20,6 +20,8 @@ namespace Engine
 	Swapchain::~Swapchain()
 	{
 		destroy();
+		image_view = nullptr;
+		swapChainImages.clear();
 		renderer = nullptr;
 	}
 

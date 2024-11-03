@@ -74,6 +74,7 @@ namespace Engine
 		bool resize(glm::uvec2 new_size);
 		void set_data(glm::uvec2 new_size, const BufferData& data);
 
+		const ImageParameter& get_params() const { return params; }
 	private:
 
 

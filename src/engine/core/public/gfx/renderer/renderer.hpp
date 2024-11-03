@@ -77,6 +77,7 @@ namespace Engine
 	public:
 		SwapchainPresentPass(std::shared_ptr<RenderPassObject> render_pass, std::weak_ptr<Swapchain> target,
 		                     std::shared_ptr<RendererStep> present_step);
+		~SwapchainPresentPass();
 		std::vector<std::weak_ptr<ImageView>> get_attachments() const override;
 
 		glm::uvec2 resolution() const override;
@@ -94,7 +95,7 @@ namespace Engine
 	{
 	public:
 		InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass, std::shared_ptr<RenderPassInterface> interface);
-
+		~InternalPassInstance();
 		std::vector<std::weak_ptr<ImageView>> get_attachments() const override
 		{
 			std::vector<std::weak_ptr<ImageView>> attachments;

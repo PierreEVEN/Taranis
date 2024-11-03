@@ -12,7 +12,7 @@ namespace Engine
 	enum class EBufferType
 	{
 		IMMUTABLE, // No updates allowed
-		STATIC, // Pretty never updated. Updating data would cause some freezes (low memory footprint)
+		STATIC, // Pretty never updated. Updating ptr would cause some freezes (low memory footprint)
 		DYNAMIC,
 		// Data is stored internally, then automatically submitted. Can lead to a memory overhead depending on the get size.
 		IMMEDIATE, // Data need to be submitted every frames
@@ -39,7 +39,7 @@ namespace Engine
 	class BufferData
 	{
 	public:
-		BufferData() : data(nullptr), element_count(0), stride(0)
+		BufferData() : ptr(nullptr), element_count(0), stride(0)
 		{
 		}
 
@@ -48,7 +48,7 @@ namespace Engine
 		{
 		}
 
-		BufferData(const void* in_data, size_t in_stride, size_t in_element_count) : data(const_cast<void*>(in_data)),
+		BufferData(const void* in_data, size_t in_stride, size_t in_element_count) : ptr(const_cast<void*>(in_data)),
 			element_count(in_element_count),
 			stride(in_stride)
 		{
@@ -59,26 +59,29 @@ namespace Engine
 		~BufferData()
 		{
 			if (own_data)
-				free(data);
+				free(ptr);
 		}
 
 		BufferData copy() const
 		{
 			void* new_data = nullptr;
-			memcpy(new_data, data, stride * element_count);
+			memcpy(new_data, ptr, stride * element_count);
 			BufferData buffer = BufferData(new_data, stride, element_count);
 			buffer.own_data = true;
 			return buffer;
 		}
 
 		size_t get_stride() const { return stride; }
+		size_t get_byte_size() const { return stride * element_count; }
 		size_t get_element_count() const { return element_count; }
 
-		void copy_to(void* destination) const;
+		void copy_to(uint8_t* destination) const;
+
+		const void* data() const { return ptr; }
 
 	private:
 		bool own_data = false;
-		void* data = nullptr;
+		void* ptr = nullptr;
 		size_t element_count = 0;
 		size_t stride = 0;
 	};
@@ -93,6 +96,14 @@ namespace Engine
 			EBufferType type = EBufferType::IMMUTABLE;
 			size_t stride = 0;
 			size_t element_count = 0;
+
+			CreateInfos from_buffer_data(const BufferData& data) const
+			{
+				CreateInfos copy = *this;
+				copy.element_count = data.get_element_count();
+				copy.stride = data.get_stride();
+				return copy;
+			}
 		};
 
 		Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos);
@@ -101,10 +112,14 @@ namespace Engine
 
 		bool resize(size_t stride, size_t element_count);
 
-		void set_data(const BufferData& data);
+		void set_data(size_t start_index, const BufferData& data);
 
 		std::vector<VkBuffer> raw() const;
 		VkBuffer raw_current();
+
+		size_t get_element_count() const { return element_count; }
+		size_t get_stride() const { return stride; }
+		size_t get_byte_size() const { return stride * element_count; }
 
 	private:
 		CreateInfos params;
@@ -121,7 +136,7 @@ namespace Engine
 	public:
 		BufferResource(std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos);
 		~BufferResource();
-		void set_data(const BufferData& data);
+		void set_data(size_t start_index, const BufferData& data);
 
 		bool outdated = false;
 		VkBuffer ptr = VK_NULL_HANDLE;

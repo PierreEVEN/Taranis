@@ -5,8 +5,8 @@
 
 namespace Engine
 {
-	ImageView::ImageView(std::shared_ptr<Image> in_image, CreateInfos create_infos) : ImageView(
-		in_image->get_device(), in_image->raw(), create_infos)
+	ImageView::ImageView(const std::shared_ptr<Image>& in_image) : ImageView(
+		in_image->get_device(), in_image->raw(), CreateInfos{.format = in_image->get_params().format})
 	{
 	}
 
@@ -36,6 +36,13 @@ namespace Engine
 		return ptrs;
 	}
 
+	const VkDescriptorImageInfo& ImageView::get_descriptor_infos_current()
+	{
+		if (views.size() == 1)
+			return views[0]->descriptor_infos;
+		return views[device.lock()->get_current_image()]->descriptor_infos;
+	}
+
 	ImageViewResource::ImageViewResource(const std::weak_ptr<Device>& device, VkImage image,
 	                                     ImageView::CreateInfos create_infos):
 		DeviceResource(device)
@@ -61,6 +68,12 @@ namespace Engine
 		};
 		VK_CHECK(vkCreateImageView(device.lock()->raw(), &image_view_infos, nullptr, &ptr),
 		         "failed to create swapchain image views");
+
+		descriptor_infos = VkDescriptorImageInfo{
+			.sampler = VK_NULL_HANDLE,
+			.imageView = ptr,
+			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		};
 	}
 
 	ImageViewResource::~ImageViewResource()

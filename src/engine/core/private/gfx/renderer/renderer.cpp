@@ -97,7 +97,8 @@ namespace Engine
 		vkDestroyRenderPass(device.lock()->raw(), ptr, nullptr);
 	}
 
-	RenderPassInstanceBase::RenderPassInstanceBase(std::shared_ptr<RenderPassObject> in_render_pass, std::shared_ptr<RenderPassInterface> in_interface) : render_pass(
+	RenderPassInstanceBase::RenderPassInstanceBase(std::shared_ptr<RenderPassObject> in_render_pass,
+	                                               std::shared_ptr<RenderPassInterface> in_interface) : render_pass(
 		in_render_pass), device(in_render_pass->get_device()), interface(in_interface)
 	{
 		interface->init(device, *this);
@@ -165,7 +166,7 @@ namespace Engine
 		};
 		vkCmdSetScissor(framebuffer->get_command_buffer().raw(), 0, 1, &scissor);
 
-		interface->render(*this);
+		interface->render(*this, framebuffer->get_command_buffer());
 
 		// End command get
 		vkCmdEndRenderPass(framebuffer->get_command_buffer().raw());
@@ -178,7 +179,7 @@ namespace Engine
 			children_semaphores.emplace_back(child->framebuffers[current_frame]->render_finished_semaphore().raw());
 		if (const auto& wait_semaphore = get_wait_semaphores(current_frame))
 			children_semaphores.emplace_back(wait_semaphore->raw());
-		
+
 		std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(),
 		                                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 		const auto command_buffer_ptr = framebuffer->get_command_buffer().raw();
@@ -210,6 +211,11 @@ namespace Engine
 		render_pass, present_step), swapchain(in_target)
 	{
 		resize(swapchain.lock()->get_extent());
+	}
+
+	SwapchainPresentPass::~SwapchainPresentPass()
+	{
+		children.clear();
 	}
 
 	std::vector<std::weak_ptr<ImageView>> SwapchainPresentPass::get_attachments() const
@@ -250,9 +256,16 @@ namespace Engine
 		return &swapchain.lock()->get_in_flight_fence(image_index);
 	}
 
-	InternalPassInstance::InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass, std::shared_ptr<RenderPassInterface> interface)
+	InternalPassInstance::InternalPassInstance(std::shared_ptr<RenderPassObject> render_pass,
+	                                           std::shared_ptr<RenderPassInterface> interface)
 		: RenderPassInstanceBase(render_pass, interface)
 	{
+	}
+
+	InternalPassInstance::~InternalPassInstance()
+	{
+		framebuffer_images.clear();
+		framebuffer_image_views.clear();
 	}
 
 	void InternalPassInstance::resize(glm::uvec2 base_resolution)
@@ -275,9 +288,7 @@ namespace Engine
 				                                           .height = framebuffer_resolution.y,
 			                                           });
 			framebuffer_images.emplace_back();
-			framebuffer_image_views.emplace_back(std::make_shared<ImageView>(image, ImageView::CreateInfos{
-				                                                                 .format = attachment.get_format()
-			                                                                 }));
+			framebuffer_image_views.emplace_back(std::make_shared<ImageView>(image));
 		}
 	}
 
@@ -287,7 +298,9 @@ namespace Engine
 	{
 		// Instantiate all unique render passes
 		std::unordered_map<std::shared_ptr<RendererStep>, std::shared_ptr<InternalPassInstance>> instanced_passes;
-		std::vector remaining = {present_pass};
+		std::vector<std::shared_ptr<RendererStep>> remaining;
+		for (const auto& dep : present_pass->get_dependencies())
+			remaining.push_back(dep);
 		while (!remaining.empty())
 		{
 			const std::shared_ptr<RendererStep> def = remaining.back();
@@ -300,7 +313,8 @@ namespace Engine
 		}
 
 		// Construct render pass tree
-		remaining.emplace_back(present_pass);
+		for (const auto& dep : present_pass->get_dependencies())
+			remaining.push_back(dep);
 		while (!remaining.empty())
 		{
 			const std::shared_ptr<RendererStep> def = remaining.back();

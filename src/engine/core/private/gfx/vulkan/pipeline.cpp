@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "gfx/vulkan/pipeline.hpp"
 
 #include "gfx/renderer/renderer.hpp"
@@ -100,13 +102,16 @@ namespace Engine
 
 	Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObject> render_pass,
 	                   std::vector<std::shared_ptr<ShaderModule>> shader_stage,
-	                   const CreateInfos& create_infos) : device(in_device)
+	                   const CreateInfos& in_create_infos) : create_infos(in_create_infos), device(std::move(
+		                                                         in_device))
 	{
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 		for (const auto& stage : shader_stage)
 		{
 			for (const auto& binding : stage->infos().bindings)
 			{
+				descriptor_bindings.push_back(binding);
+
 				bindings.emplace_back(VkDescriptorSetLayoutBinding{
 					.binding = binding.binding,
 					.descriptorType = vk_descriptor_type(binding.type),

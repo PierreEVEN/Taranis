@@ -54,8 +54,9 @@ namespace Engine
 
 	Image::~Image()
 	{
-		for (const auto& image : images)
-			image->drop();
+		for (const auto& image : images) {
+			device.lock()->drop_resource(image);
+		}
 	}
 
 	std::vector<VkImage> Image::raw() const
@@ -103,13 +104,13 @@ namespace Engine
 			LOG_FATAL("Cannot resize immutable image !!");
 		case EBufferType::STATIC:
 			for (const auto& image : images)
-				image->drop();
+				device.lock()->drop_resource(image);
 			images = {nullptr};
 			break;
 		case EBufferType::DYNAMIC:
 		case EBufferType::IMMEDIATE:
 			for (const auto& image : images)
-				image->drop();
+				device.lock()->drop_resource(image);
 			images.clear();
 			images.resize(device.lock()->get_image_count(), nullptr);
 			break;
@@ -240,11 +241,11 @@ namespace Engine
 	{
 		Buffer transfer_buffer(device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
 
-		CommandBuffer command_buffer(device(), QueueSpecialization::Transfer);
+		std::unique_ptr<CommandBuffer> command_buffer = std::make_unique<CommandBuffer>(device(), QueueSpecialization::Transfer);
 
-		command_buffer.begin(true);
+		command_buffer->begin(true);
 
-		set_image_layout(command_buffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		const VkBufferImageCopy region = {
 			.bufferOffset = 0,
 			.bufferRowLength = 0,
@@ -262,21 +263,21 @@ namespace Engine
 			.imageExtent = {res.x, res.y, depth},
 		};
 
-		vkCmdCopyBufferToImage(command_buffer.raw(), transfer_buffer.raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer.raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                       1, &region);
 
 
-		command_buffer.end();
+		command_buffer->end();
 
 		const Fence fence(device());
-		command_buffer.submit({}, &fence);
+		command_buffer->submit({}, &fence);
 		fence.wait();
 
-		command_buffer = CommandBuffer(device(), QueueSpecialization::Graphic);
-		command_buffer.begin(true);
-		set_image_layout(command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		command_buffer.end();
-		command_buffer.submit({}, &fence);
+		command_buffer = std::make_unique<CommandBuffer>(device(), QueueSpecialization::Graphic);
+		command_buffer->begin(true);
+		set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		command_buffer->end();
+		command_buffer->submit({}, &fence);
 		fence.wait();
 	}
 

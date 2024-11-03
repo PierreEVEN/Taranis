@@ -5,6 +5,7 @@
 
 #include "config.hpp"
 #include "gfx/renderer/renderer.hpp"
+#include "gfx/vulkan/descriptor_pool.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 
@@ -26,7 +27,8 @@ namespace Engine
 		vkDeviceWaitIdle(ptr);
 	}
 
-	Device::Device(const Config& config, const Instance& instance, const PhysicalDevice& physical_device, const Surface& surface) :
+	Device::Device(const Config& config, const Instance& instance, const PhysicalDevice& physical_device,
+	               const Surface& surface) :
 		queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device)
 	{
 		float queuePriority = 1.0f;
@@ -42,7 +44,9 @@ namespace Engine
 			});
 		}
 
-		VkPhysicalDeviceFeatures deviceFeatures{};
+		VkPhysicalDeviceFeatures deviceFeatures{
+			.samplerAnisotropy = true,
+		};
 		VkDeviceCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 			.queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),
@@ -65,18 +69,17 @@ namespace Engine
 		VK_CHECK(vkCreateDevice(physical_device.raw(), &createInfo, nullptr, &ptr), "Failed to create device");
 
 
-
 		VmaAllocatorCreateInfo allocatorInfo = {
 			.physicalDevice = physical_device.raw(),
 			.device = ptr,
 			.instance = instance.raw(),
 		};
 		VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator), "failed to create vma allocator");
-
 	}
 
 
-	std::shared_ptr<Device> Device::create(const Config& config, const Instance& instance, const PhysicalDevice& physical_device,
+	std::shared_ptr<Device> Device::create(const Config& config, const Instance& instance,
+	                                       const PhysicalDevice& physical_device,
 	                                       const Surface& surface)
 	{
 		const auto device = std::shared_ptr<Device>(new Device(config, instance, physical_device, surface));
@@ -84,7 +87,7 @@ namespace Engine
 			queue->init_queue(device->weak_from_this());
 
 		device->pending_kill_resources.resize(device->image_count, {});
-
+		device->descriptor_pool = std::make_shared<DescriptorPool>(device);
 		return device;
 	}
 
@@ -117,7 +120,10 @@ namespace Engine
 
 	void Device::destroy_resources()
 	{
+		wait();
+		pending_kill_resources.clear();
 		render_passes.clear();
 		queues = nullptr;
+		descriptor_pool = nullptr;
 	}
 }

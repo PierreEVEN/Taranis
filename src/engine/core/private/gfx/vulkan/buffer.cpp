@@ -4,9 +4,9 @@
 
 namespace Engine
 {
-	void BufferData::copy_to(void* destination) const
+	void BufferData::copy_to(uint8_t* destination) const
 	{
-		memcpy(destination, data, stride * element_count);
+		memcpy(destination, ptr, stride * element_count);
 	}
 
 	Buffer::Buffer(std::weak_ptr<Device> in_device, const CreateInfos& create_infos) : params(create_infos),
@@ -26,17 +26,17 @@ namespace Engine
 		}
 	}
 
-	Buffer::Buffer(std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos,
-	               const BufferData& data) : Buffer(std::move(device), create_infos)
+	Buffer::Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos,
+	               const BufferData& data) : Buffer(std::move(device), create_infos.from_buffer_data(data))
 	{
 		for (const auto& buffer : buffers)
-			buffer->set_data(data);
+			buffer->set_data(0, data);
 	}
 
 	Buffer::~Buffer()
 	{
 		for (const auto& buffer : buffers)
-			buffer->drop();
+			device.lock()->drop_resource(buffer);
 	}
 
 	bool Buffer::resize(size_t new_stride, size_t new_element_count)
@@ -50,13 +50,13 @@ namespace Engine
 			LOG_FATAL("Cannot resize immutable buffer !!");
 		case EBufferType::STATIC:
 			for (const auto& image : buffers)
-				image->drop();
+				device.lock()->drop_resource(image);
 			buffers = {std::make_shared<BufferResource>(device, params)};
 			break;
 		case EBufferType::DYNAMIC:
 		case EBufferType::IMMEDIATE:
 			for (const auto& image : buffers)
-				image->drop();
+				device.lock()->drop_resource(image);
 			buffers.clear();
 			for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
 				buffers.emplace_back(std::make_shared<BufferResource>(device, params));
@@ -67,11 +67,10 @@ namespace Engine
 		return true;
 	}
 
-	void Buffer::set_data(const BufferData& data)
+	void Buffer::set_data(size_t start_index, const BufferData& data)
 	{
-		if (data.get_stride() * data.get_element_count() > stride * element_count)
-			resize(data.get_stride(), data.get_element_count());
-
+		if (data.get_stride() * (start_index + data.get_element_count()) > stride * element_count)
+			resize(data.get_stride(), data.get_element_count() + start_index);
 
 		switch (params.type)
 		{
@@ -79,13 +78,15 @@ namespace Engine
 			LOG_FATAL("Cannot resize immutable buffer !!");
 		case EBufferType::STATIC:
 			device.lock()->wait();
-			buffers[0]->set_data(data);
+			buffers[0]->set_data(start_index, data);
 			break;
 		case EBufferType::DYNAMIC:
+			if (start_index != 0)
+				LOG_FATAL("Cannot update ptr inside a dynamic buffer with offset");
 			for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
 			{
 				if (i == device.lock()->get_current_image())
-					buffers[i]->set_data(data);
+					buffers[i]->set_data(0, data);
 				else
 					buffers[i]->outdated = true;
 			}
@@ -93,7 +94,7 @@ namespace Engine
 				temp_buffer_data = data.copy();
 			break;
 		case EBufferType::IMMEDIATE:
-			buffers[device.lock()->get_current_image()]->set_data(data);
+			buffers[device.lock()->get_current_image()]->set_data(start_index, data);
 			break;
 		}
 	}
@@ -117,7 +118,7 @@ namespace Engine
 		case EBufferType::DYNAMIC:
 			if (buffers[device.lock()->get_current_image()]->outdated)
 			{
-				buffers[device.lock()->get_current_image()]->set_data(temp_buffer_data);
+				buffers[device.lock()->get_current_image()]->set_data(0, temp_buffer_data);
 			}
 			for (const auto& buffer : buffers)
 				if (!buffer->outdated)
@@ -133,6 +134,8 @@ namespace Engine
 	BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos):
 		DeviceResource(std::move(in_device))
 	{
+		assert(create_infos.element_count != 0 && create_infos.stride != 0);
+
 		VkBufferUsageFlags vk_usage = 0;
 		VmaMemoryUsage vma_usage = VMA_MEMORY_USAGE_UNKNOWN;
 
@@ -154,7 +157,7 @@ namespace Engine
 			vk_usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 			break;
 		case EBufferUsage::TRANSFER_MEMORY:
-			vk_usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			vk_usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			break;
 		}
 
@@ -182,23 +185,13 @@ namespace Engine
 
 		const VkBufferCreateInfo buffer_create_info = {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = NULL,
 			.size = create_infos.element_count * create_infos.stride,
 			.usage = vk_usage,
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.queueFamilyIndexCount = 0,
-			.pQueueFamilyIndices = nullptr,
 		};
 
 		const VmaAllocationCreateInfo allocInfo = {
-			.flags = NULL,
 			.usage = vma_usage,
-			.requiredFlags = NULL,
-			.preferredFlags = NULL,
-			.memoryTypeBits = 0,
-			.pool = VK_NULL_HANDLE,
-			.pUserData = nullptr,
 		};
 		VK_CHECK(
 			vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation,
@@ -210,12 +203,12 @@ namespace Engine
 		vmaDestroyBuffer(device().lock()->get_allocator(), ptr, allocation);
 	}
 
-	void BufferResource::set_data(const BufferData& data)
+	void BufferResource::set_data(size_t start_index, const BufferData& data)
 	{
 		outdated = false;
 		void* dst_ptr = nullptr;
 		VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory");
-		data.copy_to(dst_ptr);
+		data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
 		vmaUnmapMemory(device().lock()->get_allocator(), allocation);
 	}
 }

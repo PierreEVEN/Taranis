@@ -18,12 +18,14 @@ namespace Engine
 			ColorFormat format;
 		};
 
-		ImageView(std::shared_ptr<Image> image, CreateInfos create_infos);
+		ImageView(const std::shared_ptr<Image>& image);
 		ImageView(std::weak_ptr<Device> device, std::vector<VkImage> raw_image, CreateInfos create_infos);
 		~ImageView();
 
 		VkImageView raw_current() const;
 		std::vector<VkImageView> raw() const;
+
+		const VkDescriptorImageInfo& get_descriptor_infos_current();
 
 	private:
 		std::vector<std::shared_ptr<ImageViewResource>> views;
@@ -37,5 +39,6 @@ namespace Engine
 		ImageViewResource(const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos);
 		~ImageViewResource();
 		VkImageView ptr = VK_NULL_HANDLE;
+		VkDescriptorImageInfo descriptor_infos;
 	};
 }

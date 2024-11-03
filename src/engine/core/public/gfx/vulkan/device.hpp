@@ -7,6 +7,11 @@
 
 namespace Engine
 {
+	class DescriptorPool;
+}
+
+namespace Engine
+{
 	class DeviceResource;
 	class RenderPassObject;
 	class RenderPassInfos;
@@ -48,6 +53,8 @@ namespace Engine
 			pending_kill_resources[current_image].emplace_back(resource);
 		}
 
+		DescriptorPool& get_descriptor_pool() const { return *descriptor_pool; }
+
 	private:
 		Device(const Config& config, const Instance& instance, const PhysicalDevice& physical_device,
 		       const Surface& surface);
@@ -60,6 +67,7 @@ namespace Engine
 		uint32_t current_image = 0;
 		std::mutex resource_mutex;
 		std::vector<std::vector<std::shared_ptr<DeviceResource>>> pending_kill_resources;
+		std::shared_ptr<DescriptorPool> descriptor_pool;
 	};
 
 	class DeviceResource : public std::enable_shared_from_this<DeviceResource>
@@ -67,11 +75,6 @@ namespace Engine
 	public:
 		DeviceResource(std::weak_ptr<Device> in_device) : device_ref(std::move(in_device))
 		{
-		}
-
-		void drop()
-		{
-			device_ref.lock()->drop_resource(shared_from_this());
 		}
 
 		const std::weak_ptr<Device>& device() const { return device_ref; }

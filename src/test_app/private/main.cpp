@@ -21,9 +21,9 @@ public:
 	{
 		imgui = std::make_unique<Engine::ImGuiWrapper>(render_pass.get_render_pass(), device);
 	}
-	void render(const Engine::RenderPassInstanceBase&) override
+	void render(const Engine::RenderPassInstanceBase& render_pass, const Engine::CommandBuffer& command_buffer) override
 	{
-
+		imgui->draw(command_buffer, render_pass.resolution());
 	}
 private:
 	std::unique_ptr<Engine::ImGuiWrapper> imgui;
@@ -55,6 +55,6 @@ int main()
 				                                      "normal", Engine::ColorFormat::R8G8B8A8_UNORM),
 			                                      Engine::Attachment::depth("depth", Engine::ColorFormat::D32_SFLOAT)
 		                                      })));
-	const auto secondary_window = engine.new_window(Engine::WindowConfig{});
+	//const auto secondary_window = engine.new_window(Engine::WindowConfig{});
 	engine.run();
 }
