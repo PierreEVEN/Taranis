@@ -67,6 +67,7 @@ namespace Engine
 			EAlphaMode alpha_mode = EAlphaMode::Opaque;
 			bool depth_test = true;
 			float line_width = 1.0f;
+			std::optional<std::vector<StageInputOutputDescription>> stage_input_override;
 		};
 
 		Pipeline(std::weak_ptr<Device> device, std::weak_ptr<RenderPassObject> render_pass, std::vector<std::shared_ptr<ShaderModule>> shader_stage, const CreateInfos& create_infos);

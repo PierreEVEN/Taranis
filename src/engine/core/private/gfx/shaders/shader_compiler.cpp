@@ -181,9 +181,10 @@ namespace Engine
 		if (!input_vars.empty())
 		{
 			uint32_t first_offset = input_vars[0]->word_offset.location;
-			for (const auto& var : input_vars)
-				properties.stage_inputs.emplace_back(var->location, var->word_offset.location - first_offset,
-				                                     static_cast<ColorFormat>(var->format));
+			for (const auto& var : input_vars) {
+				properties.stage_inputs.emplace_back(var->location, (var->word_offset.location - first_offset) * 2,
+					static_cast<ColorFormat>(var->format));
+			}
 		}
 
 		// Enumerate and extract shader's bindings
@@ -261,7 +262,7 @@ namespace Engine
 		{
 			uint32_t first_offset = output_variables[0]->word_offset.location;
 			for (const auto& var : output_variables)
-				properties.stage_outputs.emplace_back(var->location, var->word_offset.location - first_offset,
+				properties.stage_outputs.emplace_back(var->location, (var->word_offset.location - first_offset) * 2,
 					static_cast<ColorFormat>(var->format));
 		}
 

@@ -14,8 +14,14 @@
 
 namespace Engine
 {
+	Engine* engine_singleton = nullptr;
+
 	Engine::Engine(Config config) : app_config(std::move(config))
 	{
+		if (engine_singleton)
+			LOG_FATAL("Cannot start multiple engine instances at the same time");
+		engine_singleton = this;
+		last_time = std::chrono::steady_clock::now();
 
 		glfwInit();
 		gfx_instance = std::make_shared<Instance>(app_config);
@@ -29,6 +35,7 @@ namespace Engine
 		gfx_device = nullptr;
 		gfx_instance = nullptr;
 		glfwTerminate();
+		engine_singleton = nullptr;
 	}
 
 	std::weak_ptr<Window> Engine::new_window(const WindowConfig& config)
@@ -56,6 +63,10 @@ namespace Engine
 	{
 		while (!windows.empty())
 		{
+			auto new_time = std::chrono::steady_clock::now();
+			delta_second = std::chrono::duration_cast<std::chrono::nanoseconds>(new_time - last_time).count() / 1000000000.0;
+			last_time = new_time;
+
 			std::vector<size_t> windows_to_remove;
 			for (const auto& [id, window] : windows)
 			{
@@ -68,5 +79,12 @@ namespace Engine
 			glfwPollEvents();
 			gfx_device->next_frame();
 		}
+	}
+
+	Engine& Engine::get()
+	{
+		if (!engine_singleton)
+			LOG_FATAL("Engine is not initialized");
+		return *engine_singleton;
 	}
 }

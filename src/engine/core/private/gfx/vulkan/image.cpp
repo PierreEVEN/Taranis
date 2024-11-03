@@ -54,7 +54,8 @@ namespace Engine
 
 	Image::~Image()
 	{
-		for (const auto& image : images) {
+		for (const auto& image : images)
+		{
 			device.lock()->drop_resource(image);
 		}
 	}
@@ -227,9 +228,10 @@ namespace Engine
 		const VmaAllocationCreateInfo vma_allocation{
 			.usage = VMA_MEMORY_USAGE_GPU_ONLY,
 		};
+		VmaAllocationInfo infos;
 		VK_CHECK(
-			vmaCreateImage(device().lock()->get_allocator(), &image_create_infos, &vma_allocation, &ptr, &allocation,
-				nullptr), "failed to create image");
+			vmaCreateImage(device().lock()->get_allocator(), &image_create_infos, &vma_allocation, &ptr, &allocation, &
+				infos), "failed to create image");
 	}
 
 	Image::ImageResource::~ImageResource()
@@ -241,7 +243,8 @@ namespace Engine
 	{
 		Buffer transfer_buffer(device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
 
-		std::unique_ptr<CommandBuffer> command_buffer = std::make_unique<CommandBuffer>(device(), QueueSpecialization::Transfer);
+		std::unique_ptr<CommandBuffer> command_buffer = std::make_unique<CommandBuffer>(
+			device(), QueueSpecialization::Transfer);
 
 		command_buffer->begin(true);
 
@@ -263,7 +266,8 @@ namespace Engine
 			.imageExtent = {res.x, res.y, depth},
 		};
 
-		vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer.raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer.raw_current(), ptr,
+		                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                       1, &region);
 
 
@@ -323,7 +327,8 @@ namespace Engine
 		}
 		else
 		{
-			LOG_FATAL("Unsupported layout transition : from {} to {}", static_cast<uint32_t>(image_layout), static_cast<uint32_t>(new_layout));
+			LOG_FATAL("Unsupported layout transition : from {} to {}", static_cast<uint32_t>(image_layout),
+			          static_cast<uint32_t>(new_layout));
 		}
 
 		image_layout = new_layout;

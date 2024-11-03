@@ -33,6 +33,7 @@
 
 .idea
 .xmake
+imgui.ini
 compile_commands.json
 CMakeLists.txt
 vsxmake*

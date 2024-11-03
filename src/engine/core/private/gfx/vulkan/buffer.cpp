@@ -9,8 +9,9 @@ namespace Engine
 		memcpy(destination, ptr, stride * element_count);
 	}
 
-	Buffer::Buffer(std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count) : stride(in_stride), element_count(in_element_count), params(create_infos),
-		device(std::move(in_device))
+	Buffer::Buffer(std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride,
+	               size_t in_element_count) : stride(in_stride), element_count(in_element_count), params(create_infos),
+	                                          device(std::move(in_device))
 	{
 		switch (params.type)
 		{
@@ -21,13 +22,15 @@ namespace Engine
 		case EBufferType::DYNAMIC:
 		case EBufferType::IMMEDIATE:
 			for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-				buffers.emplace_back(std::make_shared<BufferResource>(device, create_infos, in_stride, in_element_count));
+				buffers.emplace_back(
+					std::make_shared<BufferResource>(device, create_infos, in_stride, in_element_count));
 			break;
 		}
 	}
 
 	Buffer::Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos,
-	               const BufferData& data) : Buffer(std::move(device), create_infos, data.get_stride(), data.get_element_count())
+	               const BufferData& data) : Buffer(std::move(device), create_infos, data.get_stride(),
+	                                                data.get_element_count())
 	{
 		for (const auto& buffer : buffers)
 			buffer->set_data(0, data);
@@ -62,7 +65,8 @@ namespace Engine
 		case EBufferType::IMMEDIATE:
 			auto& current_buffer = buffers[device.lock()->get_current_image()];
 			device.lock()->drop_resource(current_buffer);
-			buffers[device.lock()->get_current_image()] = std::make_shared<BufferResource>(device, params, new_stride, new_element_count);
+			buffers[device.lock()->get_current_image()] = std::make_shared<BufferResource>(
+				device, params, new_stride, new_element_count);
 		}
 		return true;
 	}
@@ -149,8 +153,10 @@ namespace Engine
 		return buffers[0]->stride;
 	}
 
-	BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos, size_t in_stride, size_t in_element_count): stride(in_stride), element_count(in_element_count),
-	                                                                                                                                                     DeviceResource(std::move(in_device))
+	BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos,
+	                               size_t in_stride, size_t in_element_count): DeviceResource(std::move(in_device)),
+	                                                                           stride(in_stride),
+	                                                                           element_count(in_element_count)
 	{
 		assert(element_count != 0 && stride != 0);
 

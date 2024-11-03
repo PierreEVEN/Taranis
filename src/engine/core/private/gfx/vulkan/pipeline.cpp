@@ -160,18 +160,20 @@ namespace Engine
 
 		for (const auto& stage : shader_stage)
 		{
-			if (stage->infos().stage == EShaderStage::Vertex)
-				for (const auto& input_property : stage->infos().stage_inputs)
+			if (stage->infos().stage == EShaderStage::Vertex) {
+				const auto input = create_infos.stage_input_override ? *create_infos.stage_input_override : stage->infos().stage_inputs;
+				for (const auto& input_property : input)
 				{
 					vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
 						.location = static_cast<uint32_t>(input_property.location),
 						.format = static_cast<VkFormat>(input_property.format),
 						.offset = input_property.offset,
-					});
+						});
 
 					vertex_input_size += get_format_channel_count(input_property.format) * get_format_bytes_per_pixel(
 						input_property.format);
 				}
+			}
 		}
 
 		const VkVertexInputBindingDescription bindingDescription{

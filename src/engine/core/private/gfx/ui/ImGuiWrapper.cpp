@@ -4,6 +4,7 @@
 
 #include <imgui.h>
 
+#include "engine.hpp"
 #include "gfx/mesh.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
@@ -70,14 +71,20 @@ namespace Engine
 			LOG_FATAL("Failed to compile imgui vertex shader : {}", vertex_code.error());
 		if (!fragment_code)
 			LOG_FATAL("Failed to compile imgui fragment shader : {}", fragment_code.error());
+		const auto vertex_temp = std::make_shared<ShaderModule>(device, vertex_code.get());
 
 		imgui_material = std::make_shared<Pipeline>(device, render_pass, std::vector{
-			                                            std::make_shared<ShaderModule>(device, vertex_code.get()),
+													   std::make_shared<ShaderModule>(device, vertex_code.get()),
 			                                            std::make_shared<ShaderModule>(device, fragment_code.get())
 		                                            }, Pipeline::CreateInfos{
 			                                            .culling = ECulling::None,
 			                                            .alpha_mode = EAlphaMode::Translucent,
-			                                            .depth_test = false
+			                                            .depth_test = false,
+														.stage_input_override = std::vector{
+															StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
+															StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
+															StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
+														}
 		                                            });
 
 		imgui_descriptors = std::make_shared<DescriptorSet>(device, imgui_material);
@@ -164,27 +171,24 @@ namespace Engine
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		font_texture = std::make_shared<Image>(device, ImageParameter{
-			                                       .format = ColorFormat::R8G8B8A8_UNORM,
-			                                       .buffer_type = EBufferType::IMMUTABLE,
-			                                       .width = static_cast<uint32_t>(width),
-			                                       .height = static_cast<uint32_t>(height),
-		                                       }, BufferData(pixels, 4, width * height));
-
+												   .format = ColorFormat::R8G8B8A8_UNORM,
+												   .buffer_type = EBufferType::IMMUTABLE,
+												   .width = static_cast<uint32_t>(width),
+												   .height = static_cast<uint32_t>(height),
+			}, BufferData(pixels, 4, width * height));
 		font_texture_view = std::make_shared<ImageView>(font_texture);
 
 		imgui_descriptors->bind_image("sTexture", font_texture_view);
 		imgui_descriptors->bind_sampler("sSampler", image_sampler);
-		io.Fonts->TexID = reinterpret_cast<ImTextureID>(font_texture.get());
 	}
 
 	void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-
 		// Setup display size (every frame to accommodate for start_window resizing)
 		io.DisplaySize = ImVec2(static_cast<float>(draw_res.x), static_cast<float>(draw_res.y));
 		io.DisplayFramebufferScale = ImVec2(1.0, 1.0);
-		io.DeltaTime = 1 / 60.f; //static_cast<float>(application::get()->delta_time());
+		io.DeltaTime = static_cast<float>(Engine::get().delta_second);
 
 		// Update mouse
 		/*
@@ -204,8 +208,14 @@ namespace Engine
 			*/
 		ImGui::NewFrame();
 
+		//ImGui::ShowDemoWindow(nullptr);
 
-		ImGui::ShowDemoWindow(nullptr);
+		if (ImGui::Begin("test"))
+		{
+			ImGui::LabelText("ms", "%lf", Engine::get().delta_second * 1000);
+			ImGui::LabelText("fps", "%lf", 1.0 / Engine::get().delta_second);
+			ImGui::End();
+		}
 
 
 		ImGui::EndFrame();
@@ -237,11 +247,20 @@ namespace Engine
 		for (int n = 0; n < draw_data->CmdListsCount; n++)
 		{
 			const ImDrawList* cmd_list = draw_data->CmdLists[n];
+
+			std::vector<ImDrawVert> test_mem = std::vector<ImDrawVert>(cmd_list->VtxBuffer.Size, ImDrawVert{ {1, 2}, {3, 4 }, {5} });
+
 			mesh->set_indexed_vertices(
 				vtx_offset,
 				BufferData(cmd_list->VtxBuffer.Data, sizeof(ImDrawVert), cmd_list->VtxBuffer.Size),
 				idx_offset,
 				BufferData(cmd_list->IdxBuffer.Data, sizeof(ImDrawIdx), cmd_list->IdxBuffer.Size));
+			/*mesh->set_vertices(0, BufferData(std::vector{
+				ImDrawVert{ {1.5, 2.5}, {3.5, 4.5},ImU32 {ImGui::ColorConvertFloat4ToU32(ImVec4{1.f, 0.f, 0.f, 1.f})} },
+
+				ImDrawVert{ {5.5, 6.5}, {7.5, 8.5},ImU32 {ImGui::ColorConvertFloat4ToU32(ImVec4{0.f, 1.f, 1.f, 0.f})} }
+				}
+			));*/
 			vtx_offset += cmd_list->VtxBuffer.Size;
 			idx_offset += cmd_list->IdxBuffer.Size;
 		}

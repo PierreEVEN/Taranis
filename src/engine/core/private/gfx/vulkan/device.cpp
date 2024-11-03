@@ -123,7 +123,11 @@ namespace Engine
 		wait();
 		pending_kill_resources.clear();
 		render_passes.clear();
+		pending_kill_resources.clear();
 		queues = nullptr;
+		pending_kill_resources.clear();
 		descriptor_pool = nullptr;
+		vmaDestroyAllocator(allocator);
+		pending_kill_resources.clear();
 	}
 }

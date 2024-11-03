@@ -4,6 +4,8 @@
 
 #include "config.hpp"
 
+#include <chrono>
+
 
 namespace Engine
 {
@@ -30,7 +32,16 @@ namespace Engine
 		std::weak_ptr<Instance> get_instance() const { return gfx_instance; }
 		std::weak_ptr<Device> get_device() const { return gfx_device; }
 
+		static Engine& get();
+
+		double delta_second;
+
+
+
 	private:
+
+		std::chrono::steady_clock::time_point last_time;
+
 		std::unordered_map<size_t, std::shared_ptr<Window>> windows;
 
 		std::shared_ptr<Instance> gfx_instance;
