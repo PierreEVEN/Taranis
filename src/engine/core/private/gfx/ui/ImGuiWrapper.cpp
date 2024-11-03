@@ -220,8 +220,7 @@ namespace Engine
 		const ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
 		if (imgui_cursor != ImGuiMouseCursor_None)
 			glfwSetCursor(target_window.lock()->raw(), cursor_map[imgui_cursor]);
-		else
-		    LOG_WARNING("//@TODO : handle none cursor");
+
 		ImGui::NewFrame();
 
 		if (ImGui::Begin("test"))
@@ -264,7 +263,6 @@ namespace Engine
 		for (int n = 0; n < draw_data->CmdListsCount; n++)
 		{
 			const ImDrawList* cmd_list = draw_data->CmdLists[n];
-			LOG_WARNING("write : {}-{}  => {}-{}", vtx_offset, cmd_list->VtxBuffer.Size, idx_offset, cmd_list->IdxBuffer.Size);
 			mesh->set_indexed_vertices(
 				vtx_offset,
 				BufferData(cmd_list->VtxBuffer.Data, sizeof(ImDrawVert), cmd_list->VtxBuffer.Size),

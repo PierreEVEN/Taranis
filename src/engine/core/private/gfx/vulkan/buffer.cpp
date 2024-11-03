@@ -46,6 +46,7 @@ namespace Engine
 	{
 		if (new_stride == get_stride() && new_element_count == get_element_count())
 			return false;
+
 		switch (params.type)
 		{
 		case EBufferType::IMMUTABLE:
@@ -98,7 +99,6 @@ namespace Engine
 				temp_buffer_data = data.copy();
 			break;
 		case EBufferType::IMMEDIATE:
-			LOG_WARNING("UPDATE BUFFER AAA : {}-{}", start_index, data.get_element_count());
 			buffers[device.lock()->get_current_image()]->set_data(start_index, data);
 			break;
 		}
@@ -230,11 +230,11 @@ namespace Engine
 
 	void BufferResource::set_data(size_t start_index, const BufferData& data)
 	{
-		LOG_WARNING("UPDATE BUFFER BBB : {}-{}", start_index, data.get_element_count());
 		outdated = false;
 		void* dst_ptr = nullptr;
 		VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory");
 		data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
+
 		vmaUnmapMemory(device().lock()->get_allocator(), allocation);
 	}
 }

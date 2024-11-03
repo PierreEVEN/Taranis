@@ -17,7 +17,7 @@ namespace Engine
 				                                         .type = buffer_type,
 			                                         }, vertex_structure_size, vertex_count);
 		}
-		else if (vertex_count != vertex_buffer->get_element_count()) {
+		else if (vertex_count > vertex_buffer->get_element_count()) {
 			vertex_buffer->resize(vertex_structure_size, vertex_count);
 		}
 	}
@@ -50,7 +50,7 @@ namespace Engine
 				                                        .type = buffer_type,
 			                                        }, size, index_count);
 		}
-		else if (index_count != index_buffer->get_element_count() || size != index_buffer->get_stride()) {
+		else if (index_count > index_buffer->get_element_count() || size != index_buffer->get_stride()) {
 			index_buffer->resize(size, index_count);
 		}
 	}
