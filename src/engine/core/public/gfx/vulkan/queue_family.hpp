@@ -1,6 +1,5 @@
 #pragma once
 #include <mutex>
-#include <optional>
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
@@ -69,7 +68,7 @@ class QueueFamily
     bool                         queue_support_present;
     std::mutex                   queue_lock;
     VkQueue                      ptr = VK_NULL_HANDLE;
-    std::unique_ptr<CommandPool> command_pool;
+    std::shared_ptr<CommandPool> command_pool;
     std::string                  name;
 };
 

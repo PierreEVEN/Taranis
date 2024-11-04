@@ -76,7 +76,7 @@ std::shared_ptr<Device> Device::create(const Config& config, const std::weak_ptr
         queue->init_queue(device->weak_from_this());
 
     device->pending_kill_resources.resize(device->image_count, {});
-    device->descriptor_pool = std::make_shared<DescriptorPool>(device);
+    device->descriptor_pool = DescriptorPool::create(device);
     return device;
 }
 
@@ -102,7 +102,7 @@ std::shared_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderP
     if (existing != render_passes.end())
         return existing->second;
 
-    const auto new_render_pass = std::make_shared<VkRendererPass>(infos.name + "_pass", shared_from_this(), infos);
+    const auto new_render_pass = VkRendererPass::create(infos.name + "_pass", shared_from_this(), infos);
     render_passes.emplace(infos, new_render_pass);
     return new_render_pass;
 }
@@ -116,6 +116,12 @@ void Device::destroy_resources()
     queues = nullptr;
     pending_kill_resources.clear();
     descriptor_pool = nullptr;
+
+    VmaTotalStatistics stats;
+    vmaCalculateStatistics(allocator, &stats);
+    if (stats.total.statistics.allocationCount > 0)
+        LOG_FATAL("{} allocation were not destroyed", stats.total.statistics.allocationCount)
+
     vmaDestroyAllocator(allocator);
     pending_kill_resources.clear();
 }

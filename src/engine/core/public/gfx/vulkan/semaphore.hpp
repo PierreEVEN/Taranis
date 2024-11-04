@@ -10,7 +10,10 @@ class Device;
 class Semaphore
 {
   public:
-    Semaphore(const std::string& name, std::weak_ptr<Device> device);
+    static std::shared_ptr<Semaphore> create(const std::string& name, std::weak_ptr<Device> device)
+    {
+        return std::shared_ptr<Semaphore>(new Semaphore(name, std::move(device)));
+    }
     Semaphore(Semaphore&)  = delete;
     Semaphore(Semaphore&&) = delete;
     ~Semaphore();
@@ -21,6 +24,7 @@ class Semaphore
     }
 
   private:
+    Semaphore(const std::string& name, std::weak_ptr<Device> device);
     VkSemaphore           ptr;
     std::weak_ptr<Device> device;
 };

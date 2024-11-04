@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <utility>
 
 #include "gfx/shaders/shader_compiler.hpp"
 #include "queue_family.hpp"
@@ -23,11 +24,16 @@ struct Scissor
 
 class CommandBuffer
 {
-  public:
-    CommandBuffer(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type);
+public:
+    static std::shared_ptr<CommandBuffer> create(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type)
+    {
+        return std::shared_ptr<CommandBuffer>(new CommandBuffer(name, std::move(device), type));
+    }
+
     CommandBuffer(CommandBuffer&)  = delete;
     CommandBuffer(CommandBuffer&&) = delete;
     ~CommandBuffer();
+
     VkCommandBuffer raw() const
     {
         return ptr;
@@ -45,7 +51,8 @@ class CommandBuffer
     void set_scissor(const Scissor& scissors) const;
     void push_constant(EShaderStage stage, const Pipeline& pipeline, const BufferData& data) const;
 
-  private:
+private:
+    CommandBuffer(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type);
     VkCommandBuffer       ptr = VK_NULL_HANDLE;
     QueueSpecialization   type;
     std::weak_ptr<Device> device;

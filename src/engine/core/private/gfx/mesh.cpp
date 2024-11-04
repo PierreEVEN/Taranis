@@ -11,7 +11,7 @@ void Mesh::reserve_vertices(size_t vertex_count)
 {
     if (!vertex_buffer)
     {
-        vertex_buffer = std::make_unique<Buffer>(name + "_buff_vtx", device,
+        vertex_buffer = Buffer::create(name + "_buff_vtx", device,
                                                  Buffer::CreateInfos{
                                                      .usage  = EBufferUsage::VERTEX_DATA,
                                                      .access = EBufferAccess::CPU_TO_GPU,
@@ -47,7 +47,7 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
 
     if (!index_buffer)
     {
-        index_buffer = std::make_unique<Buffer>(name + "_buff_idx", device,
+        index_buffer = Buffer::create(name + "_buff_idx", device,
                                                 Buffer::CreateInfos{
                                                     .usage  = EBufferUsage::INDEX_DATA,
                                                     .access = EBufferAccess::CPU_TO_GPU,

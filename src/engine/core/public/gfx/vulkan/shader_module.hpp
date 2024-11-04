@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <string>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -12,8 +12,12 @@ class Device;
 
 class ShaderModule
 {
-  public:
-    ShaderModule(const std::weak_ptr<Device>& device, ShaderProperties properties);
+public:
+    static std::shared_ptr<ShaderModule> create(const std::weak_ptr<Device>& device, ShaderProperties properties)
+    {
+        return std::shared_ptr<ShaderModule>(new ShaderModule(device, std::move(properties)));
+    }
+
     ShaderModule(ShaderModule&)  = delete;
     ShaderModule(ShaderModule&&) = delete;
     ~ShaderModule();
@@ -22,12 +26,14 @@ class ShaderModule
     {
         return ptr;
     }
+
     const ShaderProperties& infos() const
     {
         return properties;
     }
 
-  private:
+private:
+    ShaderModule(const std::weak_ptr<Device>& device, ShaderProperties properties);
     ShaderProperties      properties;
     VkShaderModule        ptr = VK_NULL_HANDLE;
     std::weak_ptr<Device> device;

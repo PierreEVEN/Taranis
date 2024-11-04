@@ -131,14 +131,14 @@ void Swapchain::create_or_recreate()
     swapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, swapChainImages.data());
 
-    image_view = std::make_shared<ImageView>(name + "view", device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
+    image_view = ImageView::create(name + "view", device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
 
     image_available_semaphores.clear();
     in_flight_fences.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
     {
-        image_available_semaphores.emplace_back(std::make_shared<Semaphore>(name + "_sem_#" + std::to_string(i), device));
-        in_flight_fences.emplace_back(std::make_shared<Fence>(name + "_fence_#" + std::to_string(i), device, true));
+        image_available_semaphores.emplace_back(Semaphore::create(name + "_sem_#" + std::to_string(i), device));
+        in_flight_fences.emplace_back(Fence::create(name + "_fence_#" + std::to_string(i), device, true));
     }
 }
 

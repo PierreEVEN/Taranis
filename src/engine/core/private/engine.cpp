@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "config.hpp"
+#include "assets/asset_registry.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/physical_device.hpp"
@@ -23,12 +24,14 @@ Engine::Engine(Config config) : app_config(std::move(config))
     last_time        = std::chrono::steady_clock::now();
 
     glfwInit();
-    gfx_instance = std::make_shared<Instance>(app_config);
+    gfx_instance          = Instance::create(app_config);
+    global_asset_registry = std::make_unique<AssetRegistry>();
 }
 
 Engine::~Engine()
 {
     windows.clear();
+    global_asset_registry = nullptr;
     if (gfx_device)
         gfx_device->destroy_resources();
     gfx_device   = nullptr;
@@ -84,5 +87,10 @@ Engine& Engine::get()
     if (!engine_singleton)
         LOG_FATAL("Engine is not initialized")
     return *engine_singleton;
+}
+
+AssetRegistry& Engine::asset_registry() const
+{
+    return *global_asset_registry;
 }
 } // namespace Engine

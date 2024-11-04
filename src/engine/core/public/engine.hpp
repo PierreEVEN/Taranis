@@ -8,6 +8,11 @@
 
 namespace Engine
 {
+class AssetRegistry;
+}
+
+namespace Engine
+{
 class Config;
 class Device;
 class Instance;
@@ -43,6 +48,8 @@ class Engine
 
     double delta_second;
 
+    AssetRegistry& asset_registry() const;
+
   private:
     std::chrono::steady_clock::time_point last_time;
 
@@ -50,6 +57,7 @@ class Engine
 
     std::shared_ptr<Instance> gfx_instance;
     std::shared_ptr<Device>   gfx_device;
+    std::unique_ptr<AssetRegistry> global_asset_registry;
 
     Config app_config;
 };

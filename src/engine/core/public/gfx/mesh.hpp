@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <utility>
 
 #include "vulkan/buffer.hpp"
 
@@ -17,8 +18,12 @@ enum class IndexBufferType
 
 class Mesh
 {
-  public:
-    Mesh(std::string name, const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type);
+public:
+    static std::shared_ptr<Mesh> create(std::string name, const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type)
+    {
+        return std::shared_ptr<Mesh>(new Mesh(std::move(name), device, vertex_structure_size, buffer_type));
+    }
+
     Mesh(Mesh&&) = delete;
     Mesh(Mesh&)  = delete;
     void reserve_vertices(size_t vertex_count);
@@ -41,13 +46,14 @@ class Mesh
         return index_type;
     }
 
-  private:
+private:
+    Mesh(std::string name, const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type);
     EBufferType             buffer_type;
     size_t                  vertex_structure_size = 0;
     IndexBufferType         index_type;
     std::weak_ptr<Device>   device;
-    std::unique_ptr<Buffer> vertex_buffer;
-    std::unique_ptr<Buffer> index_buffer;
+    std::shared_ptr<Buffer> vertex_buffer;
+    std::shared_ptr<Buffer> index_buffer;
     std::string             name;
 };
 } // namespace Engine

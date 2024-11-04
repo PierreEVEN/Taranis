@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "gfx/types.hpp"
@@ -13,14 +14,22 @@ class Image;
 
 class ImageView
 {
-  public:
+public:
     struct CreateInfos
     {
         ColorFormat format;
     };
 
-    ImageView(std::string name, const std::shared_ptr<Image>& image);
-    ImageView(std::string name, std::weak_ptr<Device> device, std::vector<VkImage> raw_image, CreateInfos create_infos);
+    static std::shared_ptr<ImageView> create(std::string name, const std::shared_ptr<Image>& image)
+    {
+        return std::shared_ptr<ImageView>(new ImageView(std::move(name), image));
+    }
+
+    static std::shared_ptr<ImageView> create(std::string name, std::weak_ptr<Device> device, std::vector<VkImage> raw_image, CreateInfos create_infos)
+    {
+        return std::shared_ptr<ImageView>(new ImageView(std::move(name), std::move(device), std::move(raw_image), create_infos));
+    }
+
     ImageView(ImageView&&) = delete;
     ImageView(ImageView&)  = delete;
     ~ImageView()           = default;
@@ -35,21 +44,23 @@ class ImageView
         return name;
     }
 
-  private:
-    std::vector<std::shared_ptr<ImageViewResource>> views;
-    std::shared_ptr<Image>                          image;
-    std::weak_ptr<Device>                           device;
-    std::string                                     name;
-};
+private:
+    class Resource : public DeviceResource
+    {
+    public:
+        Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos);
+        Resource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos);
+        ~Resource();
+        VkImageView                           ptr = VK_NULL_HANDLE;
+        VkDescriptorImageInfo                 descriptor_infos;
+        std::shared_ptr<Image::ImageResource> image_resource;
+    };
 
-class ImageViewResource : public DeviceResource
-{
-  public:
-    ImageViewResource(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, ImageView::CreateInfos create_infos);
-    ImageViewResource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos);
-    ~ImageViewResource();
-    VkImageView                           ptr = VK_NULL_HANDLE;
-    VkDescriptorImageInfo                 descriptor_infos;
-    std::shared_ptr<Image::ImageResource> image_resource;
+    ImageView(std::string name, const std::shared_ptr<Image>& image);
+    ImageView(std::string name, std::weak_ptr<Device> device, std::vector<VkImage> raw_image, CreateInfos create_infos);
+    std::vector<std::shared_ptr<Resource>> views;
+    std::shared_ptr<Image>                 image;
+    std::weak_ptr<Device>                  device;
+    std::string                            name;
 };
 } // namespace Engine

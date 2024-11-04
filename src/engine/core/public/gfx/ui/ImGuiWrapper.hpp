@@ -30,7 +30,8 @@ class ImGuiWrapper
   public:
     ImGuiWrapper(std::string name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
-    void draw(const CommandBuffer& cmd, glm::uvec2 draw_res);
+    void begin(const CommandBuffer& cmd, glm::uvec2 draw_res);
+    void end(const CommandBuffer& cmd);
 
     ImTextureID add_image(const std::shared_ptr<ImageView>& image_view);
 

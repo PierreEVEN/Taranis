@@ -145,7 +145,7 @@ void SwapchainRenderer::resize(glm::uvec2 parent_resolution)
     framebuffers.clear();
     const size_t image_count = swapchain.lock()->get_image_view().lock()->raw().size();
     for (size_t i = 0; i < image_count; ++i)
-        framebuffers.emplace_back(std::make_shared<Framebuffer>(name, render_pass.lock()->get_device(), *this, image_index++));
+        framebuffers.emplace_back(Framebuffer::create(name, render_pass.lock()->get_device(), *this, image_index++));
 }
 
 const Semaphore& SwapchainRenderer::get_render_finished_semaphore(uint32_t image_index) const
@@ -187,7 +187,7 @@ void RenderPassInstance::resize(glm::uvec2 base_resolution)
     framebuffer_image_views.clear();
     for (const auto& attachment : render_pass.lock()->get_infos().attachments)
     {
-        const auto image = std::make_shared<Image>(name + "-img_" + attachment.get_name(), device,
+        const auto image = Image::create(name + "-img_" + attachment.get_name(), device,
                                                    ImageParameter{
                                                        .format                 = attachment.get_format(),
                                                        .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
@@ -196,11 +196,11 @@ void RenderPassInstance::resize(glm::uvec2 base_resolution)
                                                        .height                 = framebuffer_resolution.y,
                                                    });
         framebuffer_images.emplace_back();
-        framebuffer_image_views.emplace_back(std::make_shared<ImageView>(name + "-view_" + attachment.get_name(), image));
+        framebuffer_image_views.emplace_back(ImageView::create(name + "-view_" + attachment.get_name(), image));
     }
     framebuffers.clear();
     for (size_t i = 0; i < framebuffer_image_views[0]->raw().size(); ++i)
-        framebuffers.emplace_back(std::make_shared<Framebuffer>(name + "-fb_" + std::to_string(i), render_pass.lock()->get_device(), *this, i));
+        framebuffers.emplace_back(Framebuffer::create(name + "-fb_" + std::to_string(i), render_pass.lock()->get_device(), *this, i));
 }
 
 RendererInstance::RendererInstance(const std::string& in_name, const std::shared_ptr<VkRendererPass>& render_pass_object, const std::shared_ptr<RenderPass>& present_pass)

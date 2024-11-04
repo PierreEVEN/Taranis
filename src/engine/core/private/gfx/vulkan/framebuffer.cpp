@@ -11,8 +11,8 @@ namespace Engine
 {
 Framebuffer::Framebuffer(const std::string& name, std::weak_ptr<Device> in_device, const RenderPassInstanceBase& render_pass, size_t image_index) : device(std::move(in_device))
 {
-    command_buffer             = std::make_shared<CommandBuffer>(name + "_cmd", device, QueueSpecialization::Graphic);
-    render_finished_semaphores = std::make_shared<Semaphore>(name + "_sem", device);
+    command_buffer = CommandBuffer::create(name + "_cmd", device, QueueSpecialization::Graphic);
+    render_finished_semaphores = Semaphore::create(name + "_sem", device);
     const auto rp              = render_pass.get_render_pass().lock();
 
     std::vector<VkImageView> views;

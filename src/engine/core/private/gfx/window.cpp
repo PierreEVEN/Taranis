@@ -14,7 +14,7 @@ static std::unordered_map<GLFWwindow*, Window*> windows;
 std::shared_ptr<Window> Window::create(const std::weak_ptr<Instance>& instance, const WindowConfig& config)
 {
     const auto window = std::shared_ptr<Window>(new Window(config));
-    window->surface   = std::make_shared<Surface>(config.name, instance, window);
+    window->surface   = Surface::create(config.name, instance, window);
     return window;
 }
 
@@ -25,7 +25,7 @@ Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
     windows.emplace(ptr, this);
 
     glfwSetWindowSizeCallback(ptr,
-                              [](GLFWwindow* window, int width, int height)
+                              [](GLFWwindow* window, int, int)
                               {
                                   windows[window]->render();
                               });

@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -70,7 +70,11 @@ class Pipeline
         std::optional<std::vector<StageInputOutputDescription>> stage_input_override;
     };
 
-    Pipeline(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
+    static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos)
+    {
+        return std::shared_ptr<Pipeline>(new Pipeline(name, std::move(device), render_pass, shader_stage, std::move(create_infos)));
+    }
+
     Pipeline(Pipeline&)  = delete;
     Pipeline(Pipeline&&) = delete;
     ~Pipeline();
@@ -97,6 +101,7 @@ class Pipeline
     }
 
   private:
+    Pipeline(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
     std::vector<BindingDescription> descriptor_bindings;
     CreateInfos                     create_infos;
     VkPipelineLayout                layout                = VK_NULL_HANDLE;

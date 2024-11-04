@@ -4,6 +4,7 @@
 #include <glm/vec2.hpp>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -32,7 +33,11 @@ struct SwapChainSupportDetails
 class Swapchain : public std::enable_shared_from_this<Swapchain>
 {
   public:
-    Swapchain(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& Surface, bool vsync = false);
+    static std::shared_ptr<Swapchain> create(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, bool vsync = false)
+    {
+        return std::shared_ptr<Swapchain>(new Swapchain(std::move(name), device, surface, vsync));
+    }
+
     Swapchain(Swapchain&)  = delete;
     Swapchain(Swapchain&&) = delete;
     ~Swapchain();
@@ -73,6 +78,7 @@ class Swapchain : public std::enable_shared_from_this<Swapchain>
     const Fence&     get_in_flight_fence(uint32_t image_index) const;
 
   private:
+    Swapchain(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, bool vsync = false);
     bool vsync = true;
 
     bool render_internal();

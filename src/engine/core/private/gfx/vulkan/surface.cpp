@@ -26,7 +26,7 @@ Surface::Surface(const std::string& in_name, const std::weak_ptr<Instance>& inst
 
 void Surface::create_swapchain(const std::weak_ptr<Device>& device)
 {
-    swapchain = std::make_shared<Swapchain>(name + "_swp", device, weak_from_this());
+    swapchain = Swapchain::create(name + "_swp", device, weak_from_this());
 }
 
 void Surface::set_renderer(const std::shared_ptr<Renderer>& present_pass) const

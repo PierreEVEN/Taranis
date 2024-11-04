@@ -30,6 +30,7 @@ struct WindowConfig
 class Window : public std::enable_shared_from_this<Window>
 {
   public:
+    static std::shared_ptr<Window> create(const std::weak_ptr<Instance>& instance, const WindowConfig& config);
     Window(Window&&) = delete;
     Window(Window&)  = delete;
     ~Window();
@@ -59,8 +60,6 @@ class Window : public std::enable_shared_from_this<Window>
     {
         return surface;
     }
-
-    static std::shared_ptr<Window> create(const std::weak_ptr<Instance>& instance, const WindowConfig& config);
 
   private:
     Window(const WindowConfig& config);

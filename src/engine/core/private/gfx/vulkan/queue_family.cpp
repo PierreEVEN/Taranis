@@ -148,7 +148,7 @@ QueueFamily::QueueFamily(uint32_t index, VkQueueFlags flags, bool support_presen
 void QueueFamily::init_queue(const std::weak_ptr<Device>& device)
 {
     vkGetDeviceQueue(device.lock()->raw(), index(), 0, &ptr);
-    command_pool = std::make_unique<CommandPool>(name + "_cmd_pool", device, index());
+    command_pool = CommandPool::create(name + "_cmd_pool", device, index());
     device.lock()->debug_set_object_name(name, ptr);
 }
 

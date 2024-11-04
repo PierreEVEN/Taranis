@@ -14,7 +14,11 @@ class Sampler
     {
     };
 
-    Sampler(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos);
+    static std::shared_ptr<Sampler> create(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos)
+    {
+        return std::shared_ptr<Sampler>(new Sampler(name, std::move(device), create_infos));
+    }
+
     Sampler(Sampler&)  = delete;
     Sampler(Sampler&&) = delete;
     ~Sampler();
@@ -29,6 +33,7 @@ class Sampler
     }
 
   private:
+    Sampler(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos);
     std::weak_ptr<Device> device;
     VkSampler             ptr;
     VkDescriptorImageInfo descriptor_infos;

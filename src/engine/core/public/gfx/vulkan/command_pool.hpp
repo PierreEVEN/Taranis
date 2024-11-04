@@ -13,7 +13,11 @@ class Device;
 class CommandPool
 {
   public:
-    CommandPool(std::string name, std::weak_ptr<Device> device, const uint32_t& queue_family);
+    static std::shared_ptr<CommandPool> create(std::string name, std::weak_ptr<Device> device, const uint32_t& queue_family)
+    {
+        return std::shared_ptr<CommandPool>(new CommandPool(std::move(name), std::move(device), queue_family));
+    }
+
     CommandPool(CommandPool&)  = delete;
     CommandPool(CommandPool&&) = delete;
     ~CommandPool();
@@ -21,6 +25,7 @@ class CommandPool
     void            free(VkCommandBuffer command_buffer, std::thread::id thread);
 
   private:
+    CommandPool(std::string name, std::weak_ptr<Device> device, const uint32_t& queue_family);
     std::weak_ptr<Device>                              device;
     std::mutex                                         pool_mutex;
     uint32_t                                           queue_family;

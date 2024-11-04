@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -9,7 +10,11 @@ class Config;
 class Instance
 {
   public:
-    Instance(Config& config);
+    static std::shared_ptr<Instance> create(Config& config)
+    {
+        return std::shared_ptr<Instance>(new Instance(config));
+    }
+
     Instance(Instance&&) = delete;
     Instance(Instance&)  = delete;
     ~Instance();
@@ -22,6 +27,7 @@ class Instance
     static const std::vector<const char*>& validation_layers();
 
   private:
+    Instance(Config& config);
     VkInstance               ptr             = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
 

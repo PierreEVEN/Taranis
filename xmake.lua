@@ -16,7 +16,7 @@ BUILD_MONOLITHIC = true;
 
 set_runtimes(is_mode("debug") and "MTd" or "MT")
 		
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect")
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "tinygltf")
 
 
 function declare_module(module_name, deps, packages, is_executable)

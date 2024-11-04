@@ -40,12 +40,6 @@ Image::Image(const std::string& in_name, std::weak_ptr<Device> in_device, const 
     }
 }
 
-Image::Image(const std::string& name, const std::weak_ptr<Device>& device, const ImageParameter& params, const BufferData& data) : Image(name, device, params)
-{
-    for (const auto& image : images)
-        image->set_data(data);
-}
-
 Image::~Image()
 {
     for (const auto& image : images)
@@ -234,9 +228,9 @@ Image::ImageResource::~ImageResource()
 
 void Image::ImageResource::set_data(const BufferData& data)
 {
-    Buffer transfer_buffer(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+    auto transfer_buffer = Buffer::create(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
 
-    std::unique_ptr<CommandBuffer> command_buffer = std::make_unique<CommandBuffer>(name + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
+    auto command_buffer = CommandBuffer::create(name + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
 
     command_buffer->begin(true);
 
@@ -256,20 +250,20 @@ void Image::ImageResource::set_data(const BufferData& data)
         .imageExtent = {res.x, res.y, depth},
     };
 
-    vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer.raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer->raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     command_buffer->end();
 
-    const Fence fence(name + "_fence", device());
-    command_buffer->submit({}, &fence);
-    fence.wait();
+    const auto fence = Fence::create(name + "_fence", device());
+    command_buffer->submit({}, &*fence);
+    fence->wait();
 
-    command_buffer = std::make_unique<CommandBuffer>(name + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
+    command_buffer = CommandBuffer::create(name + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
     command_buffer->begin(true);
     set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     command_buffer->end();
-    command_buffer->submit({}, &fence);
-    fence.wait();
+    command_buffer->submit({}, &*fence);
+    fence->wait();
 }
 
 void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout)

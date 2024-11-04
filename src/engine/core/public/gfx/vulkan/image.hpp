@@ -26,8 +26,8 @@ enum class EImageType
 
 enum class ETextureTransferCapabilities
 {
-    None            = 0x00000,
-    CopySource      = 0x00001,
+    None = 0x00000,
+    CopySource = 0x00001,
     CopyDestination = 0x00002,
 };
 
@@ -62,10 +62,10 @@ class Image
 {
     friend class ImageView;
 
-  public:
+public:
     class ImageResource : public DeviceResource, public std::enable_shared_from_this<ImageResource>
     {
-      public:
+    public:
         ImageResource(std::string name, std::weak_ptr<Device> device, ImageParameter params);
         ImageResource(ImageResource&&) = delete;
         ImageResource(ImageResource&)  = delete;
@@ -77,15 +77,26 @@ class Image
         VkImageLayout image_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         VmaAllocation allocation   = VK_NULL_HANDLE;
         bool          outdated     = false;
-        uint32_t      layer_cout = 0, mip_levels = 0;
-        bool          is_depth = false;
+        uint32_t      layer_cout   = 0, mip_levels = 0;
+        bool          is_depth     = false;
         glm::uvec2    res;
         uint32_t      depth = 0;
         std::string   name;
     };
 
-    Image(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params);
-    Image(const std::string& name, const std::weak_ptr<Device>& device, const ImageParameter& params, const BufferData& data);
+    static std::shared_ptr<Image> create(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params, const BufferData& data)
+    {
+        auto created_image = std::shared_ptr<Image>(new Image(name, std::move(device), params));
+        for (const auto& image : created_image->images)
+            image->set_data(data);
+        return created_image;
+    }
+
+    static std::shared_ptr<Image> create(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params)
+    {
+        return std::shared_ptr<Image>(new Image(name, std::move(device), params));
+    }
+
     Image(Image&&) = delete;
     Image(Image&)  = delete;
     ~Image();
@@ -116,7 +127,8 @@ class Image
         return params;
     }
 
-  private:
+private:
+    Image(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params);
     glm::uvec2                                  extent;
     ImageParameter                              params;
     std::weak_ptr<Device>                       device;

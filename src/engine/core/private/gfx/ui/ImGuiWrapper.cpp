@@ -57,9 +57,9 @@ namespace Engine
 ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
     : device(std::move(in_device)), target_window(std::move(in_target_window)), name(std::move(in_name))
 {
-    mesh = std::make_shared<Mesh>(name + "_mesh", device, sizeof(ImDrawVert), EBufferType::IMMEDIATE);
+    mesh = Mesh::create(name + "_mesh", device, sizeof(ImDrawVert), EBufferType::IMMEDIATE);
 
-    image_sampler = std::make_shared<Sampler>(name + "_generic_sampler", device, Sampler::CreateInfos{});
+    image_sampler = Sampler::create(name + "_generic_sampler", device, Sampler::CreateInfos{});
 
     ShaderCompiler compiler;
     const auto     vertex_code   = compiler.compile_raw(IMGUI_VERTEX, "main", EShaderStage::Vertex, "internal://imgui");
@@ -68,10 +68,9 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
         LOG_FATAL("Failed to compile imgui vertex shader : {}", vertex_code.error())
     if (!fragment_code)
         LOG_FATAL("Failed to compile imgui fragment shader : {}", fragment_code.error())
-    const auto vertex_temp = std::make_shared<ShaderModule>(device, vertex_code.get());
+    const auto vertex_temp = ShaderModule::create(device, vertex_code.get());
 
-    imgui_material =
-        std::make_shared<Pipeline>(name + "_pipeline", device, render_pass, std::vector{std::make_shared<ShaderModule>(device, vertex_code.get()), std::make_shared<ShaderModule>(device, fragment_code.get())},
+    imgui_material = Pipeline::create(name + "_pipeline", device, render_pass, std::vector{ShaderModule::create(device, vertex_code.get()), ShaderModule::create(device, fragment_code.get())},
                                    Pipeline::CreateInfos{.culling              = ECulling::None,
                                                          .alpha_mode           = EAlphaMode::Translucent,
                                                          .depth_test           = false,
@@ -162,7 +161,7 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     int      width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    font_texture          = std::make_shared<Image>(name + "_font_image", device,
+    font_texture          = Image::create(name + "_font_image", device,
                                                     ImageParameter{
                                                         .format      = ColorFormat::R8G8B8A8_UNORM,
                                                         .buffer_type = EBufferType::IMMUTABLE,
@@ -170,7 +169,7 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
                                                         .height      = static_cast<uint32_t>(height),
                                            },
                                                     BufferData(pixels, 4, width * height));
-    font_texture_view     = std::make_shared<ImageView>(name + "_font_image_view", font_texture);
+    font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
     imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
     imgui_font_descriptor->bind_sampler("sSampler", image_sampler);
@@ -183,7 +182,7 @@ ImGuiWrapper::~ImGuiWrapper()
             glfwDestroyCursor(cursor_map[i]);
 }
 
-void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
+void ImGuiWrapper::begin(const CommandBuffer& cmd, glm::uvec2 draw_res)
 {
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
@@ -210,16 +209,10 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
         glfwSetCursor(target_window.lock()->raw(), cursor_map[imgui_cursor]);
 
     ImGui::NewFrame();
+}
 
-    if (ImGui::Begin("test"))
-    {
-        ImGui::LabelText("ms", "%lf", Engine::get().delta_second * 1000);
-        ImGui::LabelText("fps", "%lf", 1.0 / Engine::get().delta_second);
-    }
-    ImGui::End();
-
-    ImGui::ShowDemoWindow(nullptr);
-
+void ImGuiWrapper::end(const CommandBuffer& cmd)
+{
     ImGui::EndFrame();
     ImGui::Render();
     const auto* draw_data = ImGui::GetDrawData();

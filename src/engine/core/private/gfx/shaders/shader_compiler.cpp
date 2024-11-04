@@ -45,7 +45,7 @@ ShaderCompiler::ShaderCompiler()
     utils->CreateDefaultIncludeHandler(&include_handler);
 }
 
-Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, bool b_debug)
+Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, bool b_debug) const
 {
     ShaderProperties result;
     result.entry_point = entry_point;
@@ -112,7 +112,7 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     return Result<ShaderProperties>::Ok(result);
 }
 
-Result<ShaderProperties> ShaderCompiler::load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, bool b_debug)
+Result<ShaderProperties> ShaderCompiler::load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, bool b_debug) const
 {
     std::string   shader_code;
     std::ifstream shader_file(path);

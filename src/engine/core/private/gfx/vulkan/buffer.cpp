@@ -16,20 +16,14 @@ Buffer::Buffer(std::string in_name, std::weak_ptr<Device> in_device, const Creat
     {
     case EBufferType::STATIC:
     case EBufferType::IMMUTABLE:
-        buffers = {std::make_shared<Buffer::Resource>(name, device, create_infos, in_stride, in_element_count)};
+        buffers = {std::make_shared<Resource>(name, device, create_infos, in_stride, in_element_count)};
         break;
     case EBufferType::DYNAMIC:
     case EBufferType::IMMEDIATE:
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-            buffers.emplace_back(std::make_shared<Buffer::Resource>(name + "_#" + std::to_string(i), device, create_infos, in_stride, in_element_count));
+            buffers.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, create_infos, in_stride, in_element_count));
         break;
     }
-}
-
-Buffer::Buffer(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos, const BufferData& data) : Buffer(name, std::move(device), create_infos, data.get_stride(), data.get_element_count())
-{
-    for (const auto& buffer : buffers)
-        buffer->set_data(0, data);
 }
 
 Buffer::~Buffer()
@@ -50,19 +44,19 @@ bool Buffer::resize(size_t new_stride, size_t new_element_count)
     case EBufferType::STATIC:
         for (const auto& image : buffers)
             device.lock()->drop_resource(image);
-        buffers = {std::make_shared<Buffer::Resource>(name, device, params, new_stride, new_element_count)};
+        buffers = {std::make_shared<Resource>(name, device, params, new_stride, new_element_count)};
         break;
     case EBufferType::DYNAMIC:
         for (const auto& buffer : buffers)
             device.lock()->drop_resource(buffer);
         buffers.clear();
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-            buffers.emplace_back(std::make_shared<Buffer::Resource>(name, device, params, new_stride, new_element_count));
+            buffers.emplace_back(std::make_shared<Resource>(name, device, params, new_stride, new_element_count));
         break;
     case EBufferType::IMMEDIATE:
         auto& current_buffer = buffers[device.lock()->get_current_image()];
         device.lock()->drop_resource(current_buffer);
-        buffers[device.lock()->get_current_image()] = std::make_shared<Buffer::Resource>(name, device, params, new_stride, new_element_count);
+        buffers[device.lock()->get_current_image()] = std::make_shared<Resource>(name, device, params, new_stride, new_element_count);
     }
     return true;
 }

@@ -47,7 +47,10 @@ class Device;
 class DescriptorPool
 {
   public:
-    DescriptorPool(std::weak_ptr<Device> device);
+    static std::shared_ptr<DescriptorPool> create(std::weak_ptr<Device> device)
+    {
+        return std::shared_ptr<DescriptorPool>(new DescriptorPool(std::move(device)));
+    }
 
     DescriptorPool(DescriptorPool&)  = delete;
     DescriptorPool(DescriptorPool&&) = delete;
@@ -55,6 +58,8 @@ class DescriptorPool
     void            free(const VkDescriptorSet& desc_set, const Pipeline& pipeline, size_t pool_index);
 
   private:
+    DescriptorPool(std::weak_ptr<Device> device);
+
     class Pool
     {
       public:
