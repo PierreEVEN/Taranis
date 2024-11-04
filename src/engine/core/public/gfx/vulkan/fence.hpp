@@ -4,21 +4,24 @@
 
 namespace Engine
 {
-	class Device;
+class Device;
 
-	class Fence
-	{
-	public:
-		Fence(std::weak_ptr<Device> device, bool signaled = false);
-		~Fence();
+class Fence
+{
+  public:
+    Fence(std::weak_ptr<Device> device, bool signaled = false);
+    ~Fence();
 
-		VkFence raw() const { return ptr; }
+    VkFence raw() const
+    {
+        return ptr;
+    }
 
-		void reset() const;
-		void wait() const;
+    void reset() const;
+    void wait() const;
 
-	private:
-		VkFence ptr;
-		std::weak_ptr<Device> device;
-	};
-}
+  private:
+    VkFence               ptr;
+    std::weak_ptr<Device> device;
+};
+} // namespace Engine

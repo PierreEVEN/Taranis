@@ -4,12 +4,12 @@
 
 namespace Engine
 {
-	std::shared_ptr<RendererStep> PresentStep::init_for_swapchain(const Swapchain& swapchain) const
-	{
-		auto renderer_step = RendererStep::create(pass_name, { Attachment::color("color", swapchain.get_format(), clear_value) });
-		renderer_step->infos.present_pass = true;
-		renderer_step->interface = interface;
-		renderer_step->dependencies = dependencies;
-		return renderer_step;
-	}
+std::shared_ptr<RendererStep> Renderer::init_for_swapchain(const Swapchain& swapchain) const
+{
+    auto renderer_step                = RendererStep::create(pass_name, {Attachment::color("color", swapchain.get_format(), create_infos.clear_color)});
+    renderer_step->infos.present_pass = true;
+    renderer_step->interface          = interface;
+    renderer_step->dependencies       = dependencies;
+    return renderer_step;
 }
+} // namespace Engine

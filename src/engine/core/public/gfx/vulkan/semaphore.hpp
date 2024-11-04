@@ -4,18 +4,21 @@
 
 namespace Engine
 {
-	class Device;
+class Device;
 
-	class Semaphore
-	{
-	public:
-		Semaphore(std::weak_ptr<Device> device);
-		~Semaphore();
+class Semaphore
+{
+  public:
+    Semaphore(std::weak_ptr<Device> device);
+    ~Semaphore();
 
-		VkSemaphore raw() const { return ptr; }
+    VkSemaphore raw() const
+    {
+        return ptr;
+    }
 
-	private:
-		VkSemaphore ptr;
-		std::weak_ptr<Device> device;
-	};
-}
+  private:
+    VkSemaphore           ptr;
+    std::weak_ptr<Device> device;
+};
+} // namespace Engine

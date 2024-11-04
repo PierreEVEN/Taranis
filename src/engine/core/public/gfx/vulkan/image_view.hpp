@@ -2,46 +2,46 @@
 #include <memory>
 #include <vector>
 
-#include "image.hpp"
 #include "gfx/types.hpp"
+#include "image.hpp"
 
 namespace Engine
 {
-	class ImageViewResource;
-	class Device;
-	class Image;
+class ImageViewResource;
+class Device;
+class Image;
 
-	class ImageView
-	{
-	public:
-		struct CreateInfos
-		{
-			ColorFormat format;
-		};
+class ImageView
+{
+  public:
+    struct CreateInfos
+    {
+        ColorFormat format;
+    };
 
-		ImageView(const std::shared_ptr<Image>& image);
-		ImageView(std::weak_ptr<Device> device, std::vector<VkImage> raw_image, CreateInfos create_infos);
-		~ImageView();
+    ImageView(const std::shared_ptr<Image>& image);
+    ImageView(std::weak_ptr<Device> device, std::vector<VkImage> raw_image, CreateInfos create_infos);
+    ~ImageView();
 
-		VkImageView raw_current() const;
-		std::vector<VkImageView> raw() const;
+    VkImageView              raw_current() const;
+    std::vector<VkImageView> raw() const;
 
-		const VkDescriptorImageInfo& get_descriptor_infos_current();
+    const VkDescriptorImageInfo& get_descriptor_infos_current();
 
-	private:
-		std::vector<std::shared_ptr<ImageViewResource>> views;
-		std::shared_ptr<Image> image;
-		std::weak_ptr<Device> device;
-	};
+  private:
+    std::vector<std::shared_ptr<ImageViewResource>> views;
+    std::shared_ptr<Image>                          image;
+    std::weak_ptr<Device>                           device;
+};
 
-	class ImageViewResource : public DeviceResource
-	{
-	public:
-		ImageViewResource(const std::weak_ptr<Device>& device, std::shared_ptr<Image::ImageResource> resource, ImageView::CreateInfos create_infos);
-		ImageViewResource(const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos);
-		~ImageViewResource();
-		VkImageView ptr = VK_NULL_HANDLE;
-		VkDescriptorImageInfo descriptor_infos;
-		std::shared_ptr<Image::ImageResource> image_resource;
-	};
-}
+class ImageViewResource : public DeviceResource
+{
+  public:
+    ImageViewResource(const std::weak_ptr<Device>& device, std::shared_ptr<Image::ImageResource> resource, ImageView::CreateInfos create_infos);
+    ImageViewResource(const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos);
+    ~ImageViewResource();
+    VkImageView                           ptr = VK_NULL_HANDLE;
+    VkDescriptorImageInfo                 descriptor_infos;
+    std::shared_ptr<Image::ImageResource> image_resource;
+};
+} // namespace Engine

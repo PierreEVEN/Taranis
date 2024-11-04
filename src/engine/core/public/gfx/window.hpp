@@ -1,63 +1,70 @@
 #pragma once
+#include <glm/vec2.hpp>
 #include <memory>
 #include <string>
-#include <glm/vec2.hpp>
 
 namespace Engine
 {
-	class PresentStep;
+class Renderer;
 }
 
 namespace Engine
 {
-	class Device;
-	class Instance;
-	class Surface;
-}
+class Device;
+class Instance;
+class Surface;
+} // namespace Engine
 
 struct GLFWwindow;
 
 namespace Engine
 {
-	class RendererStep;
+class RendererStep;
 
-	struct WindowConfig
-	{
-		std::string name = "no name";
-		glm::uvec2 resolution = {800, 600};
-	};
+struct WindowConfig
+{
+    std::string name       = "no name";
+    glm::uvec2  resolution = {800, 600};
+};
 
+class Window : public std::enable_shared_from_this<Window>
+{
+  public:
+    ~Window();
 
-	class Window : public std::enable_shared_from_this<Window>
-	{
-	public:
-		~Window();
+    GLFWwindow* raw() const
+    {
+        return ptr;
+    }
 
-		GLFWwindow* raw() const { return ptr; }
+    size_t get_id() const
+    {
+        return id;
+    }
 
-		size_t get_id() const { return id; }
+    bool render();
 
-		bool render();
+    glm::uvec2 internal_extent() const;
 
-		glm::uvec2 internal_extent() const;
+    void close()
+    {
+        should_close = true;
+    }
 
-		void close()
-		{
-			should_close = true;
-		}
+    void set_renderer(const std::shared_ptr<Renderer>& present_pass) const;
 
-		void set_renderer(const std::shared_ptr<PresentStep>& present_pass) const;
+    std::shared_ptr<Surface> get_surface() const
+    {
+        return surface;
+    }
 
-		std::shared_ptr<Surface> get_surface() const { return surface; }
+    static std::shared_ptr<Window> create(const std::weak_ptr<Instance>& instance, const WindowConfig& config);
 
-		static std::shared_ptr<Window> create(const std::weak_ptr<Instance>& instance, const WindowConfig& config);
-
-	private:
-
-		Window(const WindowConfig& config);
-		std::shared_ptr<Surface> surface;
-		size_t id;
-		bool should_close = false;
-		GLFWwindow* ptr;
-	};
-}
+  private:
+    Window(const WindowConfig& config);
+    std::shared_ptr<Surface> surface;
+    size_t                   id;
+    bool                     should_close = false;
+    GLFWwindow*              ptr;
+};
+} // namespace Engine
