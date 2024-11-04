@@ -152,7 +152,7 @@ void Swapchain::render()
     create_or_recreate();
     renderer->resize(extent);
     if (render_internal())
-        LOG_ERROR("Failed to render frame");
+        LOG_ERROR("Failed to render frame : {}x{}", extent.x, extent.y);
 }
 
 const Semaphore& Swapchain::get_image_available_semaphore(uint32_t image_index) const

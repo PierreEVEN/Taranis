@@ -5,10 +5,12 @@
 #include "engine.hpp"
 #include "gfx/vulkan/surface.hpp"
 
-static size_t WINDOW_ID = 0;
-
 namespace Engine
 {
+static size_t WINDOW_ID = 0;
+
+static std::unordered_map<GLFWwindow*, Window*> windows;
+
 std::shared_ptr<Window> Window::create(const std::weak_ptr<Instance>& instance, const WindowConfig& config)
 {
     const auto window = std::shared_ptr<Window>(new Window(config));
@@ -20,13 +22,23 @@ Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     ptr = glfwCreateWindow(static_cast<int>(config.resolution.x), static_cast<int>(config.resolution.y), config.name.c_str(), nullptr, nullptr);
+    windows.emplace(ptr, this);
+
+    glfwSetWindowSizeCallback(ptr,
+                              [](GLFWwindow* window, int width, int height)
+                              {
+                                  windows[window]->render();
+                              });
+
     glfwShowWindow(ptr);
 }
 
 Window::~Window()
 {
     glfwDestroyWindow(ptr);
+    windows.erase(ptr);
 }
+
 
 bool Window::render() const
 {
