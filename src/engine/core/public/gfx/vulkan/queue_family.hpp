@@ -31,6 +31,8 @@ class QueueFamily
 {
   public:
     QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present);
+    QueueFamily(QueueFamily&)  = delete;
+    QueueFamily(QueueFamily&&) = delete;
     bool support_present() const
     {
         return queue_support_present;
@@ -56,6 +58,11 @@ class QueueFamily
 
     VkResult present(const VkPresentInfoKHR& present_infos) const;
 
+    void set_name(const std::string& in_name)
+    {
+        name = in_name;
+    }
+
   private:
     uint32_t                     queue_index;
     VkQueueFlags                 queue_flags;
@@ -63,12 +70,15 @@ class QueueFamily
     std::mutex                   queue_lock;
     VkQueue                      ptr = VK_NULL_HANDLE;
     std::unique_ptr<CommandPool> command_pool;
+    std::string                  name;
 };
 
 class Queues
 {
   public:
     Queues(const PhysicalDevice& physical_device, const Surface& surface);
+    Queues(Queues&)  = delete;
+    Queues(Queues&&) = delete;
 
     std::shared_ptr<QueueFamily> get_queue(QueueSpecialization specialization) const;
 

@@ -4,10 +4,10 @@
 #include <vk_mem_alloc.h>
 
 #include "config.hpp"
-#include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/descriptor_pool.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/queue_family.hpp"
+#include "gfx/vulkan/vk_render_pass.hpp"
 
 namespace Engine
 {
@@ -25,7 +25,8 @@ void Device::wait() const
     vkDeviceWaitIdle(ptr);
 }
 
-Device::Device(const Config& config, const Instance& instance, const PhysicalDevice& physical_device, const Surface& surface) : queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device)
+Device::Device(const Config& config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)
+    : queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device), instance(in_instance)
 {
     float queuePriority = 1.0f;
 
@@ -47,6 +48,7 @@ Device::Device(const Config& config, const Instance& instance, const PhysicalDev
         .pEnabledFeatures        = &deviceFeatures,
     };
 
+    b_enable_validation_layers = config.enable_validation_layers;
     if (config.enable_validation_layers)
     {
         createInfo.enabledLayerCount   = static_cast<uint32_t>(Instance::validation_layers().size());
@@ -57,17 +59,17 @@ Device::Device(const Config& config, const Instance& instance, const PhysicalDev
         createInfo.enabledLayerCount = 0;
     }
 
-    VK_CHECK(vkCreateDevice(physical_device.raw(), &createInfo, nullptr, &ptr), "Failed to create device");
+    VK_CHECK(vkCreateDevice(physical_device.raw(), &createInfo, nullptr, &ptr), "Failed to create device")
 
     VmaAllocatorCreateInfo allocatorInfo = {
         .physicalDevice = physical_device.raw(),
         .device         = ptr,
-        .instance       = instance.raw(),
+        .instance       = instance.lock()->raw(),
     };
-    VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator), "failed to create vma allocator");
+    VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator), "failed to create vma allocator")
 }
 
-std::shared_ptr<Device> Device::create(const Config& config, const Instance& instance, const PhysicalDevice& physical_device, const Surface& surface)
+std::shared_ptr<Device> Device::create(const Config& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface)
 {
     const auto device = std::shared_ptr<Device>(new Device(config, instance, physical_device, surface));
     for (const auto& queue : device->queues->all_families())
@@ -93,14 +95,14 @@ const std::vector<const char*>& Device::get_device_extensions()
     return device_extensions;
 }
 
-std::shared_ptr<RenderPassObject> Device::find_or_create_render_pass(const RenderPassInfos& infos)
+std::shared_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPass::Definition& infos)
 {
     const auto existing = render_passes.find(infos);
 
     if (existing != render_passes.end())
         return existing->second;
 
-    const auto new_render_pass = std::make_shared<RenderPassObject>(shared_from_this(), infos);
+    const auto new_render_pass = std::make_shared<VkRendererPass>(infos.name + "_pass", shared_from_this(), infos);
     render_passes.emplace(infos, new_render_pass);
     return new_render_pass;
 }

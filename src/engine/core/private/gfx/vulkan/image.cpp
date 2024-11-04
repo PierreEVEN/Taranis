@@ -24,23 +24,23 @@ VkImageUsageFlags vk_usage(const ImageParameter& texture_parameters)
     return usage_flags;
 }
 
-Image::Image(std::weak_ptr<Device> in_device, ImageParameter in_params) : device(std::move(in_device)), params(in_params)
+Image::Image(const std::string& in_name, std::weak_ptr<Device> in_device, const ImageParameter& in_params) : params(in_params), device(std::move(in_device)), name(in_name)
 {
     switch (params.buffer_type)
     {
     case EBufferType::STATIC:
     case EBufferType::IMMUTABLE:
-        images = {std::make_shared<ImageResource>(device, params)};
+        images = {std::make_shared<ImageResource>(name, device, params)};
         break;
     case EBufferType::DYNAMIC:
     case EBufferType::IMMEDIATE:
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-            images.emplace_back(std::make_shared<ImageResource>(device, params));
+            images.emplace_back(std::make_shared<ImageResource>(name + "_#" + std::to_string(i), device, params));
         break;
     }
 }
 
-Image::Image(std::weak_ptr<Device> device, ImageParameter params, const BufferData& data) : Image(device, params)
+Image::Image(const std::string& name, const std::weak_ptr<Device>& device, const ImageParameter& params, const BufferData& data) : Image(name, device, params)
 {
     for (const auto& image : images)
         image->set_data(data);
@@ -56,10 +56,10 @@ Image::~Image()
 
 std::vector<VkImage> Image::raw() const
 {
-    std::vector<VkImage> ptrs;
+    std::vector<VkImage> image_ptr;
     for (const auto& image : images)
-        ptrs.emplace_back(image->ptr);
-    return ptrs;
+        image_ptr.emplace_back(image->ptr);
+    return image_ptr;
 }
 
 VkImage Image::raw_current()
@@ -83,7 +83,7 @@ VkImage Image::raw_current()
     case EBufferType::IMMEDIATE:
         return images[device.lock()->get_current_image()]->ptr;
     }
-    LOG_FATAL("Unhandled buffer type");
+    LOG_FATAL("Unhandled buffer type")
 }
 
 bool Image::resize(glm::uvec2 new_size)
@@ -96,7 +96,7 @@ bool Image::resize(glm::uvec2 new_size)
     switch (params.buffer_type)
     {
     case EBufferType::IMMUTABLE:
-        LOG_FATAL("Cannot resize immutable image !!");
+        LOG_FATAL("Cannot resize immutable image !!")
     case EBufferType::STATIC:
         for (const auto& image : images)
             device.lock()->drop_resource(image);
@@ -120,7 +120,7 @@ void Image::set_data(glm::uvec2 new_size, const BufferData& data)
     switch (params.buffer_type)
     {
     case EBufferType::IMMUTABLE:
-        LOG_FATAL("Cannot update immutable image !!");
+        LOG_FATAL("Cannot update immutable image !!")
     case EBufferType::STATIC:
         device.lock()->wait();
         images[0]->set_data(data);
@@ -143,7 +143,7 @@ void Image::set_data(glm::uvec2 new_size, const BufferData& data)
     }
 }
 
-Image::ImageResource::ImageResource(std::weak_ptr<Device> in_device, ImageParameter params) : DeviceResource(std::move(in_device))
+Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> in_device, ImageParameter params) : DeviceResource(std::move(in_device)), name(std::move(in_name))
 {
     layer_cout = params.image_type == EImageType::Cubemap ? 6u : 1u;
     mip_levels = params.mip_level ? *params.mip_level : 1;
@@ -218,11 +218,13 @@ Image::ImageResource::ImageResource(std::weak_ptr<Device> in_device, ImageParame
         image_create_infos.arrayLayers = 6;
         break;
     }
-    const VmaAllocationCreateInfo vma_allocation{
+    constexpr VmaAllocationCreateInfo vma_allocation{
         .usage = VMA_MEMORY_USAGE_GPU_ONLY,
     };
     VmaAllocationInfo infos;
-    VK_CHECK(vmaCreateImage(device().lock()->get_allocator(), &image_create_infos, &vma_allocation, &ptr, &allocation, &infos), "failed to create image");
+    VK_CHECK(vmaCreateImage(device().lock()->get_allocator(), &image_create_infos, &vma_allocation, &ptr, &allocation, &infos), "failed to create image")
+    device().lock()->debug_set_object_name(name, ptr);
+    device().lock()->debug_set_object_name(name + "_memory", infos.deviceMemory);
 }
 
 Image::ImageResource::~ImageResource()
@@ -232,9 +234,9 @@ Image::ImageResource::~ImageResource()
 
 void Image::ImageResource::set_data(const BufferData& data)
 {
-    Buffer transfer_buffer(device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+    Buffer transfer_buffer(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
 
-    std::unique_ptr<CommandBuffer> command_buffer = std::make_unique<CommandBuffer>(device(), QueueSpecialization::Transfer);
+    std::unique_ptr<CommandBuffer> command_buffer = std::make_unique<CommandBuffer>(name + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
 
     command_buffer->begin(true);
 
@@ -258,11 +260,11 @@ void Image::ImageResource::set_data(const BufferData& data)
 
     command_buffer->end();
 
-    const Fence fence(device());
+    const Fence fence(name + "_fence", device());
     command_buffer->submit({}, &fence);
     fence.wait();
 
-    command_buffer = std::make_unique<CommandBuffer>(device(), QueueSpecialization::Graphic);
+    command_buffer = std::make_unique<CommandBuffer>(name + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
     command_buffer->begin(true);
     set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     command_buffer->end();
@@ -270,7 +272,7 @@ void Image::ImageResource::set_data(const BufferData& data)
     fence.wait();
 }
 
-void Image::ImageResource::set_image_layout(CommandBuffer& command_buffer, VkImageLayout new_layout)
+void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout)
 {
     VkImageMemoryBarrier barrier = VkImageMemoryBarrier{
         .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -309,7 +311,7 @@ void Image::ImageResource::set_image_layout(CommandBuffer& command_buffer, VkIma
     }
     else
     {
-        LOG_FATAL("Unsupported layout transition : from {} to {}", static_cast<uint32_t>(image_layout), static_cast<uint32_t>(new_layout));
+        LOG_FATAL("Unsupported layout transition : from {} to {}", static_cast<uint32_t>(image_layout), static_cast<uint32_t>(new_layout))
     }
 
     image_layout = new_layout;

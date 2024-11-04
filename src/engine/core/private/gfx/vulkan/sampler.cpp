@@ -5,9 +5,9 @@
 
 namespace Engine
 {
-Sampler::Sampler(std::weak_ptr<Device> in_device, const CreateInfos&) : device(std::move(in_device))
+Sampler::Sampler(const std::string& name, std::weak_ptr<Device> in_device, const CreateInfos&) : device(std::move(in_device))
 {
-    const VkSamplerCreateInfo sampler_create_infos{
+    constexpr VkSamplerCreateInfo sampler_create_infos{
         .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .pNext                   = nullptr,
         .flags                   = 0,
@@ -27,7 +27,8 @@ Sampler::Sampler(std::weak_ptr<Device> in_device, const CreateInfos&) : device(s
         .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
     };
-    VK_CHECK(vkCreateSampler(device.lock()->raw(), &sampler_create_infos, nullptr, &ptr), "failed to create sampler");
+    VK_CHECK(vkCreateSampler(device.lock()->raw(), &sampler_create_infos, nullptr, &ptr), "failed to create sampler")
+    device.lock()->debug_set_object_name(name, ptr);
 
     descriptor_infos = {
         .sampler     = ptr,

@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -17,7 +18,7 @@ class CommandBuffer;
 class Framebuffer
 {
   public:
-    Framebuffer(std::weak_ptr<Device> device, const RenderPassInstanceBase& render_pass, size_t image_index);
+    Framebuffer(const std::string& name, std::weak_ptr<Device> device, const RenderPassInstanceBase& render_pass, size_t image_index);
     Framebuffer(Framebuffer&&) = delete;
     Framebuffer(Framebuffer&)  = delete;
     ~Framebuffer();

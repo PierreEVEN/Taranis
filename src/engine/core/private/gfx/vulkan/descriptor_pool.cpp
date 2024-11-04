@@ -4,7 +4,7 @@
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 
-#define DESCRIPTOR_PER_POOL 20
+static constexpr uint32_t DESCRIPTOR_PER_POOL = 200;
 
 namespace Engine
 {
@@ -55,7 +55,7 @@ PoolDescription::PoolDescription(const Pipeline& pipeline)
             type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
             break;
         default:
-            LOG_FATAL("Unhandled binding type");
+            LOG_FATAL("Unhandled binding type")
         }
 
         auto found = sizes.find(type);
@@ -111,7 +111,7 @@ void DescriptorPool::free(const VkDescriptorSet& desc_set, const Pipeline& pipel
     auto            found = pools.find(description);
     if (found == pools.end())
     {
-        LOG_FATAL("Cannot free descriptors : pool not found");
+        LOG_FATAL("Cannot free descriptors : pool not found")
     }
     auto& found_pool = found->second;
     if (pool_index < found_pool.first)
@@ -143,7 +143,7 @@ DescriptorPool::Pool::Pool(std::weak_ptr<Device> in_device, const PoolDescriptio
         .pPoolSizes    = pool_sizes.data(),
     };
 
-    VK_CHECK(vkCreateDescriptorPool(device.lock()->raw(), &poolInfo, nullptr, &ptr), "Failed to create descriptor pool");
+    VK_CHECK(vkCreateDescriptorPool(device.lock()->raw(), &poolInfo, nullptr, &ptr), "Failed to create descriptor pool")
 }
 
 DescriptorPool::Pool::~Pool()
@@ -164,7 +164,7 @@ VkDescriptorSet DescriptorPool::Pool::allocate(const VkDescriptorSetLayout& layo
         .pSetLayouts        = &layout,
     };
     VkDescriptorSet descriptor_set;
-    VK_CHECK(vkAllocateDescriptorSets(device.lock()->raw(), &descriptor_info, &descriptor_set), "failed to allocate descriptor sets");
+    VK_CHECK(vkAllocateDescriptorSets(device.lock()->raw(), &descriptor_info, &descriptor_set), "failed to allocate descriptor sets")
     return descriptor_set;
 }
 

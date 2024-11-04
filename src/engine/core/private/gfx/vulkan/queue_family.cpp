@@ -42,8 +42,11 @@ std::shared_ptr<QueueFamily> Queues::get_queue(QueueSpecialization specializatio
 void Queues::update_specializations()
 {
     std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>> queue_map;
-    for (const auto& queueFamily : all_queues)
-        queue_map.emplace(queueFamily->index(), queueFamily);
+    for (size_t i = 0; i < all_queues.size(); ++i)
+    {
+        all_queues[i]->set_name("queue-#" + std::to_string(i));
+        queue_map.emplace(all_queues[i]->index(), all_queues[i]);
+    }
 
     const auto stored_map = queue_map;
 
@@ -92,16 +95,31 @@ void Queues::update_specializations()
     }
 
     preferred.clear();
-    if (graphic_queue)
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Graphic), graphic_queue);
     if (compute_queue)
+    {
+        graphic_queue->set_name("compute_queue");
         preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Compute), compute_queue);
-    if (async_compute_queue)
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::AsyncCompute), async_compute_queue);
+    }
     if (transfer_queue)
+    {
+        graphic_queue->set_name("transfer_queue");
         preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Transfer), transfer_queue);
+    }
+    if (graphic_queue)
+    {
+        graphic_queue->set_name("graphic_queue");
+        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Graphic), graphic_queue);
+    }
+    if (async_compute_queue)
+    {
+        graphic_queue->set_name("async_compute_queue");
+        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::AsyncCompute), async_compute_queue);
+    }
     if (present_queue)
+    {
+        graphic_queue->set_name("present_queue");
         preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Present), present_queue);
+    }
 }
 
 const char* get_queue_specialization_name(QueueSpecialization elem)
@@ -123,14 +141,15 @@ const char* get_queue_specialization_name(QueueSpecialization elem)
     return "Unhandled queue specialization name";
 }
 
-QueueFamily::QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present) : queue_index(index), queue_flags(flags), queue_support_present(support_present), ptr(nullptr)
+QueueFamily::QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present) : queue_index(index), queue_flags(flags), queue_support_present(support_present)
 {
 }
 
 void QueueFamily::init_queue(const std::weak_ptr<Device>& device)
 {
     vkGetDeviceQueue(device.lock()->raw(), index(), 0, &ptr);
-    command_pool = std::make_unique<CommandPool>(device, index());
+    command_pool = std::make_unique<CommandPool>(name + "_cmd_pool", device, index());
+    device.lock()->debug_set_object_name(name, ptr);
 }
 
 VkResult QueueFamily::present(const VkPresentInfoKHR& present_infos) const

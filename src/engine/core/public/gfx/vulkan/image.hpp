@@ -66,10 +66,12 @@ class Image
     class ImageResource : public DeviceResource, public std::enable_shared_from_this<ImageResource>
     {
       public:
-        ImageResource(std::weak_ptr<Device> device, ImageParameter params);
+        ImageResource(std::string name, std::weak_ptr<Device> device, ImageParameter params);
+        ImageResource(ImageResource&&) = delete;
+        ImageResource(ImageResource&)  = delete;
         ~ImageResource();
         void set_data(const BufferData& data);
-        void set_image_layout(CommandBuffer& command_buffer, VkImageLayout new_layout);
+        void set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout);
 
         VkImage       ptr          = VK_NULL_HANDLE;
         VkImageLayout image_layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -79,18 +81,23 @@ class Image
         bool          is_depth = false;
         glm::uvec2    res;
         uint32_t      depth = 0;
+        std::string   name;
     };
 
-    Image(std::weak_ptr<Device> device, ImageParameter params);
-    Image(std::weak_ptr<Device> device, ImageParameter params, const BufferData& data);
+    Image(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params);
+    Image(const std::string& name, const std::weak_ptr<Device>& device, const ImageParameter& params, const BufferData& data);
+    Image(Image&&) = delete;
+    Image(Image&)  = delete;
     ~Image();
 
-    std::vector<VkImage>  raw() const;
-    VkImage               raw_current();
+    std::vector<VkImage> raw() const;
+    VkImage              raw_current();
+
     std::weak_ptr<Device> get_device() const
     {
         return device;
     }
+
     glm::uvec2 get_extent() const
     {
         return extent;
@@ -115,5 +122,6 @@ class Image
     std::weak_ptr<Device>                       device;
     BufferData                                  temp_buffer_data;
     std::vector<std::shared_ptr<ImageResource>> images;
+    std::string                                 name;
 };
 } // namespace Engine

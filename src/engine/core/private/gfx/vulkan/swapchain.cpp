@@ -1,6 +1,7 @@
 #include "gfx/vulkan/swapchain.hpp"
 
-#include "gfx/renderer/renderer.hpp"
+#include "gfx/renderer/definition/renderer.hpp"
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/image_view.hpp"
@@ -11,7 +12,8 @@
 
 namespace Engine
 {
-Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, bool in_vsync) : vsync(in_vsync), device(in_device), surface(in_surface)
+Swapchain::Swapchain(std::string in_name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, bool in_vsync)
+    : vsync(in_vsync), device(in_device), surface(in_surface), name(std::move(in_name))
 {
     create_or_recreate();
 }
@@ -123,19 +125,20 @@ void Swapchain::create_or_recreate()
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
     VK_CHECK(vkCreateSwapchainKHR(device_ptr->raw(), &createInfo, nullptr, &ptr), "Failed to create swapchain")
+    device_ptr->debug_set_object_name(name, ptr);
 
     vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, swapChainImages.data());
 
-    image_view = std::make_shared<ImageView>(device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
+    image_view = std::make_shared<ImageView>(name + "view", device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
 
     image_available_semaphores.clear();
     in_flight_fences.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
     {
-        image_available_semaphores.emplace_back(std::make_shared<Semaphore>(device));
-        in_flight_fences.emplace_back(std::make_shared<Fence>(device, true));
+        image_available_semaphores.emplace_back(std::make_shared<Semaphore>(name + "_sem_#" + std::to_string(i), device));
+        in_flight_fences.emplace_back(std::make_shared<Fence>(name + "_fence_#" + std::to_string(i), device, true));
     }
 }
 
@@ -175,7 +178,7 @@ bool Swapchain::render_internal()
     {
         if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR || acquire_result == VK_SUBOPTIMAL_KHR)
             return true;
-        VK_CHECK(acquire_result, "Failed to acquire next swapchain image");
+        VK_CHECK(acquire_result, "Failed to acquire next swapchain image")
     }
 
     renderer->render(image_index, current_frame);
@@ -196,7 +199,7 @@ bool Swapchain::render_internal()
     if (submit_result == VK_ERROR_OUT_OF_DATE_KHR || submit_result == VK_SUBOPTIMAL_KHR)
         return true;
     if (submit_result != VK_SUCCESS)
-        VK_CHECK(acquire_result, "Failed to present swapchain image");
+        VK_CHECK(acquire_result, "Failed to present swapchain image")
 
     return false;
 }
@@ -216,7 +219,7 @@ void Swapchain::destroy()
 void Swapchain::set_renderer(const std::shared_ptr<Renderer>& present_step)
 {
     const auto render_step = present_step->init_for_swapchain(*this);
-    renderer               = std::make_shared<SwapchainPresentPass>(device.lock()->find_or_create_render_pass(render_step->get_infos()), weak_from_this(), render_step);
+    renderer               = std::make_shared<SwapchainRenderer>(name, device.lock()->find_or_create_render_pass(render_step->get_infos()), weak_from_this(), render_step);
 }
 
 std::weak_ptr<ImageView> Swapchain::get_image_view() const

@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "gfx/vulkan/image_view.hpp"
 
 #include "gfx/vulkan/device.hpp"
@@ -5,20 +7,16 @@
 
 namespace Engine
 {
-ImageView::ImageView(const std::shared_ptr<Image>& in_image) : device(in_image->get_device())
+ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image) : device(in_image->get_device()), name(std::move(in_name))
 {
-    for (const auto img : in_image->get_resource())
-        views.emplace_back(std::make_shared<ImageViewResource>(device, img, CreateInfos{.format = in_image->get_params().format}));
+    for (size_t i = 0; i < in_image->get_resource().size(); ++i)
+        views.emplace_back(std::make_shared<ImageViewResource>(name + "_#" + std::to_string(i), device, in_image->get_resource()[i], CreateInfos{.format = in_image->get_params().format}));
 }
 
-ImageView::ImageView(std::weak_ptr<Device> in_device, std::vector<VkImage> raw_image, CreateInfos create_infos) : device(in_device)
+ImageView::ImageView(std::string in_name, std::weak_ptr<Device> in_device, std::vector<VkImage> raw_image, CreateInfos create_infos) : device(std::move(in_device)), name(std::move(in_name))
 {
-    for (const auto img : raw_image)
-        views.emplace_back(std::make_shared<ImageViewResource>(device, img, create_infos));
-}
-
-ImageView::~ImageView()
-{
+    for (size_t i = 0; i < raw_image.size(); ++i)
+        views.emplace_back(std::make_shared<ImageViewResource>(name + "_#" + std::to_string(i), device, raw_image[i], create_infos));
 }
 
 VkImageView ImageView::raw_current() const
@@ -30,25 +28,26 @@ VkImageView ImageView::raw_current() const
 
 std::vector<VkImageView> ImageView::raw() const
 {
-    std::vector<VkImageView> ptrs;
+    std::vector<VkImageView> image_view_ptr;
     for (const auto& view : views)
-        ptrs.emplace_back(view->ptr);
-    return ptrs;
+        image_view_ptr.emplace_back(view->ptr);
+    return image_view_ptr;
 }
 
-const VkDescriptorImageInfo& ImageView::get_descriptor_infos_current()
+const VkDescriptorImageInfo& ImageView::get_descriptor_infos_current() const
 {
     if (views.size() == 1)
         return views[0]->descriptor_infos;
     return views[device.lock()->get_current_image()]->descriptor_infos;
 }
 
-ImageViewResource::ImageViewResource(const std::weak_ptr<Device>& device, std::shared_ptr<Image::ImageResource> resource, ImageView::CreateInfos create_infos) : ImageViewResource(device, resource->ptr, create_infos)
+ImageViewResource::ImageViewResource(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, ImageView::CreateInfos create_infos)
+    : ImageViewResource(name, device, resource->ptr, create_infos)
 {
     image_resource = resource;
 }
 
-ImageViewResource::ImageViewResource(const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos) : DeviceResource(device)
+ImageViewResource::ImageViewResource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, ImageView::CreateInfos create_infos) : DeviceResource(device)
 {
     VkImageViewCreateInfo image_view_infos{.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                                            .image    = image,
@@ -68,13 +67,14 @@ ImageViewResource::ImageViewResource(const std::weak_ptr<Device>& device, VkImag
                                                .baseArrayLayer = 0,
                                                .layerCount     = 1,
                                            }};
-    VK_CHECK(vkCreateImageView(device.lock()->raw(), &image_view_infos, nullptr, &ptr), "failed to create swapchain image views");
+    VK_CHECK(vkCreateImageView(device.lock()->raw(), &image_view_infos, nullptr, &ptr), "failed to create swapchain image views")
 
     descriptor_infos = VkDescriptorImageInfo{
         .sampler     = VK_NULL_HANDLE,
         .imageView   = ptr,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
+    device.lock()->debug_set_object_name(name, ptr);
 }
 
 ImageViewResource::~ImageViewResource()

@@ -22,6 +22,8 @@ class Engine
 {
   public:
     Engine(Config config);
+    Engine(Engine&&) = delete;
+    Engine(Engine&)  = delete;
     ~Engine();
 
     std::weak_ptr<Window> new_window(const WindowConfig& config);

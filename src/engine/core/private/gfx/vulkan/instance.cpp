@@ -8,7 +8,7 @@
 
 static const std::vector validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*)
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*)
 {
     std::string context      = "FAILED TO PARSE MESSAGE";
     std::string message_id   = "FAILED TO PARSE MESSAGE";
@@ -38,7 +38,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
         LOG_WARNING("VALIDATION WARNING : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
     else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
-        LOG_FATAL("VALIDATION ERROR : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
+        LOG_FATAL("VALIDATION ERROR : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text)
     }
     else
     {
@@ -99,7 +99,7 @@ Instance::Instance(Config& config)
                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
             .messageType =
                 VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
-            .pfnUserCallback = debugCallback,
+            .pfnUserCallback = debug_callback,
             .pUserData       = nullptr, // Optional
         };
         instance_infos.pNext = &debug_messenger_infos;
@@ -109,9 +109,9 @@ Instance::Instance(Config& config)
     instance_infos.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
     instance_infos.ppEnabledExtensionNames = extensions.data();
 
-    VK_CHECK(vkCreateInstance(&instance_infos, nullptr, &ptr), "Failed to create instance");
+    VK_CHECK(vkCreateInstance(&instance_infos, nullptr, &ptr), "Failed to create instance")
 
-    VK_CHECK(create_debug_utils_messenger_ext(ptr, &debug_messenger_infos, nullptr, &debug_messenger), "Failed to setup debug messenger");
+    VK_CHECK(create_debug_utils_messenger_ext(ptr, &debug_messenger_infos, nullptr, &debug_messenger), "Failed to setup debug messenger")
 }
 
 Instance::~Instance()

@@ -14,6 +14,8 @@ class ShaderModule
 {
   public:
     ShaderModule(const std::weak_ptr<Device>& device, ShaderProperties properties);
+    ShaderModule(ShaderModule&)  = delete;
+    ShaderModule(ShaderModule&&) = delete;
     ~ShaderModule();
 
     VkShaderModule raw() const

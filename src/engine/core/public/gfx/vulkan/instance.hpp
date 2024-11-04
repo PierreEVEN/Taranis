@@ -10,6 +10,8 @@ class Instance
 {
   public:
     Instance(Config& config);
+    Instance(Instance&&) = delete;
+    Instance(Instance&)  = delete;
     ~Instance();
 
     [[nodiscard]] VkInstance raw() const

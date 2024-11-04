@@ -18,7 +18,9 @@ enum class IndexBufferType
 class Mesh
 {
   public:
-    Mesh(const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type);
+    Mesh(std::string name, const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type);
+    Mesh(Mesh&&) = delete;
+    Mesh(Mesh&)  = delete;
     void reserve_vertices(size_t vertex_count);
     void reserve_indices(size_t index_count, IndexBufferType index_buffer_type);
     void set_vertices(size_t start_vertex, const BufferData& vertex_data);
@@ -28,10 +30,12 @@ class Mesh
     {
         return vertex_buffer.get();
     }
+
     Buffer* get_indices() const
     {
         return index_buffer.get();
     }
+
     const IndexBufferType& get_index_buffer_type() const
     {
         return index_type;
@@ -44,5 +48,6 @@ class Mesh
     std::weak_ptr<Device>   device;
     std::unique_ptr<Buffer> vertex_buffer;
     std::unique_ptr<Buffer> index_buffer;
+    std::string             name;
 };
 } // namespace Engine

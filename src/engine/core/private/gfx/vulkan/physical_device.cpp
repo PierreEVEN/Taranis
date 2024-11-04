@@ -58,7 +58,7 @@ Result<PhysicalDevice> PhysicalDevice::pick_best_physical_device(const std::weak
     std::multimap<int32_t, PhysicalDevice> candidates;
     std::vector<std::string>               errors;
 
-    for (const auto& device : devices)
+    for (auto& device : devices)
     {
         auto score = device.rate_device(config, *surface);
         if (score)
@@ -78,7 +78,7 @@ Result<PhysicalDevice> PhysicalDevice::pick_best_physical_device(const std::weak
     return Result<PhysicalDevice>::Ok(candidates.begin()->second);
 }
 
-Result<int32_t> PhysicalDevice::rate_device(const Config& config, const Surface& surface) const
+Result<int32_t> PhysicalDevice::rate_device(const Config& config, const Surface& surface)
 {
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(ptr, &deviceProperties);
@@ -89,7 +89,7 @@ Result<int32_t> PhysicalDevice::rate_device(const Config& config, const Surface&
         return Result<int32_t>::Error("This device is an integrated GPU but integrated gpu are not currently allowed");
 
     if (!check_extension_support())
-        return Result<int32_t>::Error("This device doesn't support swapchain extension");
+        return Result<int32_t>::Error("This device doesn't support required extensions");
 
     SwapChainSupportDetails swapChainSupport = query_swapchain_support(surface);
     if (swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty())
@@ -114,7 +114,7 @@ std::string PhysicalDevice::get_device_name() const
     return deviceProperties.deviceName;
 }
 
-bool PhysicalDevice::check_extension_support() const
+bool PhysicalDevice::check_extension_support()
 {
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(ptr, nullptr, &extensionCount, nullptr);
@@ -125,7 +125,11 @@ bool PhysicalDevice::check_extension_support() const
     std::set<std::string> requiredExtensions(Device::get_device_extensions().begin(), Device::get_device_extensions().end());
 
     for (const auto& extension : availableExtensions)
+    {
+        if (extension.extensionName == std::string(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+            b_support_debug_markers = true;
         requiredExtensions.erase(extension.extensionName);
+    }
 
     return requiredExtensions.empty();
 }

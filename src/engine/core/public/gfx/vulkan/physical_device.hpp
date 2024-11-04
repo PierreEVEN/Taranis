@@ -21,7 +21,7 @@ class PhysicalDevice
     static std::vector<PhysicalDevice> get_all_physical_devices(const Instance& instance);
     static Result<PhysicalDevice>      pick_best_physical_device(const std::weak_ptr<Instance>& instance, const Config& config, const std::shared_ptr<Surface>& surface);
 
-    Result<int32_t> rate_device(const Config& config, const Surface& surface) const;
+    Result<int32_t> rate_device(const Config& config, const Surface& surface);
 
     std::string get_device_name() const;
 
@@ -30,9 +30,15 @@ class PhysicalDevice
         return ptr;
     }
 
-  private:
-    bool check_extension_support() const;
+    bool does_support_debug_markers() const
+    {
+        return b_support_debug_markers;
+    }
 
-    VkPhysicalDevice ptr = VK_NULL_HANDLE;
+  private:
+    bool check_extension_support();
+
+    bool             b_support_debug_markers = false;
+    VkPhysicalDevice ptr                     = VK_NULL_HANDLE;
 };
 } // namespace Engine

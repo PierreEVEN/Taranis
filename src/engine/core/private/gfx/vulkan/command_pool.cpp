@@ -9,7 +9,7 @@
 
 namespace Engine
 {
-CommandPool::CommandPool(std::weak_ptr<Device> in_device, const uint32_t& in_queue_family) : device(std::move(in_device)), queue_family(in_queue_family)
+CommandPool::CommandPool(std::string in_name, std::weak_ptr<Device> in_device, const uint32_t& in_queue_family) : device(std::move(in_device)), queue_family(in_queue_family), name(std::move(in_name))
 {
 }
 
@@ -25,9 +25,13 @@ VkCommandBuffer CommandPool::allocate()
     auto            command_pool = command_pools.find(std::this_thread::get_id());
     if (command_pool == command_pools.end())
     {
+        std::stringstream ss;
+        ss << std::this_thread::get_id();
+
         VkCommandPoolCreateInfo create_infos{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = queue_family};
         VkCommandPool           ptr;
         VK_CHECK(vkCreateCommandPool(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create command pool")
+        device.lock()->debug_set_object_name(name + "-$" + ss.str(), ptr);
         command_pools.emplace(std::this_thread::get_id(), ptr);
         command_pool = command_pools.find(std::this_thread::get_id());
     }
@@ -35,7 +39,7 @@ VkCommandBuffer CommandPool::allocate()
     VkCommandBufferAllocateInfo infos{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, .commandPool = command_pool->second, .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, .commandBufferCount = 1};
 
     VkCommandBuffer out;
-    VK_CHECK(vkAllocateCommandBuffers(device.lock()->raw(), &infos, &out), "failed to allocate command buffer");
+    VK_CHECK(vkAllocateCommandBuffers(device.lock()->raw(), &infos, &out), "failed to allocate command buffer")
     return out;
 }
 

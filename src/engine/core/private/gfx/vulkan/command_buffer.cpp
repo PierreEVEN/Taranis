@@ -14,7 +14,7 @@ namespace Engine
 {
 class Fence;
 
-CommandBuffer::CommandBuffer(std::weak_ptr<Device> in_device, QueueSpecialization in_type) : device(std::move(in_device)), thread_id(std::this_thread::get_id()), type(in_type)
+CommandBuffer::CommandBuffer(const std::string& in_name, std::weak_ptr<Device> in_device, QueueSpecialization in_type) : type(in_type), device(std::move(in_device)), thread_id(std::this_thread::get_id()), name(in_name)
 {
     ptr = device.lock()->get_queues().get_queue(type)->get_command_pool().allocate();
 }
@@ -31,7 +31,8 @@ void CommandBuffer::begin(bool one_time) const
         .flags = one_time ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : static_cast<VkCommandBufferUsageFlags>(0),
     };
 
-    VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer");
+    VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer")
+    device.lock()->debug_set_object_name(name, ptr);
 }
 
 void CommandBuffer::end() const
@@ -61,10 +62,9 @@ void CommandBuffer::bind_pipeline(const Pipeline& pipeline) const
     vkCmdBindPipeline(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.raw());
 }
 
-void CommandBuffer::bind_descriptors(DescriptorSet& descriptors, const Pipeline& pipeline) const
+void CommandBuffer::bind_descriptors(const DescriptorSet& descriptors, const Pipeline& pipeline) const
 {
-    descriptors.update();
-    vkCmdBindDescriptorSets(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_layout(), 0, 1, &descriptors.raw(), 0, nullptr);
+    vkCmdBindDescriptorSets(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_layout(), 0, 1, &descriptors.raw_current(), 0, nullptr);
 }
 
 void CommandBuffer::draw_mesh(const Mesh& in_mesh, uint32_t instance_count, uint32_t first_instance) const
@@ -89,7 +89,7 @@ void CommandBuffer::draw_mesh(const Mesh& in_mesh, uint32_t instance_count, uint
                 index_buffer_type = VK_INDEX_TYPE_UINT32;
                 break;
             default:
-                LOG_FATAL("Unhandled index type");
+                LOG_FATAL("Unhandled index type")
             }
             vkCmdBindIndexBuffer(ptr, indices->raw_current(), 0, index_buffer_type);
             vkCmdDrawIndexed(ptr, static_cast<uint32_t>(indices->get_element_count()), instance_count, 0, 0, first_instance);
@@ -123,7 +123,7 @@ void CommandBuffer::draw_mesh(const Mesh& in_mesh, uint32_t first_index, uint32_
                 index_buffer_type = VK_INDEX_TYPE_UINT32;
                 break;
             default:
-                LOG_FATAL("Unhandled index type");
+                LOG_FATAL("Unhandled index type")
             }
             vkCmdBindIndexBuffer(ptr, indices->raw_current(), 0, index_buffer_type);
             vkCmdDrawIndexed(ptr, index_count, instance_count, first_index, static_cast<int32_t>(vertex_offset), first_instance);

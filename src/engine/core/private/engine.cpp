@@ -18,7 +18,7 @@ Engine* engine_singleton = nullptr;
 Engine::Engine(Config config) : app_config(std::move(config))
 {
     if (engine_singleton)
-        LOG_FATAL("Cannot start multiple engine instances at the same time");
+        LOG_FATAL("Cannot start multiple engine instances at the same time")
     engine_singleton = this;
     last_time        = std::chrono::steady_clock::now();
 
@@ -46,7 +46,7 @@ std::weak_ptr<Window> Engine::new_window(const WindowConfig& config)
         if (auto physical_device = PhysicalDevice::pick_best_physical_device(gfx_instance, app_config, window->get_surface()))
         {
             LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
-            gfx_device = Device::create(app_config, *gfx_instance, physical_device.get(), *window->get_surface());
+            gfx_device = Device::create(app_config, gfx_instance, physical_device.get(), *window->get_surface());
         }
         else
             LOG_FATAL("{}", physical_device.error())
@@ -62,7 +62,7 @@ void Engine::run()
     while (!windows.empty())
     {
         auto new_time = std::chrono::steady_clock::now();
-        delta_second  = std::chrono::duration_cast<std::chrono::nanoseconds>(new_time - last_time).count() / 1000000000.0;
+        delta_second  = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(new_time - last_time).count()) / 1000000000.0;
         last_time     = new_time;
 
         std::vector<size_t> windows_to_remove;
@@ -82,7 +82,7 @@ void Engine::run()
 Engine& Engine::get()
 {
     if (!engine_singleton)
-        LOG_FATAL("Engine is not initialized");
+        LOG_FATAL("Engine is not initialized")
     return *engine_singleton;
 }
 } // namespace Engine

@@ -8,13 +8,13 @@
 
 namespace Engine
 {
+class VkRendererPass;
 enum class ColorFormat;
-}
+} // namespace Engine
 
 namespace Engine
 {
 class ShaderModule;
-class RenderPassObject;
 class Device;
 } // namespace Engine
 
@@ -70,7 +70,9 @@ class Pipeline
         std::optional<std::vector<StageInputOutputDescription>> stage_input_override;
     };
 
-    Pipeline(std::weak_ptr<Device> device, std::weak_ptr<RenderPassObject> render_pass, std::vector<std::shared_ptr<ShaderModule>> shader_stage, const CreateInfos& create_infos);
+    Pipeline(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
+    Pipeline(Pipeline&)  = delete;
+    Pipeline(Pipeline&&) = delete;
     ~Pipeline();
 
     const VkPipelineLayout& get_layout() const

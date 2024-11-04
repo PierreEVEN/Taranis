@@ -9,24 +9,24 @@ void BufferData::copy_to(uint8_t* destination) const
     memcpy(destination, ptr, stride * element_count);
 }
 
-Buffer::Buffer(std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
-    : stride(in_stride), element_count(in_element_count), params(create_infos), device(std::move(in_device))
+Buffer::Buffer(std::string in_name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
+    : stride(in_stride), element_count(in_element_count), params(create_infos), device(std::move(in_device)), name(std::move(in_name))
 {
     switch (params.type)
     {
     case EBufferType::STATIC:
     case EBufferType::IMMUTABLE:
-        buffers = {std::make_shared<BufferResource>(device, create_infos, in_stride, in_element_count)};
+        buffers = {std::make_shared<Buffer::Resource>(name, device, create_infos, in_stride, in_element_count)};
         break;
     case EBufferType::DYNAMIC:
     case EBufferType::IMMEDIATE:
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-            buffers.emplace_back(std::make_shared<BufferResource>(device, create_infos, in_stride, in_element_count));
+            buffers.emplace_back(std::make_shared<Buffer::Resource>(name + "_#" + std::to_string(i), device, create_infos, in_stride, in_element_count));
         break;
     }
 }
 
-Buffer::Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos, const BufferData& data) : Buffer(std::move(device), create_infos, data.get_stride(), data.get_element_count())
+Buffer::Buffer(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos, const BufferData& data) : Buffer(name, std::move(device), create_infos, data.get_stride(), data.get_element_count())
 {
     for (const auto& buffer : buffers)
         buffer->set_data(0, data);
@@ -46,23 +46,23 @@ bool Buffer::resize(size_t new_stride, size_t new_element_count)
     switch (params.type)
     {
     case EBufferType::IMMUTABLE:
-        LOG_FATAL("Cannot resize immutable buffer !!");
+        LOG_FATAL("Cannot resize immutable buffer !!")
     case EBufferType::STATIC:
         for (const auto& image : buffers)
             device.lock()->drop_resource(image);
-        buffers = {std::make_shared<BufferResource>(device, params, new_stride, new_element_count)};
+        buffers = {std::make_shared<Buffer::Resource>(name, device, params, new_stride, new_element_count)};
         break;
     case EBufferType::DYNAMIC:
         for (const auto& buffer : buffers)
             device.lock()->drop_resource(buffer);
         buffers.clear();
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-            buffers.emplace_back(std::make_shared<BufferResource>(device, params, new_stride, new_element_count));
+            buffers.emplace_back(std::make_shared<Buffer::Resource>(name, device, params, new_stride, new_element_count));
         break;
     case EBufferType::IMMEDIATE:
         auto& current_buffer = buffers[device.lock()->get_current_image()];
         device.lock()->drop_resource(current_buffer);
-        buffers[device.lock()->get_current_image()] = std::make_shared<BufferResource>(device, params, new_stride, new_element_count);
+        buffers[device.lock()->get_current_image()] = std::make_shared<Buffer::Resource>(name, device, params, new_stride, new_element_count);
     }
     return true;
 }
@@ -75,14 +75,14 @@ void Buffer::set_data(size_t start_index, const BufferData& data)
     switch (params.type)
     {
     case EBufferType::IMMUTABLE:
-        LOG_FATAL("Cannot resize immutable buffer !!");
+        LOG_FATAL("Cannot resize immutable buffer !!")
     case EBufferType::STATIC:
         device.lock()->wait();
         buffers[0]->set_data(start_index, data);
         break;
     case EBufferType::DYNAMIC:
         if (start_index != 0)
-            LOG_FATAL("Cannot update ptr inside a dynamic buffer with offset");
+            LOG_FATAL("Cannot update ptr inside a dynamic buffer with offset")
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
         {
             if (i == device.lock()->get_current_image())
@@ -128,7 +128,7 @@ VkBuffer Buffer::raw_current()
     case EBufferType::IMMEDIATE:
         return buffers[device.lock()->get_current_image()]->ptr;
     }
-    LOG_FATAL("Unhandled case");
+    LOG_FATAL("Unhandled case")
 }
 
 size_t Buffer::get_element_count() const
@@ -149,7 +149,7 @@ size_t Buffer::get_stride() const
     return buffers[0]->stride;
 }
 
-BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
+Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
     : DeviceResource(std::move(in_device)), stride(in_stride), element_count(in_element_count)
 {
     assert(element_count != 0 && stride != 0);
@@ -211,19 +211,23 @@ BufferResource::BufferResource(std::weak_ptr<Device> in_device, const Buffer::Cr
     const VmaAllocationCreateInfo allocInfo = {
         .usage = vma_usage,
     };
-    VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation, nullptr), "failed to create buffer");
+
+    VmaAllocationInfo infos;
+    VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation, &infos), "failed to create buffer")
+    device().lock()->debug_set_object_name(name, ptr);
+    device().lock()->debug_set_object_name(name + "_memory", infos.deviceMemory);
 }
 
-BufferResource::~BufferResource()
+Buffer::Resource::~Resource()
 {
     vmaDestroyBuffer(device().lock()->get_allocator(), ptr, allocation);
 }
 
-void BufferResource::set_data(size_t start_index, const BufferData& data)
+void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
 {
     outdated      = false;
     void* dst_ptr = nullptr;
-    VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory");
+    VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory")
     data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
 
     vmaUnmapMemory(device().lock()->get_allocator(), allocation);

@@ -49,6 +49,8 @@ class DescriptorPool
   public:
     DescriptorPool(std::weak_ptr<Device> device);
 
+    DescriptorPool(DescriptorPool&)  = delete;
+    DescriptorPool(DescriptorPool&&) = delete;
     VkDescriptorSet allocate(const Pipeline& pipeline, size_t& pool_index);
     void            free(const VkDescriptorSet& desc_set, const Pipeline& pipeline, size_t pool_index);
 

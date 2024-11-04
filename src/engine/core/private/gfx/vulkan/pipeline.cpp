@@ -2,10 +2,10 @@
 
 #include "gfx/vulkan/pipeline.hpp"
 
-#include "gfx/renderer/renderer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/shader_module.hpp"
 #include "gfx/vulkan/vk_check.hpp"
+#include "gfx/vulkan/vk_render_pass.hpp"
 
 namespace Engine
 {
@@ -36,7 +36,7 @@ static VkDescriptorType vk_descriptor_type(EBindingType type)
     case EBindingType::INPUT_ATTACHMENT:
         return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
     default:;
-        LOG_FATAL("unhandled case");
+        LOG_FATAL("unhandled case")
     }
 }
 
@@ -51,7 +51,7 @@ static VkPolygonMode vk_polygon_mode(EPolygonMode polygon_mode)
     case EPolygonMode::Fill:
         return VK_POLYGON_MODE_FILL;
     default:
-        LOG_FATAL("unhandled case");
+        LOG_FATAL("unhandled case")
     }
 }
 
@@ -66,7 +66,7 @@ static VkPrimitiveTopology vk_topology(ETopology topology)
     case ETopology::Triangles:
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     default:
-        LOG_FATAL("unhandled case");
+        LOG_FATAL("unhandled case")
     }
 }
 
@@ -79,7 +79,7 @@ static VkFrontFace vk_front_face(EFrontFace front_face)
     case EFrontFace::CounterClockwise:
         return VK_FRONT_FACE_COUNTER_CLOCKWISE;
     default:
-        LOG_FATAL("unhandled case");
+        LOG_FATAL("unhandled case")
     }
 }
 
@@ -96,12 +96,12 @@ static VkCullModeFlags vk_cull_mode(ECulling culling)
     case ECulling::Both:
         return VK_CULL_MODE_FRONT_AND_BACK;
     default:
-        LOG_FATAL("unhandled case");
+        LOG_FATAL("unhandled case")
     }
 }
 
-Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObject> render_pass, std::vector<std::shared_ptr<ShaderModule>> shader_stage, const CreateInfos& in_create_infos)
-    : create_infos(in_create_infos), device(std::move(in_device))
+Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos in_create_infos)
+    : create_infos(std::move(in_create_infos)), device(std::move(in_device))
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
     for (const auto& stage : shader_stage)
@@ -128,7 +128,8 @@ Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObje
         .pBindings    = bindings.data(),
     };
 
-    VK_CHECK(vkCreateDescriptorSetLayout(device.lock()->raw(), &layout_infos, nullptr, &descriptor_set_layout), "Failed to create descriptor set layout");
+    VK_CHECK(vkCreateDescriptorSetLayout(device.lock()->raw(), &layout_infos, nullptr, &descriptor_set_layout), "Failed to create descriptor set layout")
+    device.lock()->debug_set_object_name(name + "_set_layout", descriptor_set_layout);
 
     std::vector<VkPushConstantRange> push_constants = {};
     for (const auto& stage : shader_stage)
@@ -146,7 +147,8 @@ Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObje
         .pushConstantRangeCount = static_cast<uint32_t>(push_constants.size()),
         .pPushConstantRanges    = push_constants.data(),
     };
-    VK_CHECK(vkCreatePipelineLayout(device.lock()->raw(), &pipeline_layout_infos, nullptr, &layout), "Failed to create pipeline layout");
+    VK_CHECK(vkCreatePipelineLayout(device.lock()->raw(), &pipeline_layout_infos, nullptr, &layout), "Failed to create pipeline layout")
+    device.lock()->debug_set_object_name(name + "_layout", layout);
 
     std::vector<VkVertexInputAttributeDescription> vertex_attribute_description;
 
@@ -190,7 +192,7 @@ Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObje
         .primitiveRestartEnable = VK_FALSE,
     };
 
-    const VkPipelineViewportStateCreateInfo viewport_state{
+    constexpr VkPipelineViewportStateCreateInfo viewport_state{
         .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1,
         .scissorCount  = 1,
@@ -210,7 +212,7 @@ Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObje
         .lineWidth               = create_infos.line_width,
     };
 
-    const VkPipelineMultisampleStateCreateInfo multisampling{
+    constexpr VkPipelineMultisampleStateCreateInfo multisampling{
         .sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT,
         .sampleShadingEnable   = VK_FALSE,
@@ -298,7 +300,8 @@ Pipeline::Pipeline(std::weak_ptr<Device> in_device, std::weak_ptr<RenderPassObje
         .basePipelineIndex   = -1,
     };
 
-    VK_CHECK(vkCreateGraphicsPipelines(device.lock()->raw(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &ptr), "Failed to create material graphic pipeline");
+    VK_CHECK(vkCreateGraphicsPipelines(device.lock()->raw(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &ptr), "Failed to create material graphic pipeline")
+    device.lock()->debug_set_object_name(name, ptr);
 }
 
 Pipeline::~Pipeline()

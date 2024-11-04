@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <vulkan/vulkan_core.h>
 
 namespace Engine
@@ -13,7 +14,9 @@ class Sampler
     {
     };
 
-    Sampler(std::weak_ptr<Device> device, const CreateInfos& create_infos);
+    Sampler(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos);
+    Sampler(Sampler&)  = delete;
+    Sampler(Sampler&&) = delete;
     ~Sampler();
     VkSampler raw() const
     {

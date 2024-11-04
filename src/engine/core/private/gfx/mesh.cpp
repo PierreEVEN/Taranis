@@ -2,7 +2,8 @@
 
 namespace Engine
 {
-Mesh::Mesh(const std::weak_ptr<Device>& in_device, size_t in_vertex_structure_size, EBufferType in_buffer_type) : buffer_type(in_buffer_type), vertex_structure_size(in_vertex_structure_size), device(in_device)
+Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t in_vertex_structure_size, EBufferType in_buffer_type)
+    : buffer_type(in_buffer_type), vertex_structure_size(in_vertex_structure_size), index_type(IndexBufferType::Uint32), device(in_device), name(std::move(in_name))
 {
 }
 
@@ -10,7 +11,7 @@ void Mesh::reserve_vertices(size_t vertex_count)
 {
     if (!vertex_buffer)
     {
-        vertex_buffer = std::make_unique<Buffer>(device,
+        vertex_buffer = std::make_unique<Buffer>(name + "_buff_vtx", device,
                                                  Buffer::CreateInfos{
                                                      .usage  = EBufferUsage::VERTEX_DATA,
                                                      .access = EBufferAccess::CPU_TO_GPU,
@@ -41,12 +42,12 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
         size = 4;
         break;
     default:
-        LOG_FATAL("Unhandled index type");
+        LOG_FATAL("Unhandled index type")
     }
 
     if (!index_buffer)
     {
-        index_buffer = std::make_unique<Buffer>(device,
+        index_buffer = std::make_unique<Buffer>(name + "_buff_idx", device,
                                                 Buffer::CreateInfos{
                                                     .usage  = EBufferUsage::INDEX_DATA,
                                                     .access = EBufferAccess::CPU_TO_GPU,
@@ -83,7 +84,7 @@ void Mesh::set_indexed_vertices(size_t start_vertex, const BufferData& vertex_da
         type = IndexBufferType::Uint32;
         break;
     default:
-        LOG_FATAL("Unhandled index buffer size");
+        LOG_FATAL("Unhandled index buffer size")
     }
 
     reserve_indices(start_index + index_data.get_element_count(), type);

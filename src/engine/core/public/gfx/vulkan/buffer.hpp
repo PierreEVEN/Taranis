@@ -6,7 +6,6 @@
 
 namespace Engine
 {
-class BufferResource;
 class Device;
 
 enum class EBufferType
@@ -105,8 +104,11 @@ class Buffer
         EBufferType   type   = EBufferType::IMMUTABLE;
     };
 
-    Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
-    Buffer(std::weak_ptr<Device> device, const CreateInfos& create_infos, const BufferData& data);
+    Buffer(std::string name, std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
+    Buffer(const std::string& name, std::weak_ptr<Device> device, const CreateInfos& create_infos, const BufferData& data);
+    Buffer(Buffer&)  = delete;
+    Buffer(Buffer&&) = delete;
+
     ~Buffer();
 
     bool resize(size_t stride, size_t element_count);
@@ -123,25 +125,26 @@ class Buffer
         return get_stride() * get_element_count();
     }
 
-  private:
-    size_t                                       stride        = 0;
-    size_t                                       element_count = 0;
-    CreateInfos                                  params;
-    BufferData                                   temp_buffer_data;
-    std::vector<std::shared_ptr<BufferResource>> buffers;
-    std::weak_ptr<Device>                        device;
-};
+    class Resource : public DeviceResource
+    {
+      public:
+        Resource(const std::string& name, std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
+        ~Resource();
+        void          set_data(size_t start_index, const BufferData& data);
+        size_t        stride        = 0;
+        size_t        element_count = 0;
+        bool          outdated      = false;
+        VkBuffer      ptr           = VK_NULL_HANDLE;
+        VmaAllocation allocation    = VK_NULL_HANDLE;
+    };
 
-class BufferResource : public DeviceResource
-{
-  public:
-    BufferResource(std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
-    ~BufferResource();
-    void          set_data(size_t start_index, const BufferData& data);
-    size_t        stride        = 0;
-    size_t        element_count = 0;
-    bool          outdated      = false;
-    VkBuffer      ptr           = VK_NULL_HANDLE;
-    VmaAllocation allocation    = VK_NULL_HANDLE;
+  private:
+    size_t                                         stride        = 0;
+    size_t                                         element_count = 0;
+    CreateInfos                                    params;
+    BufferData                                     temp_buffer_data;
+    std::vector<std::shared_ptr<Buffer::Resource>> buffers;
+    std::weak_ptr<Device>                          device;
+    std::string                                    name;
 };
 } // namespace Engine

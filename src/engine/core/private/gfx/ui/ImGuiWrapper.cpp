@@ -4,7 +4,6 @@
 
 #include <imgui.h>
 
-#include "../../../../../../../../../AppData/Local/.xmake/packages/g/glfw/3.4/d4249eb3072844719d5a737fb01aeb0d/include/GLFW/glfw3.h"
 #include "engine.hpp"
 #include "gfx/mesh.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
@@ -55,33 +54,32 @@ float4 main(VsToFs input) : SV_TARGET{\
 
 namespace Engine
 {
-ImGuiWrapper::ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
-    : device(std::move(in_device)), target_window(std::move(in_target_window))
+ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
+    : device(std::move(in_device)), target_window(std::move(in_target_window)), name(std::move(in_name))
 {
-    mesh = std::make_shared<Mesh>(device, sizeof(ImDrawVert), EBufferType::IMMEDIATE);
+    mesh = std::make_shared<Mesh>(name + "_mesh", device, sizeof(ImDrawVert), EBufferType::IMMEDIATE);
 
-    image_sampler = std::make_shared<Sampler>(device, Sampler::CreateInfos{});
+    image_sampler = std::make_shared<Sampler>(name + "_generic_sampler", device, Sampler::CreateInfos{});
 
     ShaderCompiler compiler;
     const auto     vertex_code   = compiler.compile_raw(IMGUI_VERTEX, "main", EShaderStage::Vertex, "internal://imgui");
     const auto     fragment_code = compiler.compile_raw(IMGUI_FRAGMENT, "main", EShaderStage::Fragment, "internal://imgui");
     if (!vertex_code)
-        LOG_FATAL("Failed to compile imgui vertex shader : {}", vertex_code.error());
+        LOG_FATAL("Failed to compile imgui vertex shader : {}", vertex_code.error())
     if (!fragment_code)
-        LOG_FATAL("Failed to compile imgui fragment shader : {}", fragment_code.error());
+        LOG_FATAL("Failed to compile imgui fragment shader : {}", fragment_code.error())
     const auto vertex_temp = std::make_shared<ShaderModule>(device, vertex_code.get());
 
-    imgui_material = std::make_shared<Pipeline>(device, render_pass, std::vector{std::make_shared<ShaderModule>(device, vertex_code.get()), std::make_shared<ShaderModule>(device, fragment_code.get())},
-                                                Pipeline::CreateInfos{.culling              = ECulling::None,
-                                                                      .alpha_mode           = EAlphaMode::Translucent,
-                                                                      .depth_test           = false,
-                                                                      .stage_input_override = std::vector{
-                                                                          StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
-                                                                          StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
-                                                                          StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
-                                                                      }});
-
-    imgui_descriptors = std::make_shared<DescriptorSet>(device, imgui_material);
+    imgui_material =
+        std::make_shared<Pipeline>(name + "_pipeline", device, render_pass, std::vector{std::make_shared<ShaderModule>(device, vertex_code.get()), std::make_shared<ShaderModule>(device, fragment_code.get())},
+                                   Pipeline::CreateInfos{.culling              = ECulling::None,
+                                                         .alpha_mode           = EAlphaMode::Translucent,
+                                                         .depth_test           = false,
+                                                         .stage_input_override = std::vector{
+                                                             StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
+                                                             StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
+                                                             StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
+                                                         }});
 
     imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
@@ -89,7 +87,7 @@ ImGuiWrapper::ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, s
 
     ImGuiIO& io = ImGui::GetIO();
     if (io.BackendPlatformUserData != nullptr)
-        LOG_FATAL("Imgui has already been initialized !");
+        LOG_FATAL("Imgui has already been initialized !")
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -164,18 +162,18 @@ ImGuiWrapper::ImGuiWrapper(const std::weak_ptr<RenderPassObject>& render_pass, s
     int      width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    font_texture      = std::make_shared<Image>(device,
-                                                ImageParameter{
-                                                    .format      = ColorFormat::R8G8B8A8_UNORM,
-                                                    .buffer_type = EBufferType::IMMUTABLE,
-                                                    .width       = static_cast<uint32_t>(width),
-                                                    .height      = static_cast<uint32_t>(height),
+    font_texture          = std::make_shared<Image>(name + "_font_image", device,
+                                                    ImageParameter{
+                                                        .format      = ColorFormat::R8G8B8A8_UNORM,
+                                                        .buffer_type = EBufferType::IMMUTABLE,
+                                                        .width       = static_cast<uint32_t>(width),
+                                                        .height      = static_cast<uint32_t>(height),
                                            },
-                                                BufferData(pixels, 4, width * height));
-    font_texture_view = std::make_shared<ImageView>(font_texture);
-
-    imgui_descriptors->bind_image("sTexture", font_texture_view);
-    imgui_descriptors->bind_sampler("sSampler", image_sampler);
+                                                    BufferData(pixels, 4, width * height));
+    font_texture_view     = std::make_shared<ImageView>(name + "_font_image_view", font_texture);
+    imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
+    imgui_font_descriptor->bind_image("sTexture", font_texture_view);
+    imgui_font_descriptor->bind_sampler("sSampler", image_sampler);
 }
 
 ImGuiWrapper::~ImGuiWrapper()
@@ -195,7 +193,6 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
     io.DeltaTime               = static_cast<float>(Engine::get().delta_second);
 
     // Update mouse
-    ;
     io.MouseDown[0]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_1);
     io.MouseDown[1]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_2);
     io.MouseDown[2]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_3);
@@ -293,7 +290,16 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
     int global_idx_offset = 0;
 
     cmd.bind_pipeline(*imgui_material);
-    cmd.bind_descriptors(*imgui_descriptors, *imgui_material);
+
+    bool used_other_image = true;
+
+    std::unordered_set<ImTextureID> unused_image;
+    std::ranges::transform(per_image_ids, std::inserter(unused_image, unused_image.end()),
+                           [](auto pair)
+                           {
+                               return pair.first;
+                           });
+
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
@@ -311,7 +317,7 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
                 clip_rect.z = (pcmd->ClipRect.z - clip_off.x) * clip_scale.x;
                 clip_rect.w = (pcmd->ClipRect.w - clip_off.y) * clip_scale.y;
 
-                if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f)
+                if (clip_rect.x < static_cast<float>(fb_width) && clip_rect.y < static_cast<float>(fb_height) && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f)
                 {
                     // Negative offsets are illegal for vkCmdSetScissor
                     if (clip_rect.x < 0.0f)
@@ -319,7 +325,7 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
                     if (clip_rect.y < 0.0f)
                         clip_rect.y = 0.0f;
 
-                    // Apply scissor/clipping rectangle
+                    // Apply scissor / clipping rectangle
                     cmd.set_scissor(Scissor{
                         .offset_x = static_cast<int32_t>(clip_rect.x),
                         .offset_y = static_cast<int32_t>(clip_rect.y),
@@ -329,7 +335,17 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
 
                     // Bind descriptor set with font or user texture
                     if (pcmd->TextureId)
-                        ; // @TODO imgui_descriptors->bind_image("test", pcmd->TextureId);
+                    {
+                        used_other_image = true;
+                        if (const auto found_image_view = per_image_ids.find(pcmd->TextureId); found_image_view != per_image_ids.end())
+                        {
+                            unused_image.erase(pcmd->TextureId);
+                            if (const auto found_descriptors = per_image_descriptor.find(found_image_view->second); found_descriptors != per_image_descriptor.end())
+                                cmd.bind_descriptors(*found_descriptors->second.second, *imgui_material);
+                        }
+                    }
+                    else if (used_other_image)
+                        cmd.bind_descriptors(*imgui_font_descriptor, *imgui_material);
 
                     cmd.draw_mesh(*mesh, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, pcmd->ElemCount);
                 }
@@ -338,5 +354,30 @@ void ImGuiWrapper::draw(const CommandBuffer& cmd, glm::uvec2 draw_res)
         global_idx_offset += cmd_list->IdxBuffer.Size;
         global_vtx_offset += cmd_list->VtxBuffer.Size;
     }
+
+    // Clear unused descriptors
+    for (const auto& image_id : unused_image)
+        if (const auto image = per_image_ids.find(image_id); image != per_image_ids.end())
+        {
+            per_image_descriptor.erase(image->second);
+            per_image_ids.erase(image_id);
+        }
+}
+
+ImTextureID ImGuiWrapper::add_image(const std::shared_ptr<ImageView>& image_view)
+{
+    auto found_descriptor = per_image_descriptor.find(image_view);
+    if (found_descriptor == per_image_descriptor.end())
+    {
+        assert(max_texture_id != UINT64_MAX);
+        const auto descriptors = DescriptorSet::create(name + "_descriptor:" + image_view->get_name(), device, imgui_material, true);
+        descriptors->bind_image("sTexture", image_view);
+        descriptors->bind_sampler("sSampler", image_sampler);
+        ImTextureID new_id = ++max_texture_id;
+        per_image_descriptor.emplace(image_view, std::pair{new_id, descriptors});
+        per_image_ids.emplace(new_id, image_view);
+        return new_id;
+    }
+    return found_descriptor->second.first;
 }
 } // namespace Engine

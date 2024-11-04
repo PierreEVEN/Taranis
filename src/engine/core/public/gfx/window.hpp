@@ -19,7 +19,7 @@ struct GLFWwindow;
 
 namespace Engine
 {
-class RendererStep;
+class RenderPass;
 
 struct WindowConfig
 {
@@ -30,6 +30,8 @@ struct WindowConfig
 class Window : public std::enable_shared_from_this<Window>
 {
   public:
+    Window(Window&&) = delete;
+    Window(Window&)  = delete;
     ~Window();
 
     GLFWwindow* raw() const
@@ -42,7 +44,7 @@ class Window : public std::enable_shared_from_this<Window>
         return id;
     }
 
-    bool render();
+    bool render() const;
 
     glm::uvec2 internal_extent() const;
 

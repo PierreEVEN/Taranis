@@ -1,17 +1,18 @@
 #include "gfx/vulkan/framebuffer.hpp"
 
-#include "gfx/renderer/renderer.hpp"
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/semaphore.hpp"
+#include "gfx/vulkan/vk_render_pass.hpp"
 
 namespace Engine
 {
-Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstanceBase& render_pass, size_t image_index) : device(std::move(in_device))
+Framebuffer::Framebuffer(const std::string& name, std::weak_ptr<Device> in_device, const RenderPassInstanceBase& render_pass, size_t image_index) : device(std::move(in_device))
 {
-    command_buffer             = std::make_shared<CommandBuffer>(device, QueueSpecialization::Graphic);
-    render_finished_semaphores = std::make_shared<Semaphore>(device);
+    command_buffer             = std::make_shared<CommandBuffer>(name + "_cmd", device, QueueSpecialization::Graphic);
+    render_finished_semaphores = std::make_shared<Semaphore>(name + "_sem", device);
     const auto rp              = render_pass.get_render_pass().lock();
 
     std::vector<VkImageView> views;
@@ -30,7 +31,8 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
         .layers          = 1,
     };
 
-    VK_CHECK(vkCreateFramebuffer(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create render pass");
+    VK_CHECK(vkCreateFramebuffer(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create render pass")
+    device.lock()->debug_set_object_name(name + "_fb", ptr);
 }
 
 Framebuffer::~Framebuffer()

@@ -11,28 +11,59 @@
 
 namespace Engine
 {
-DescriptorSet::DescriptorSet(std::weak_ptr<Device> in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : pipeline(in_pipeline), device(std::move(in_device)), b_static(b_in_static)
+DescriptorSet::DescriptorSet(const std::weak_ptr<Device>& in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static)
 {
-    ptr = device.lock()->get_descriptor_pool().allocate(*pipeline, pool_index);
-
     for (const auto& binding : in_pipeline->get_bindings())
         descriptor_bindings.emplace(binding.name, binding.binding);
 }
 
-DescriptorSet::~DescriptorSet()
+DescriptorSet::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<Pipeline>& in_pipeline)
+    : pipeline(in_pipeline), device(in_device), parent(in_parent.lock())
+{
+    ptr = device.lock()->get_descriptor_pool().allocate(*pipeline, pool_index);
+    device.lock()->debug_set_object_name(name, ptr);
+}
+
+DescriptorSet::Resource::~Resource()
 {
     device.lock()->get_descriptor_pool().free(ptr, *pipeline, pool_index);
 }
 
-void DescriptorSet::update()
+std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static)
+{
+    const auto descriptors = std::shared_ptr<DescriptorSet>(new DescriptorSet(device, pipeline, b_static));
+
+    if (b_static)
+        descriptors->resources = std::vector{std::make_shared<Resource>(name, device, descriptors, pipeline)};
+    else
+        for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
+            descriptors->resources.push_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, descriptors, pipeline));
+
+    return descriptors;
+}
+
+const VkDescriptorSet& DescriptorSet::raw_current() const
+{
+    if (b_static)
+    {
+        resources[0]->update();
+        return resources[0]->ptr;
+    }
+    auto& resource = resources[device.lock()->get_current_image()];
+    resource->update();
+    return resource->ptr;
+}
+
+void DescriptorSet::Resource::update()
 {
     if (!outdated)
         return;
     outdated = false;
     std::vector<VkWriteDescriptorSet> desc_sets;
-    for (const auto& val : write_descriptors)
+    auto                              parent_ptr = parent.lock();
+    for (const auto& val : parent_ptr->write_descriptors)
     {
-        if (auto found = descriptor_bindings.find(val.first); found != descriptor_bindings.end())
+        if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
         {
             auto desc_set       = val.second->get();
             desc_set.dstSet     = ptr;
@@ -45,13 +76,15 @@ void DescriptorSet::update()
 
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
 {
-    outdated = true;
+    for (const auto& resource : resources)
+        resource->outdated = true;
     write_descriptors.emplace(binding_name, std::make_shared<ImageDescriptor>(in_image));
 }
 
 void DescriptorSet::bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler)
 {
-    outdated = true;
+    for (const auto& resource : resources)
+        resource->outdated = true;
     write_descriptors.emplace(binding_name, std::make_shared<SamplerDescriptor>(in_sampler));
 }
 

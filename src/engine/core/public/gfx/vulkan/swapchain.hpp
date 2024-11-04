@@ -1,17 +1,19 @@
 #pragma once
+#include "gfx/types.hpp"
+
 #include <glm/vec2.hpp>
 #include <memory>
+#include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-#include "gfx/renderer/renderer_definition.hpp"
-
 namespace Engine
 {
+class Renderer;
 class Fence;
 class Semaphore;
 class ImageView;
-class SwapchainPresentPass;
+class SwapchainRenderer;
 } // namespace Engine
 
 namespace Engine
@@ -30,7 +32,9 @@ struct SwapChainSupportDetails
 class Swapchain : public std::enable_shared_from_this<Swapchain>
 {
   public:
-    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& Surface, bool vsync = false);
+    Swapchain(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& Surface, bool vsync = false);
+    Swapchain(Swapchain&)  = delete;
+    Swapchain(Swapchain&&) = delete;
     ~Swapchain();
 
     VkSwapchainKHR raw() const
@@ -82,8 +86,9 @@ class Swapchain : public std::enable_shared_from_this<Swapchain>
     glm::uvec2                              extent           = {};
     std::vector<VkImage>                    swapChainImages;
     std::shared_ptr<ImageView>              image_view;
-    std::shared_ptr<SwapchainPresentPass>   renderer;
+    std::shared_ptr<SwapchainRenderer>      renderer;
     std::vector<std::shared_ptr<Semaphore>> image_available_semaphores;
     std::vector<std::shared_ptr<Fence>>     in_flight_fences;
+    std::string                             name;
 };
 } // namespace Engine

@@ -7,7 +7,6 @@
 #include <d3d12shader.h>
 #include <dxcapi.h>
 #include <ranges>
-#include <unordered_map>
 
 #include "gfx/vulkan/shader_module.hpp"
 #include "logger.hpp"
@@ -16,7 +15,6 @@
 #include <wrl/client.h>
 
 #include "gfx/types.hpp"
-#include "gfx/vulkan/pipeline.hpp"
 
 #include "gfx/vulkan/vk_check.hpp"
 
@@ -34,7 +32,7 @@ void ThrowIfFailed(HRESULT hr)
     if (FAILED(hr))
     {
         std::string message = std::system_category().message(hr);
-        LOG_FATAL("{}", message);
+        LOG_FATAL("{}", message)
     }
 }
 
@@ -63,7 +61,7 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
         target_profile = L"ps_6_6";
         break;
     default:
-        LOG_FATAL("Unhandled shader stage");
+        LOG_FATAL("Unhandled shader stage")
     }
     std::wstring w_entry_point = to_u16string(entry_point);
     std::vector  arguments{
