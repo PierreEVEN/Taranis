@@ -13,6 +13,9 @@
 #include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
 
+#include "test_reflected_header.hpp"
+MaClassDeTest a;
+
 namespace Engine
 {
 class ImGuiWrapper;

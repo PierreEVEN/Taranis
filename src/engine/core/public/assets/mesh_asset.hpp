@@ -14,7 +14,9 @@ class Mesh;
 
 class MeshAsset : public AssetBase
 {
-public:
+    REFLECT_BODY()
+
+  public:
     struct Vertex
     {
         glm::vec3 pos;

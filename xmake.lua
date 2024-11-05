@@ -9,7 +9,7 @@ set_allowedmodes("debug", "release")
 set_defaultmode("release")
 set_rundir(".")
 
-DEBUG = true;
+DEBUG = false;
 BUILD_MONOLITHIC = true;
 
 
@@ -19,7 +19,7 @@ set_runtimes(is_mode("debug") and "MTd" or "MT")
 add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "tinygltf")
 
 
-function declare_module(module_name, deps, packages, is_executable)
+function declare_module(module_name, deps, packages, is_executable, enable_reflection)
     if DEBUG then
         print("### "..module_name.." ###")
     end
@@ -66,6 +66,20 @@ function declare_module(module_name, deps, packages, is_executable)
             print(table.unpack({ "\t-- packages :", packages_name}))
         end
     end
+
+    if enable_reflection then
+        add_deps('header_tool')
+        before_build(function (target)
+            os.mkdir("$(buildir)/reflection/"..module_name.."/private/")
+            os.mkdir("$(buildir)/reflection/"..module_name.."/public/")
+            os.exec("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
+        end)
+        
+        add_deps('reflection')
+        add_files("$(buildir)/reflection/"..module_name.."/private/**.cpp")
+        add_includedirs("$(buildir)/reflection/"..module_name.."/public/")
+    end
+
     target_end()
 end
 

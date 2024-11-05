@@ -48,8 +48,4 @@ TextureAsset::TextureAsset(const BufferData& data, CreateInfos create_infos) : i
         image = Image::create(get_name(), Engine::get().get_device(), ImageParameter{.format = format, .width = infos.width, .height = infos.height}, data);
     view = ImageView::create(get_name(), image);
 }
-
-TextureAsset::~TextureAsset()
-{
-}
 }

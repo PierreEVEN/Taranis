@@ -1,5 +1,8 @@
 #pragma once
+#include "class.hpp"
+
 #include <string>
+#include "assets\asset_base.gen.hpp"
 
 namespace Engine
 {
@@ -14,8 +17,11 @@ enum class AssetType
 
 class AssetBase
 {
-public:
-    virtual ~AssetBase() = default;
+    REFLECT_BODY()
+  public:
+    AssetBase(AssetBase&)  = delete;
+    AssetBase(AssetBase&&) = delete;
+    virtual ~AssetBase()   = default;
 
     const char* get_name() const
     {
@@ -27,9 +33,7 @@ public:
     virtual AssetType get_type() const = 0;
 
 protected:
-    AssetBase()
-    {
-    }
+    AssetBase() = default;
 
 private:
     friend class AssetRegistry;
