@@ -27,6 +27,11 @@ public:
 
     MeshAsset(const std::vector<Vertex>& vertices, const BufferData& indices);
 
+    AssetType get_type() const override
+    {
+        return AssetType::Mesh;
+    }
+
     const std::shared_ptr<Mesh>& get_mesh() const
     {
         return mesh;

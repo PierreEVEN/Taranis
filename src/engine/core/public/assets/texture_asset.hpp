@@ -25,6 +25,12 @@ public:
         return view;
     }
 
+    AssetType get_type() const override
+    {
+        return AssetType::Texture;
+    }
+
+
 private:
     friend class AssetRegistry;
     TextureAsset(const BufferData& data, CreateInfos create_infos);

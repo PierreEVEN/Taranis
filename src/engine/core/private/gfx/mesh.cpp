@@ -2,9 +2,45 @@
 
 namespace Engine
 {
-Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t in_vertex_structure_size, EBufferType in_buffer_type)
+Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t in_vertex_structure_size, EBufferType in_buffer_type, const BufferData* vertices, const BufferData* indices)
     : buffer_type(in_buffer_type), vertex_structure_size(in_vertex_structure_size), index_type(IndexBufferType::Uint32), device(in_device), name(std::move(in_name))
 {
+    if (indices)
+    {
+        IndexBufferType type;
+        switch (indices->get_stride())
+        {
+        case 1:
+            type = IndexBufferType::Uint8;
+            break;
+        case 2:
+            type = IndexBufferType::Uint16;
+            break;
+        case 4:
+            type = IndexBufferType::Uint32;
+            break;
+        default:
+            LOG_FATAL("Unhandled index buffer size : {}", indices->get_stride())
+        }
+        index_buffer = Buffer::create(name + "_buff_idx", device,
+                                      Buffer::CreateInfos{
+                                          .usage = EBufferUsage::INDEX_DATA,
+                                          .access = EBufferAccess::CPU_TO_GPU,
+                                          .type = buffer_type,
+                                      },
+                                      *indices);
+    }
+    if (vertices)
+    {
+        vertex_structure_size = vertices->get_stride();
+        vertex_buffer         = Buffer::create(name + "_buff_vtx", device,
+                                       Buffer::CreateInfos{
+                                           .usage = EBufferUsage::VERTEX_DATA,
+                                           .access = EBufferAccess::CPU_TO_GPU,
+                                           .type = buffer_type,
+                                       },
+                                       *vertices);
+    }
 }
 
 void Mesh::reserve_vertices(size_t vertex_count)
@@ -12,12 +48,12 @@ void Mesh::reserve_vertices(size_t vertex_count)
     if (!vertex_buffer)
     {
         vertex_buffer = Buffer::create(name + "_buff_vtx", device,
-                                                 Buffer::CreateInfos{
-                                                     .usage  = EBufferUsage::VERTEX_DATA,
-                                                     .access = EBufferAccess::CPU_TO_GPU,
-                                                     .type   = buffer_type,
-                                                 },
-                                                 vertex_structure_size, vertex_count);
+                                       Buffer::CreateInfos{
+                                           .usage = EBufferUsage::VERTEX_DATA,
+                                           .access = EBufferAccess::CPU_TO_GPU,
+                                           .type = buffer_type,
+                                       },
+                                       vertex_structure_size, vertex_count);
     }
     else if (vertex_count > vertex_buffer->get_element_count())
     {
@@ -48,12 +84,12 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
     if (!index_buffer)
     {
         index_buffer = Buffer::create(name + "_buff_idx", device,
-                                                Buffer::CreateInfos{
-                                                    .usage  = EBufferUsage::INDEX_DATA,
-                                                    .access = EBufferAccess::CPU_TO_GPU,
-                                                    .type   = buffer_type,
-                                                },
-                                                size, index_count);
+                                      Buffer::CreateInfos{
+                                          .usage = EBufferUsage::INDEX_DATA,
+                                          .access = EBufferAccess::CPU_TO_GPU,
+                                          .type = buffer_type,
+                                      },
+                                      size, index_count);
     }
     else if (index_count > index_buffer->get_element_count() || size != index_buffer->get_stride())
     {

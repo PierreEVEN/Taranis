@@ -46,10 +46,17 @@ public:
             int idx = 0;
             for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
             {
-                ImGui::Image(imgui->add_image(static_cast<Engine::TextureAsset*>(asset)->get_view()), {100, 100});
-                if (idx++ % 10 != 0)
-                    ImGui::SameLine();
+                if (asset->get_type() == Engine::AssetType::Texture)
+                {
+                    ImGui::Image(imgui->add_image(dynamic_cast<Engine::TextureAsset*>(asset)->get_view()), {100, 100});
+                    if (idx++ % 10 != 0)
+                        ImGui::SameLine();
+                }
             }
+            ImGui::Dummy({});
+            for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
+                if (asset->get_type() == Engine::AssetType::Mesh)
+                    ImGui::Text("mesh : %s", asset->get_name());
         }
         ImGui::End();
 

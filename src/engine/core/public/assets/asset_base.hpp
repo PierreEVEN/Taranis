@@ -3,27 +3,38 @@
 
 namespace Engine
 {
+enum class AssetType
+{
+    Mesh,
+    Texture,
+    Material,
+    MaterialInstance
+};
+
+
 class AssetBase
 {
 public:
-    AssetBase(AssetBase&)  = delete;
-    AssetBase(AssetBase&&) = delete;
-    virtual ~AssetBase()   = default;
+    virtual ~AssetBase() = default;
 
-    const std::string& get_name() const
+    const char* get_name() const
     {
         return name;
     }
 
     void destroy();
 
+    virtual AssetType get_type() const = 0;
+
 protected:
-    AssetBase() = default;
+    AssetBase()
+    {
+    }
 
 private:
     friend class AssetRegistry;
-    std::string name;
-    void*       base_ptr;
-    size_t      type_size;
+    char*  name;
+    void*  base_ptr;
+    size_t type_size;
 };
 }

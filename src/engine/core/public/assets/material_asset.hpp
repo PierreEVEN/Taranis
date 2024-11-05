@@ -5,6 +5,11 @@ namespace Engine
 {
 	class MaterialAsset : public AssetBase
 	{
-	    
+
+            AssetType get_type() const override
+            {
+                return AssetType::Material;
+            }
+
 	};
 }

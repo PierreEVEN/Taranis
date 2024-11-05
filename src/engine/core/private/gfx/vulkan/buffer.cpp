@@ -6,6 +6,7 @@ namespace Engine
 {
 void BufferData::copy_to(uint8_t* destination) const
 {
+    assert(ptr);
     memcpy(destination, ptr, stride * element_count);
 }
 
