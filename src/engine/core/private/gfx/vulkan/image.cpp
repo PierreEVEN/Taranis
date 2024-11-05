@@ -43,9 +43,7 @@ Image::Image(const std::string& in_name, std::weak_ptr<Device> in_device, const 
 Image::~Image()
 {
     for (const auto& image : images)
-    {
         device.lock()->drop_resource(image);
-    }
 }
 
 std::vector<VkImage> Image::raw() const

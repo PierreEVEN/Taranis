@@ -19,6 +19,12 @@ ImageView::ImageView(std::string in_name, std::weak_ptr<Device> in_device, std::
         views.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, raw_image[i], create_infos));
 }
 
+ImageView::~ImageView()
+{
+    for (const auto& resource : views)
+        device.lock()->drop_resource(resource);
+}
+
 VkImageView ImageView::raw_current() const
 {
     if (views.size() == 1)

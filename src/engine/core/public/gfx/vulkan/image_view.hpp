@@ -32,7 +32,7 @@ public:
 
     ImageView(ImageView&&) = delete;
     ImageView(ImageView&)  = delete;
-    ~ImageView()           = default;
+    ~ImageView();
 
     VkImageView              raw_current() const;
     std::vector<VkImageView> raw() const;
