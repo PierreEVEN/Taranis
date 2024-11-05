@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
+#include "device.hpp"
 
 namespace Engine
 {
@@ -18,6 +19,7 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
   public:
     DescriptorSet(DescriptorSet&)  = delete;
     DescriptorSet(DescriptorSet&&) = delete;
+    ~DescriptorSet();
     static std::shared_ptr<DescriptorSet> create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static = true);
 
     const VkDescriptorSet& raw_current() const;
@@ -26,7 +28,7 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
     void bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler);
 
   private:
-    class Resource
+    class Resource : public DeviceResource
     {
         friend class DescriptorSet;
 
@@ -42,7 +44,6 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
         bool                         outdated   = false;
         size_t                       pool_index = 0;
         std::shared_ptr<Pipeline>    pipeline;
-        std::weak_ptr<Device>        device;
         std::weak_ptr<DescriptorSet> parent;
         VkDescriptorSet              ptr = VK_NULL_HANDLE;
     };

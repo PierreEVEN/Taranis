@@ -10,6 +10,7 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
 
 namespace Engine
@@ -26,22 +27,29 @@ public:
 
     void init(const std::weak_ptr<Engine::Device>& device, const Engine::RenderPassInstanceBase& render_pass) override
     {
-
-        text = Engine::StbImporter::load_from_path("./resources/cat.jpeg");
+        Engine::StbImporter::load_from_path("./resources/cat.jpeg");
+        Engine::GltfImporter::load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
 
         imgui = std::make_unique<Engine::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
+
     }
 
     void render(const Engine::RenderPassInstanceBase& render_pass, const Engine::CommandBuffer& command_buffer) override
     {
-        imgui->begin(command_buffer, render_pass.resolution());
+        imgui->begin(render_pass.resolution());
 
         if (ImGui::Begin("test"))
         {
             ImGui::LabelText("ms", "%lf", Engine::Engine::get().delta_second * 1000);
             ImGui::LabelText("fps", "%lf", 1.0 / Engine::Engine::get().delta_second);
 
-            ImGui::Image(imgui->add_image(text->get_view()), ImGui::GetContentRegionAvail());
+            int idx = 0;
+            for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
+            {
+                ImGui::Image(imgui->add_image(static_cast<Engine::TextureAsset*>(asset)->get_view()), {100, 100});
+                if (idx++ % 10 != 0)
+                    ImGui::SameLine();
+            }
         }
         ImGui::End();
 
@@ -69,16 +77,6 @@ int main()
     main_window.lock()->set_renderer(
         Engine::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::ClearValue::color({0.2, 0.2, 0.5, 1})}, main_window)
         ->attach(Engine::RenderPass::create("forward_pass", {Engine::Attachment::color("color", Engine::ColorFormat::R8G8B8A8_UNORM), Engine::Attachment::depth("depth", Engine::ColorFormat::D24_UNORM_S8_UINT)}))
-        ->attach(Engine::RenderPass::create("forward_test", {Engine::Attachment::color("color", Engine::ColorFormat::R8G8B8A8_UNORM), Engine::Attachment::color("normal", Engine::ColorFormat::R8G8B8A8_UNORM),
-                                                             Engine::Attachment::depth("depth", Engine::ColorFormat::D32_SFLOAT)})));
-
-    const auto secondary_window = engine.new_window(Engine::WindowConfig{.name = "secondary"});
-    secondary_window.lock()->set_renderer(
-        Engine::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::ClearValue::color({0.8, 0.6, 0.5, 1})}, secondary_window)
-        ->attach(Engine::RenderPass::create<TestFirstPassInterface>("forward_pass",
-                                                                    {Engine::Attachment::color("color", Engine::ColorFormat::R8G8B8A8_UNORM, Engine::ClearValue::color({0, 0.8, 0.5, 1})),
-                                                                     Engine::Attachment::depth("depth", Engine::ColorFormat::D24_UNORM_S8_UINT, Engine::ClearValue::depth_stencil({1, 0}))},
-                                                                    secondary_window))
         ->attach(Engine::RenderPass::create("forward_test", {Engine::Attachment::color("color", Engine::ColorFormat::R8G8B8A8_UNORM), Engine::Attachment::color("normal", Engine::ColorFormat::R8G8B8A8_UNORM),
                                                              Engine::Attachment::depth("depth", Engine::ColorFormat::D32_SFLOAT)})));
     engine.run();

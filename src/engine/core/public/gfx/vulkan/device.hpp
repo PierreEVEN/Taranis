@@ -63,6 +63,8 @@ class Device : public std::enable_shared_from_this<Device>
 
     void wait() const;
 
+    void flush_resources();
+
     void drop_resource(const std::shared_ptr<DeviceResource>& resource)
     {
         std::lock_guard lock(resource_mutex);

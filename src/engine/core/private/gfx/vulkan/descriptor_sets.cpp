@@ -18,15 +18,23 @@ DescriptorSet::DescriptorSet(const std::weak_ptr<Device>& in_device, const std::
 }
 
 DescriptorSet::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<Pipeline>& in_pipeline)
-    : pipeline(in_pipeline), device(in_device), parent(in_parent.lock())
+    : DeviceResource(in_device), pipeline(in_pipeline), parent(in_parent.lock())
 {
-    ptr = device.lock()->get_descriptor_pool().allocate(*pipeline, pool_index);
-    device.lock()->debug_set_object_name(name, ptr);
+    ptr = device().lock()->get_descriptor_pool().allocate(*pipeline, pool_index);
+    device().lock()->debug_set_object_name(name, ptr);
 }
 
 DescriptorSet::Resource::~Resource()
 {
-    device.lock()->get_descriptor_pool().free(ptr, *pipeline, pool_index);
+    device().lock()->get_descriptor_pool().free(ptr, *pipeline, pool_index);
+}
+
+DescriptorSet::~DescriptorSet()
+{
+    for (const auto& desc_set : resources)
+    {
+        device.lock()->drop_resource(desc_set);
+    }
 }
 
 std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static)
@@ -71,7 +79,7 @@ void DescriptorSet::Resource::update()
             desc_sets.emplace_back(desc_set);
         }
     }
-    vkUpdateDescriptorSets(device.lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
+    vkUpdateDescriptorSets(device().lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
 }
 
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
@@ -91,20 +99,20 @@ void DescriptorSet::bind_sampler(const std::string& binding_name, const std::sha
 VkWriteDescriptorSet DescriptorSet::ImageDescriptor::get()
 {
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        .pImageInfo      = &image->get_descriptor_infos_current(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .pImageInfo = &image->get_descriptor_infos_current(),
     };
 }
 
 VkWriteDescriptorSet DescriptorSet::SamplerDescriptor::get()
 {
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
-        .pImageInfo      = &sampler->get_descriptor_infos(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+        .pImageInfo = &sampler->get_descriptor_infos(),
     };
 }
 } // namespace Engine

@@ -33,6 +33,12 @@ public:
         return data;
     }
 
+    const std::unordered_set<AssetBase*>& all_assets() const
+    {
+        return assets;
+    }
+
+
 private:
     void destroy_object(AssetBase* asset)
   {

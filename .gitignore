@@ -38,3 +38,4 @@ compile_commands.json
 CMakeLists.txt
 vsxmake*
 build/
+resources/models/samples

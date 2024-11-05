@@ -171,7 +171,7 @@ bool Swapchain::render_internal()
     uint32_t   current_frame = device.lock()->get_current_image();
 
     in_flight_fences[current_frame]->wait();
-
+    device.lock()->flush_resources();
     uint32_t       image_index;
     const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
     if (acquire_result != VK_SUCCESS)

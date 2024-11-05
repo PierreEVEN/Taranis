@@ -15,14 +15,18 @@ const std::vector device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 void Device::next_frame()
 {
-    std::lock_guard lock(resource_mutex);
-    pending_kill_resources[current_image].clear();
     current_image = (current_image + 1) % image_count;
 }
 
 void Device::wait() const
 {
     vkDeviceWaitIdle(ptr);
+}
+
+void Device::flush_resources()
+{
+    std::lock_guard lock(resource_mutex);
+    pending_kill_resources[current_image].clear();
 }
 
 Device::Device(const Config& config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)

@@ -182,7 +182,7 @@ ImGuiWrapper::~ImGuiWrapper()
             glfwDestroyCursor(cursor_map[i]);
 }
 
-void ImGuiWrapper::begin(const CommandBuffer& cmd, glm::uvec2 draw_res)
+void ImGuiWrapper::begin(glm::uvec2 draw_res)
 {
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
@@ -334,7 +334,16 @@ void ImGuiWrapper::end(const CommandBuffer& cmd)
                         {
                             unused_image.erase(pcmd->TextureId);
                             if (const auto found_descriptors = per_image_descriptor.find(found_image_view->second); found_descriptors != per_image_descriptor.end())
+                            {
+                                if (!found_descriptors->second.second)
+                                {
+                                    const auto descriptors = DescriptorSet::create(name + "_descriptor:" + found_image_view->second->get_name(), device, imgui_material, true);
+                                    descriptors->bind_image("sTexture", found_image_view->second);
+                                    descriptors->bind_sampler("sSampler", image_sampler);
+                                    found_descriptors->second.second = descriptors;
+                                }
                                 cmd.bind_descriptors(*found_descriptors->second.second, *imgui_material);
+                            }
                         }
                     }
                     else if (used_other_image)
@@ -359,15 +368,14 @@ void ImGuiWrapper::end(const CommandBuffer& cmd)
 
 ImTextureID ImGuiWrapper::add_image(const std::shared_ptr<ImageView>& image_view)
 {
+    if (!image_view)
+        return 0;
     auto found_descriptor = per_image_descriptor.find(image_view);
     if (found_descriptor == per_image_descriptor.end())
     {
         assert(max_texture_id != UINT64_MAX);
-        const auto descriptors = DescriptorSet::create(name + "_descriptor:" + image_view->get_name(), device, imgui_material, true);
-        descriptors->bind_image("sTexture", image_view);
-        descriptors->bind_sampler("sSampler", image_sampler);
         ImTextureID new_id = ++max_texture_id;
-        per_image_descriptor.emplace(image_view, std::pair{new_id, descriptors});
+        per_image_descriptor.emplace(image_view, std::pair{new_id, nullptr});
         per_image_ids.emplace(new_id, image_view);
         return new_id;
     }
