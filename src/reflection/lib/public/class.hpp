@@ -1,5 +1,9 @@
 #pragma once
+#include <functional>
+#include <iostream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace Reflection
 {
@@ -25,7 +29,7 @@ public:
     {
         static_assert(StaticClassInfos<ClassName>::value, "Failed to register class : not a reflected class. Please declare this class as a reflected class.");
         Class* new_class = new Class(inClassName, sizeof(ClassName));
-        RegisterClass_Internal(new_class);
+        register_class_internal(new_class);
         return new_class;
     }
 
@@ -34,7 +38,7 @@ public:
         return type_id;
     }
 
-    const char* name() const 
+    const char* name() const
     {
         return type_name.c_str();
     }
@@ -44,52 +48,62 @@ public:
         return type_size;
     }
 
-  private:
-    Class(std::string in_type_name, size_t in_type_size) : type_size(in_type_size), type_name(std::move(in_type_name)), type_id(std::hash<std::string>{}(type_name))
+    template <typename Type> static size_t make_type_id()
     {
-        
+        return std::hash<std::string>{}(StaticClassInfos<Type>::name);
     }
 
-    static void RegisterClass_Internal(Class* inClass);
+    using CastFunc = std::function<void*(const Class*, void*)>;
 
-    Class* parent = nullptr;
+    /**
+     * Add function that FromPtr from ThisClass to ParentClass
+     */
+    template <typename ThisClass, typename ParentClass> void add_cast_function()
+    {
+        if constexpr (StaticClassInfos<ParentClass>::value)
+        {
+            CastFunctions.emplace(Class::make_type_id<ParentClass>(), CastFunc(
+                                      [](const Class* desired_class, void* from_ptr) -> void* {
+                                          return ParentClass::static_class()->cast_to(desired_class, reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
+                                      }));
+        }
+    }
+
+    /**
+     * Cast Ptr to To Object
+     * if ThisClass == To, return Ptr, else try to cast to one of the parent class
+     */
+    void* cast_to(const Class* To, void* Ptr) const
+    {
+        if (To == this)
+            return Ptr;
+
+        for (const auto& parent : parents)
+        {
+            if (const auto cast_fn = CastFunctions.find(parent->get_id()); cast_fn != CastFunctions.end())
+                if (void* ToPtr = cast_fn->second(To, Ptr))
+                    return ToPtr;
+        }
+        return nullptr;
+    }
+
+    void add_parent(const std::string& parent);
+
+  private:
+    void on_register_parent_class(Class* new_class);
+
+    Class(std::string in_type_name, size_t in_type_size) : type_size(in_type_size), type_name(std::move(in_type_name)), type_id(std::hash<std::string>{}(type_name))
+    {
+
+    }
+
+    static void register_class_internal(Class* inClass);
+
+    std::vector<Class*>                  parents = {};
+    std::unordered_map<size_t, CastFunc> CastFunctions;
 
     size_t      type_size = 0;
     std::string type_name;
     size_t      type_id = 0;
 };
 }
-
-#define CONCAT_MACRO_TWO_PARAMS_(x, y)             x##y
-#define CONCAT_MACRO_TWO_PARAMS(x, y)              CONCAT_MACRO_TWO_PARAMS_(x, y)
-#define CONCAT_MACRO_THREE_PARAMS_(x, y, z)        x##y##z
-#define CONCAT_MACRO_THREE_PARAMS(x, y, z)         CONCAT_MACRO_THREE_PARAMS_(x, y, z)
-#define CONCAT_MACRO_FOUR_PARAMS_(w, x, y, z)      w##x##y##z
-#define CONCAT_MACRO_FOUR_PARAMS(w, x, y, z)       CONCAT_MACRO_FOUR_PARAMS_(w, x, y, z)
-#define CONCAT_MACRO_FIVE_PARAMS_(v, w, x, y, z)   v##w##x##y##z
-#define CONCAT_MACRO_FIVE_PARAMS(v, w, x, y, z)    CONCAT_MACRO_FIVE_PARAMS_(v, w, x, y, z)
-#define CONCAT_MACRO_SIX_PARAMS_(u, v, w, x, y, z) v##w##x##y##z
-#define CONCAT_MACRO_SIX_PARAMS(u, v, w, x, y, z)  CONCAT_MACRO_SIX_PARAMS_(u, v, w, x, y, z)
-
-
-#define REFL_DECLARE_TYPENAME(Type)                \
-    template <> struct Reflection::StaticClassInfos<Type>          \
-    {                                              \
-        constexpr static bool value = true;        \
-        constexpr static const char* name  = #Type; \
-    };
-
-#define REFL_DECLARE_CLASS(className)                                           \
-  public:                                                                       \
-    friend void     CONCAT_MACRO_TWO_PARAMS(_Refl_Register_Item_, className)(); \
-    friend void     _Refl_Register_Class();                                     \
-    static const Reflection::Class*  static_class();                                           \
-    virtual const Reflection::Class* get_class() const
-
-#define REFL_REGISTER_CLASS(ClassName) Reflection::Class::RegisterClass<ClassName>(#ClassName);
-
-#define REFLECT(...)
-#define RPROPERTY(...)
-#define RCONSTRUCTOR(...)
-#define RFUNCTION(...)
-#define REFLECT_BODY() CONCAT_MACRO_FOUR_PARAMS(_REFLECTION_BODY_, _REFL_FILE_UNIQUE_ID_, _LINE_, __LINE__)

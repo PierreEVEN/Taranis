@@ -17,8 +17,14 @@ int main(int argc, char** argv)
     std::filesystem::path search_dir(argv[1]);
     std::filesystem::path output_dir(argv[2]);
 
+    // Track outdated files
+    std::unordered_set<std::filesystem::path> outdated_files;
+    for (auto const& dir_entry : std::filesystem::recursive_directory_iterator{output_dir})
+        if (dir_entry.is_regular_file())
+            outdated_files.emplace(dir_entry.path());
+
     bool b_started = false;
-    auto start = std::chrono::steady_clock::now();
+    auto start     = std::chrono::steady_clock::now();
 
     for (auto const& dir_entry : std::filesystem::recursive_directory_iterator{search_dir})
     {
@@ -62,6 +68,8 @@ int main(int argc, char** argv)
                             if (read_chrs != 0 && source_header->timestamp() == last_write_time)
                             {
                                 // The file was not modified
+                                outdated_files.erase(generated_header);
+                                outdated_files.erase(generated_source);
                                 continue;
                             }
                         }
@@ -69,15 +77,21 @@ int main(int argc, char** argv)
                 }
 
                 if (!b_started)
-                    std::cout << "[ building reflection data for " << search_dir.filename().string() << "]" << std::endl;
+                    std::cout << "[ building reflection data for " << search_dir.parent_path().filename().string() << "]" << std::endl;
                 b_started = true;
 
                 std::filesystem::path required_include = relative(dir_entry.path(), fixed_search_dir).replace_extension(".gen.hpp");
-                HeaderParser          parser(source_header, required_include);
+                HeaderParser          parser(source_header, required_include, relative(dir_entry.path(), fixed_search_dir));
                 if (parser.get_classes().empty())
                     continue;
+
+                // We need to generate data
+                outdated_files.erase(generated_header);
+                outdated_files.erase(generated_source);
+
                 if (auto include_to_add = parser.get_include_line_to_add())
                 {
+                    std::cout << "rewrite" << std::endl;
                     std::ifstream header_file(dir_entry.path());
                     std::string   data;
                     std::string   line;
@@ -102,6 +116,12 @@ int main(int argc, char** argv)
             }
         }
     }
+    for (const auto& outdated_file : outdated_files)
+    {
+        std::cout << "- Remove outdated reflection file : " << outdated_file.string() << std::endl;
+        std::filesystem::remove(outdated_file);
+    }
+
     if (b_started)
     {
         std::cout << "[ generated reflection data in " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count() / 1000.0 << "ms]" << std::endl;

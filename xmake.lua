@@ -16,8 +16,15 @@ BUILD_MONOLITHIC = true;
 
 set_runtimes(is_mode("debug") and "MTd" or "MT")
 		
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-validationlayers", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "tinygltf")
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "tinygltf")
 
+
+function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+  end
+  
 
 function declare_module(module_name, deps, packages, is_executable, enable_reflection)
     if DEBUG then
@@ -32,17 +39,36 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
             set_kind("shared")
         end
 
+        
+    if enable_reflection then
+        add_deps('header_tool')
+        before_build(function (target)
+            os.mkdir("$(buildir)/reflection/"..module_name.."/private/")
+            os.mkdir("$(buildir)/reflection/"..module_name.."/public/")
+            os.exec("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
+        end)
+        
+        add_deps('reflection')
+
+        add_files("$(buildir)/reflection/"..module_name.."/private/**.cpp")
+        add_includedirs("$(buildir)/reflection/"..module_name.."/public/", { public = true })
+    end
+
     add_includedirs("private", { public = false })
     if not is_executable then
         add_includedirs("public", { public = true })
     end
-    for _, ext in ipairs({ ".c", ".cpp" }) do
-        add_files("private/**.cpp")
+
+    for _, file in pairs(os.files("private/**.cpp")) do
+        add_files(file)
     end
 
-    for _, ext in ipairs({ ".h", ".hpp", ".inl", ".natvis" }) do
-        add_headerfiles("public/(**" .. ext .. ")")
-        add_headerfiles("private/(**" .. ext .. ")")
+    for _, file in pairs(os.files("private/**.hpp")) do
+        add_headerfiles(file)
+    end
+    
+    for _, file in pairs(os.files("public/**.hpp")) do
+        add_headerfiles(file)
     end
 
     if deps then
@@ -65,19 +91,6 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
         if DEBUG then
             print(table.unpack({ "\t-- packages :", packages_name}))
         end
-    end
-
-    if enable_reflection then
-        add_deps('header_tool')
-        before_build(function (target)
-            os.mkdir("$(buildir)/reflection/"..module_name.."/private/")
-            os.mkdir("$(buildir)/reflection/"..module_name.."/public/")
-            os.exec("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
-        end)
-        
-        add_deps('reflection')
-        add_files("$(buildir)/reflection/"..module_name.."/private/**.cpp")
-        add_includedirs("$(buildir)/reflection/"..module_name.."/public/")
     end
 
     target_end()

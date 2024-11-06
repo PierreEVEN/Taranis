@@ -27,7 +27,7 @@ std::optional<std::string> FileData::Reader::consume_next_word()
 {
     skip_blank();
     std::string word;
-    while ((word.empty() && std::isalpha(**this)) || (!word.empty() && std::isalnum(**this) || **this == '_'))
+    while (*this && ((word.empty() && std::isalpha(**this)) || (!word.empty() && std::isalnum(**this) || **this == '_')))
     {
         word += **this;
         ++*this;

@@ -6,15 +6,6 @@
 
 namespace Engine
 {
-enum class AssetType
-{
-    Mesh,
-    Texture,
-    Material,
-    MaterialInstance
-};
-
-
 class AssetBase
 {
     REFLECT_BODY()
@@ -29,8 +20,6 @@ class AssetBase
     }
 
     void destroy();
-
-    virtual AssetType get_type() const = 0;
 
 protected:
     AssetBase() = default;

@@ -4,9 +4,9 @@
 #include <memory>
 #include <vector>
 #include <glm/vec2.hpp>
-#include<glm/vec3.hpp>
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include "assets\mesh_asset.gen.hpp"
+#include "assets/mesh_asset.gen.hpp"
 
 namespace Engine
 {
@@ -17,7 +17,7 @@ class MeshAsset : public AssetBase
 {
     REFLECT_BODY()
 
-  public:
+public:
     struct Vertex
     {
         glm::vec3 pos;
@@ -29,11 +29,6 @@ class MeshAsset : public AssetBase
 
 
     MeshAsset(const std::vector<Vertex>& vertices, const BufferData& indices);
-
-    AssetType get_type() const override
-    {
-        return AssetType::Mesh;
-    }
 
     const std::shared_ptr<Mesh>& get_mesh() const
     {

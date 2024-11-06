@@ -42,7 +42,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
 
     for (const auto& mesh : model.meshes)
     {
-        int id;
+        int id = 0;
         for (const auto& primitive : mesh.primitives)
         {
             id++;

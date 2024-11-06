@@ -3,7 +3,9 @@
 
 #include <cstdint>
 #include <memory>
-#include "assets\texture_asset.gen.hpp"
+#include "assets/texture_asset.gen.hpp"
+
+
 
 namespace Engine
 {
@@ -26,12 +28,6 @@ class TextureAsset : public AssetBase
     {
         return view;
     }
-
-    AssetType get_type() const override
-    {
-        return AssetType::Texture;
-    }
-
 
 private:
     friend class AssetRegistry;

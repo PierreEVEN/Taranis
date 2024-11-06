@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "engine.hpp"
+#include "test_reflected_header.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/texture_asset.hpp"
 
@@ -12,9 +13,6 @@
 #include "gfx/vulkan/device.hpp"
 #include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
-
-#include "test_reflected_header.hpp"
-MaClassDeTest a;
 
 namespace Engine
 {
@@ -49,17 +47,16 @@ public:
             int idx = 0;
             for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
             {
-                if (asset->get_type() == Engine::AssetType::Texture)
+                if (Engine::TextureAsset* texture = asset->cast<Engine::TextureAsset>())
                 {
-                    ImGui::Image(imgui->add_image(dynamic_cast<Engine::TextureAsset*>(asset)->get_view()), {100, 100});
+                    ImGui::Image(imgui->add_image(texture->get_view()), {100, 100});
                     if (idx++ % 10 != 0)
                         ImGui::SameLine();
                 }
             }
             ImGui::Dummy({});
             for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
-                if (asset->get_type() == Engine::AssetType::Mesh)
-                    ImGui::Text("mesh : %s", asset->get_name());
+                ImGui::Text("%s : %s", asset->get_class()->name(), asset->get_name());
         }
         ImGui::End();
 
