@@ -1,6 +1,7 @@
 #include "file_data.hpp"
 
 #include <filesystem>
+#include <iostream>
 #include <string>
 
 bool FileData::Reader::starts_with(const std::string& other)
@@ -48,7 +49,7 @@ void FileData::Reader::skip_line()
 
 void FileData::Reader::skip_blank()
 {
-    while (*this && std::isspace(**this))
+    while (*this && (static_cast<int>(**this) < 0 || std::isspace(**this)))
         ++*this;
 }
 

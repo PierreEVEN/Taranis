@@ -22,6 +22,7 @@ public:
     {
         std::string class_name;
         size_t      implementation_line;
+        std::vector<std::string> parent_classes;
     };
 
     std::optional<size_t> get_include_line_to_add() const

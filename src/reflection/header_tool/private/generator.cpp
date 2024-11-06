@@ -62,9 +62,15 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 {
 }
 
-void Generator::generate(size_t                       timestamp, const std::filesystem::path&        source_path, const std::filesystem::path& header_path,
-                         const std::filesystem::path& base_header_path, const std::filesystem::path& generated_header_include_path) const
+void Generator::generate(size_t                       timestamp,
+                         const std::filesystem::path& source_path,
+                         const std::filesystem::path& header_path,
+                         const std::filesystem::path& base_header_path,
+                         const std::filesystem::path& generated_header_include_path) const
 {
+    create_directories(source_path.parent_path());
+    create_directories(header_path.parent_path());
+
     global_refl_uid++;
 
     std::string include_guard_name = header_path.filename().replace_extension("").replace_extension("").string() + "_gen_hpp";
@@ -99,10 +105,6 @@ void Generator::generate(size_t                       timestamp, const std::file
 
     header.new_line();
     header.write_line(std::format("#endif  // _REFL_{}", include_guard_name));
-
-
-
-
 
     Writer source(source_path);
     source.write_line("/**** GENERATED FILE BY REFLECTION TOOL, DO NOT MODIFY ****/");

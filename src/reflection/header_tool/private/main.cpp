@@ -74,6 +74,8 @@ int main(int argc, char** argv)
 
                 std::filesystem::path required_include = relative(dir_entry.path(), fixed_search_dir).replace_extension(".gen.hpp");
                 HeaderParser          parser(source_header, required_include);
+                if (parser.get_classes().empty())
+                    continue;
                 if (auto include_to_add = parser.get_include_line_to_add())
                 {
                     std::ifstream header_file(dir_entry.path());

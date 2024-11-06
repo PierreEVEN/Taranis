@@ -53,9 +53,42 @@ HeaderParser::HeaderParser(const std::shared_ptr<FileData>& header_data, const s
         else if (reader.try_consume_field("class"))
         {
             if (const auto class_name = reader.consume_next_word())
+            {
+                std::vector<std::string> parents;
+                if (reader.try_consume_field(":"))
+                {
+                    do
+                    {
+                        reader.try_consume_field("public");
+                        reader.try_consume_field("private");
+                        reader.try_consume_field("protected");
+                        if (const auto parent_name = reader.consume_next_word())
+                        {
+                            std::string parent_complete_name = *parent_name;
+                            if (reader.try_consume_field("<"))
+                            {
+                                parent_complete_name += "<";
+                                size_t template_level = 1;
+                                do
+                                {
+                                    parent_complete_name += *reader;
+                                    if (reader.try_consume_field("<"))
+                                        template_level++;
+                                    else if (reader.try_consume_field(">"))
+                                        template_level--;
+                                    else
+                                        ++reader;
+                                } while (template_level != 0 && *reader);
+                            }
+                            parents.emplace_back(parent_complete_name);
+                        }
+                    } while (reader.try_consume_field(","));
+                }
+
                 if (reader.try_consume_field("{"))
                     if (reader.try_consume_field("REFLECT_BODY()"))
-                        reflected_classes.emplace_back(ReflectedClass{*class_name, reader.current_line() + (b_found_include ? 0 : 1)});
+                        reflected_classes.emplace_back(ReflectedClass{*class_name, reader.current_line() + (b_found_include ? 0 : 1), parents});
+            }
         }
 
         // Warn for dangling reflect body

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include "assets\texture_asset.gen.hpp"
 
 namespace Engine
 {
