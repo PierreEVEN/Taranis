@@ -25,7 +25,6 @@ function tablelength(T)
     return count
   end
   
-
 function declare_module(module_name, deps, packages, is_executable, enable_reflection)
     if DEBUG then
         print("### "..module_name.." ###")
@@ -42,15 +41,20 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
         
     if enable_reflection then
         add_deps('header_tool')
+
+        
+
         before_build(function (target)
             os.mkdir("$(buildir)/reflection/"..module_name.."/private/")
             os.mkdir("$(buildir)/reflection/"..module_name.."/public/")
             os.exec("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
-        end)
-        
-        add_deps('reflection')
 
-        add_files("$(buildir)/reflection/"..module_name.."/private/**.cpp")
+        end)
+        add_deps('reflection') 
+
+        for _, file in pairs(os.files(os.projectdir().."/build/reflection/"..module_name.."/private/**.cpp")) do
+            add_files(file)
+        end
         add_includedirs("$(buildir)/reflection/"..module_name.."/public/", { public = true })
     end
 

@@ -1,6 +1,5 @@
 #include "config.hpp"
 #include "engine.hpp"
-#include "test_reflected_header.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/texture_asset.hpp"
 

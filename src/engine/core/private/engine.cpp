@@ -1,6 +1,5 @@
 #include "engine.hpp"
 
-#include <GLFW/glfw3.h>
 #include <iostream>
 
 #include "config.hpp"
@@ -23,8 +22,7 @@ Engine::Engine(Config config) : app_config(std::move(config))
     engine_singleton = this;
     last_time        = std::chrono::steady_clock::now();
 
-    glfwInit();
-    gfx_instance          = Instance::create(app_config);
+    gfx_instance          = Instance::create(config.gfx);
     global_asset_registry = std::make_unique<AssetRegistry>();
 }
 
@@ -36,7 +34,6 @@ Engine::~Engine()
         gfx_device->destroy_resources();
     gfx_device   = nullptr;
     gfx_instance = nullptr;
-    glfwTerminate();
     engine_singleton = nullptr;
 }
 
@@ -46,10 +43,10 @@ std::weak_ptr<Window> Engine::new_window(const WindowConfig& config)
 
     if (!gfx_device)
     {
-        if (auto physical_device = PhysicalDevice::pick_best_physical_device(gfx_instance, app_config, window->get_surface()))
+        if (auto physical_device = PhysicalDevice::pick_best_physical_device(gfx_instance, app_config.gfx, window->get_surface()))
         {
             LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
-            gfx_device = Device::create(app_config, gfx_instance, physical_device.get(), *window->get_surface());
+            gfx_device = Device::create(app_config.gfx, gfx_instance, physical_device.get(), *window->get_surface());
         }
         else
             LOG_FATAL("{}", physical_device.error())
@@ -77,7 +74,6 @@ void Engine::run()
 
         for (const auto& window : windows_to_remove)
             windows.erase(window);
-        glfwPollEvents();
         gfx_device->next_frame();
     }
 }

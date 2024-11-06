@@ -1,7 +1,7 @@
 declare_module(
     "core", 
-    {"types"}, 
-    {"vulkan-loader", "directxshadercompiler", "imgui", "vulkan-memory-allocator", "spirv-reflect", "glfw", {name = "glm", public = true}, "imgui docking", "stb", "tinygltf"}, 
+    {"types", "gfx"}, 
+    {"stb", "tinygltf"}, 
     false, 
     true
 )
