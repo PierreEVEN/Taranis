@@ -2,7 +2,7 @@
 
 #include "gfx/vulkan/device.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 Fence::Fence(const std::string& name, std::weak_ptr<Device> in_device, bool signaled) : device(std::move(in_device))
 {

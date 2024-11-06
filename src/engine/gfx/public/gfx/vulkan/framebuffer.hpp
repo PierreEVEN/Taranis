@@ -4,15 +4,11 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Semaphore;
 class RenderPassInstanceBase;
 class Device;
-} // namespace Engine
-
-namespace Engine
-{
 class CommandBuffer;
 
 class Framebuffer

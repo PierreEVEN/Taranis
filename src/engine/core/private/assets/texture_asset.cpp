@@ -8,21 +8,21 @@
 namespace Engine
 {
 
-TextureAsset::TextureAsset(const BufferData& data, CreateInfos create_infos) : infos(create_infos)
+TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos) : infos(create_infos)
 {
-    ColorFormat format;
+    Gfx::ColorFormat format;
     std::vector<uint8_t> rgba_data;
     const uint8_t*             base_data;
     switch (infos.channels)
     {
     case 1:
-        format = ColorFormat::R8_UNORM;
+        format = Gfx::ColorFormat::R8_UNORM;
         break;
     case 2:
-        format = ColorFormat::R8G8_UNORM;
+        format = Gfx::ColorFormat::R8G8_UNORM;
         break;
     case 3:
-        format = ColorFormat::R8G8B8_UNORM;
+        format = Gfx::ColorFormat::R8G8B8_UNORM;
 
         base_data = static_cast<const uint8_t*>(data.data());
 
@@ -35,17 +35,17 @@ TextureAsset::TextureAsset(const BufferData& data, CreateInfos create_infos) : i
             rgba_data[i * 4 + 3] = 255;
         }
         image =
-            Image::create(get_name(), Engine::get().get_device(), ImageParameter{.format = ColorFormat::R8G8B8A8_UNORM, .width = infos.width, .height = infos.height}, BufferData(rgba_data.data(), 1, rgba_data.size()));
+            Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = Gfx::ColorFormat::R8G8B8A8_UNORM, .width = infos.width, .height = infos.height}, Gfx::BufferData(rgba_data.data(), 1, rgba_data.size()));
         break;
     case 4:
-        format = ColorFormat::R8G8B8A8_UNORM;
+        format = Gfx::ColorFormat::R8G8B8A8_UNORM;
         break;
     default:
         LOG_FATAL("unsupported channel count : {}", infos.channels);
     }
 
     if (!image)
-        image = Image::create(get_name(), Engine::get().get_device(), ImageParameter{.format = format, .width = infos.width, .height = infos.height}, data);
-    view = ImageView::create(get_name(), image);
+        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = format, .width = infos.width, .height = infos.height}, data);
+    view = Gfx::ImageView::create(get_name(), image);
 }
 }

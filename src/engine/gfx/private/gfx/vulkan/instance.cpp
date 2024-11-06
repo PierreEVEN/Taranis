@@ -63,7 +63,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
         func(instance, debugMessenger, pAllocator);
 }
 
-namespace Engine
+namespace Engine::Gfx
 {
 Instance::Instance(GfxConfig& config)
 {

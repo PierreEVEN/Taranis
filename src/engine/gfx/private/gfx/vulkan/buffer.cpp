@@ -2,7 +2,7 @@
 
 #include "gfx/vulkan/buffer.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 void BufferData::copy_to(uint8_t* destination) const
 {

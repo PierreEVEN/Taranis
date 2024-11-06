@@ -8,7 +8,7 @@
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 
 RenderPassInstanceBase::RenderPassInstanceBase(std::string in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::shared_ptr<RenderPassInterface>& in_interface, RenderPass::Definition in_definition)

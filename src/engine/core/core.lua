@@ -1,7 +1,7 @@
 declare_module(
     "core", 
     {"types", "gfx"}, 
-    {"stb", "tinygltf"}, 
+    {}, 
     false, 
     true
 )

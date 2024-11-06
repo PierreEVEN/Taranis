@@ -10,7 +10,7 @@
 
 struct ImGuiContext;
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Window;
 class DescriptorSet;
@@ -22,10 +22,7 @@ class Mesh;
 class VkRendererPass;
 class Device;
 class Pipeline;
-} // namespace Engine
 
-namespace Engine
-{
 class ImGuiWrapper
 {
   public:

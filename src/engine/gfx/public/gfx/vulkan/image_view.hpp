@@ -6,7 +6,7 @@
 #include "gfx/types.hpp"
 #include "image.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class ImageViewResource;
 class Device;

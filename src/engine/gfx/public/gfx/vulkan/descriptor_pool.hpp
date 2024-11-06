@@ -4,7 +4,7 @@
 
 #include "descriptor_sets.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 struct PoolDescription
 {
@@ -24,9 +24,9 @@ struct PoolDescription
 };
 } // namespace Engine
 
-template <> struct std::hash<Engine::PoolDescription>
+template <> struct std::hash<Engine::Gfx::PoolDescription>
 {
-    size_t operator()(const Engine::PoolDescription& val) const noexcept
+    size_t operator()(const Engine::Gfx::PoolDescription& val) const noexcept
     {
         auto ite = val.pool_sizes.begin();
         if (ite == val.pool_sizes.end())
@@ -40,7 +40,7 @@ template <> struct std::hash<Engine::PoolDescription>
     }
 };
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 

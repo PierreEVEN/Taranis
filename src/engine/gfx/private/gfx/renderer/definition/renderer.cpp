@@ -3,7 +3,7 @@
 #include "gfx/renderer/definition/render_pass.hpp"
 #include "gfx/vulkan/swapchain.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 std::shared_ptr<RenderPass> Renderer::init_for_swapchain(const Swapchain& swapchain) const
 {

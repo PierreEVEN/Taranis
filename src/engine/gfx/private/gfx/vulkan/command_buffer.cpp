@@ -10,7 +10,7 @@
 #include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Fence;
 

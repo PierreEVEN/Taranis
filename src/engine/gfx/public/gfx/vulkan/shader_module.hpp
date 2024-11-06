@@ -6,7 +6,7 @@
 
 #include "gfx/shaders/shader_compiler.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 

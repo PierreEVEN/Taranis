@@ -9,7 +9,7 @@
 #include "gfx/types.hpp"
 #include "vk_mem_alloc.h"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class CommandBuffer;
 class Device;

@@ -1,6 +1,6 @@
 #include "gfx/mesh.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t in_vertex_structure_size, EBufferType in_buffer_type, const BufferData* vertices, const BufferData* indices)
     : buffer_type(in_buffer_type), vertex_structure_size(in_vertex_structure_size), index_type(IndexBufferType::Uint32), device(in_device), name(std::move(in_name))

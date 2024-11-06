@@ -5,7 +5,7 @@
 
 #include <array>
 
-namespace Engine
+namespace Engine::Gfx
 {
 
 VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Device>& in_device, RenderPass::Definition in_infos) : infos(std::move(in_infos)), device(in_device)

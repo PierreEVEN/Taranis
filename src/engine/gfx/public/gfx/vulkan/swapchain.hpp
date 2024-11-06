@@ -8,19 +8,14 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Renderer;
 class Fence;
 class Semaphore;
 class ImageView;
 class SwapchainRenderer;
-} // namespace Engine
-
-namespace Engine
-{
 class Surface;
-
 class Device;
 
 struct SwapChainSupportDetails

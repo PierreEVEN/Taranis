@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 class CommandBuffer;

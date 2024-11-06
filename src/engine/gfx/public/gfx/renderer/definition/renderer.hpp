@@ -6,15 +6,11 @@
 #include <memory>
 #include <unordered_set>
 
-namespace Engine
-{
-class RenderPass;
-}
-
-namespace Engine
+namespace Engine::Gfx
 {
 class Swapchain;
 class Renderer;
+class RenderPass;
 
 using RendererPtr = std::shared_ptr<Renderer>;
 using RendererRef = std::weak_ptr<Renderer>;

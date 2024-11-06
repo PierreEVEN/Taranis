@@ -6,7 +6,7 @@ namespace Engine
 class Config
 {
   public:
-    GfxConfig gfx;
+    Gfx::GfxConfig gfx;
 };
 
 } // namespace Engine

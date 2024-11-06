@@ -6,7 +6,7 @@
 
 static constexpr uint32_t DESCRIPTOR_PER_POOL = 200;
 
-namespace Engine
+namespace Engine::Gfx
 {
 DescriptorPool::DescriptorPool(std::weak_ptr<Device> in_device) : device(std::move(in_device))
 {

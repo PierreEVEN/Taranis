@@ -3,7 +3,7 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 
 class GfxConfig

@@ -5,7 +5,7 @@
 
 #include "device.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 

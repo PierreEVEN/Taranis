@@ -36,7 +36,7 @@ void ThrowIfFailed(HRESULT hr)
     }
 }
 
-namespace Engine
+namespace Engine::Gfx
 {
 ShaderCompiler::ShaderCompiler()
 {

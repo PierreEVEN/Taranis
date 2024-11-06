@@ -14,7 +14,7 @@ namespace std::filesystem
 class path;
 }
 
-namespace Engine
+namespace Engine::Gfx
 {
 struct StageInputOutputDescription
 {

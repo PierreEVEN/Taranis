@@ -6,7 +6,7 @@
 #include <utility>
 #include <vulkan/vulkan.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 

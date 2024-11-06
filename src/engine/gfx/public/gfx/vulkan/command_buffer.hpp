@@ -5,7 +5,7 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "queue_family.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class DescriptorSet;
 class Pipeline;

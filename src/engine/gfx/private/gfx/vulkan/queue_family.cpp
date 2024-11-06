@@ -9,7 +9,7 @@
 #include "gfx/vulkan/physical_device.hpp"
 #include "gfx/vulkan/surface.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 Queues::Queues(const PhysicalDevice& physical_device, const Surface& surface)
 {

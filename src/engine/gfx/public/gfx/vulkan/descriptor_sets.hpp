@@ -5,7 +5,7 @@
 #include <vulkan/vulkan_core.h>
 #include "device.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class ImageView;
 class Pipeline;

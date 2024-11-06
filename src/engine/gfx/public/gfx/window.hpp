@@ -3,22 +3,14 @@
 #include <memory>
 #include <string>
 
-namespace Engine
+struct GLFWwindow;
+
+namespace Engine::Gfx
 {
 class Renderer;
-}
-
-namespace Engine
-{
 class Device;
 class Instance;
 class Surface;
-} // namespace Engine
-
-struct GLFWwindow;
-
-namespace Engine
-{
 class RenderPass;
 
 struct WindowConfig

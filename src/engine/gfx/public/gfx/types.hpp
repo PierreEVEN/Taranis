@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Engine
+namespace Engine::Gfx
 {
 enum class ColorFormat
 {

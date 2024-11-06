@@ -6,20 +6,13 @@
 
 #include "gfx/shaders/shader_compiler.hpp"
 
-namespace Engine
-{
-class VkRendererPass;
-enum class ColorFormat;
-} // namespace Engine
-
-namespace Engine
+namespace Engine::Gfx
 {
 class ShaderModule;
 class Device;
-} // namespace Engine
+class VkRendererPass;
+enum class ColorFormat;
 
-namespace Engine
-{
 enum class ECulling
 {
     None,

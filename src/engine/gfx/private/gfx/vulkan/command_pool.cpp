@@ -7,7 +7,7 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 CommandPool::CommandPool(std::string in_name, std::weak_ptr<Device> in_device, const uint32_t& in_queue_family) : device(std::move(in_device)), queue_family(in_queue_family), name(std::move(in_name))
 {

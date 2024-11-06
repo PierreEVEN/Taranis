@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Framebuffer;
 class RenderPassInstance;

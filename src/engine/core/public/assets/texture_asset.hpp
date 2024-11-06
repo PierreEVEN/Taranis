@@ -9,9 +9,13 @@
 
 namespace Engine
 {
+namespace Gfx
+{
 class BufferData;
 class ImageView;
 class Image;
+}
+
 
 class TextureAsset : public AssetBase
 {
@@ -24,18 +28,18 @@ class TextureAsset : public AssetBase
         uint32_t channels = 0;
     };
 
-    const std::shared_ptr<ImageView>& get_view() const
+    const std::shared_ptr<Gfx::ImageView>& get_view() const
     {
         return view;
     }
 
 private:
     friend class AssetRegistry;
-    TextureAsset(const BufferData& data, CreateInfos create_infos);
+    TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos);
     ~TextureAsset() = default;
 
-    std::shared_ptr<Image>     image;
-    std::shared_ptr<ImageView> view;
+    std::shared_ptr<Gfx::Image>     image;
+    std::shared_ptr<Gfx::ImageView> view;
 
     uint32_t    width    = 0;
     uint32_t    height   = 0;

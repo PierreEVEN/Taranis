@@ -4,7 +4,7 @@
 
 #include "vulkan/buffer.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 class Buffer;

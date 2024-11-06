@@ -5,7 +5,7 @@
 #include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 VkImageUsageFlags vk_usage(const ImageParameter& texture_parameters)
 {

@@ -1,6 +1,6 @@
 #include "gfx/types.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 
 uint8_t get_format_channel_count(ColorFormat format)

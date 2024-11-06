@@ -9,7 +9,7 @@
 #include "gfx/vulkan/swapchain.hpp"
 #include "gfx/window.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Config;
 

@@ -3,15 +3,12 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine
+
+namespace Engine::Gfx
 {
 class CommandPool;
 class Surface;
 class Device;
-} // namespace Engine
-
-namespace Engine
-{
 class PhysicalDevice;
 class Instance;
 

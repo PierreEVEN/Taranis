@@ -6,7 +6,7 @@
 #include "swapchain.hpp"
 #include "vk_check.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class GfxConfig;
 

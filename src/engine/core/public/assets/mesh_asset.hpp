@@ -10,8 +10,11 @@
 
 namespace Engine
 {
-class BufferData;
+namespace Gfx
+{
 class Mesh;
+class BufferData;
+}
 
 class MeshAsset : public AssetBase
 {
@@ -28,14 +31,14 @@ public:
     };
 
 
-    MeshAsset(const std::vector<Vertex>& vertices, const BufferData& indices);
+    MeshAsset(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices);
 
-    const std::shared_ptr<Mesh>& get_mesh() const
+    const std::shared_ptr<Gfx::Mesh>& get_mesh() const
     {
         return mesh;
     }
 
 private:
-    std::shared_ptr<Mesh> mesh;
+    std::shared_ptr<Gfx::Mesh> mesh;
 };
 }

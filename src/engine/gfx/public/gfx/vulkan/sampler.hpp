@@ -3,7 +3,7 @@
 #include <string>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class Device;
 

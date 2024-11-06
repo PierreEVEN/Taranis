@@ -13,28 +13,28 @@
 #include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 class ImGuiWrapper;
 }
 
-class TestFirstPassInterface : public Engine::RenderPassInterface
+class TestFirstPassInterface : public Engine::Gfx::RenderPassInterface
 {
 public:
-    TestFirstPassInterface(std::weak_ptr<Engine::Window> parent_window) : window(std::move(parent_window))
+    TestFirstPassInterface(std::weak_ptr<Engine::Gfx::Window> parent_window) : window(std::move(parent_window))
     {
     }
 
-    void init(const std::weak_ptr<Engine::Device>& device, const Engine::RenderPassInstanceBase& render_pass) override
+    void init(const std::weak_ptr<Engine::Gfx::Device>& device, const Engine::Gfx::RenderPassInstanceBase& render_pass) override
     {
         Engine::StbImporter::load_from_path("./resources/cat.jpeg");
         Engine::GltfImporter::load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
 
-        imgui = std::make_unique<Engine::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
+        imgui = std::make_unique<Engine::Gfx::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
 
     }
 
-    void render(const Engine::RenderPassInstanceBase& render_pass, const Engine::CommandBuffer& command_buffer) override
+    void render(const Engine::Gfx::RenderPassInstanceBase& render_pass, const Engine::Gfx::CommandBuffer& command_buffer) override
     {
         imgui->begin(render_pass.resolution());
 
@@ -65,9 +65,9 @@ public:
     }
 
 private:
-    std::unique_ptr<Engine::ImGuiWrapper> imgui;
-    std::weak_ptr<Engine::Window>         window;
-    Engine::TextureAsset*                 text;
+    std::unique_ptr<Engine::Gfx::ImGuiWrapper> imgui;
+    std::weak_ptr<Engine::Gfx::Window>         window;
+    Engine::TextureAsset*                      text;
 
 };
 
@@ -79,11 +79,12 @@ int main()
 
     Engine::Engine engine(config);
 
-    const auto main_window = engine.new_window(Engine::WindowConfig{.name = "primary"});
-    main_window.lock()->set_renderer(
-        Engine::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::ClearValue::color({0.2, 0.2, 0.5, 1})}, main_window)
-        ->attach(Engine::RenderPass::create("forward_pass", {Engine::Attachment::color("color", Engine::ColorFormat::R8G8B8A8_UNORM), Engine::Attachment::depth("depth", Engine::ColorFormat::D24_UNORM_S8_UINT)}))
-        ->attach(Engine::RenderPass::create("forward_test", {Engine::Attachment::color("color", Engine::ColorFormat::R8G8B8A8_UNORM), Engine::Attachment::color("normal", Engine::ColorFormat::R8G8B8A8_UNORM),
-                                                             Engine::Attachment::depth("depth", Engine::ColorFormat::D32_SFLOAT)})));
+    const auto main_window = engine.new_window(Engine::Gfx::WindowConfig{.name = "primary"});
+    main_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, main_window)
+                                     ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                               Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
+                                     ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                               Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                               Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
     engine.run();
 }

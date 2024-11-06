@@ -22,7 +22,7 @@ Engine::Engine(Config config) : app_config(std::move(config))
     engine_singleton = this;
     last_time        = std::chrono::steady_clock::now();
 
-    gfx_instance          = Instance::create(config.gfx);
+    gfx_instance          = Gfx::Instance::create(config.gfx);
     global_asset_registry = std::make_unique<AssetRegistry>();
 }
 
@@ -37,16 +37,16 @@ Engine::~Engine()
     engine_singleton = nullptr;
 }
 
-std::weak_ptr<Window> Engine::new_window(const WindowConfig& config)
+std::weak_ptr<Gfx::Window> Engine::new_window(const Gfx::WindowConfig& config)
 {
-    const auto window = Window::create(gfx_instance, config);
+    const auto window = Gfx::Window::create(gfx_instance, config);
 
     if (!gfx_device)
     {
-        if (auto physical_device = PhysicalDevice::pick_best_physical_device(gfx_instance, app_config.gfx, window->get_surface()))
+        if (auto physical_device = Gfx::PhysicalDevice::pick_best_physical_device(gfx_instance, app_config.gfx, window->get_surface()))
         {
             LOG_INFO("selected physical device {}", physical_device.get().get_device_name());
-            gfx_device = Device::create(app_config.gfx, gfx_instance, physical_device.get(), *window->get_surface());
+            gfx_device = Gfx::Device::create(app_config.gfx, gfx_instance, physical_device.get(), *window->get_surface());
         }
         else
             LOG_FATAL("{}", physical_device.error())

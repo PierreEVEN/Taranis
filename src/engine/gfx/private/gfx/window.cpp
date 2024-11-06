@@ -6,7 +6,7 @@
 
 #include <unordered_map>
 
-namespace Engine
+namespace Engine::Gfx
 {
 static size_t WINDOW_ID = 0;
 

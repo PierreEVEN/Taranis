@@ -11,7 +11,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 const std::vector device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 

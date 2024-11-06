@@ -5,7 +5,7 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image) : device(in_image->get_device()), name(std::move(in_name))
 {

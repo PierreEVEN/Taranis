@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class QueueFamily;
 class Device;

@@ -6,7 +6,7 @@
 #include <optional>
 #include <string>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class ClearValue
 {

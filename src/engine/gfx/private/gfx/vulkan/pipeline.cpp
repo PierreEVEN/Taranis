@@ -7,7 +7,7 @@
 #include "gfx/vulkan/vk_check.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 static VkDescriptorType vk_descriptor_type(EBindingType type)
 {

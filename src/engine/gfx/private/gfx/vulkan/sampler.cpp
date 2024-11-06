@@ -3,7 +3,7 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 Sampler::Sampler(const std::string& name, std::weak_ptr<Device> in_device, const CreateInfos&) : device(std::move(in_device))
 {

@@ -29,7 +29,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
     if (!warn.empty())
         LOG_WARNING("{}", warn);
 
-    std::unordered_map<uint32_t, BufferData> buffer_views;
+    std::unordered_map<uint32_t, Gfx::BufferData> buffer_views;
     for (size_t i = 0; i < model.bufferViews.size(); ++i)
     {
         const tinygltf::BufferView& bufferView = model.bufferViews[i];
@@ -37,7 +37,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
             LOG_ERROR("WARN: bufferView.target is zero");
 
         const tinygltf::Buffer& buffer         = model.buffers[bufferView.buffer];
-        buffer_views[static_cast<uint32_t>(i)] = BufferData(buffer.data.data(), bufferView.byteStride, buffer.data.size());
+        buffer_views[static_cast<uint32_t>(i)] = Gfx::BufferData(buffer.data.data(), bufferView.byteStride, buffer.data.size());
     }
 
     for (const auto& mesh : model.meshes)
@@ -57,8 +57,8 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
             if (numComponents <= 0 || componentSizeInBytes <= 0)
                 LOG_FATAL("Failed to deduce index buffer type");
 
-            const auto& indices_view = model.bufferViews[index_accessor.bufferView];
-            BufferData  indices(&model.buffers[indices_view.buffer].data.at(indices_view.byteOffset + index_accessor.byteOffset), componentSizeInBytes * numComponents, index_accessor.count);
+            const auto&     indices_view = model.bufferViews[index_accessor.bufferView];
+            Gfx::BufferData indices(&model.buffers[indices_view.buffer].data.at(indices_view.byteOffset + index_accessor.byteOffset), componentSizeInBytes * numComponents, index_accessor.count);
 
             if (auto positions = primitive.attributes.find("POSITION"); positions != primitive.attributes.end())
             {
@@ -131,7 +131,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
     {
         LOG_INFO("load image {}", image.name);
         Engine::get().asset_registry().create<TextureAsset>(
-            path.filename().string() + "_" + image.name, BufferData(image.image.data(), 1, image.image.size()),
+            path.filename().string() + "_" + image.name, Gfx::BufferData(image.image.data(), 1, image.image.size()),
             TextureAsset::CreateInfos{.width = static_cast<uint32_t>(image.width), .height = static_cast<uint32_t>(image.height),
                                       .channels = static_cast<uint32_t>(image.component)});
     }

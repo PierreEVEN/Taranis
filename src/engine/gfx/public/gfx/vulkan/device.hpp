@@ -7,14 +7,10 @@
 
 #include <vk_mem_alloc.h>
 
-namespace Engine
+namespace Engine::Gfx
 {
 class VkRendererPass;
 class DescriptorPool;
-} // namespace Engine
-
-namespace Engine
-{
 class DeviceResource;
 class Queues;
 

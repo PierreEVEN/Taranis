@@ -10,7 +10,7 @@
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
 
-namespace Engine
+namespace Engine::Gfx
 {
 Swapchain::Swapchain(std::string in_name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, bool in_vsync)
     : vsync(in_vsync), device(in_device), surface(in_surface), name(std::move(in_name))
