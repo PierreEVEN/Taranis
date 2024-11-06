@@ -3,7 +3,7 @@ declare_module(
     {"core"}, 
     {"stb", "tinygltf"}, 
     false, 
-    true
+    false
 )
 
 target("import")

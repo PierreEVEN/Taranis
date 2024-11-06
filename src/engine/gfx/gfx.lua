@@ -11,7 +11,7 @@ declare_module(
         "imgui docking"
     }, 
     false, 
-    true
+    false
 )
 
 target("gfx")
