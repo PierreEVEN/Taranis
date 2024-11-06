@@ -17,7 +17,8 @@ bool FileData::Reader::try_consume_field(const std::string& other)
 {
     if (starts_with(other))
     {
-        for (size_t i = 0; i < other.size(); ++i, ++*this);
+        for (size_t i = 0; i < other.size(); ++i, ++*this)
+            ;
         return true;
     }
     return false;
@@ -75,6 +76,7 @@ std::optional<std::string> FileData::next_line()
 FileData::Reader FileData::read()
 {
     if (!finished)
-        while (next_line());
+        while (next_line())
+            ;
     return {&loaded_data};
 }

@@ -9,4 +9,4 @@ class MaterialInstanceAsset : public AssetBase
 {
     REFLECT_BODY()
 };
-}
+} // namespace Engine

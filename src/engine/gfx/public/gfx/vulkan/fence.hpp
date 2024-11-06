@@ -33,4 +33,4 @@ class Fence
     VkFence               ptr;
     std::weak_ptr<Device> device;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

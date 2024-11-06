@@ -24,7 +24,7 @@ struct Scissor
 
 class CommandBuffer
 {
-public:
+  public:
     static std::shared_ptr<CommandBuffer> create(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type)
     {
         return std::shared_ptr<CommandBuffer>(new CommandBuffer(name, std::move(device), type));
@@ -51,7 +51,7 @@ public:
     void set_scissor(const Scissor& scissors) const;
     void push_constant(EShaderStage stage, const Pipeline& pipeline, const BufferData& data) const;
 
-private:
+  private:
     CommandBuffer(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type);
     VkCommandBuffer       ptr = VK_NULL_HANDLE;
     QueueSpecialization   type;
@@ -59,4 +59,4 @@ private:
     std::thread::id       thread_id;
     std::string           name;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

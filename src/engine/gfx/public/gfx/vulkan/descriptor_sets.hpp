@@ -1,9 +1,9 @@
 #pragma once
+#include "device.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
-#include "device.hpp"
 
 namespace Engine::Gfx
 {
@@ -89,4 +89,4 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
     std::weak_ptr<Device> device;
     bool                  b_static;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

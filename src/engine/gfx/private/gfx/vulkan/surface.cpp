@@ -39,4 +39,4 @@ void Surface::render() const
     if (swapchain)
         swapchain->render();
 }
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -4,13 +4,13 @@
 #define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
 #define TINYGLTF_USE_CPP14
 #define TINYGLTF_NOEXCEPTION
-#include "engine.hpp"
-#include "logger.hpp"
-#include "tiny_gltf.h"
 #include "assets/asset_registry.hpp"
 #include "assets/mesh_asset.hpp"
 #include "assets/texture_asset.hpp"
+#include "engine.hpp"
 #include "gfx/vulkan/buffer.hpp"
+#include "logger.hpp"
+#include "tiny_gltf.h"
 
 namespace Engine
 {
@@ -23,7 +23,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
     std::string     warn;
     std::string     err;
 
-    //loader.LoadBinaryFromFile()
+    // loader.LoadBinaryFromFile()
     if (!loader.LoadASCIIFromFile(&model, &err, &warn, path.string()))
         LOG_ERROR("Failed to load gltf : {}", err);
     if (!warn.empty())
@@ -67,7 +67,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
                 assert(accessor.type == TINYGLTF_TYPE_VEC3 && accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                 const auto& view = model.bufferViews[accessor.bufferView];
                 glm::vec3*  bfr  = reinterpret_cast<glm::vec3*>(&model.buffers[view.buffer].data.at(view.byteOffset + accessor.byteOffset));
-                for (size_t i       = 0; i < accessor.count; ++i)
+                for (size_t i = 0; i < accessor.count; ++i)
                     vertices[i].pos = bfr[i];
             }
             if (auto texcoords = primitive.attributes.find("TEXCOORD_0"); texcoords != primitive.attributes.end())
@@ -77,7 +77,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
                 assert(accessor.type == TINYGLTF_TYPE_VEC2 && accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                 const auto& view = model.bufferViews[accessor.bufferView];
                 glm::vec2*  bfr  = reinterpret_cast<glm::vec2*>(&model.buffers[view.buffer].data.at(view.byteOffset + accessor.byteOffset));
-                for (size_t i      = 0; i < accessor.count; ++i)
+                for (size_t i = 0; i < accessor.count; ++i)
                     vertices[i].uv = bfr[i];
             }
             if (auto normals = primitive.attributes.find("NORMAL"); normals != primitive.attributes.end())
@@ -87,7 +87,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
                 assert(accessor.type == TINYGLTF_TYPE_VEC3 && accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                 const auto& view = model.bufferViews[accessor.bufferView];
                 glm::vec3*  bfr  = reinterpret_cast<glm::vec3*>(&model.buffers[view.buffer].data.at(view.byteOffset + accessor.byteOffset));
-                for (size_t i          = 0; i < accessor.count; ++i)
+                for (size_t i = 0; i < accessor.count; ++i)
                     vertices[i].normal = bfr[i];
             }
             if (auto tangents = primitive.attributes.find("TANGENT"); tangents != primitive.attributes.end())
@@ -99,14 +99,14 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
                 {
                     const auto& view = model.bufferViews[accessor.bufferView];
                     glm::vec3*  bfr  = reinterpret_cast<glm::vec3*>(&model.buffers[view.buffer].data.at(view.byteOffset + accessor.byteOffset));
-                    for (size_t i           = 0; i < accessor.count; ++i)
+                    for (size_t i = 0; i < accessor.count; ++i)
                         vertices[i].tangent = bfr[i];
                 }
                 else if (accessor.type == TINYGLTF_TYPE_VEC4)
                 {
                     const auto& view = model.bufferViews[accessor.bufferView];
                     glm::vec4*  bfr  = reinterpret_cast<glm::vec4*>(&model.buffers[view.buffer].data.at(view.byteOffset + accessor.byteOffset));
-                    for (size_t i           = 0; i < accessor.count; ++i)
+                    for (size_t i = 0; i < accessor.count; ++i)
                         vertices[i].tangent = bfr[i];
                 }
                 else
@@ -119,7 +119,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
                 assert(accessor.type == TINYGLTF_TYPE_VEC4 && accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                 const auto& view = model.bufferViews[accessor.bufferView];
                 glm::vec4*  bfr  = reinterpret_cast<glm::vec4*>(&model.buffers[view.buffer].data.at(view.byteOffset + accessor.byteOffset));
-                for (size_t i         = 0; i < accessor.count; ++i)
+                for (size_t i = 0; i < accessor.count; ++i)
                     vertices[i].color = bfr[i];
             }
 
@@ -132,8 +132,7 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
         LOG_INFO("load image {}", image.name);
         Engine::get().asset_registry().create<TextureAsset>(
             path.filename().string() + "_" + image.name, Gfx::BufferData(image.image.data(), 1, image.image.size()),
-            TextureAsset::CreateInfos{.width = static_cast<uint32_t>(image.width), .height = static_cast<uint32_t>(image.height),
-                                      .channels = static_cast<uint32_t>(image.component)});
+            TextureAsset::CreateInfos{.width = static_cast<uint32_t>(image.width), .height = static_cast<uint32_t>(image.height), .channels = static_cast<uint32_t>(image.component)});
     }
 }
-}
+} // namespace Engine

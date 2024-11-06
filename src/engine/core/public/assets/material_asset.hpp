@@ -8,4 +8,4 @@ class MaterialAsset : public AssetBase
 {
     REFLECT_BODY()
 };
-}
+} // namespace Engine

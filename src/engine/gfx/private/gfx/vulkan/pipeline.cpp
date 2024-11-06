@@ -310,4 +310,4 @@ Pipeline::~Pipeline()
     vkDestroyPipeline(device.lock()->raw(), ptr, nullptr);
     vkDestroyPipelineLayout(device.lock()->raw(), layout, nullptr);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

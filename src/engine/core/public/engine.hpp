@@ -17,8 +17,7 @@ struct WindowConfig;
 class Window;
 class Device;
 class Instance;
-} // namespace Engine::Gfx
-
+} // namespace Gfx
 
 class Engine
 {

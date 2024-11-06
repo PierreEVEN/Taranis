@@ -12,4 +12,4 @@ AssetRegistry::~AssetRegistry()
         destroy_object(asset);
     }
 }
-}
+} // namespace Engine

@@ -81,4 +81,4 @@ class ShaderCompiler
     IDxcCompiler3*      compiler = nullptr;
     IDxcUtils*          utils    = nullptr;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -32,4 +32,4 @@ class CommandPool
     std::unordered_map<std::thread::id, VkCommandPool> command_pools;
     std::string                                        name;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -172,4 +172,4 @@ std::vector<const char*> Instance::get_required_extensions(const GfxConfig& conf
 
     return extensions;
 }
-} // namespace Engine
+} // namespace Engine::Gfx

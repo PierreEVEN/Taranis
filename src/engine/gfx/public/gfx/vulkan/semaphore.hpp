@@ -28,4 +28,4 @@ class Semaphore
     VkSemaphore           ptr;
     std::weak_ptr<Device> device;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -20,18 +20,18 @@
         constexpr static const char* name  = #Type;       \
     };
 
-#define REFL_DECLARE_CLASS(className)                                                            \
-  public:                                                                                        \
+#define REFL_DECLARE_CLASS(className)                                                                \
+  public:                                                                                            \
     friend void                      CONCAT_MACRO_TWO_PARAMS(_Refl_Register_Function_, className)(); \
-    friend void                      _Refl_Register_Class();                                        \
-    static const Reflection::Class*  static_class();                                             \
-    virtual const Reflection::Class* get_class() const;\
-    template <typename T> T* cast()\
-    {\
-        if constexpr (Reflection::StaticClassInfos<T>::value)\
-            return reinterpret_cast<T*>(get_class()->cast_to(T::static_class(), this));\
-        else\
-            return nullptr;\
+    friend void                      _Refl_Register_Class();                                         \
+    static const Reflection::Class*  static_class();                                                 \
+    virtual const Reflection::Class* get_class() const;                                              \
+    template <typename T> T*         cast()                                                          \
+    {                                                                                                \
+        if constexpr (Reflection::StaticClassInfos<T>::value)                                        \
+            return reinterpret_cast<T*>(get_class()->cast_to(T::static_class(), this));              \
+        else                                                                                         \
+            return nullptr;                                                                          \
     }
 
 #define REFL_REGISTER_CLASS(ClassName) Reflection::Class::RegisterClass<ClassName>(#ClassName);

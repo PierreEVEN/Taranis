@@ -61,6 +61,5 @@ void Class::register_class_internal(Class* inClass)
     }
 
     get_classes().emplace(inClass->get_id(), inClass);
-
 }
-}
+} // namespace Reflection

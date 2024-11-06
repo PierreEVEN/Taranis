@@ -13,4 +13,4 @@ std::shared_ptr<RenderPass> Renderer::init_for_swapchain(const Swapchain& swapch
     renderer_step->dependencies       = dependencies;
     return renderer_step;
 }
-} // namespace Engine
+} // namespace Engine::Gfx

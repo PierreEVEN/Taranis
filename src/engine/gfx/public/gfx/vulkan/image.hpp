@@ -26,8 +26,8 @@ enum class EImageType
 
 enum class ETextureTransferCapabilities
 {
-    None = 0x00000,
-    CopySource = 0x00001,
+    None            = 0x00000,
+    CopySource      = 0x00001,
     CopyDestination = 0x00002,
 };
 
@@ -62,10 +62,10 @@ class Image
 {
     friend class ImageView;
 
-public:
+  public:
     class ImageResource : public DeviceResource, public std::enable_shared_from_this<ImageResource>
     {
-    public:
+      public:
         ImageResource(std::string name, std::weak_ptr<Device> device, ImageParameter params);
         ImageResource(ImageResource&&) = delete;
         ImageResource(ImageResource&)  = delete;
@@ -77,8 +77,8 @@ public:
         VkImageLayout image_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         VmaAllocation allocation   = VK_NULL_HANDLE;
         bool          outdated     = false;
-        uint32_t      layer_cout   = 0, mip_levels = 0;
-        bool          is_depth     = false;
+        uint32_t      layer_cout = 0, mip_levels = 0;
+        bool          is_depth = false;
         glm::uvec2    res;
         uint32_t      depth = 0;
         std::string   name;
@@ -127,7 +127,7 @@ public:
         return params;
     }
 
-private:
+  private:
     Image(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params);
     glm::uvec2                                  extent;
     ImageParameter                              params;
@@ -136,4 +136,4 @@ private:
     std::vector<std::shared_ptr<ImageResource>> images;
     std::string                                 name;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

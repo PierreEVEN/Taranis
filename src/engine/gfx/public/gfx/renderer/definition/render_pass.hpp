@@ -77,7 +77,7 @@ class RenderPass : public std::enable_shared_from_this<RenderPass>
         infos.name        = pass_name;
     }
 };
-} // namespace Engine
+} // namespace Engine::Gfx
 
 template <> struct std::hash<Engine::Gfx::RenderPass::Definition>
 {

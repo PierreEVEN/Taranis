@@ -2,7 +2,7 @@
 
 namespace Engine
 {
-
-
-
-}
+class Scene
+{
+};
+} // namespace Engine

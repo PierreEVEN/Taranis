@@ -188,13 +188,13 @@ void RenderPassInstance::resize(glm::uvec2 base_resolution)
     for (const auto& attachment : render_pass.lock()->get_infos().attachments)
     {
         const auto image = Image::create(name + "-img_" + attachment.get_name(), device,
-                                                   ImageParameter{
-                                                       .format                 = attachment.get_format(),
-                                                       .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
-                                                       .buffer_type            = EBufferType::IMMEDIATE,
-                                                       .width                  = framebuffer_resolution.x,
-                                                       .height                 = framebuffer_resolution.y,
-                                                   });
+                                         ImageParameter{
+                                             .format                 = attachment.get_format(),
+                                             .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
+                                             .buffer_type            = EBufferType::IMMEDIATE,
+                                             .width                  = framebuffer_resolution.x,
+                                             .height                 = framebuffer_resolution.y,
+                                         });
         framebuffer_images.emplace_back();
         framebuffer_image_views.emplace_back(ImageView::create(name + "-view_" + attachment.get_name(), image));
     }
@@ -245,4 +245,4 @@ void RendererInstance::render(uint32_t output_framebuffer, uint32_t current_fram
     new_frame_internal();
     RenderPassInstanceBase::render(output_framebuffer, current_frame);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

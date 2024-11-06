@@ -114,4 +114,4 @@ class RenderPassInstance : public RenderPassInstanceBase
     std::vector<std::shared_ptr<ImageView>> framebuffer_image_views;
 };
 
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -45,4 +45,4 @@ class Framebuffer
     VkFramebuffer                  ptr = VK_NULL_HANDLE;
     std::shared_ptr<CommandBuffer> command_buffer;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

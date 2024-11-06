@@ -12,7 +12,7 @@ class Device;
 
 class ShaderModule
 {
-public:
+  public:
     static std::shared_ptr<ShaderModule> create(const std::weak_ptr<Device>& device, ShaderProperties properties)
     {
         return std::shared_ptr<ShaderModule>(new ShaderModule(device, std::move(properties)));
@@ -32,10 +32,10 @@ public:
         return properties;
     }
 
-private:
+  private:
     ShaderModule(const std::weak_ptr<Device>& device, ShaderProperties properties);
     ShaderProperties      properties;
     VkShaderModule        ptr = VK_NULL_HANDLE;
     std::weak_ptr<Device> device;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

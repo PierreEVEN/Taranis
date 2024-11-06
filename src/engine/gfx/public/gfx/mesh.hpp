@@ -18,12 +18,8 @@ enum class IndexBufferType
 
 class Mesh
 {
-public:
-    static std::shared_ptr<Mesh> create(std::string                      name,
-                                        const std::weak_ptr<Device>&     device,
-                                        EBufferType                      buffer_type,
-                                        const BufferData&                vertices,
-                                        const BufferData* indices = nullptr)
+  public:
+    static std::shared_ptr<Mesh> create(std::string name, const std::weak_ptr<Device>& device, EBufferType buffer_type, const BufferData& vertices, const BufferData* indices = nullptr)
     {
         return std::shared_ptr<Mesh>(new Mesh(std::move(name), device, vertices.get_stride(), buffer_type, &vertices, indices));
     }
@@ -55,7 +51,7 @@ public:
         return index_type;
     }
 
-private:
+  private:
     Mesh(std::string name, const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type, const BufferData* vertices = nullptr, const BufferData* indices = nullptr);
     EBufferType             buffer_type;
     size_t                  vertex_structure_size = 0;
@@ -65,4 +61,4 @@ private:
     std::shared_ptr<Buffer> index_buffer;
     std::string             name;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

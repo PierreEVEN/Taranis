@@ -14,4 +14,4 @@ class GltfImporter
   public:
     static void load_from_path(const std::filesystem::path& path);
 };
-}
+} // namespace Engine

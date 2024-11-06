@@ -34,4 +34,4 @@ class Instance
     static bool                     are_validation_layer_supported();
     static std::vector<const char*> get_required_extensions(const GfxConfig& config);
 };
-} // namespace Engine
+} // namespace Engine::Gfx

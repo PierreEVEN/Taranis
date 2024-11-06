@@ -63,7 +63,8 @@ class Pipeline
         std::optional<std::vector<StageInputOutputDescription>> stage_input_override;
     };
 
-    static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos)
+    static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
+                                            CreateInfos create_infos)
     {
         return std::shared_ptr<Pipeline>(new Pipeline(name, std::move(device), render_pass, shader_stage, std::move(create_infos)));
     }
@@ -102,4 +103,4 @@ class Pipeline
     VkPipeline                      ptr                   = VK_NULL_HANDLE;
     std::weak_ptr<Device>           device;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

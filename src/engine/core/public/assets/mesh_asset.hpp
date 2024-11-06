@@ -1,12 +1,12 @@
 #pragma once
 #include "asset_base.hpp"
 
-#include <memory>
-#include <vector>
+#include "assets/mesh_asset.gen.hpp"
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include "assets/mesh_asset.gen.hpp"
+#include <memory>
+#include <vector>
 
 namespace Engine
 {
@@ -14,13 +14,13 @@ namespace Gfx
 {
 class Mesh;
 class BufferData;
-}
+} // namespace Gfx
 
 class MeshAsset : public AssetBase
 {
     REFLECT_BODY()
 
-public:
+  public:
     struct Vertex
     {
         glm::vec3 pos;
@@ -30,7 +30,6 @@ public:
         glm::vec4 color;
     };
 
-
     MeshAsset(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices);
 
     const std::shared_ptr<Gfx::Mesh>& get_mesh() const
@@ -38,7 +37,7 @@ public:
         return mesh;
     }
 
-private:
+  private:
     std::shared_ptr<Gfx::Mesh> mesh;
 };
-}
+} // namespace Engine

@@ -11,7 +11,7 @@ class path;
 class FileData
 {
 
-public:
+  public:
     struct Reader
     {
         friend FileData;
@@ -57,7 +57,7 @@ public:
         void                       skip_line();
         void                       skip_blank();
 
-    private:
+      private:
         Reader(std::string* in_data) : data(in_data)
         {
         }
@@ -78,7 +78,7 @@ public:
         return last_write_time;
     }
 
-private:
+  private:
     size_t      last_write_time = 0;
     std::string loaded_data;
     bool        finished = false;

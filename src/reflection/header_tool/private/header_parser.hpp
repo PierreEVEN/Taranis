@@ -15,7 +15,6 @@ class path;
 
 class FileData;
 
-
 struct ClassDefinition
 {
     std::string              name;
@@ -24,7 +23,7 @@ struct ClassDefinition
 
 class HeaderParser
 {
-public:
+  public:
     struct ParserContext
     {
         std::vector<std::string>     namespace_stack;
@@ -52,11 +51,11 @@ public:
         ParserContext context;
         size_t        implementation_line;
 
-        std::string class_path() const;
-        std::string sanitized_class_path() const;
+        std::string              class_path() const;
+        std::string              sanitized_class_path() const;
         std::vector<std::string> get_parent_paths() const;
-        std::string class_name() const;
-        std::string namespace_path() const;
+        std::string              class_name() const;
+        std::string              namespace_path() const;
     };
 
     std::optional<size_t> get_include_line_to_add() const
@@ -69,7 +68,7 @@ public:
         return reflected_classes;
     }
 
-private:
+  private:
     Block tokenized_file;
 
     void        parse_block(Block& block, const ParserContext& context);

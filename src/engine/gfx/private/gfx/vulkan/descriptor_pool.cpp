@@ -174,4 +174,4 @@ bool DescriptorPool::Pool::free(const VkDescriptorSet& desc_set)
     space_left++;
     return is_empty();
 }
-} // namespace Engine
+} // namespace Engine::Gfx

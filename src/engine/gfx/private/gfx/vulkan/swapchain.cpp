@@ -226,4 +226,4 @@ std::weak_ptr<ImageView> Swapchain::get_image_view() const
 {
     return image_view;
 }
-} // namespace Engine
+} // namespace Engine::Gfx

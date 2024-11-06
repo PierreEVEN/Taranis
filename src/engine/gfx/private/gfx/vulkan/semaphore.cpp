@@ -15,4 +15,4 @@ Semaphore::~Semaphore()
 {
     vkDestroySemaphore(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

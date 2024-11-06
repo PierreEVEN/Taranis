@@ -40,7 +40,6 @@ Window::~Window()
     windows.erase(ptr);
 }
 
-
 bool Window::render() const
 {
     surface->render();
@@ -59,4 +58,4 @@ void Window::set_renderer(const std::shared_ptr<Renderer>& present_pass) const
 {
     surface->set_renderer(present_pass);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

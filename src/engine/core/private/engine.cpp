@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#include "config.hpp"
 #include "assets/asset_registry.hpp"
+#include "config.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/physical_device.hpp"
@@ -32,8 +32,8 @@ Engine::~Engine()
     global_asset_registry = nullptr;
     if (gfx_device)
         gfx_device->destroy_resources();
-    gfx_device   = nullptr;
-    gfx_instance = nullptr;
+    gfx_device       = nullptr;
+    gfx_instance     = nullptr;
     engine_singleton = nullptr;
 }
 

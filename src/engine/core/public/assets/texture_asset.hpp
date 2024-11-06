@@ -1,11 +1,9 @@
 #pragma once
 #include "asset_base.hpp"
 
+#include "assets/texture_asset.gen.hpp"
 #include <cstdint>
 #include <memory>
-#include "assets/texture_asset.gen.hpp"
-
-
 
 namespace Engine
 {
@@ -14,8 +12,7 @@ namespace Gfx
 class BufferData;
 class ImageView;
 class Image;
-}
-
+} // namespace Gfx
 
 class TextureAsset : public AssetBase
 {
@@ -33,7 +30,7 @@ class TextureAsset : public AssetBase
         return view;
     }
 
-private:
+  private:
     friend class AssetRegistry;
     TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos);
     ~TextureAsset() = default;
@@ -46,4 +43,4 @@ private:
     uint32_t    channels = 0;
     CreateInfos infos;
 };
-}
+} // namespace Engine

@@ -42,4 +42,4 @@ class PhysicalDevice
     bool             b_support_debug_markers = false;
     VkPhysicalDevice ptr                     = VK_NULL_HANDLE;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

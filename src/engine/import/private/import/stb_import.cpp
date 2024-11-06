@@ -1,15 +1,14 @@
 #include "import/stb_import.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include "engine.hpp"
 #include "assets/asset_registry.hpp"
-#include "stb/stb_image.h"
 #include "assets/texture_asset.hpp"
+#include "engine.hpp"
 #include "gfx/vulkan/buffer.hpp"
+#include "stb/stb_image.h"
 
 #include <filesystem>
 #include <fstream>
 #include <string>
-
 
 namespace Engine
 {
@@ -30,10 +29,8 @@ TextureAsset* StbImporter::load_raw(const std::string& file_name, const std::vec
         return nullptr;
     }
     const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, Gfx::BufferData(buffer, 1, x * y * channels),
-                                                                          TextureAsset::CreateInfos{
-                                                                              .width = static_cast<uint32_t>(x), .height = static_cast<uint32_t>(y), .channels = static_cast<uint32_t>(channels)
-                                                                          });
+                                                                          TextureAsset::CreateInfos{.width = static_cast<uint32_t>(x), .height = static_cast<uint32_t>(y), .channels = static_cast<uint32_t>(channels)});
     stbi_image_free(buffer);
     return text;
 }
-}
+} // namespace Engine

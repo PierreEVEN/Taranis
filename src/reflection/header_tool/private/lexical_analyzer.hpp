@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-
 class IToken;
 
 enum class TokenType
@@ -53,15 +52,13 @@ struct Block
 
         template <typename T> T* consume(TokenType type);
 
-        template <typename T> 
-        bool consume(TokenType type, T tested_value);
+        template <typename T> bool consume(TokenType type, T tested_value);
     };
 
     Reader read() const
     {
         return Reader{.parent = this};
     }
-
 
     Block() = default;
     Block(FileData::Reader& reader);
@@ -81,24 +78,23 @@ struct ReflectedClassBody
 
 class IToken
 {
-public:
-    virtual   ~IToken() = default;
+  public:
+    virtual ~IToken() = default;
     TokenType type;
     size_t    line;
     size_t    column;
 
     template <typename T> T& data();
 
-protected:
+  protected:
     IToken(TokenType in_type, size_t in_line, size_t in_column) : type(in_type), line(in_line), column(in_column)
     {
     }
 };
 
-
 template <typename T> class TToken : public IToken
 {
-public:
+  public:
     TToken(TokenType in_type, T in_data, size_t in_line, size_t in_column) : IToken(in_type, in_line, in_column)
     {
         data = std::move(in_data);
@@ -107,8 +103,7 @@ public:
     T data;
 };
 
-template <typename T>
-T* Block::Reader::consume(TokenType type)
+template <typename T> T* Block::Reader::consume(TokenType type)
 {
     if (*this && parent->tokens[location]->type == type)
     {
@@ -119,8 +114,7 @@ T* Block::Reader::consume(TokenType type)
     return nullptr;
 }
 
-template <typename T>
-bool Block::Reader::consume(TokenType type, T tested_value)
+template <typename T> bool Block::Reader::consume(TokenType type, T tested_value)
 {
     if (*this && parent->tokens[location]->type == type)
     {

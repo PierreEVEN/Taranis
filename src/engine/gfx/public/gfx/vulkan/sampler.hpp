@@ -38,4 +38,4 @@ class Sampler
     VkSampler             ptr;
     VkDescriptorImageInfo descriptor_infos;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

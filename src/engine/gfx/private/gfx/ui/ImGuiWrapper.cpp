@@ -72,14 +72,14 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     const auto vertex_temp = ShaderModule::create(device, vertex_code.get());
 
     imgui_material = Pipeline::create(name + "_pipeline", device, render_pass, std::vector{ShaderModule::create(device, vertex_code.get()), ShaderModule::create(device, fragment_code.get())},
-                                   Pipeline::CreateInfos{.culling              = ECulling::None,
-                                                         .alpha_mode           = EAlphaMode::Translucent,
-                                                         .depth_test           = false,
-                                                         .stage_input_override = std::vector{
-                                                             StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
-                                                             StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
-                                                             StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
-                                                         }});
+                                      Pipeline::CreateInfos{.culling              = ECulling::None,
+                                                            .alpha_mode           = EAlphaMode::Translucent,
+                                                            .depth_test           = false,
+                                                            .stage_input_override = std::vector{
+                                                                StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
+                                                                StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
+                                                                StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
+                                                            }});
 
     imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
@@ -163,13 +163,13 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
     font_texture          = Image::create(name + "_font_image", device,
-                                                    ImageParameter{
-                                                        .format      = ColorFormat::R8G8B8A8_UNORM,
-                                                        .buffer_type = EBufferType::IMMUTABLE,
-                                                        .width       = static_cast<uint32_t>(width),
-                                                        .height      = static_cast<uint32_t>(height),
-                                           },
-                                                    BufferData(pixels, 4, width * height));
+                                          ImageParameter{
+                                              .format      = ColorFormat::R8G8B8A8_UNORM,
+                                              .buffer_type = EBufferType::IMMUTABLE,
+                                              .width       = static_cast<uint32_t>(width),
+                                              .height      = static_cast<uint32_t>(height),
+                                 },
+                                          BufferData(pixels, 4, width * height));
     font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
     imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
@@ -384,4 +384,4 @@ ImTextureID ImGuiWrapper::add_image(const std::shared_ptr<ImageView>& image_view
     }
     return found_descriptor->second.first;
 }
-} // namespace Engine
+} // namespace Engine::Gfx

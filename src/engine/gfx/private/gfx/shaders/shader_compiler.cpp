@@ -248,4 +248,4 @@ std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProper
     spvReflectDestroyShaderModule(&module);
     return {};
 }
-} // namespace Engine
+} // namespace Engine::Gfx

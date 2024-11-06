@@ -8,14 +8,11 @@ class ParentA
 {
     REFLECT_BODY();
 
-
-
     int a = 1;
 
     virtual void my_func()
     {
     }
-
 };
 
 class ParentB
@@ -42,7 +39,6 @@ class TestChildA : public ParentA, public ParentB
     }
 };
 
-
 class TestChildChild : public TestChildA
 {
     REFLECT_BODY();
@@ -57,10 +53,8 @@ class TestChildChild : public TestChildA
     }
 };
 
-
 inline void run_test()
 {
-
 
     ParentB* child_a = new ParentB();
     LOG_WARNING("Base : {:x} (void{:x})", (size_t) reinterpret_cast<void*>(child_a), (size_t)(void*)child_a);

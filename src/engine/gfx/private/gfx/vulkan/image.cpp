@@ -309,4 +309,4 @@ void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer,
     image_layout = new_layout;
     vkCmdPipelineBarrier(command_buffer.raw(), source_stage, destination_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

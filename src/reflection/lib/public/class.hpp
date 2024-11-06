@@ -16,7 +16,7 @@ template <typename RClass> struct StaticClassInfos
 class Class
 {
 
-public:
+  public:
     static Class* get(const std::string& type_name);
 
     template <typename C> static const Class* get()
@@ -63,9 +63,11 @@ public:
         if constexpr (StaticClassInfos<ParentClass>::value)
         {
             CastFunctions.emplace(Class::make_type_id<ParentClass>(), CastFunc(
-                                      [](const Class* desired_class, void* from_ptr) -> void* {
-                                          return ParentClass::static_class()->cast_to(desired_class, reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
-                                      }));
+                                                                          [](const Class* desired_class, void* from_ptr) -> void*
+                                                                          {
+                                                                              return ParentClass::static_class()->cast_to(desired_class,
+                                                                                                                          reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
+                                                                          }));
         }
     }
 
@@ -94,7 +96,6 @@ public:
 
     Class(std::string in_type_name, size_t in_type_size) : type_size(in_type_size), type_name(std::move(in_type_name)), type_id(std::hash<std::string>{}(type_name))
     {
-
     }
 
     static void register_class_internal(Class* inClass);
@@ -106,4 +107,4 @@ public:
     std::string type_name;
     size_t      type_id = 0;
 };
-}
+} // namespace Reflection

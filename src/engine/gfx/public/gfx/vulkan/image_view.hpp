@@ -14,7 +14,7 @@ class Image;
 
 class ImageView
 {
-public:
+  public:
     struct CreateInfos
     {
         ColorFormat format;
@@ -44,10 +44,10 @@ public:
         return name;
     }
 
-private:
+  private:
     class Resource : public DeviceResource
     {
-    public:
+      public:
         Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos);
         Resource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos);
         ~Resource();
@@ -63,4 +63,4 @@ private:
     std::weak_ptr<Device>                  device;
     std::string                            name;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

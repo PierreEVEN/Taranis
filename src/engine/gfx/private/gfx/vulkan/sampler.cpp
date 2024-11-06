@@ -41,4 +41,4 @@ Sampler::~Sampler()
 {
     vkDestroySampler(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

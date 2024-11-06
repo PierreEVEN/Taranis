@@ -13,7 +13,7 @@ class AssetRegistry
 {
     friend class AssetBase;
 
-public:
+  public:
     AssetRegistry& get() const;
     AssetRegistry() = default;
     ~AssetRegistry();
@@ -21,12 +21,12 @@ public:
     template <typename T, typename... Args> T* create(std::string name, Args&&... args)
     {
         static_assert(std::is_base_of_v<AssetBase, T>, "This type is not an asset");
-        T* data         = static_cast<T*>(calloc(1, sizeof(T)));
-        data->name      = new char[name.size() + 1];
+        T* data    = static_cast<T*>(calloc(1, sizeof(T)));
+        data->name = new char[name.size() + 1];
         memcpy(data->name, name.c_str(), name.size() + 1);
         data->type_size = sizeof(T);
         data->base_ptr  = reinterpret_cast<void*>(data);
-        new(data) T(std::forward<Args>(args)...);
+        new (data) T(std::forward<Args>(args)...);
         assets.insert(data);
         return data;
     }
@@ -36,7 +36,7 @@ public:
         return assets;
     }
 
-private:
+  private:
     void destroy_object(AssetBase* asset)
     {
         if (asset && asset->type_size)
@@ -52,4 +52,4 @@ private:
 
     std::unordered_set<AssetBase*> assets;
 };
-}
+} // namespace Engine

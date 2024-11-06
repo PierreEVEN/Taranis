@@ -21,10 +21,8 @@ struct RandInit
 
 static RandInit _rnd_init;
 
-
 Generator::Writer::Writer(const std::filesystem::path& file) : fs(file)
 {
-
 }
 
 void Generator::Writer::write_line(const std::string& line)
@@ -62,10 +60,7 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 {
 }
 
-void Generator::generate(size_t                       timestamp,
-                         const std::filesystem::path& source_path,
-                         const std::filesystem::path& header_path,
-                         const std::filesystem::path& base_header_path,
+void Generator::generate(size_t timestamp, const std::filesystem::path& source_path, const std::filesystem::path& header_path, const std::filesystem::path& base_header_path,
                          const std::filesystem::path& generated_header_include_path) const
 {
     create_directories(source_path.parent_path());
@@ -108,7 +103,8 @@ void Generator::generate(size_t                       timestamp,
                 header.unindent();
                 header.write_line("}");
             }
-            header.write_line(std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // forward declaration", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
+            header.write_line(
+                std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // forward declaration", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
             header.write_line(std::format("REFL_DECLARE_TYPENAME({}); // declare type name for {}", class_name, class_name));
             header.new_line(2);
         }
@@ -148,8 +144,6 @@ void Generator::generate(size_t                       timestamp,
                     source.write_line(std::format("_Static_Item_Class_{}->add_parent(\"{}\");", gen_class.second.sanitized_class_path(), parent));
                     source.write_line(std::format("_Static_Item_Class_{}->add_cast_function<{},{}>();", gen_class.second.sanitized_class_path(), class_name, parent));
                 }
-
-
             }
             source.unindent();
             source.write_line("}");
@@ -175,6 +169,5 @@ void Generator::generate(size_t                       timestamp,
             source.new_line(2);
         }
         source.unindent();
-
     }
 }

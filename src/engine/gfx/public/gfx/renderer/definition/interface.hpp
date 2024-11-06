@@ -25,4 +25,4 @@ class DefaultRenderPassInterface : public RenderPassInterface
     {
     }
 };
-} // namespace Engine
+} // namespace Engine::Gfx

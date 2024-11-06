@@ -444,4 +444,4 @@ bool is_depth_format(ColorFormat format)
     return format == ColorFormat::D24_UNORM_S8_UINT || format == ColorFormat::D32_SFLOAT || format == ColorFormat::D32_SFLOAT_S8_UINT;
 }
 
-} // namespace Engine
+} // namespace Engine::Gfx

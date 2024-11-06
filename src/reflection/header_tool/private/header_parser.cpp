@@ -6,14 +6,12 @@
 #include <filesystem>
 #include <iostream>
 
-
 HeaderParser::HeaderParser(const std::shared_ptr<FileData>& header_data, const std::filesystem::path& in_generated_header_include_path, const std::filesystem::path& in_header_path)
     : generated_header_include_path(in_generated_header_include_path), header_path(in_header_path)
 {
     auto reader    = header_data->read();
     tokenized_file = Block(reader);
     parse_block(tokenized_file, {});
-
 }
 
 std::string HeaderParser::ReflectedClass::class_path() const

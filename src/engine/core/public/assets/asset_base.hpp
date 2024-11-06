@@ -1,8 +1,8 @@
 #pragma once
 #include "class.hpp"
 
-#include <string>
 #include "assets\asset_base.gen.hpp"
+#include <string>
 
 namespace Engine
 {
@@ -21,13 +21,13 @@ class AssetBase
 
     void destroy();
 
-protected:
+  protected:
     AssetBase() = default;
 
-private:
+  private:
     friend class AssetRegistry;
     char*  name;
     void*  base_ptr;
     size_t type_size;
 };
-}
+} // namespace Engine

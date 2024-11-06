@@ -45,4 +45,4 @@ class Surface : public std::enable_shared_from_this<Surface>
     std::string                name;
     VkSurfaceKHR               ptr = VK_NULL_HANDLE;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

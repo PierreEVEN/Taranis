@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <iostream>
 
-
 int main(int argc, char** argv)
 {
     if (argc != 3)
@@ -125,7 +124,6 @@ int main(int argc, char** argv)
     if (b_started)
     {
         std::cout << "[ generated reflection data in " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count() / 1000.0 << "ms]" << std::endl;
-
     }
 
     return 0;

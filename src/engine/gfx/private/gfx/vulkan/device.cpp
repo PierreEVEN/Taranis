@@ -3,11 +3,11 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
+#include "gfx/gfx.hpp"
 #include "gfx/vulkan/descriptor_pool.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
-#include "gfx/gfx.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -132,4 +132,4 @@ void Device::destroy_resources()
     vmaDestroyAllocator(allocator);
     pending_kill_resources.clear();
 }
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -1,8 +1,7 @@
 #include "lexical_analyzer.hpp"
 
-#include <iostream>
 #include <format>
-
+#include <iostream>
 
 Block::Block(FileData::Reader& reader)
 {
@@ -26,7 +25,7 @@ Block::Block(FileData::Reader& reader)
         else if (reader.try_consume_field("//"))
             reader.skip_line();
 
-            // Skip quotes
+        // Skip quotes
         else if (reader.try_consume_field("\""))
         {
             while (reader)
@@ -71,24 +70,22 @@ Block::Block(FileData::Reader& reader)
                     flags.emplace_back(*word);
             } while (reader.try_consume_field(","));
             if (reader.try_consume_field(")"))
-                tokens.emplace_back(std::make_unique<TToken<ReflectedClassBody>>(TokenType::ReflectedClassBody,
-                                                                                 ReflectedClassBody{reader.current_line(), reader.current_char_index() , flags
-                                                                                 },
-                                                                                 reader.current_line(), reader.current_char_index()));
+                tokens.emplace_back(std::make_unique<TToken<ReflectedClassBody>>(TokenType::ReflectedClassBody, ReflectedClassBody{reader.current_line(), reader.current_char_index(), flags}, reader.current_line(),
+                                                                                 reader.current_char_index()));
         }
 
         // Block
         else if (reader.try_consume_field("{"))
             tokens.emplace_back(std::make_unique<TToken<Block>>(TokenType::Block, Block{reader}, reader.current_line(), reader.current_char_index()));
-            // Block
+        // Block
         else if (reader.try_consume_field("("))
             tokens.emplace_back(std::make_unique<TToken<Block>>(TokenType::Arguments, Arguments{reader}, reader.current_line(), reader.current_char_index()));
 
-            // Word
+        // Word
         else if (auto word = reader.consume_next_word())
             tokens.emplace_back(std::make_unique<TToken<Word>>(TokenType::Word, *word, reader.current_line(), reader.current_char_index()));
 
-            // Number
+        // Number
         else if (std::isdigit(*reader))
         {
             std::string number;

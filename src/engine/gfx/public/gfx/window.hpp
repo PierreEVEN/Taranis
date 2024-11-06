@@ -60,4 +60,4 @@ class Window : public std::enable_shared_from_this<Window>
     bool                     should_close = false;
     GLFWwindow*              ptr;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -50,4 +50,4 @@ class Renderer : public std::enable_shared_from_this<Renderer>
     std::shared_ptr<RenderPassInterface>            interface;
     std::unordered_set<std::shared_ptr<RenderPass>> dependencies;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

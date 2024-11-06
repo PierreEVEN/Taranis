@@ -52,4 +52,4 @@ void CommandPool::free(VkCommandBuffer command_buffer, std::thread::id thread)
         vkFreeCommandBuffers(device.lock()->raw(), command_pool->second, 1, &command_buffer);
     }
 }
-} // namespace Engine
+} // namespace Engine::Gfx

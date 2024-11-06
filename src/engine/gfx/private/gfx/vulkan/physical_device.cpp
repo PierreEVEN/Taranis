@@ -135,4 +135,4 @@ bool PhysicalDevice::check_extension_support()
 
     return requiredExtensions.empty();
 }
-} // namespace Engine
+} // namespace Engine::Gfx

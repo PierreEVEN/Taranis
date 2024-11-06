@@ -24,9 +24,9 @@ Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t i
         }
         index_buffer = Buffer::create(name + "_buff_idx", device,
                                       Buffer::CreateInfos{
-                                          .usage = EBufferUsage::INDEX_DATA,
+                                          .usage  = EBufferUsage::INDEX_DATA,
                                           .access = EBufferAccess::CPU_TO_GPU,
-                                          .type = buffer_type,
+                                          .type   = buffer_type,
                                       },
                                       *indices);
     }
@@ -34,12 +34,12 @@ Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t i
     {
         vertex_structure_size = vertices->get_stride();
         vertex_buffer         = Buffer::create(name + "_buff_vtx", device,
-                                       Buffer::CreateInfos{
-                                           .usage = EBufferUsage::VERTEX_DATA,
-                                           .access = EBufferAccess::CPU_TO_GPU,
-                                           .type = buffer_type,
+                                               Buffer::CreateInfos{
+                                                   .usage  = EBufferUsage::VERTEX_DATA,
+                                                   .access = EBufferAccess::CPU_TO_GPU,
+                                                   .type   = buffer_type,
                                        },
-                                       *vertices);
+                                               *vertices);
     }
 }
 
@@ -49,9 +49,9 @@ void Mesh::reserve_vertices(size_t vertex_count)
     {
         vertex_buffer = Buffer::create(name + "_buff_vtx", device,
                                        Buffer::CreateInfos{
-                                           .usage = EBufferUsage::VERTEX_DATA,
+                                           .usage  = EBufferUsage::VERTEX_DATA,
                                            .access = EBufferAccess::CPU_TO_GPU,
-                                           .type = buffer_type,
+                                           .type   = buffer_type,
                                        },
                                        vertex_structure_size, vertex_count);
     }
@@ -85,9 +85,9 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
     {
         index_buffer = Buffer::create(name + "_buff_idx", device,
                                       Buffer::CreateInfos{
-                                          .usage = EBufferUsage::INDEX_DATA,
+                                          .usage  = EBufferUsage::INDEX_DATA,
                                           .access = EBufferAccess::CPU_TO_GPU,
-                                          .type = buffer_type,
+                                          .type   = buffer_type,
                                       },
                                       size, index_count);
     }
@@ -126,4 +126,4 @@ void Mesh::set_indexed_vertices(size_t start_vertex, const BufferData& vertex_da
     reserve_indices(start_index + index_data.get_element_count(), type);
     index_buffer->set_data(start_index, index_data);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -20,25 +20,25 @@ enum class EBufferType
 
 enum class EBufferUsage
 {
-    INDEX_DATA = 0x00000001,             // used as index get
-    VERTEX_DATA = 0x00000002,            // used as vertex get
-    GPU_MEMORY = 0x00000003,             // used as storage get
-    UNIFORM_BUFFER = 0x00000004,         // used as uniform get
+    INDEX_DATA             = 0x00000001, // used as index get
+    VERTEX_DATA            = 0x00000002, // used as vertex get
+    GPU_MEMORY             = 0x00000003, // used as storage get
+    UNIFORM_BUFFER         = 0x00000004, // used as uniform get
     INDIRECT_DRAW_ARGUMENT = 0x00000005, // used for indirect begin commands
-    TRANSFER_MEMORY = 0x00000006,        // used for indirect begin commands
+    TRANSFER_MEMORY        = 0x00000006, // used for indirect begin commands
 };
 
 enum class EBufferAccess
 {
-    DEFAULT = 0x00000000,    // Choose best configuration
-    GPU_ONLY = 0x00000001,   // Data will be cached on GPU
+    DEFAULT    = 0x00000000, // Choose best configuration
+    GPU_ONLY   = 0x00000001, // Data will be cached on GPU
     CPU_TO_GPU = 0x00000002, // frequent transfer from CPU to GPU
     GPU_TO_CPU = 0x00000003, // frequent transfer from GPU to CPU
 };
 
 class BufferData
 {
-public:
+  public:
     BufferData() : ptr(nullptr), element_count(0), stride(0)
     {
     }
@@ -90,7 +90,7 @@ public:
         return ptr;
     }
 
-private:
+  private:
     bool   own_data      = false;
     void*  ptr           = nullptr;
     size_t element_count = 0;
@@ -99,7 +99,7 @@ private:
 
 class Buffer
 {
-public:
+  public:
     struct CreateInfos
     {
         EBufferUsage  usage;
@@ -141,7 +141,7 @@ public:
 
     class Resource : public DeviceResource
     {
-    public:
+      public:
         Resource(const std::string& name, std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
         ~Resource();
         void          set_data(size_t start_index, const BufferData& data);
@@ -152,14 +152,14 @@ public:
         VmaAllocation allocation    = VK_NULL_HANDLE;
     };
 
-private:
+  private:
     Buffer(std::string name, std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
-    size_t                                         stride        = 0;
-    size_t                                         element_count = 0;
-    CreateInfos                                    params;
-    BufferData                                     temp_buffer_data;
+    size_t                                 stride        = 0;
+    size_t                                 element_count = 0;
+    CreateInfos                            params;
+    BufferData                             temp_buffer_data;
     std::vector<std::shared_ptr<Resource>> buffers;
-    std::weak_ptr<Device>                          device;
-    std::string                                    name;
+    std::weak_ptr<Device>                  device;
+    std::string                            name;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

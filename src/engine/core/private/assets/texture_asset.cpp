@@ -4,15 +4,14 @@
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
 
-
 namespace Engine
 {
 
 TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos) : infos(create_infos)
 {
-    Gfx::ColorFormat format;
+    Gfx::ColorFormat     format;
     std::vector<uint8_t> rgba_data;
-    const uint8_t*             base_data;
+    const uint8_t*       base_data;
     switch (infos.channels)
     {
     case 1:
@@ -34,8 +33,8 @@ TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos
             rgba_data[i * 4 + 2] = base_data[i * 3 + 2];
             rgba_data[i * 4 + 3] = 255;
         }
-        image =
-            Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = Gfx::ColorFormat::R8G8B8A8_UNORM, .width = infos.width, .height = infos.height}, Gfx::BufferData(rgba_data.data(), 1, rgba_data.size()));
+        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = Gfx::ColorFormat::R8G8B8A8_UNORM, .width = infos.width, .height = infos.height},
+                                   Gfx::BufferData(rgba_data.data(), 1, rgba_data.size()));
         break;
     case 4:
         format = Gfx::ColorFormat::R8G8B8A8_UNORM;
@@ -48,4 +47,4 @@ TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos
         image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = format, .width = infos.width, .height = infos.height}, data);
     view = Gfx::ImageView::create(get_name(), image);
 }
-}
+} // namespace Engine

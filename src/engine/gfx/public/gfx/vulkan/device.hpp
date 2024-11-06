@@ -207,4 +207,4 @@ class DeviceResource : public std::enable_shared_from_this<DeviceResource>
   private:
     std::weak_ptr<Device> device_ref;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -22,7 +22,7 @@ struct PoolDescription
 
     std::vector<VkDescriptorPoolSize> pool_sizes;
 };
-} // namespace Engine
+} // namespace Engine::Gfx
 
 template <> struct std::hash<Engine::Gfx::PoolDescription>
 {
@@ -90,4 +90,4 @@ class DescriptorPool
     std::weak_ptr<Device>                                                                      device;
     std::unordered_map<PoolDescription, std::pair<size_t, std::vector<std::shared_ptr<Pool>>>> pools;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

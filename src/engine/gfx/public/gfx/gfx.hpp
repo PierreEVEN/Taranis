@@ -14,4 +14,4 @@ class GfxConfig
     bool        allow_integrated_gpus    = false;
     uint8_t     swapchain_image_count    = 2;
 };
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -11,7 +11,7 @@ namespace Engine::Gfx
 {
 Framebuffer::Framebuffer(const std::string& name, std::weak_ptr<Device> in_device, const RenderPassInstanceBase& render_pass, size_t image_index) : device(std::move(in_device))
 {
-    command_buffer = CommandBuffer::create(name + "_cmd", device, QueueSpecialization::Graphic);
+    command_buffer             = CommandBuffer::create(name + "_cmd", device, QueueSpecialization::Graphic);
     render_finished_semaphores = Semaphore::create(name + "_sem", device);
     const auto rp              = render_pass.get_render_pass().lock();
 
@@ -39,4 +39,4 @@ Framebuffer::~Framebuffer()
 {
     vkDestroyFramebuffer(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine
+} // namespace Engine::Gfx

@@ -26,4 +26,4 @@ void Fence::wait() const
 {
     VK_CHECK(vkWaitForFences(device.lock()->raw(), 1, &ptr, true, UINT64_MAX), "Failed to wait for fence")
 }
-} // namespace Engine
+} // namespace Engine::Gfx

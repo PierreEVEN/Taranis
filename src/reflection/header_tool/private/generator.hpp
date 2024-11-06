@@ -10,8 +10,7 @@ class HeaderParser;
 
 class Generator
 {
-public:
-
+  public:
     struct Writer
     {
         Writer(const std::filesystem::path& file);
@@ -21,15 +20,12 @@ public:
         void indent(uint32_t num = 1);
         void unindent(uint32_t num = 1);
 
-
-    private:
+      private:
         void make_indent();
 
         uint32_t      indentation = 0;
         std::ofstream fs;
     };
-
-
 
     Generator(HeaderParser& parser);
 
@@ -37,10 +33,5 @@ public:
                   const std::filesystem::path& generated_header_include_path) const;
 
   private:
-
-
-
-
-
     HeaderParser* parser;
 };
