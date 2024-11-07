@@ -1,14 +1,28 @@
 #pragma once
 #include <cassert>
 
-struct _ObjectPtrData
+
+
+class IObject
 {
-    size_t ptr_count = 0;
-    size_t ref_count = 0;
-    bool   b_valid   = false;
+protected:
+    struct ObjectPtrData
+    {
+        size_t ptr_count = 0;
+        size_t ref_count = 0;
+        bool   b_valid   = false;
+    };
+
+    ObjectPtrData* data = nullptr;
 };
 
-template <typename T> class TObjectPtr
+class IObjectPtr : public IObject
+{
+  protected:
+};
+
+
+template <typename T> class TObjectPtr : public IObjectPtr
 {
     template <typename V> friend class TObjectPtr;
 
@@ -20,7 +34,7 @@ public:
         if (in_object)
         {
             object = std::move(in_object);
-            data   = new _ObjectPtrData{.ptr_count = 1, .ref_count = 0, .b_valid = true};
+            data   = new ObjectPtrData{.ptr_count = 1, .ref_count = 0, .b_valid = true};
         }
     }
 
@@ -76,7 +90,7 @@ public:
         {
             data->b_valid = false;
             --data->ptr_count;
-            if (data->ptr_count == 0 && data->ref_count)
+            if (data->ptr_count == 0 && data->ref_count == 0)
                 delete data;
             delete object;
             object = nullptr;
@@ -88,7 +102,6 @@ private:
     template <typename V>
     friend class TObjectRef;
 
-    _ObjectPtrData* data   = nullptr;
     T*              object = nullptr;
 };
 
@@ -98,7 +111,7 @@ template <typename T, typename... Args> TObjectPtr<T> make_object_ptr(Args&&... 
 }
 
 
-template <typename T> class TObjectRef
+template <typename T> class TObjectRef : public IObject
 {
 public:
     TObjectRef() = default;
@@ -160,7 +173,7 @@ public:
 
             data->b_valid = false;
             --data->ref_count;
-            if (data->ptr_count == 0 && data->ref_count)
+            if (data->ptr_count == 0 && data->ref_count == 0)
                 delete data;
             delete object;
             object = nullptr;
@@ -169,6 +182,5 @@ public:
     }
 
 private:
-    _ObjectPtrData* data = nullptr;
     T*              object;
 };

@@ -2,6 +2,7 @@
 
 #include "scene/scene.hpp"
 
+#include "gfx/vulkan/command_buffer.hpp"
 #include "scene/components/scene_component.hpp"
 
 namespace Engine
@@ -20,5 +21,9 @@ void Scene::tick(double delta_second)
 
     for (auto& deleted_node : std::ranges::reverse_view(deleted_nodes))
         root_nodes.erase(deleted_node);
+}
+
+void Scene::draw(Gfx::CommandBuffer& command_buffer)
+{
 }
 }

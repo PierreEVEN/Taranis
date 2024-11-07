@@ -8,6 +8,10 @@
 
 namespace Engine
 {
+namespace Gfx
+{
+class CommandBuffer;
+}
 
 class SceneComponent;
 
@@ -32,6 +36,8 @@ public:
     }
 
     void tick(double delta_second);
+
+    void draw(Gfx::CommandBuffer& command_buffer);
 
 private:
     std::vector<TObjectPtr<SceneComponent>> root_nodes;
