@@ -12,6 +12,9 @@
 #include "gfx/vulkan/device.hpp"
 #include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
+#include "scene/scene.hpp"
+#include "scene/components/camera_component.hpp"
+#include "scene/components/mesh_component.hpp"
 
 namespace Engine::Gfx
 {
@@ -20,7 +23,7 @@ class ImGuiWrapper;
 
 class TestFirstPassInterface : public Engine::Gfx::RenderPassInterface
 {
-  public:
+public:
     TestFirstPassInterface(std::weak_ptr<Engine::Gfx::Window> parent_window) : window(std::move(parent_window))
     {
     }
@@ -63,7 +66,7 @@ class TestFirstPassInterface : public Engine::Gfx::RenderPassInterface
         imgui->end(command_buffer);
     }
 
-  private:
+private:
     std::unique_ptr<Engine::Gfx::ImGuiWrapper> imgui;
     std::weak_ptr<Engine::Gfx::Window>         window;
     Engine::TextureAsset*                      text;
@@ -77,12 +80,25 @@ int main()
 
     Engine::Engine engine(config);
 
+    Engine::Scene test_scene;
+
+    test_scene.tick(0);
+    auto cam = test_scene.add_component<Engine::CameraComponent>("test_cam");
+    cam->add_component<Engine::MeshComponent>("test mesh");
+    cam->add_component<Engine::MeshComponent>("test mesh1").destroy();
+    cam->add_component<Engine::MeshComponent>("test mesh2");
+    cam->add_component<Engine::MeshComponent>("test mesh3");
+    cam->add_component<Engine::MeshComponent>("test mesh4");
+
+    test_scene.tick(0);
+
+
     const auto main_window = engine.new_window(Engine::Gfx::WindowConfig{.name = "primary"});
     main_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, main_window)
-                                         ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                                   Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
-                                         ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                                   Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                                   Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
+                                     ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                               Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
+                                     ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                               Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                               Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
     engine.run();
 }

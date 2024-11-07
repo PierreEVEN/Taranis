@@ -8,6 +8,11 @@ namespace Engine
 class CameraComponent: public SceneComponent
 {
     REFLECT_BODY();
+
+public:
+    CameraComponent(){};
+
+
 };
 
 }

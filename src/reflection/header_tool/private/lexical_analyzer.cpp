@@ -16,9 +16,11 @@ Block::Block(FileData::Reader& reader)
         // Skip /* */ comments
         if (reader.try_consume_field("/*"))
         {
-            while (reader)
-                if (reader.try_consume_field("*/"))
-                    break;
+            while (reader && !reader.try_consume_field("*/"))
+            {
+                ++reader;
+                break;
+            }
         }
 
         // Skip // comments
