@@ -12,7 +12,6 @@ void Scene::tick(double delta_second)
     std::vector<std::vector<TObjectPtr<SceneComponent>>::iterator> deleted_nodes;
     for (auto node = root_nodes.begin(); node != root_nodes.end(); ++node)
     {
-        std::cout << (*node)->name << std::endl;
         if (*node)
             (*node)->internal_tick(delta_second);
         else

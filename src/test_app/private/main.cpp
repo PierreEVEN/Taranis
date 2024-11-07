@@ -72,6 +72,39 @@ private:
     Engine::TextureAsset*                      text;
 };
 
+
+class TestApp : public Engine::Application
+{
+public:
+    void init(Engine::Engine& engine) override
+    {
+        scene.tick(0);
+        auto cam = scene.add_component<Engine::CameraComponent>("test_cam");
+        cam->add_component<Engine::MeshComponent>("test mesh");
+        cam->add_component<Engine::MeshComponent>("test mesh1");
+        cam->add_component<Engine::MeshComponent>("test mesh2");
+        cam->add_component<Engine::MeshComponent>("test mesh3");
+        cam->add_component<Engine::MeshComponent>("test mesh4");
+
+        scene.tick(0);
+
+        const auto main_window = engine.new_window(Engine::Gfx::WindowConfig{.name = "primary"});
+        main_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, main_window)
+                                             ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                                       Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
+                                             ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                                       Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                                                       Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
+    }
+
+    void tick_game(Engine::Engine& engine, double delta_second) override
+    {
+        scene.tick(delta_second);
+    }
+
+    Engine::Scene scene;
+};
+
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING | Logger::LOG_LEVEL_TRACE);
@@ -79,26 +112,5 @@ int main()
     Engine::Config config = {};
 
     Engine::Engine engine(config);
-
-    Engine::Scene test_scene;
-
-    test_scene.tick(0);
-    auto cam = test_scene.add_component<Engine::CameraComponent>("test_cam");
-    cam->add_component<Engine::MeshComponent>("test mesh");
-    cam->add_component<Engine::MeshComponent>("test mesh1").destroy();
-    cam->add_component<Engine::MeshComponent>("test mesh2");
-    cam->add_component<Engine::MeshComponent>("test mesh3");
-    cam->add_component<Engine::MeshComponent>("test mesh4");
-
-    test_scene.tick(0);
-
-
-    const auto main_window = engine.new_window(Engine::Gfx::WindowConfig{.name = "primary"});
-    main_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, main_window)
-                                     ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                               Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
-                                     ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                               Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                               Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
-    engine.run();
+    engine.run<TestApp>();
 }

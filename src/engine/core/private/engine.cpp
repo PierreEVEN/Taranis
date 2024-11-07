@@ -57,7 +57,7 @@ std::weak_ptr<Gfx::Window> Engine::new_window(const Gfx::WindowConfig& config)
     return window;
 }
 
-void Engine::run()
+void Engine::run_internal()
 {
     while (!windows.empty())
     {
@@ -65,6 +65,7 @@ void Engine::run()
         delta_second  = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(new_time - last_time).count()) / 1000000000.0;
         last_time     = new_time;
 
+        app->tick_game(*this, delta_second);
         std::vector<size_t> windows_to_remove;
         for (const auto& [id, window] : windows)
         {
