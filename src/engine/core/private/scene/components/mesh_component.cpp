@@ -19,7 +19,7 @@ void MeshComponent::draw(const Gfx::CommandBuffer& command_buffer) const
             glm::mat4 camera = glm::mat4(1);
         };
         Pc pc;
-        pc.camera = temp_cam->perspective_view_matrix();
+        pc.camera = transpose(temp_cam->perspective_view_matrix());
 
         command_buffer.bind_pipeline(*material->get_base_resource());
         command_buffer.bind_descriptors(*material->get_descriptor_resource(), *material->get_base_resource());

@@ -103,7 +103,7 @@ private:
     glm::mat4 transform{1};
 
     glm::vec3                               position{0};
-    glm::quat                               rotation{};
+    glm::quat                               rotation = glm::identity<glm::quat>();
     glm::vec3                               scale{1};
     std::vector<TObjectPtr<SceneComponent>> children{};
 };

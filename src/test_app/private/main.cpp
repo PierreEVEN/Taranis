@@ -169,11 +169,11 @@ public:
         auto mat_test               = engine.asset_registry().create<Engine::MaterialAsset>("test mat", test_mat);
         auto test_material_instance = engine.asset_registry().create<Engine::MaterialInstanceAsset>("test mat instance", mat_test);
 
-        camera = scene.add_component<Engine::CameraComponent>("test_cam", renderer);
+        camera = scene.add_component<Engine::FpsCameraComponent>("test_cam", renderer);
         Engine::GltfImporter::load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
         for (const auto& asset : engine.asset_registry().all_assets())
             if (auto mesh = asset.second.cast<Engine::MeshAsset>())
-                scene.add_component<Engine::MeshComponent>(mesh->get_name(), camera, mesh, test_material_instance);
+                scene.add_component<Engine::MeshComponent>(mesh->get_name(), camera.cast<Engine::CameraComponent>(), mesh, test_material_instance);
 
     }
 
@@ -181,7 +181,7 @@ public:
     {
         auto glfw_ptr = default_window.lock()->raw();
 
-        glm::vec3 mov_vec;
+        glm::vec3 mov_vec {0};
 
 
         if (glfwGetKey(glfw_ptr, GLFW_KEY_W))
@@ -194,11 +194,11 @@ public:
         }
         if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
         {
-            mov_vec.y = -1;
+            mov_vec.y = 1;
         }
         if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
         {
-            mov_vec.y = 1;
+            mov_vec.y = -1;
         }
         if (glfwGetKey(glfw_ptr, GLFW_KEY_SPACE))
         {
@@ -209,14 +209,44 @@ public:
             mov_vec.z = -1;
         }
 
+        double pos_x, pos_y;
 
-        camera->set_position(camera->get_position() + mov_vec * static_cast<float>(delta_second) * 500.f);
-        LOG_WARNING("cam : {}, {}, {}", camera->get_position().x, camera->get_position().y, camera->get_position().z);
+        glfwGetCursorPos(glfw_ptr, &pos_x, &pos_y);
+
+        if (!set_first_pos)
+        {
+            set_first_pos   = true;
+            last_cursor_pos = {pos_x, pos_y};
+        }
+        else
+        {
+
+            float dx = static_cast<float>(pos_x) - last_cursor_pos.x;
+            float dy = static_cast<float>(pos_y) - last_cursor_pos.y;
+
+            camera->set_yaw(camera->get_yaw() + dx * 0.01f);
+            camera->set_pitch(camera->get_pitch() + dy * 0.01f);
+        }
+
+        last_cursor_pos = {pos_x, pos_y};
+
+        glm::vec3 forward = camera->get_rotation() * glm::vec3(1, 0, 0);
+        glm::vec3 right = camera->get_rotation() * glm::vec3(0, 1, 0);
+        glm::vec3 up = camera->get_rotation() * glm::vec3(0, 0, 1);
+
+
+        glm::vec3 vec = mov_vec.x * forward + mov_vec.y * right + mov_vec.z * up;
+
+        camera->set_position(camera->get_position() + static_cast<float>(delta_second) * 500.f * vec);
+
+        LOG_WARNING("cam : {} :: {}   /   {}, {}, {}", camera->get_pitch(), camera->get_yaw(), forward.x, forward.y, forward.z);
 
         scene.tick(delta_second);
     }
 
-    TObjectRef<Engine::CameraComponent> camera;
+    bool                                set_first_pos = false;
+    glm::vec2                           last_cursor_pos;
+    TObjectRef<Engine::FpsCameraComponent> camera;
     std::weak_ptr<Engine::Gfx::Window>  default_window;
     Engine::Scene scene;
 };
