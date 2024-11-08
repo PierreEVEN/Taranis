@@ -24,7 +24,7 @@ class Instance;
 class Application
 {
 public:
-    virtual void init(Engine& engine) = 0;
+    virtual void init(Engine& engine, const std::weak_ptr<Gfx::Window>& default_window) = 0;
     virtual void tick_game(Engine& engine, double delta_second) = 0;
 };
 
@@ -37,10 +37,10 @@ class Engine
     Engine(Engine&)  = delete;
     ~Engine();
 
-    template<typename T, typename...Args> void run(Args&&... args)
+    template <typename T, typename... Args> void run(const Gfx::WindowConfig& default_window_config, Args&&... args)
     {
         app = std::make_unique<T>(std::forward<Args>(args)...);
-        app->init(*this);
+        app->init(*this, new_window(default_window_config));
         run_internal();
     }
 

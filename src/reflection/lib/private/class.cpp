@@ -46,6 +46,21 @@ void Class::add_parent(const std::string& parent)
     }
 }
 
+bool Class::is_base_of(const Class* base, const Class* t)
+{
+    if (!t)
+        return false;
+
+    if (base == t)
+        return true;
+
+    for (const auto& parent : t->parents)
+        if (is_base_of(base, parent))
+            return true;
+
+    return false;
+}
+
 void Class::on_register_parent_class(Class* new_class)
 {
     parents.push_back(new_class);

@@ -11,6 +11,9 @@ class MeshComponent : public SceneComponent
 
 public:
     MeshComponent(){};
+
+
+    int a = 5;
 };
 
 }

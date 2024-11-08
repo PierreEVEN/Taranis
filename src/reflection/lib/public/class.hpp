@@ -16,7 +16,7 @@ template <typename RClass> struct StaticClassInfos
 class Class
 {
 
-  public:
+public:
     static Class* get(const std::string& type_name);
 
     template <typename C> static const Class* get()
@@ -63,11 +63,10 @@ class Class
         if constexpr (StaticClassInfos<ParentClass>::value)
         {
             CastFunctions.emplace(Class::make_type_id<ParentClass>(), CastFunc(
-                                                                          [](const Class* desired_class, void* from_ptr) -> void*
-                                                                          {
-                                                                              return ParentClass::static_class()->cast_to(desired_class,
-                                                                                                                          reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
-                                                                          }));
+                                      [](const Class* desired_class, void* from_ptr) -> void* {
+                                          return ParentClass::static_class()->cast_to(desired_class,
+                                                                                      reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
+                                      }));
         }
     }
 
@@ -91,7 +90,20 @@ class Class
 
     void add_parent(const std::string& parent);
 
+    template<typename Base, typename T> static bool is_base_of()
+    {
+        return Class::is_base_of(Base::static_class(), T::static_class());
+    }
+
+    bool is_base_of(const Class* other) const
+    {
+        return is_base_of(this, other);
+    }
+
   private:
+
+    static bool is_base_of(const Class* base, const Class* t);
+
     void on_register_parent_class(Class* new_class);
 
     Class(std::string in_type_name, size_t in_type_size) : type_size(in_type_size), type_name(std::move(in_type_name)), type_id(std::hash<std::string>{}(type_name))

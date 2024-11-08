@@ -81,6 +81,9 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
             {
                 if (auto class_name = reader.consume<Word>(TokenType::Word))
                 {
+                    // Skip final keyword
+                    reader.consume<Word>(TokenType::Word, "final");
+
                     std::vector<std::string> parents;
                     if (reader.consume<Symbol>(TokenType::Symbol, ':'))
                     {

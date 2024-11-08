@@ -2,7 +2,7 @@
 #include "logger.hpp"
 #include "macros.hpp"
 #include "object_ptr.hpp"
-
+#include "scene/scene.hpp"
 #include <glm/gtc/quaternion.hpp>
 #include "scene\components\scene_component.gen.hpp"
 
@@ -33,16 +33,17 @@ public:
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {
         static_assert(std::is_base_of_v<SceneComponent, T>, "This type is not an SceneComponent");
-        T* data     = static_cast<T*>(calloc(1, sizeof(T)));
-        data->scene = scene;
-        data->name  = new char[name.size() + 1];
-        memcpy(const_cast<char*>(data->name), name.c_str(), name.size() + 1);
-        new(data) T(std::forward<Args>(args)...);
-        if (!data->name)
+        ObjectAllocation* alloc = scene->allocator->allocate(T::static_class());
+        T*                ptr   = static_cast<T*>(alloc->ptr);
+        ptr->scene              = scene;
+        ptr->name               = new char[name.size() + 1];
+        memcpy(const_cast<char*>(ptr->name), name.c_str(), name.size() + 1);
+        new (alloc->ptr) T(std::forward<Args>(args)...);
+        if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
-        TObjectPtr<T> ptr(std::move(data));
-        children.emplace_back(ptr);
-        return ptr;
+        TObjectPtr<T> obj_ptr(alloc);
+        children.emplace_back(obj_ptr);
+        return obj_ptr;
     }
 
     void set_position(glm::vec3 in_position)
@@ -89,9 +90,8 @@ public:
     }
 
 protected:
-    explicit SceneComponent()
+    SceneComponent()
     {
-        std::cout << "construct : " << (size_t)name << "\n";
 
     };
 
@@ -105,6 +105,6 @@ private:
     glm::vec3                               position{0};
     glm::quat                               rotation{};
     glm::vec3                               scale{1};
-    std::vector<TObjectPtr<SceneComponent>> children;
+    std::vector<TObjectPtr<SceneComponent>> children{};
 };
 }

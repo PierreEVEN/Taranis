@@ -8,6 +8,10 @@ class ParentA
 {
     REFLECT_BODY();
 
+    ParentA(int val) : a(val)
+    {
+    }
+
     int a = 1;
 
     virtual void my_func()

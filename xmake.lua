@@ -12,7 +12,11 @@ set_rundir(".")
 DEBUG = false;
 BUILD_MONOLITHIC = true;
 
-
+if is_mode("release") then
+    set_symbols("hidden")
+    set_optimize("fastest")
+    set_strip("all")
+end
 
 set_runtimes(is_mode("debug") and "MTd" or "MT")
 		
