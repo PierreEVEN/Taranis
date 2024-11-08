@@ -36,7 +36,10 @@ class Surface : public std::enable_shared_from_this<Surface>
     void create_swapchain(const std::weak_ptr<Device>& device);
     void set_renderer(const std::shared_ptr<Renderer>& present_pass) const;
     void render() const;
-
+    const std::shared_ptr<Swapchain>& get_swapchain() const
+    {
+        return swapchain;
+    }
   private:
     Surface(const std::string& name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& window);
     std::weak_ptr<Window>      window;

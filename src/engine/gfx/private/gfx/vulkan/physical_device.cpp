@@ -128,8 +128,6 @@ bool PhysicalDevice::check_extension_support()
 
     for (const auto& extension : availableExtensions)
     {
-        if (extension.extensionName == std::string(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
-            b_support_debug_markers = true;
         requiredExtensions.erase(extension.extensionName);
     }
 

@@ -27,7 +27,7 @@ void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t curren
     const auto& framebuffer = framebuffers[output_framebuffer];
     framebuffer->get_command_buffer().begin(false);
 
-    device.lock()->debug_add_marker("BeginRenderPass_" + name, framebuffer->get_command_buffer().raw(), {1, 0, 0, 1});
+    device.lock()->get_instance().lock()->begin_debug_marker(framebuffer->get_command_buffer().raw(), "BeginRenderPass_" + name, {1, 0, 0, 1});
 
     // Begin render pass
     std::vector<VkClearValue> clear_values;
@@ -45,16 +45,16 @@ void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t curren
     }
 
     const VkRenderPassBeginInfo begin_infos = {
-        .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass  = render_pass.lock()->raw(),
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = render_pass.lock()->raw(),
         .framebuffer = framebuffer->raw(),
         .renderArea =
-            {
-                .offset = {0, 0},
-                .extent = {resolution().x, resolution().y},
-            },
+        {
+            .offset = {0, 0},
+            .extent = {resolution().x, resolution().y},
+        },
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-        .pClearValues    = clear_values.data(),
+        .pClearValues = clear_values.data(),
     };
     vkCmdBeginRenderPass(framebuffer->get_command_buffer().raw(), &begin_infos, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -63,8 +63,8 @@ void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t curren
         .x = 0,
         .y = static_cast<float>(resolution().y),
         // Flip viewport vertically to avoid textures to being displayed upside down
-        .width    = static_cast<float>(resolution().x),
-        .height   = -static_cast<float>(resolution().y),
+        .width = static_cast<float>(resolution().x),
+        .height = -static_cast<float>(resolution().y),
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
@@ -81,6 +81,8 @@ void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t curren
     // End command get
     vkCmdEndRenderPass(framebuffer->get_command_buffer().raw());
 
+    device.lock()->get_instance().lock()->end_debug_marker(framebuffer->get_command_buffer().raw());
+
     framebuffer->get_command_buffer().end();
 
     // Submit get (wait children completion using children_semaphores)
@@ -94,17 +96,16 @@ void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t curren
     const auto                        command_buffer_ptr            = framebuffer->get_command_buffer().raw();
     const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
     const VkSubmitInfo                submit_infos{
-                       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                       .waitSemaphoreCount   = static_cast<uint32_t>(children_semaphores.size()),
-                       .pWaitSemaphores      = children_semaphores.data(),
-                       .pWaitDstStageMask    = wait_stage.data(),
-                       .commandBufferCount   = 1,
-                       .pCommandBuffers      = &command_buffer_ptr,
-                       .signalSemaphoreCount = 1,
-                       .pSignalSemaphores    = &render_finished_semaphore_ptr,
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = static_cast<uint32_t>(children_semaphores.size()),
+        .pWaitSemaphores = children_semaphores.data(),
+        .pWaitDstStageMask = wait_stage.data(),
+        .commandBufferCount = 1,
+        .pCommandBuffers = &command_buffer_ptr,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &render_finished_semaphore_ptr,
     };
 
-    device.lock()->debug_end_marker(framebuffer->get_command_buffer().raw());
     framebuffer->get_command_buffer().submit(submit_infos, get_signal_fence(current_frame));
 }
 
@@ -163,7 +164,7 @@ const Fence* SwapchainRenderer::get_signal_fence(uint32_t image_index) const
     return &swapchain.lock()->get_in_flight_fence(image_index);
 }
 
-RenderPassInstance::RenderPassInstance(const std::string& in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::shared_ptr<RenderPassInterface>& in_interface,
+RenderPassInstance::RenderPassInstance(const std::string&            in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::shared_ptr<RenderPassInterface>& in_interface,
                                        const RenderPass::Definition& in_definition)
     : RenderPassInstanceBase(in_name, in_render_pass, in_interface, in_definition)
 {
@@ -189,11 +190,11 @@ void RenderPassInstance::resize(glm::uvec2 base_resolution)
     {
         const auto image = Image::create(name + "-img_" + attachment.get_name(), device,
                                          ImageParameter{
-                                             .format                 = attachment.get_format(),
+                                             .format = attachment.get_format(),
                                              .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
-                                             .buffer_type            = EBufferType::IMMEDIATE,
-                                             .width                  = framebuffer_resolution.x,
-                                             .height                 = framebuffer_resolution.y,
+                                             .buffer_type = EBufferType::IMMEDIATE,
+                                             .width = framebuffer_resolution.x,
+                                             .height = framebuffer_resolution.y,
                                          });
         framebuffer_images.emplace_back();
         framebuffer_image_views.emplace_back(ImageView::create(name + "-view_" + attachment.get_name(), image));

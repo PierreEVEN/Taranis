@@ -7,17 +7,16 @@ Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t i
 {
     if (indices)
     {
-        IndexBufferType type;
         switch (indices->get_stride())
         {
         case 1:
-            type = IndexBufferType::Uint8;
+            index_type = IndexBufferType::Uint8;
             break;
         case 2:
-            type = IndexBufferType::Uint16;
+            index_type = IndexBufferType::Uint16;
             break;
         case 4:
-            type = IndexBufferType::Uint32;
+            index_type = IndexBufferType::Uint32;
             break;
         default:
             LOG_FATAL("Unhandled index buffer size : {}", indices->get_stride())

@@ -52,13 +52,12 @@ void GltfImporter::load_from_path(const std::filesystem::path& path)
             const tinygltf::Accessor& index_accessor = model.accessors[primitive.indices];
 
             size_t componentSizeInBytes = tinygltf::GetComponentSizeInBytes(static_cast<uint32_t>(index_accessor.componentType));
-            size_t numComponents        = tinygltf::GetNumComponentsInType(static_cast<uint32_t>(index_accessor.type));
 
-            if (numComponents <= 0 || componentSizeInBytes <= 0)
+            if (componentSizeInBytes <= 0)
                 LOG_FATAL("Failed to deduce index buffer type");
 
             const auto&     indices_view = model.bufferViews[index_accessor.bufferView];
-            Gfx::BufferData indices(&model.buffers[indices_view.buffer].data.at(indices_view.byteOffset + index_accessor.byteOffset), componentSizeInBytes * numComponents, index_accessor.count);
+            Gfx::BufferData indices(&model.buffers[indices_view.buffer].data.at(indices_view.byteOffset + index_accessor.byteOffset), componentSizeInBytes, index_accessor.count);
 
             if (auto positions = primitive.attributes.find("POSITION"); positions != primitive.attributes.end())
             {

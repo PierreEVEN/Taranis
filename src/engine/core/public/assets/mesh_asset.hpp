@@ -32,7 +32,7 @@ class MeshAsset : public AssetBase
 
     MeshAsset(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices);
 
-    const std::shared_ptr<Gfx::Mesh>& get_mesh() const
+    const std::shared_ptr<Gfx::Mesh>& get_resource() const
     {
         return mesh;
     }

@@ -44,7 +44,7 @@ public:
 
     void tick(double delta_second);
 
-    void draw(Gfx::CommandBuffer& command_buffer);
+    void draw(const Gfx::CommandBuffer& command_buffer);
 
     template <typename T> TObjectIterator<T> iterate()
     {

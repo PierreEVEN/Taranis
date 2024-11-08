@@ -31,9 +31,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverity
     }
 
     if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
-        LOG_DEBUG("VALIDATION MESSAGE : {}", message);
+        LOG_TRACE("VALIDATION MESSAGE : {}", message);
     else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-        LOG_INFO("VALIDATION INFO : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
+        LOG_TRACE("VALIDATION INFO : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
     else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         LOG_WARNING("VALIDATION WARNING : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
     else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
@@ -75,12 +75,12 @@ Instance::Instance(GfxConfig& config)
     }
 
     VkApplicationInfo appInfo{
-        .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName   = config.app_name.c_str(),
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName = config.app_name.c_str(),
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName        = "Ashwga",
-        .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion         = VK_API_VERSION_1_3,
+        .pEngineName = "Ashwga",
+        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_3,
     };
 
     uint32_t     glfw_extension_count = 0;
@@ -97,11 +97,11 @@ Instance::Instance(GfxConfig& config)
         debug_messenger_infos = {
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity =
-                VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
             .messageType =
-                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
             .pfnUserCallback = debug_callback,
-            .pUserData       = nullptr, // Optional
+            .pUserData = nullptr, // Optional
         };
         instance_infos.pNext = &debug_messenger_infos;
     }
@@ -129,6 +129,32 @@ const std::vector<const char*>& Instance::validation_layers()
 {
     return validationLayers;
 }
+
+void Instance::begin_debug_marker(const VkCommandBuffer& cmd, const std::string& name, glm::vec4 color) const
+{
+    if (debug_messenger != VK_NULL_HANDLE)
+    {
+        auto func = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(ptr, "vkCmdBeginDebugUtilsLabelEXT"));
+        if (func != nullptr)
+        {
+            VkDebugUtilsLabelEXT infos{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, .pLabelName = name.c_str(), .color = {color.r, color.g, color.b, color.a}};
+            func(cmd, &infos);
+        }
+    }
+}
+
+void Instance::end_debug_marker(const VkCommandBuffer& cmd) const
+{
+    if (debug_messenger != VK_NULL_HANDLE)
+    {
+        auto func = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(ptr, "vkCmdEndDebugUtilsLabelEXT"));
+        if (func != nullptr)
+        {
+            func(cmd);
+        }
+    }
+}
+
 
 bool Instance::are_validation_layer_supported()
 {

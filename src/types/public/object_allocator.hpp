@@ -67,7 +67,8 @@ public:
     TObjectIterator(const std::vector<ContiguousObjectPool*>& in_classes) : classes(in_classes)
     {
         class_iterator  = classes.begin();
-        this_pool_count = (*class_iterator)->component_count;
+        if (class_iterator != classes.end())
+            this_pool_count = (*class_iterator)->component_count;
     }
 
     T& operator*() const

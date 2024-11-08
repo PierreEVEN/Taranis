@@ -6,7 +6,8 @@ void IObject::destroy()
 {
     if (*this)
     {
-        internal_delete_ptr();
+        delete allocation->destructor;
+        allocation->destructor = nullptr;
         if (allocation->allocator && allocation->object_class)
         {
             allocation->allocator->free(allocation->object_class, allocation->ptr);

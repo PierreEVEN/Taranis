@@ -1,33 +1,30 @@
 #pragma once
-#include "class.hpp"
 
 #include "assets\asset_base.gen.hpp"
-#include <string>
 
 namespace Engine
 {
 class AssetBase
 {
     REFLECT_BODY()
-  public:
+
+public:
     AssetBase(AssetBase&)  = delete;
     AssetBase(AssetBase&&) = delete;
-    virtual ~AssetBase()   = default;
+
+    virtual ~AssetBase();
 
     const char* get_name() const
     {
         return name;
     }
 
-    void destroy();
-
-  protected:
+protected:
     AssetBase() = default;
 
-  private:
+private:
     friend class AssetRegistry;
-    char*  name;
-    void*  base_ptr;
-    size_t type_size;
+    char*          name;
+    AssetRegistry* registry;
 };
 } // namespace Engine

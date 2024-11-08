@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <vector>
+#include <glm/vec4.hpp>
 #include <vulkan/vulkan_core.h>
 
 namespace Engine::Gfx
@@ -25,6 +27,9 @@ class Instance
     }
 
     static const std::vector<const char*>& validation_layers();
+
+    void begin_debug_marker(const VkCommandBuffer& cmd, const std::string& name, glm::vec4 color) const;
+    void end_debug_marker(const VkCommandBuffer& cmd) const;
 
   private:
     Instance(GfxConfig& config);

@@ -31,15 +31,9 @@ class PhysicalDevice
         return ptr;
     }
 
-    bool does_support_debug_markers() const
-    {
-        return b_support_debug_markers;
-    }
-
   private:
     bool check_extension_support();
 
-    bool             b_support_debug_markers = false;
     VkPhysicalDevice ptr                     = VK_NULL_HANDLE;
 };
 } // namespace Engine::Gfx

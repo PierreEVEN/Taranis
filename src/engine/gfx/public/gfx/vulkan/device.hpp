@@ -18,7 +18,7 @@ class Device : public std::enable_shared_from_this<Device>
 {
     friend class Engine;
 
-  public:
+public:
     static std::shared_ptr<Device> create(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
     Device(Device&)  = delete;
     Device(Device&&) = delete;
@@ -141,42 +141,22 @@ class Device : public std::enable_shared_from_this<Device>
 
             const auto                    pfn_vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance.lock()->raw(), "vkSetDebugUtilsObjectNameEXT"));
             VkDebugUtilsObjectNameInfoEXT object_name_info                 = {
-                                .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-                                .pNext        = nullptr,
-                                .objectType   = object_type,
-                                .objectHandle = reinterpret_cast<uint64_t>(object),
-                                .pObjectName  = object_name.c_str(),
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+                .pNext = nullptr,
+                .objectType = object_type,
+                .objectHandle = reinterpret_cast<uint64_t>(object),
+                .pObjectName = object_name.c_str(),
             };
             pfn_vkSetDebugUtilsObjectNameEXT(ptr, &object_name_info);
         }
     }
 
-    void debug_add_marker([[maybe_unused]] const std::string& marker_name, [[maybe_unused]] VkCommandBuffer command_buffer, [[maybe_unused]] std::array<float, 4> color)
+    const std::weak_ptr<Instance>& get_instance() const
     {
-        if (b_enable_validation_layers && physical_device.does_support_debug_markers())
-        {
-            // add marker
-            const auto                 pfn_debug_marker_begin = reinterpret_cast<PFN_vkCmdDebugMarkerBeginEXT>(vkGetDeviceProcAddr(ptr, "vkCmdDebugMarkerBeginEXT"));
-            VkDebugMarkerMarkerInfoEXT begin_marker           = {
-                          .sType       = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT,
-                          .pNext       = nullptr,
-                          .pMarkerName = marker_name.c_str(),
-            };
-            memcpy(begin_marker.color, color.data(), sizeof(float) * 4);
-            pfn_debug_marker_begin(command_buffer, &begin_marker);
-        }
+        return instance;
     }
 
-    void debug_end_marker([[maybe_unused]] VkCommandBuffer command_buffer)
-    {
-        if (b_enable_validation_layers && physical_device.does_support_debug_markers())
-        {
-            const auto pfn_debug_marker_end = reinterpret_cast<PFN_vkCmdDebugMarkerEndEXT>(vkGetDeviceProcAddr(ptr, "vkCmdDebugMarkerEndEXT"));
-            pfn_debug_marker_end(command_buffer);
-        }
-    }
-
-  private:
+private:
     bool b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
     std::unordered_map<RenderPass::Definition, std::shared_ptr<VkRendererPass>> render_passes;
@@ -194,7 +174,7 @@ class Device : public std::enable_shared_from_this<Device>
 
 class DeviceResource : public std::enable_shared_from_this<DeviceResource>
 {
-  public:
+public:
     DeviceResource(std::weak_ptr<Device> in_device) : device_ref(std::move(in_device))
     {
     }
@@ -204,7 +184,7 @@ class DeviceResource : public std::enable_shared_from_this<DeviceResource>
         return device_ref;
     }
 
-  private:
+private:
     std::weak_ptr<Device> device_ref;
 };
 } // namespace Engine::Gfx

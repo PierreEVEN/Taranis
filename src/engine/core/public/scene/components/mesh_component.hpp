@@ -4,16 +4,30 @@
 
 namespace Engine
 {
+class MaterialInstanceAsset;
+}
+
+namespace Engine
+{
+class MeshAsset;
+}
+
+namespace Engine
+{
 
 class MeshComponent : public SceneComponent
 {
     REFLECT_BODY();
 
 public:
-    MeshComponent(){};
+    MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {}, const TObjectRef<MaterialInstanceAsset>& in_material = {}) : material(in_material), mesh(in_mesh)
+    {
+    };
 
+    void draw(const Gfx::CommandBuffer& command_buffer) const;
 
-    int a = 5;
+    TObjectRef<MaterialInstanceAsset> material;
+    TObjectRef<MeshAsset>             mesh;
 };
 
 }

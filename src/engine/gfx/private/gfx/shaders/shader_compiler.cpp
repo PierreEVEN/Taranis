@@ -97,7 +97,7 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     if (errors && errors->GetStringLength() > 0)
     {
         const LPCSTR errorMessage = errors->GetStringPointer();
-        return Result<ShaderProperties>::Error(std::format("{}", errorMessage));
+        return Result<ShaderProperties>::Error(std::format("Failed to get dxc compiler output : {}", errorMessage));
     }
 
     Microsoft::WRL::ComPtr<IDxcBlob> compiledShaderBlob{nullptr};

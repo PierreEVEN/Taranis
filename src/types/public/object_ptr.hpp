@@ -10,18 +10,52 @@ namespace Reflection
 class Class;
 }
 
-struct ObjectAllocation
+class IObjectDestructor
+{
+public:
+    virtual ~IObjectDestructor() = default;
+};
+
+template<typename T>
+class TObjectDestructor final : public IObjectDestructor
+{
+  public:
+    TObjectDestructor(struct ObjectAllocation* in_allocation) : allocation(in_allocation)
+    {
+    }
+
+    ~TObjectDestructor() override;
+
+    ObjectAllocation* allocation;
+};
+
+struct ObjectAllocation final
 {
     size_t                   ptr_count    = 0;
     size_t                   ref_count    = 0;
     void*                    ptr          = nullptr;
     class ObjectAllocator*   allocator    = nullptr;
     const Reflection::Class* object_class = nullptr;
+    IObjectDestructor*       destructor   = nullptr;
+
+    ~ObjectAllocation()
+    {
+        delete destructor;
+    }
+
 };
+
+template <typename T> TObjectDestructor<T>::~TObjectDestructor()
+{
+    static_cast<T*>(allocation->ptr)->~T();
+}
 
 class IObject
 {
     friend class ContiguousObjectPool;
+
+    template <typename V> friend class TObjectPtr;
+    template <typename V> friend class TObjectRef;
 
 public:
     operator bool() const
@@ -61,8 +95,6 @@ protected:
         }
     }
 
-    virtual void internal_delete_ptr() = 0;
-
     ObjectAllocation* allocation = nullptr;
 
 private:
@@ -72,7 +104,6 @@ private:
         allocation = nullptr;
     }
 };
-
 
 template <typename T> class TObjectPtr final : public IObject
 {
@@ -85,13 +116,17 @@ public:
     explicit TObjectPtr(T* in_object)
     {
         if (in_object)
+        {
             allocation = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = nullptr};
+            allocation->destructor = new TObjectDestructor<T>(allocation);
+        }
     }
 
     explicit TObjectPtr(ObjectAllocation* in_allocation)
     {
         allocation            = in_allocation;
-        allocation->ptr_count = 1;
+        allocation->ptr_count  = 1;
+        allocation->destructor = new TObjectDestructor<T>(allocation);
     }
 
     TObjectPtr(const TObjectPtr& other)
@@ -178,12 +213,6 @@ public:
     T* operator->() const
     {
         return static_cast<T*>(allocation->ptr);
-    }
-
-protected:
-    void internal_delete_ptr() override
-    {
-        static_cast<T*>(allocation->ptr)->~T();
     }
 };
 
@@ -277,6 +306,20 @@ public:
         return *this;
     }
 
+    template <typename V> bool operator==(const TObjectPtr<V>& other) const
+    {
+        if (!allocation)
+            return !other.allocation;
+        return allocation == other->allocation && allocation->ptr == other.allocation->ptr;
+    }
+
+    template <typename V> bool operator==(const TObjectRef<V>& other) const
+    {
+        if (!allocation)
+            return !other.allocation;
+        return allocation == other->allocation && allocation->ptr == other.allocation->ptr;
+    }
+
     template <typename V> TObjectRef& operator=(const TObjectRef<V>& other)
     {
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
@@ -303,10 +346,24 @@ public:
     {
         return static_cast<T*>(allocation->ptr);
     }
+};
 
-protected:
-    void internal_delete_ptr() override
+template <typename T> struct std::hash<TObjectPtr<T>>
+{
+    size_t operator()(const TObjectPtr<T>& val) const noexcept
     {
-        static_cast<T*>(allocation->ptr)->~T();
+        if (!val.allocation)
+            return 0;
+        return std::hash<void*>()(val.allocation->ptr);
+    }
+};
+
+template <typename T> struct std::hash<TObjectRef<T>>
+{
+    size_t operator()(const TObjectRef<T>& val) const noexcept
+    {
+        if (!val.allocation)
+            return 0;
+        return std::hash<void*>()(val.allocation->ptr);
     }
 };

@@ -3,6 +3,7 @@
 #include "scene/scene.hpp"
 
 #include "object_allocator.hpp"
+#include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
 
 namespace Engine
@@ -27,7 +28,12 @@ void Scene::tick(double delta_second)
         iterator->tick(delta_second);
 }
 
-void Scene::draw(Gfx::CommandBuffer&)
+void Scene::draw(const Gfx::CommandBuffer& cmd_buffer)
 {
+
+    for (auto iterator = iterate<MeshComponent>(); iterator; ++iterator)
+        iterator->draw(cmd_buffer);
+
+
 }
 }

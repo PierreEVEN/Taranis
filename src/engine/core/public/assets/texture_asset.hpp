@@ -33,7 +33,6 @@ class TextureAsset : public AssetBase
   private:
     friend class AssetRegistry;
     TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos);
-    ~TextureAsset() = default;
 
     std::shared_ptr<Gfx::Image>     image;
     std::shared_ptr<Gfx::ImageView> view;
