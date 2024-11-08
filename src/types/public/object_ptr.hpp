@@ -1,28 +1,42 @@
 #pragma once
 #include <cassert>
 
-
-
 class IObject
 {
-protected:
-    struct ObjectPtrData
+    friend class ContiguousObjectPool;
+
+    operator bool() const
     {
-        size_t ptr_count = 0;
-        size_t ref_count = 0;
-        bool   b_valid   = false;
-    };
+        return allocation && allocation->ptr;
+    }
 
-    ObjectPtrData* data = nullptr;
+protected:
+    void decrement_ptr()
+    {
+        if (*this)
+        {
+            assert(allocation->ptr_count > 0);
+            allocation->ptr_count--;
+            if (allocation->dereferenced())
+            {
+
+            }
+        }
+    }
+
+    void decrement_ref()
+    {
+        if (*this)
+        {
+        }
+    }
+
+    virtual void internal_delete_ptr() = 0;
+
+    ObjectAllocation* allocation = nullptr;
 };
 
-class IObjectPtr : public IObject
-{
-  protected:
-};
-
-
-template <typename T> class TObjectPtr : public IObjectPtr
+template <typename T> class TObjectPtr : public IObject
 {
     template <typename V> friend class TObjectPtr;
 
@@ -32,10 +46,12 @@ public:
     explicit TObjectPtr(T* in_object)
     {
         if (in_object)
-        {
-            object = std::move(in_object);
-            data   = new ObjectPtrData{.ptr_count = 1, .ref_count = 0, .b_valid = true};
-        }
+            allocation = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = nullptr};
+    }
+
+    explicit TObjectPtr(ObjectAllocation* in_allocation)
+    {
+        allocation = in_allocation;
     }
 
     template <typename V>
@@ -44,65 +60,40 @@ public:
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
         if (other)
         {
-            object = other.object;
-            data   = other.data;
-            ++data->ptr_count;
+            allocation = other.allocation;
+            ++allocation->ptr_count;
         }
     }
 
     ~TObjectPtr()
     {
-        if (data)
+        if (allocation)
         {
-            if (data->ptr_count > 0)
-                --data->ptr_count;
-            if (data->ptr_count == 0)
+            allocation->decrement_ptr();
+            if (allocation->should_delete_internal_object())
             {
-                if (data->b_valid)
-                    destroy();
-                else if (data->ref_count == 0)
-                {
-                    delete data;
-                    data = nullptr;
-                }
+                static_cast<T*>(allocation->ptr)->~T();
+                allocation->free();
             }
         }
     }
 
-    operator bool() const
-    {
-        return object && data && data->b_valid;
-    }
-
-    T& operator*() const
-    {
-        return *object;
-    }
 
     T* operator->() const
     {
-        return object;
+        return static_cast<T*>(allocation->ptr);
     }
 
     void destroy()
     {
         if (*this)
         {
-            data->b_valid = false;
-            --data->ptr_count;
-            if (data->ptr_count == 0 && data->ref_count == 0)
-                delete data;
-            delete object;
-            object = nullptr;
-            data   = nullptr;
         }
     }
 
 private:
     template <typename V>
     friend class TObjectRef;
-
-    T*              object = nullptr;
 };
 
 template <typename T, typename... Args> TObjectPtr<T> make_object_ptr(Args&&... args)
@@ -120,8 +111,8 @@ public:
     {
         if (in_object)
         {
-            data = in_object.data;
-            ++data->ref_count;
+            allocation = in_object.data;
+            ++allocation->ref_count;
             object = in_object.object;
         }
     }
@@ -131,29 +122,29 @@ public:
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
         if (in_object)
         {
-            data = in_object.data;
-            ++data->ref_count;
+            allocation = in_object.data;
+            ++allocation->ref_count;
             object = in_object.object;
         }
     }
 
     ~TObjectRef()
     {
-        if (data)
+        if (allocation)
         {
-            assert(data->ref_count > 0);
-            --data->ref_count;
-            if (data->ref_count == 0 && data->ptr_count == 0)
+            assert(allocation->ref_count > 0);
+            --allocation->ref_count;
+            if (allocation->ref_count == 0 && allocation->ptr_count == 0)
             {
-                delete data;
-                data = nullptr;
+                delete allocation;
+                allocation = nullptr;
             }
         }
     }
 
     operator bool() const
     {
-        return object && data && data->b_valid;
+        return object && allocation && allocation->b_valid;
     }
 
     T& operator*() const
@@ -171,16 +162,16 @@ public:
         if (*this)
         {
 
-            data->b_valid = false;
-            --data->ref_count;
-            if (data->ptr_count == 0 && data->ref_count == 0)
-                delete data;
+            allocation->b_valid = false;
+            --allocation->ref_count;
+            if (allocation->ptr_count == 0 && allocation->ref_count == 0)
+                delete allocation;
             delete object;
-            object = nullptr;
-            data   = nullptr;
+            object     = nullptr;
+            allocation = nullptr;
         }
     }
 
 private:
-    T*              object;
+    T* object;
 };
