@@ -55,7 +55,7 @@ class Swapchain : public std::enable_shared_from_this<Swapchain>
         return surface;
     }
 
-    void set_renderer(const std::shared_ptr<Renderer>& present_step);
+    std::weak_ptr<SwapchainRenderer> set_renderer(const std::shared_ptr<Renderer>& present_step);
 
     std::weak_ptr<ImageView> get_image_view() const;
 

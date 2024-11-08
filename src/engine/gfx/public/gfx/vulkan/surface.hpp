@@ -5,6 +5,7 @@
 
 namespace Engine::Gfx
 {
+class SwapchainRenderer;
 class Renderer;
 class Swapchain;
 class Device;
@@ -13,7 +14,7 @@ class Instance;
 
 class Surface : public std::enable_shared_from_this<Surface>
 {
-  public:
+public:
     static std::shared_ptr<Surface> create(const std::string& name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& window)
     {
         return std::shared_ptr<Surface>(new Surface(name, instance, window));
@@ -33,14 +34,16 @@ class Surface : public std::enable_shared_from_this<Surface>
         return window;
     }
 
-    void create_swapchain(const std::weak_ptr<Device>& device);
-    void set_renderer(const std::shared_ptr<Renderer>& present_pass) const;
-    void render() const;
+    void                             create_swapchain(const std::weak_ptr<Device>& device);
+    std::weak_ptr<SwapchainRenderer> set_renderer(const std::shared_ptr<Renderer>& present_pass) const;
+    void                             render() const;
+
     const std::shared_ptr<Swapchain>& get_swapchain() const
     {
         return swapchain;
     }
-  private:
+
+private:
     Surface(const std::string& name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& window);
     std::weak_ptr<Window>      window;
     std::weak_ptr<Instance>    instance_ref;

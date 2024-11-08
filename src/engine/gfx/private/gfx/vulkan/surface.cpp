@@ -16,9 +16,9 @@
 namespace Engine::Gfx
 {
 Surface::Surface(const std::string& in_name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& in_window)
-    : window(in_window), instance_ref(instance), name(in_name){VK_CHECK(glfwCreateWindowSurface(instance_ref.lock()->raw(), window.lock()->raw(), nullptr, &ptr), "Failed to create window surface")}
+    : window(in_window), instance_ref(instance), name(in_name) { VK_CHECK(glfwCreateWindowSurface(instance_ref.lock()->raw(), window.lock()->raw(), nullptr, &ptr), "Failed to create window surface") }
 
-      Surface::~Surface()
+Surface::~Surface()
 {
     swapchain = nullptr;
     vkDestroySurfaceKHR(instance_ref.lock()->raw(), ptr, nullptr);
@@ -29,9 +29,9 @@ void Surface::create_swapchain(const std::weak_ptr<Device>& device)
     swapchain = Swapchain::create(name + "_swp", device, weak_from_this());
 }
 
-void Surface::set_renderer(const std::shared_ptr<Renderer>& present_pass) const
+std::weak_ptr<SwapchainRenderer> Surface::set_renderer(const std::shared_ptr<Renderer>& present_pass) const
 {
-    swapchain->set_renderer(present_pass);
+    return swapchain->set_renderer(present_pass);
 }
 
 void Surface::render() const

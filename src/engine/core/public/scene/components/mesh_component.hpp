@@ -4,6 +4,11 @@
 
 namespace Engine
 {
+class CameraComponent;
+}
+
+namespace Engine
+{
 class MaterialInstanceAsset;
 }
 
@@ -20,7 +25,8 @@ class MeshComponent : public SceneComponent
     REFLECT_BODY();
 
 public:
-    MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {}, const TObjectRef<MaterialInstanceAsset>& in_material = {}) : material(in_material), mesh(in_mesh)
+    MeshComponent(TObjectRef<CameraComponent> in_temp_cam, const TObjectRef<MeshAsset>& in_mesh = {}, const TObjectRef<MaterialInstanceAsset>& in_material = {})
+        : material(in_material), mesh(in_mesh), temp_cam(in_temp_cam)
     {
     };
 
@@ -28,6 +34,7 @@ public:
 
     TObjectRef<MaterialInstanceAsset> material;
     TObjectRef<MeshAsset>             mesh;
+    TObjectRef<CameraComponent>       temp_cam;
 };
 
 }

@@ -54,8 +54,8 @@ glm::uvec2 Window::internal_extent() const
     return {width, height};
 }
 
-void Window::set_renderer(const std::shared_ptr<Renderer>& present_pass) const
+std::weak_ptr<SwapchainRenderer> Window::set_renderer(const std::shared_ptr<Renderer>& present_pass) const
 {
-    surface->set_renderer(present_pass);
+    return surface->set_renderer(present_pass);
 }
 } // namespace Engine::Gfx

@@ -44,6 +44,7 @@ Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instan
     }
 
     VkPhysicalDeviceFeatures deviceFeatures{
+        .fillModeNonSolid  = true,
         .samplerAnisotropy = true,
     };
     VkDeviceCreateInfo createInfo{

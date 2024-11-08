@@ -46,14 +46,13 @@ struct VsToFs\
 };\
 struct PushConsts\
 {\
-    float4x4 model;\
     float4x4 camera;\
 };\
 [[vk::push_constant]] ConstantBuffer<PushConsts> pc;\
 VsToFs                                           main(VSInput input)\
 {\
     VsToFs Out;\
-    Out.Pos    = mul(pc.camera, mul(pc.model, float4(input.pos, 1)));\
+    Out.Pos    = mul(pc.camera, float4(input.pos, 1));\
     Out.vtxpos = float4(input.pos, 1);\
     return Out;\
 }";
@@ -135,10 +134,10 @@ private:
 class TestApp : public Engine::Application
 {
 public:
-    void init(Engine::Engine& engine, const std::weak_ptr<Engine::Gfx::Window>& default_window) override
+    void init(Engine::Engine& engine, const std::weak_ptr<Engine::Gfx::Window>& in_default_window) override
     {
-
-        default_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
+        default_window = in_default_window;
+        auto renderer = default_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
                                             ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
                                                                                                       Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
                                             ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
@@ -156,7 +155,8 @@ public:
         auto                        test_mat      = Engine::Gfx::Pipeline::create("test material", engine.get_device(), rp,
                                                       std::vector{Engine::Gfx::ShaderModule::create(engine.get_device(), vertex_code.get()), Engine::Gfx::ShaderModule::create(engine.get_device(), fragment_code.get())},
                                                       Engine::Gfx::Pipeline::CreateInfos{.culling = Engine::Gfx::ECulling::None,
-                                                                                         .alpha_mode = Engine::Gfx::EAlphaMode::Translucent,
+                                                                                                                     .polygon_mode = Engine::Gfx::EPolygonMode::Line,
+                                                                                         .alpha_mode = Engine::Gfx::EAlphaMode::Opaque,
                                                                                          .depth_test = false,
                                                                                          .stage_input_override = std::vector{
                                                                                              Engine::Gfx::StageInputOutputDescription{0, 0, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
@@ -169,19 +169,55 @@ public:
         auto mat_test               = engine.asset_registry().create<Engine::MaterialAsset>("test mat", test_mat);
         auto test_material_instance = engine.asset_registry().create<Engine::MaterialInstanceAsset>("test mat instance", mat_test);
 
+        camera = scene.add_component<Engine::CameraComponent>("test_cam", renderer);
         Engine::GltfImporter::load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
         for (const auto& asset : engine.asset_registry().all_assets())
             if (auto mesh = asset.second.cast<Engine::MeshAsset>())
-                scene.add_component<Engine::MeshComponent>(mesh->get_name(), mesh, test_material_instance);
+                scene.add_component<Engine::MeshComponent>(mesh->get_name(), camera, mesh, test_material_instance);
 
-        auto camera = scene.add_component<Engine::CameraComponent>("test_cam");
     }
 
     void tick_game(Engine::Engine&, double delta_second) override
     {
+        auto glfw_ptr = default_window.lock()->raw();
+
+        glm::vec3 mov_vec;
+
+
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_W))
+        {
+            mov_vec.x = 1;
+        }
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_S))
+        {
+            mov_vec.x = -1;
+        }
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
+        {
+            mov_vec.y = -1;
+        }
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
+        {
+            mov_vec.y = 1;
+        }
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_SPACE))
+        {
+            mov_vec.z = 1;
+        }
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_LEFT_SHIFT))
+        {
+            mov_vec.z = -1;
+        }
+
+
+        camera->set_position(camera->get_position() + mov_vec * static_cast<float>(delta_second) * 500.f);
+        LOG_WARNING("cam : {}, {}, {}", camera->get_position().x, camera->get_position().y, camera->get_position().z);
+
         scene.tick(delta_second);
     }
 
+    TObjectRef<Engine::CameraComponent> camera;
+    std::weak_ptr<Engine::Gfx::Window>  default_window;
     Engine::Scene scene;
 };
 

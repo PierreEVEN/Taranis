@@ -19,15 +19,15 @@ RenderPassInstanceBase::RenderPassInstanceBase(std::string in_name, const std::s
 
 void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t current_frame)
 {
-    rendered = true;
-    for (const auto& child : children)
-        child->render(current_frame, current_frame);
-
     // Begin get record
     const auto& framebuffer = framebuffers[output_framebuffer];
     framebuffer->get_command_buffer().begin(false);
 
     device.lock()->get_instance().lock()->begin_debug_marker(framebuffer->get_command_buffer().raw(), "BeginRenderPass_" + name, {1, 0, 0, 1});
+
+    rendered = true;
+    for (const auto& child : children)
+        child->render(current_frame, current_frame);
 
     // Begin render pass
     std::vector<VkClearValue> clear_values;

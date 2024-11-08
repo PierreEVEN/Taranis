@@ -61,10 +61,13 @@ class Engine
 
     AssetRegistry& asset_registry() const;
 
+    double get_seconds() const;
+
   private:
     void run_internal();
 
     std::chrono::steady_clock::time_point last_time;
+    std::chrono::steady_clock::time_point start_time;
 
     std::unordered_map<size_t, std::shared_ptr<Gfx::Window>> windows;
 

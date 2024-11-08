@@ -216,10 +216,11 @@ void Swapchain::destroy()
     }
 }
 
-void Swapchain::set_renderer(const std::shared_ptr<Renderer>& present_step)
+std::weak_ptr<SwapchainRenderer> Swapchain::set_renderer(const std::shared_ptr<Renderer>& present_step)
 {
     const auto render_step = present_step->init_for_swapchain(*this);
     renderer               = std::make_shared<SwapchainRenderer>(name, device.lock()->find_or_create_render_pass(render_step->get_infos()), weak_from_this(), render_step);
+    return renderer;
 }
 
 std::weak_ptr<ImageView> Swapchain::get_image_view() const

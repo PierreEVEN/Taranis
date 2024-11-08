@@ -36,6 +36,8 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
             set_kind("shared")
         end
 
+
+        add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
         
         if enable_reflection then
             add_deps('header_tool')

@@ -21,6 +21,7 @@ Engine::Engine(Config config) : app_config(std::move(config))
         LOG_FATAL("Cannot start multiple engine instances at the same time")
     engine_singleton = this;
     last_time        = std::chrono::steady_clock::now();
+    start_time       = std::chrono::steady_clock::now();
 
     gfx_instance          = Gfx::Instance::create(config.gfx);
     global_asset_registry = std::make_unique<AssetRegistry>();
@@ -89,5 +90,10 @@ Engine& Engine::get()
 AssetRegistry& Engine::asset_registry() const
 {
     return *global_asset_registry;
+}
+
+double Engine::get_seconds() const
+{
+    return static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count()) / 1000000.0;
 }
 } // namespace Engine
