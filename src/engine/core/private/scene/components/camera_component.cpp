@@ -19,7 +19,7 @@ void CameraComponent::recompute()
     auto  res    = render_pass.lock()->resolution();
     float aspect = static_cast<float>(res.x) / static_cast<float>(res.y);
     assert(std::abs(aspect - std::numeric_limits<float>::epsilon()) > static_cast<float>(0));
-    float     h = 1.f / std::tan(fov * 0.5f);
+    float     h = 1.f / std::tan(glm::radians(fov) * 0.5f);
     float     w = h / aspect;
     perspective      = {
         {0, 0, 0, 1},

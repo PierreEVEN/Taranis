@@ -42,7 +42,7 @@ public:
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
-        children.emplace_back(obj_ptr);
+        children.push_back(obj_ptr);
         return obj_ptr;
     }
 

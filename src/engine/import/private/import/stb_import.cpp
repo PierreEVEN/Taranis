@@ -19,6 +19,16 @@ struct FreeImageInitializer
     FreeImageInitializer()
     {
         FreeImage_Initialise();
+        FreeImage_SetOutputMessage(
+            [](FREE_IMAGE_FORMAT fif, const char* msg)
+            {
+                LOG_WARNING("FreeImage (format {}) : {}", static_cast<int>(fif), msg);
+            });
+        FreeImage_SetOutputMessageStdCall(
+            [](FREE_IMAGE_FORMAT fif, const char* msg)
+            {
+                LOG_WARNING("FreeImage (format {}) : {}", static_cast<int>(fif), msg);
+            });
     }
     ~FreeImageInitializer()
     {
@@ -27,9 +37,16 @@ struct FreeImageInitializer
 };
 static FreeImageInitializer _initializer;
 
-
 TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path& path)
 {
+    FREE_IMAGE_FORMAT image_format = FreeImage_GetFileType(path.string().c_str(), 0);
+    
+    FIBITMAP*            image_raw = FreeImage_Load(image_format, path.string().c_str(), 0);
+
+
+    
+    FreeImage_Unload(image_raw);
+
     std::ifstream        input(path, std::ios::binary);
     std::vector<uint8_t> buffer(std::istreambuf_iterator(input), {});
     return load_raw(path.filename().string(), Gfx::BufferData(buffer.data(), 1, buffer.size()));
@@ -49,6 +66,11 @@ TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, con
     }
 
     FIBITMAP*         image_raw    = FreeImage_LoadFromMemory(image_format, mem_handle);
+    if (!image_raw)
+    {
+        LOG_ERROR("Failed to load image {} (format : {})", file_name, static_cast<int>(image_format));
+        return {};
+    }
     FreeImage_CloseMemory(mem_handle);
     FIBITMAP* converted = nullptr;
     FreeImage_FlipVertical(converted);

@@ -1,4 +1,3 @@
-#include "assets/asset_registry.hpp"
 #include "assets/texture_asset.hpp"
 #include "config.hpp"
 #include "engine.hpp"
@@ -19,124 +18,22 @@
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
-
-#include <ranges>
+#include "widgets/viewport.hpp"
 
 using namespace Eng;
-
-namespace Eng::Gfx
-{
-class ImGuiWrapper;
-}
-
-
-class Viewport
-{
-public:
-    Viewport(const std::shared_ptr<Gfx::RenderPassInstanceBase>& in_render_pass) : render_pass(in_render_pass)
-    {
-        draw_res = in_render_pass->resolution();
-        in_render_pass->set_resize_callback(
-            [&](auto)
-            {
-                return draw_res;
-            });
-    }
-
-    void draw_ui(Gfx::ImGuiWrapper& imgui)
-    {
-        if (ImGui::Begin("Viewport"))
-        {
-            glm::uvec2 new_draw_res = {static_cast<uint32_t>(ImGui::GetContentRegionAvail().x), static_cast<uint32_t>(ImGui::GetContentRegionAvail().y)};
-
-            if (new_draw_res != draw_res)
-            {
-                draw_res = new_draw_res;
-                render_pass->resize(draw_res);
-            }
-            ImGui::Image(imgui.add_image(render_pass->get_attachments()[0].lock()), ImGui::GetContentRegionAvail());
-        }
-        ImGui::End();
-    }
-
-    std::shared_ptr<Gfx::RenderPassInstanceBase> render_pass;
-    glm::uvec2                                   draw_res = {0, 0};
-};
-
-class TestFirstPassInterface : public Gfx::RenderPassInterface
-{
-public:
-    TestFirstPassInterface(std::weak_ptr<Gfx::Window> parent_window, Scene& in_scene) : window(std::move(parent_window)), scene(&in_scene)
-    {
-    }
-
-    void init(const std::weak_ptr<Gfx::Device>& device, const Gfx::RenderPassInstanceBase& render_pass) override
-    {
-        imgui = std::make_unique<Gfx::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
-        viewport = std::make_unique<Viewport>(render_pass.get_children()[0]);
-    }
-
-    void render(const Gfx::RenderPassInstanceBase& render_pass, const Gfx::CommandBuffer& command_buffer) override
-    {
-        imgui->begin(render_pass.resolution());
-
-        ImGui::SetNextWindowPos(ImVec2(-4, -4));
-        ImGui::SetNextWindowSize(ImVec2(static_cast<float>(render_pass.resolution().x) + 8.f, static_cast<float>(render_pass.resolution().y) + 8.f));
-        if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground))
-        {
-            ImGui::DockSpace(ImGui::GetID("Master dockSpace"), ImVec2(0.f, 0.f), ImGuiDockNodeFlags_PassthruCentralNode);
-        }
-        ImGui::End();
-
-        viewport->draw_ui(*imgui);
-
-        if (ImGui::Begin("test"))
-        {
-            ImGui::LabelText("ms", "%lf", Engine::get().delta_second * 1000);
-            ImGui::LabelText("fps", "%lf", 1.0 / Engine::get().delta_second);
-
-            int idx = 0;
-            for (const auto& asset : Engine::get().asset_registry().all_assets() | std::views::values)
-            {
-                if (auto texture = asset.cast<TextureAsset>())
-                {
-                    ImGui::Image(imgui->add_image(texture->get_view()), {100, 100});
-                    if (idx++ % 10 != 0)
-                        ImGui::SameLine();
-                }
-            }
-
-            ImGui::Dummy({});
-            for (const auto& asset : Engine::get().asset_registry().all_assets() | std::views::values)
-                ImGui::Text("%s : %s", asset->get_class()->name(), asset->get_name());
-        }
-        ImGui::End();
-        imgui->end(command_buffer);
-    }
-
-private:
-    std::unique_ptr<Gfx::ImGuiWrapper> imgui;
-    std::weak_ptr<Gfx::Window>         window;
-    Scene*                             scene;
-    std::unique_ptr<Viewport> viewport;
-};
-
 class SceneRendererInterface : public Gfx::RenderPassInterface
 {
 public:
     SceneRendererInterface(Scene& in_scene) : scene(&in_scene)
     {
     }
-
     void init(const std::weak_ptr<Gfx::Device>&, const Gfx::RenderPassInstanceBase&) override
     {
     }
-
     void render(const Gfx::RenderPassInstanceBase&, const Gfx::CommandBuffer& command_buffer) override
     {
         scene->draw(command_buffer);
     }
-
     Scene* scene;
 };
 
@@ -148,16 +45,16 @@ public:
     {
         default_window = in_default_window;
         auto renderer  = default_window.lock()->set_renderer(
-            Gfx::Renderer::create<TestFirstPassInterface>(
+            Gfx::Renderer::create(
                 "present_pass",
-                {},
-                default_window,
-                scene)
+                {})
             ->attach(Gfx::RenderPass::create<SceneRendererInterface>(
                 "forward_pass", {
                     Gfx::Attachment::color("color", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
                     Gfx::Attachment::depth("depth", Gfx::ColorFormat::D32_SFLOAT, Gfx::ClearValue::depth_stencil({0, 0}))},
                 scene)));
+
+        renderer.lock()->imgui_context()->new_window<Viewport>("Viewport", renderer.lock()->get_children()[0]);
 
         auto& rp = renderer.lock()->get_children()[0];
 
@@ -165,6 +62,7 @@ public:
         AssimpImporter importer;
         importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, camera.cast<CameraComponent>(), rp->get_render_pass());
         //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", scene, camera.cast<CameraComponent>(), rp->get_render_pass());
+        //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", scene, camera.cast<CameraComponent>(), rp->get_render_pass());
     }
 
     void tick_game(Engine&, double delta_second) override

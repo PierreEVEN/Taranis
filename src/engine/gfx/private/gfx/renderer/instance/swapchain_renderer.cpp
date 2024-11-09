@@ -1,5 +1,6 @@
 #include "gfx/renderer/instance/swapchain_renderer.hpp"
 
+#include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/swapchain.hpp"
@@ -11,6 +12,8 @@ SwapchainRenderer::SwapchainRenderer(const std::string& in_name, const std::shar
     : RendererInstance(in_name, in_render_pass, present_step), swapchain(in_target)
 {
     resize(swapchain.lock()->get_extent());
+    imgui = std::make_shared<ImGuiWrapper>("imgui_renderer", render_pass, device, in_target.lock()->get_surface().lock()->get_window());
+    imgui->begin(swapchain.lock()->get_extent());
 }
 
 SwapchainRenderer::~SwapchainRenderer()

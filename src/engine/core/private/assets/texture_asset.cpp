@@ -1,6 +1,7 @@
 #include "assets/texture_asset.hpp"
 
 #include "engine.hpp"
+#include "assets/asset_registry.hpp"
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
 
@@ -10,6 +11,20 @@ namespace Eng
 const Gfx::ColorFormat& TextureAsset::get_format() const
 {
     return image->get_params().format;
+}
+
+static TObjectRef<TextureAsset> default_asset = {};
+
+TObjectRef<TextureAsset> TextureAsset::get_default_asset()
+{
+    if (!default_asset)
+    {
+        std::vector<uint8_t> pixels = {
+            255, 255, 255, 255, 255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255,
+        };
+        default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", Gfx::BufferData(pixels.data(), 1, pixels.size()), CreateInfos{.width = 2, .height = 2, .channels = 4});
+    }
+    return default_asset;
 }
 
 TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos) : infos(create_infos)

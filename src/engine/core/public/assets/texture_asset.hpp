@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_base.hpp"
+#include "object_ptr.hpp"
 
 #include "assets/texture_asset.gen.hpp"
 #include "gfx/vulkan/image.hpp"
@@ -35,7 +36,10 @@ public:
 
     const Gfx::ColorFormat& get_format() const;
 
-private:
+    static TObjectRef<TextureAsset> get_default_asset();
+
+  private:
+
     friend class AssetRegistry;
     TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos);
 

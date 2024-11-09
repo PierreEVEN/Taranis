@@ -10,6 +10,11 @@
 
 namespace Eng::Gfx
 {
+class ImGuiWrapper;
+}
+
+namespace Eng::Gfx
+{
 class Framebuffer;
 class RenderPassInstance;
 class Image;
@@ -67,6 +72,11 @@ public:
     {
     }
 
+    ImGuiWrapper* imgui_context() const
+    {
+        return imgui.get();
+    }
+
 protected:
     ResizeCallback                                   resize_callback = nullptr;
     void                                             new_frame_internal();
@@ -78,6 +88,7 @@ protected:
     std::vector<std::shared_ptr<Framebuffer>>        framebuffers;
     std::string                                      name;
     RenderPass::Definition                           definition;
+    std::shared_ptr<ImGuiWrapper>                    imgui;
 };
 
 class RendererInstance : public RenderPassInstanceBase
@@ -114,8 +125,8 @@ private:
     glm::uvec2 framebuffer_resolution = {0, 0};
 
     // These images will be used for the next frame because the current one are still being used by parent render passes. We need to wait the next render pass
-    std::vector<std::shared_ptr<Image>> replacement_framebuffer_images;
-    std::vector<std::shared_ptr<ImageView>> replacement_framebuffer_image_views;
+    std::vector<std::shared_ptr<Image>>       replacement_framebuffer_images;
+    std::vector<std::shared_ptr<ImageView>>   replacement_framebuffer_image_views;
     std::vector<std::shared_ptr<Framebuffer>> replacement_framebuffers;
 
     std::vector<std::shared_ptr<Image>>     framebuffer_images;

@@ -1,5 +1,6 @@
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 
+#include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
@@ -18,13 +19,16 @@ RenderPassInstanceBase::RenderPassInstanceBase(std::string in_name, const std::s
 
 void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t current_frame)
 {
+    if (rendered)
+        return;
+
+    rendered = true;
     // Begin get record
     const auto& framebuffer = framebuffers[output_framebuffer];
     framebuffer->get_command_buffer().begin(false);
-
     device.lock()->get_instance().lock()->begin_debug_marker(framebuffer->get_command_buffer().raw(), "BeginRenderPass_" + name, {1, 0, 0, 1});
 
-    rendered = true;
+
     for (const auto& child : children)
         child->render(current_frame, current_frame);
 
@@ -76,6 +80,12 @@ void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t curren
     vkCmdSetScissor(framebuffer->get_command_buffer().raw(), 0, 1, &scissor);
 
     interface->render(*this, framebuffer->get_command_buffer());
+
+    if (imgui)
+    {
+        imgui->end(framebuffer->get_command_buffer());
+        imgui->begin(resolution());
+    }
 
     // End command get
     vkCmdEndRenderPass(framebuffer->get_command_buffer().raw());

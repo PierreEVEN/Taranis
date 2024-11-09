@@ -1,4 +1,6 @@
 #pragma once
+#include "ui_window.hpp"
+
 #include <GLFW/glfw3.h>
 #include <chrono>
 #include <glm/vec2.hpp>
@@ -7,6 +9,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace Eng
+{
+class UiWindow;
+}
 
 struct ImGuiContext;
 
@@ -25,7 +32,7 @@ class Pipeline;
 
 class ImGuiWrapper
 {
-  public:
+public:
     ImGuiWrapper(std::string name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
     void begin(glm::uvec2 draw_res);
@@ -33,7 +40,19 @@ class ImGuiWrapper
 
     ImTextureID add_image(const std::shared_ptr<ImageView>& image_view);
 
-  private:
+
+    template <typename T, typename... Args> std::weak_ptr<T> new_window(const std::string& window_name, Args&&...args)
+    {
+        auto new_window = std::make_shared<T>(window_name, std::forward<Args>(args)...);
+        windows.push_back(new_window);
+        return new_window;
+    }
+
+private:
+
+
+    std::vector<std::shared_ptr<UiWindow>> windows;
+
     std::chrono::steady_clock::time_point last_time;
 
     std::shared_ptr<Mesh>          mesh;

@@ -72,9 +72,9 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     const auto vertex_temp = ShaderModule::create(device, vertex_code.get());
 
     imgui_material = Pipeline::create(name + "_pipeline", device, render_pass, std::vector{ShaderModule::create(device, vertex_code.get()), ShaderModule::create(device, fragment_code.get())},
-                                      Pipeline::CreateInfos{.culling              = ECulling::None,
-                                                            .alpha_mode           = EAlphaMode::Translucent,
-                                                            .depth_test           = false,
+                                      Pipeline::CreateInfos{.culling = ECulling::None,
+                                                            .alpha_mode = EAlphaMode::Translucent,
+                                                            .depth_test = false,
                                                             .stage_input_override = std::vector{
                                                                 StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
                                                                 StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
@@ -162,14 +162,14 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     int      width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    font_texture          = Image::create(name + "_font_image", device,
-                                          ImageParameter{
-                                              .format      = ColorFormat::R8G8B8A8_UNORM,
-                                              .buffer_type = EBufferType::IMMUTABLE,
-                                              .width       = static_cast<uint32_t>(width),
-                                              .height      = static_cast<uint32_t>(height),
+    font_texture = Image::create(name + "_font_image", device,
+                                 ImageParameter{
+                                     .format = ColorFormat::R8G8B8A8_UNORM,
+                                     .buffer_type = EBufferType::IMMUTABLE,
+                                     .width = static_cast<uint32_t>(width),
+                                     .height = static_cast<uint32_t>(height),
                                  },
-                                          BufferData(pixels, 4, width * height));
+                                 BufferData(pixels, 4, width * height));
     font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
     imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
@@ -212,10 +212,28 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
         glfwSetCursor(target_window.lock()->raw(), cursor_map[imgui_cursor]);
 
     ImGui::NewFrame();
+
+    ImGui::SetNextWindowPos(ImVec2(-4, -4));
+    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(draw_res.x) + 8.f, static_cast<float>(draw_res.y) + 8.f));
+    if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground))
+    {
+        ImGui::DockSpace(ImGui::GetID("Master dockSpace"), ImVec2(0.f, 0.f), ImGuiDockNodeFlags_PassthruCentralNode);
+    }
+    ImGui::End();
 }
 
 void ImGuiWrapper::end(const CommandBuffer& cmd)
 {
+    ImGui::SetCurrentContext(imgui_context);
+
+    for (int64_t i = windows.size() - 1; i >= 0; --i)
+    {
+        if (windows[i]->b_open)
+            windows[i]->draw_internal(*this);
+        else
+            windows.erase(windows.begin() + i);
+    }
+
     ImGui::EndFrame();
     ImGui::Render();
     const auto* draw_data = ImGui::GetDrawData();
@@ -264,11 +282,11 @@ void ImGuiWrapper::end(const CommandBuffer& cmd)
         float translate_x;
         float translate_y;
     } constant_data = {
-        .scale_x     = scale_x,
-        .scale_y     = scale_y,
-        .translate_x = -1.0f - draw_data->DisplayPos.x * scale_x,
-        .translate_y = 1.0f - draw_data->DisplayPos.y * scale_y,
-    };
+            .scale_x = scale_x,
+            .scale_y = scale_y,
+            .translate_x = -1.0f - draw_data->DisplayPos.x * scale_x,
+            .translate_y = 1.0f - draw_data->DisplayPos.y * scale_y,
+        };
     cmd.push_constant(EShaderStage::Vertex, *imgui_material, constant_data);
 
     /**
@@ -325,8 +343,8 @@ void ImGuiWrapper::end(const CommandBuffer& cmd)
                     cmd.set_scissor(Scissor{
                         .offset_x = static_cast<int32_t>(clip_rect.x),
                         .offset_y = static_cast<int32_t>(clip_rect.y),
-                        .width    = static_cast<uint32_t>(clip_rect.z - clip_rect.x),
-                        .height   = static_cast<uint32_t>(clip_rect.w - clip_rect.y),
+                        .width = static_cast<uint32_t>(clip_rect.z - clip_rect.x),
+                        .height = static_cast<uint32_t>(clip_rect.w - clip_rect.y),
                     });
 
                     // Bind descriptor set with font or user texture

@@ -35,6 +35,8 @@ void MaterialInstanceAsset::set_sampler(const std::string& binding, const TObjec
 
 void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture) const
 {
+    if (!texture)
+        LOG_FATAL("Cannot set null texture");
     descriptors->bind_image(binding, texture->get_view());
 }
 } // namespace Eng

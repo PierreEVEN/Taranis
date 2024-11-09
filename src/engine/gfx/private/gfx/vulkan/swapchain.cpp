@@ -10,6 +10,7 @@
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
 #include "gfx/renderer/instance/swapchain_renderer.hpp"
+#include "gfx/ui/ImGuiWrapper.hpp"
 
 namespace Eng::Gfx
 {

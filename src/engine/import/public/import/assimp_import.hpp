@@ -64,7 +64,7 @@ public:
         TObjectRef<TextureAsset>          find_or_load_texture(std::string path);
         TObjectRef<MaterialInstanceAsset> find_or_load_material_instance(int id);
         TObjectRef<MaterialAsset>         find_or_load_material(MaterialType type);
-        MeshSection&                      find_or_load_mesh(int id);
+        std::shared_ptr<MeshSection>     find_or_load_mesh(int id);
         TObjectRef<SamplerAsset>          get_sampler();
 
         std::unordered_map<std::string, TObjectRef<TextureAsset>>  textures;

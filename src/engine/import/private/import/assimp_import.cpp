@@ -59,8 +59,10 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         auto new_mesh = Engine::get().asset_registry().create<MeshAsset>(node->mName.C_Str());
         for (size_t i = 0; i < node->mNumMeshes; ++i)
         {
-            auto& section = find_or_load_mesh(node->mMeshes[i]);
-            new_mesh->add_section(section.vertices, *section.indices, section.mat);
+            auto section = find_or_load_mesh(node->mMeshes[i]);
+            if (!section)
+                continue;
+            new_mesh->add_section(section->vertices, *section->indices, section->mat);
         }
         if (parent)
         {
@@ -142,12 +144,18 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
 
     auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(MaterialType::Opaque));
 
+    new_mat->set_sampler("sSampler", get_sampler());
+    if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
+        new_mat->set_texture("albedo", TextureAsset::get_default_asset());
+
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE); ++i)
     {
         aiString path;
         mat->GetTexture(aiTextureType_DIFFUSE, i, &path);
-        new_mat->set_sampler("sSampler", get_sampler());
-        new_mat->set_texture("albedo", find_or_load_texture(path.C_Str()));
+        if (auto diffuse = find_or_load_texture(path.C_Str()))
+            new_mat->set_texture("albedo", diffuse);
+        else
+            new_mat->set_texture("albedo", TextureAsset::get_default_asset());
         break;
     }
 
@@ -155,9 +163,8 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     {
         aiString path;
         mat->GetTexture(aiTextureType_NORMALS, i, &path);
-
-        new_mat->set_sampler("sSampler", get_sampler());
-        new_mat->set_texture("normal", find_or_load_texture(path.C_Str()));
+        if (auto normal = find_or_load_texture(path.C_Str()))
+            new_mat->set_texture("normal", normal);
         break;
     }
 
@@ -183,10 +190,10 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(Mat
     return materials_base;
 }
 
-AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_load_mesh(int id)
+std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneLoader::find_or_load_mesh(int id)
 {
     if (auto found = meshes.find(id); found != meshes.end())
-        return *found->second;
+        return found->second;
     auto mesh = scene->mMeshes[id];
 
     std::vector<MeshAsset::Vertex> vertices(mesh->mNumVertices, {});
@@ -212,6 +219,12 @@ AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_l
         for (uint32_t i = 0; i < mesh->mNumFaces; ++i)
         {
             auto& face = mesh->mFaces[i];
+            if (face.mNumIndices != 3)
+            {
+                LOG_ERROR("Mesh import doesn't support non triangle faces ! ({})", face.mNumIndices);
+                meshes.emplace(id, nullptr);
+                return nullptr;
+            }
             assert(face.mNumIndices == 3);
             triangles[i * 3]     = static_cast<uint16_t>(face.mIndices[0]);
             triangles[i * 3 + 1] = static_cast<uint16_t>(face.mIndices[1]);
@@ -221,7 +234,7 @@ AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_l
         auto base_buffer = Gfx::BufferData(triangles.data(), 2, triangles.size());
         auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, base_buffer.copy());
         meshes.emplace(id, new_section);
-        return *new_section;
+        return new_section;
     }
     else
     {
@@ -237,7 +250,7 @@ AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_l
         }
         auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, Gfx::BufferData(triangles.data(), 4, triangles.size()).copy());
         meshes.emplace(id, new_section);
-        return *new_section;
+        return new_section;
     }
 }
 
