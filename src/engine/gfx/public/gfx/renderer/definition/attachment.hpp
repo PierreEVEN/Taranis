@@ -28,7 +28,7 @@ class ClearValue
 
     bool is_none() const
     {
-        return color_val && depth_stencil_val;
+        return !is_color() && !is_depth_stencil();
     }
 
     bool is_color() const

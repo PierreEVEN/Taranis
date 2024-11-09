@@ -53,7 +53,7 @@ class Pipeline
   public:
     struct CreateInfos
     {
-        ECulling                                                culling      = ECulling::Back;
+        ECulling                                                culling      = ECulling::Front;
         EFrontFace                                              front_face   = EFrontFace::CounterClockwise;
         ETopology                                               topology     = ETopology::Triangles;
         EPolygonMode                                            polygon_mode = EPolygonMode::Fill;

@@ -150,8 +150,11 @@ std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProper
     if (!input_vars.empty())
     {
         uint32_t first_offset = input_vars[0]->word_offset.location;
+
         for (const auto& var : input_vars)
         {
+            if (static_cast<int>(var->built_in) >= 0)
+                continue;
             properties.stage_inputs.emplace_back(var->location, (var->word_offset.location - first_offset) * 2, static_cast<ColorFormat>(var->format));
         }
     }

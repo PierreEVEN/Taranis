@@ -65,9 +65,17 @@ public:
     void drop_resource(const std::shared_ptr<DeviceResource>& resource)
     {
         std::lock_guard lock(resource_mutex);
-        if (current_image > pending_kill_resources.size())
-            pending_kill_resources.resize(current_image);
+        if (current_image >= pending_kill_resources.size())
+            pending_kill_resources.resize(current_image + 1);
         pending_kill_resources[current_image].emplace_back(resource);
+    }
+
+    void drop_resource(const std::shared_ptr<DeviceResource>& resource, size_t resource_image)
+    {
+        std::lock_guard lock(resource_mutex);
+        if (resource_image >= pending_kill_resources.size())
+            pending_kill_resources.resize(resource_image + 1);
+        pending_kill_resources[resource_image].emplace_back(resource);
     }
 
     DescriptorPool& get_descriptor_pool() const

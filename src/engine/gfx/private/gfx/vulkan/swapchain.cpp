@@ -9,6 +9,7 @@
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
+#include "gfx/renderer/instance/swapchain_renderer.hpp"
 
 namespace Eng::Gfx
 {

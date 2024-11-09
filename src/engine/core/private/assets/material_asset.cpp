@@ -5,7 +5,6 @@
 
 namespace Eng
 {
-
 MaterialAsset::MaterialAsset(const std::shared_ptr<Gfx::Pipeline>& in_pipeline) : pipeline(in_pipeline)
 {
 }

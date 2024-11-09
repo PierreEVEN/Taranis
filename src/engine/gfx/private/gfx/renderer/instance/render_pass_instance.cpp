@@ -14,7 +14,6 @@ namespace Eng::Gfx
 RenderPassInstanceBase::RenderPassInstanceBase(std::string in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::shared_ptr<RenderPassInterface>& in_interface, RenderPass::Definition in_definition)
     : interface(in_interface), device(in_render_pass->get_device()), render_pass(in_render_pass), name(std::move(in_name)), definition(std::move(in_definition))
 {
-    interface->init(device, *this);
 }
 
 void RenderPassInstanceBase::render(uint32_t output_framebuffer, uint32_t current_frame)
@@ -116,58 +115,11 @@ void RenderPassInstanceBase::new_frame_internal()
         child->new_frame_internal();
 }
 
-SwapchainRenderer::SwapchainRenderer(const std::string& in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::weak_ptr<Swapchain>& in_target, const std::shared_ptr<RenderPass>& present_step)
-    : RendererInstance(in_name, in_render_pass, present_step), swapchain(in_target)
-{
-    resize(swapchain.lock()->get_extent());
-}
-
-SwapchainRenderer::~SwapchainRenderer()
-{
-    children.clear();
-}
-
-std::vector<std::weak_ptr<ImageView>> SwapchainRenderer::get_attachments() const
-{
-    return {swapchain.lock()->get_image_view()};
-}
-
-glm::uvec2 SwapchainRenderer::resolution() const
-{
-    return swapchain.lock()->get_extent();
-}
-
-void SwapchainRenderer::resize(glm::uvec2 parent_resolution)
-{
-    for (auto& child : children)
-        child->resize(parent_resolution);
-
-    int image_index = 0;
-    framebuffers.clear();
-    const size_t image_count = swapchain.lock()->get_image_view().lock()->raw().size();
-    for (size_t i = 0; i < image_count; ++i)
-        framebuffers.emplace_back(Framebuffer::create(name, render_pass.lock()->get_device(), *this, image_index++));
-}
-
-const Semaphore& SwapchainRenderer::get_render_finished_semaphore(uint32_t image_index) const
-{
-    return framebuffers[image_index]->render_finished_semaphore();
-}
-
-const Semaphore* SwapchainRenderer::get_wait_semaphores(uint32_t image_index) const
-{
-    return &swapchain.lock()->get_image_available_semaphore(image_index);
-}
-
-const Fence* SwapchainRenderer::get_signal_fence(uint32_t image_index) const
-{
-    return &swapchain.lock()->get_in_flight_fence(image_index);
-}
-
 RenderPassInstance::RenderPassInstance(const std::string&            in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::shared_ptr<RenderPassInterface>& in_interface,
                                        const RenderPass::Definition& in_definition)
     : RenderPassInstanceBase(in_name, in_render_pass, in_interface, in_definition)
 {
+    interface->init(device, *this);
 }
 
 RenderPassInstance::~RenderPassInstance()
@@ -176,16 +128,42 @@ RenderPassInstance::~RenderPassInstance()
     framebuffer_image_views.clear();
 }
 
+void RenderPassInstance::render(uint32_t output_framebuffer, uint32_t current_frame)
+{
+    if (!replacement_framebuffer_images.empty())
+    {
+        for (size_t i = 0; i < framebuffers.size(); ++i)
+            device.lock()->drop_resource(framebuffers[i], i);
+
+        framebuffer_images      = replacement_framebuffer_images;
+        framebuffer_image_views = replacement_framebuffer_image_views;
+        framebuffers            = replacement_framebuffers;
+        replacement_framebuffer_images.clear();
+        replacement_framebuffer_image_views.clear();
+        replacement_framebuffers.clear();
+
+    }
+
+    RenderPassInstanceBase::render(output_framebuffer, current_frame);
+}
+
 void RenderPassInstance::resize(glm::uvec2 base_resolution)
 {
     for (auto& child : children)
         child->resize(base_resolution);
-    if (framebuffer_resolution == base_resolution)
-        return;
-    framebuffer_resolution = base_resolution;
 
-    framebuffer_images.clear();
-    framebuffer_image_views.clear();
+    glm::uvec2 desired_res = resize_callback ? resize_callback(base_resolution) : base_resolution;
+    if (desired_res.x == 0)
+        desired_res.x = 1;
+    if (desired_res.y == 0)
+        desired_res.y = 1;
+
+
+
+    if (framebuffer_resolution == desired_res)
+        return;
+    framebuffer_resolution = desired_res;
+
     for (const auto& attachment : render_pass.lock()->get_infos().attachments)
     {
         const auto image = Image::create(name + "-img_" + attachment.get_name(), device,
@@ -196,12 +174,22 @@ void RenderPassInstance::resize(glm::uvec2 base_resolution)
                                              .width = framebuffer_resolution.x,
                                              .height = framebuffer_resolution.y,
                                          });
-        framebuffer_images.emplace_back();
-        framebuffer_image_views.emplace_back(ImageView::create(name + "-view_" + attachment.get_name(), image));
+        replacement_framebuffer_images.emplace_back();
+        replacement_framebuffer_image_views.emplace_back(ImageView::create(name + "-view_" + attachment.get_name(), image));
     }
-    framebuffers.clear();
-    for (size_t i = 0; i < framebuffer_image_views[0]->raw().size(); ++i)
-        framebuffers.emplace_back(Framebuffer::create(name + "-fb_" + std::to_string(i), render_pass.lock()->get_device(), *this, i));
+
+    for (size_t i = 0; i < replacement_framebuffer_image_views[0]->raw().size(); ++i)
+        replacement_framebuffers.emplace_back(Framebuffer::create(name + "-fb_" + std::to_string(i), render_pass.lock()->get_device(), *this, i, replacement_framebuffer_image_views));
+
+    if (framebuffer_images.empty())
+    {
+        framebuffer_images      = replacement_framebuffer_images;
+        framebuffer_image_views = replacement_framebuffer_image_views;
+        framebuffers            = replacement_framebuffers;
+        replacement_framebuffer_images.clear();
+        replacement_framebuffer_image_views.clear();
+        replacement_framebuffers.clear();
+    }
 }
 
 RendererInstance::RendererInstance(const std::string& in_name, const std::shared_ptr<VkRendererPass>& render_pass_object, const std::shared_ptr<RenderPass>& present_pass)
@@ -239,6 +227,8 @@ RendererInstance::RendererInstance(const std::string& in_name, const std::shared
             remaining.emplace_back(dep);
         }
     }
+
+    interface->init(device, *this);
 }
 
 void RendererInstance::render(uint32_t output_framebuffer, uint32_t current_frame)

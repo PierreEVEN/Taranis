@@ -1,9 +1,11 @@
 #pragma once
 #include "gfx/renderer/definition/render_pass.hpp"
 
+#include <functional>
 #include <glm/vec2.hpp>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Eng::Gfx
@@ -20,7 +22,7 @@ class Swapchain;
 
 class RenderPassInstanceBase
 {
-  public:
+public:
     RenderPassInstanceBase(std::string name, const std::shared_ptr<VkRendererPass>& render_pass, const std::shared_ptr<RenderPassInterface>& interface, RenderPass::Definition definition);
 
     [[nodiscard]] const std::weak_ptr<VkRendererPass>& get_render_pass() const
@@ -49,7 +51,24 @@ class RenderPassInstanceBase
 
     virtual glm::uvec2 resolution() const = 0;
 
-  protected:
+    const std::vector<std::shared_ptr<RenderPassInstance>>& get_children() const
+    {
+        return children;
+    }
+
+    using ResizeCallback = std::function<glm::uvec2(glm::uvec2)>;
+
+    void set_resize_callback(ResizeCallback in_resize_callback)
+    {
+        resize_callback = std::move(in_resize_callback);
+    }
+
+    virtual void resize(glm::uvec2)
+    {
+    }
+
+protected:
+    ResizeCallback                                   resize_callback = nullptr;
     void                                             new_frame_internal();
     std::shared_ptr<RenderPassInterface>             interface;
     bool                                             rendered = false;
@@ -63,32 +82,14 @@ class RenderPassInstanceBase
 
 class RendererInstance : public RenderPassInstanceBase
 {
-  public:
+public:
     RendererInstance(const std::string& name, const std::shared_ptr<VkRendererPass>& render_pass, const std::shared_ptr<RenderPass>& present_pass);
     void render(uint32_t output_framebuffer, uint32_t current_frame) override;
 };
 
-class SwapchainRenderer : public RendererInstance
-{
-  public:
-    SwapchainRenderer(const std::string& name, const std::shared_ptr<VkRendererPass>& render_pass, const std::weak_ptr<Swapchain>& target, const std::shared_ptr<RenderPass>& present_step);
-    ~SwapchainRenderer();
-    std::vector<std::weak_ptr<ImageView>> get_attachments() const override;
-
-    glm::uvec2 resolution() const override;
-    void       resize(glm::uvec2 parent_resolution);
-
-    const Semaphore& get_render_finished_semaphore(uint32_t image_index) const;
-    const Semaphore* get_wait_semaphores(uint32_t image_index) const override;
-    const Fence*     get_signal_fence(uint32_t image_index) const override;
-
-  private:
-    std::weak_ptr<Swapchain> swapchain;
-};
-
 class RenderPassInstance : public RenderPassInstanceBase
 {
-  public:
+public:
     RenderPassInstance(const std::string& name, const std::shared_ptr<VkRendererPass>& render_pass, const std::shared_ptr<RenderPassInterface>& interface, const RenderPass::Definition& definition);
     ~RenderPassInstance();
 
@@ -100,15 +101,22 @@ class RenderPassInstance : public RenderPassInstanceBase
         return attachments;
     }
 
+    void render(uint32_t output_framebuffer, uint32_t current_frame) override;
+
     glm::uvec2 resolution() const override
     {
         return framebuffer_resolution;
     }
 
-    void resize(glm::uvec2 base_resolution);
+    void resize(glm::uvec2 base_resolution) override;
 
-  private:
+private:
     glm::uvec2 framebuffer_resolution = {0, 0};
+
+    // These images will be used for the next frame because the current one are still being used by parent render passes. We need to wait the next render pass
+    std::vector<std::shared_ptr<Image>> replacement_framebuffer_images;
+    std::vector<std::shared_ptr<ImageView>> replacement_framebuffer_image_views;
+    std::vector<std::shared_ptr<Framebuffer>> replacement_framebuffers;
 
     std::vector<std::shared_ptr<Image>>     framebuffer_images;
     std::vector<std::shared_ptr<ImageView>> framebuffer_image_views;

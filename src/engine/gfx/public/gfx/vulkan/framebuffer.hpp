@@ -1,4 +1,6 @@
 #pragma once
+#include "device.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,12 +13,13 @@ class RenderPassInstanceBase;
 class Device;
 class CommandBuffer;
 
-class Framebuffer
+class Framebuffer : public DeviceResource
 {
   public:
-    static std::shared_ptr<Framebuffer> create(const std::string& name, std::weak_ptr<Device> device, const RenderPassInstanceBase& render_pass, size_t image_index)
+    static std::shared_ptr<Framebuffer> create(const std::string& name, std::weak_ptr<Device> device, const RenderPassInstanceBase& render_pass, size_t image_index,
+                                               const std::vector<std::shared_ptr<ImageView>>& render_targets)
     {
-        return std::shared_ptr<Framebuffer>(new Framebuffer(name, std::move(device), render_pass, image_index));
+        return std::shared_ptr<Framebuffer>(new Framebuffer(name, std::move(device), render_pass, image_index, render_targets));
     }
 
     Framebuffer(Framebuffer&&) = delete;
@@ -39,9 +42,8 @@ class Framebuffer
     }
 
   private:
-    Framebuffer(const std::string& name, std::weak_ptr<Device> device, const RenderPassInstanceBase& render_pass, size_t image_index);
+    Framebuffer(const std::string& name, std::weak_ptr<Device> device, const RenderPassInstanceBase& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets);
     std::shared_ptr<Semaphore>     render_finished_semaphores;
-    std::weak_ptr<Device>          device;
     VkFramebuffer                  ptr = VK_NULL_HANDLE;
     std::shared_ptr<CommandBuffer> command_buffer;
 };

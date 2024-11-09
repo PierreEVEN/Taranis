@@ -4,21 +4,21 @@
 #include "engine.hpp"
 #include "object_allocator.hpp"
 #include "test_reflected_header.hpp"
-#include "assets/material_asset.hpp"
+#include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
 
 #include <gfx/window.hpp>
 
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
+#include "gfx/renderer/instance/swapchain_renderer.hpp"
 #include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/pipeline.hpp"
-#include "gfx/vulkan/shader_module.hpp"
-#include "gfx/vulkan/vk_render_pass.hpp"
 #include "import/assimp_import.hpp"
-#include "import/stb_import.hpp"
+#include "import/material_import.hpp"
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
@@ -27,58 +27,44 @@
 
 using namespace Eng;
 
-const char* VERTEX = "\
-              struct VSInput\
-{\
-\
-    [[vk::location(0)]]  float3 pos : POSITION;\
-[[vk::location(1)]] float2     uv : TEXCOORD0;\
-[[vk::location(2)]] float3        normal: NORMAL0;\
-[[vk::location(3)]] float3        tangent : TANGENT0;\
-[[vk::location(4)]] float4     color : COLOR0;\
-};\
-struct VsToFs\
-{\
-    float4 Pos : SV_Position;\
-    float2 Uvs : TEXCOORD0;\
-};\
-struct PushConsts\
-{\
-    float4x4 camera;\
-};\
-[[vk::push_constant]] ConstantBuffer<PushConsts> pc;\
-VsToFs                                           main(VSInput input)\
-{\
-    VsToFs Out;\
-    Out.Pos    = mul(pc.camera, float4(input.pos, 1));\
-    Out.Uvs = input.uv;\
-    return Out;\
-}";
-
-const char* FRAGMENT = "\
-                     struct VsToFs\
-{\
-    float4 Pos : SV_Position;\
-    float2 Uvs : TEXCOORD0;\
-};\
-\
-float pow_cord(float val)\
-{\
-    return pow(abs(sin(val * 50)), 10);\
-}\
-\
-[[vk::binding(0)]] SamplerState sSampler;\
-[[vk::binding(1)]] Texture2D    albedo;\
-\
-float4 main(VsToFs input) : SV_TARGET\
-{\
-    return albedo.Sample(sSampler, input.Uvs, 1);\
-}";
-
 namespace Eng::Gfx
 {
 class ImGuiWrapper;
 }
+
+
+class Viewport
+{
+public:
+    Viewport(const std::shared_ptr<Gfx::RenderPassInstanceBase>& in_render_pass) : render_pass(in_render_pass)
+    {
+        draw_res = in_render_pass->resolution();
+        in_render_pass->set_resize_callback(
+            [&](auto)
+            {
+                return draw_res;
+            });
+    }
+
+    void draw_ui(Gfx::ImGuiWrapper& imgui)
+    {
+        if (ImGui::Begin("Viewport"))
+        {
+            glm::uvec2 new_draw_res = {static_cast<uint32_t>(ImGui::GetContentRegionAvail().x), static_cast<uint32_t>(ImGui::GetContentRegionAvail().y)};
+
+            if (new_draw_res != draw_res)
+            {
+                render_pass->resize(draw_res);
+                draw_res = new_draw_res;
+            }
+            ImGui::Image(imgui.add_image(render_pass->get_attachments()[0].lock()), ImGui::GetContentRegionAvail());
+        }
+        ImGui::End();
+    }
+
+    std::shared_ptr<Gfx::RenderPassInstanceBase> render_pass;
+    glm::uvec2                                   draw_res = {0, 0};
+};
 
 class TestFirstPassInterface : public Gfx::RenderPassInterface
 {
@@ -90,13 +76,22 @@ public:
     void init(const std::weak_ptr<Gfx::Device>& device, const Gfx::RenderPassInstanceBase& render_pass) override
     {
         imgui = std::make_unique<Gfx::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
+        viewport = std::make_unique<Viewport>(render_pass.get_children()[0]);
     }
 
     void render(const Gfx::RenderPassInstanceBase& render_pass, const Gfx::CommandBuffer& command_buffer) override
     {
-        scene->draw(command_buffer);
-
         imgui->begin(render_pass.resolution());
+
+        ImGui::SetNextWindowPos(ImVec2(-4, -4));
+        ImGui::SetNextWindowSize(ImVec2(static_cast<float>(render_pass.resolution().x) + 8.f, static_cast<float>(render_pass.resolution().y) + 8.f));
+        if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground))
+        {
+            ImGui::DockSpace(ImGui::GetID("Master dockSpace"), ImVec2(0.f, 0.f), ImGuiDockNodeFlags_PassthruCentralNode);
+        }
+        ImGui::End();
+
+        viewport->draw_ui(*imgui);
 
         if (ImGui::Begin("test"))
         {
@@ -113,14 +108,12 @@ public:
                         ImGui::SameLine();
                 }
             }
+
             ImGui::Dummy({});
             for (const auto& asset : Engine::get().asset_registry().all_assets() | std::views::values)
                 ImGui::Text("%s : %s", asset->get_class()->name(), asset->get_name());
         }
         ImGui::End();
-
-        ImGui::ShowDemoWindow(nullptr);
-
         imgui->end(command_buffer);
     }
 
@@ -128,44 +121,72 @@ private:
     std::unique_ptr<Gfx::ImGuiWrapper> imgui;
     std::weak_ptr<Gfx::Window>         window;
     Scene*                             scene;
+    std::unique_ptr<Viewport> viewport;
+};
+
+class SceneRendererInterface : public Gfx::RenderPassInterface
+{
+public:
+    SceneRendererInterface(Scene& in_scene) : scene(&in_scene)
+    {
+    }
+
+    void init(const std::weak_ptr<Gfx::Device>&, const Gfx::RenderPassInstanceBase&) override
+    {
+    }
+
+    void render(const Gfx::RenderPassInstanceBase&, const Gfx::CommandBuffer& command_buffer) override
+    {
+        scene->draw(command_buffer);
+    }
+
+    Scene* scene;
 };
 
 
 class TestApp : public Application
 {
 public:
-    void init(Eng::Engine &engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
+    void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         default_window = in_default_window;
         auto renderer  = default_window.lock()->set_renderer(
-            Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
-            ->attach(Gfx::RenderPass::create("forward_pass", {Gfx::Attachment::color("color", Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                      Gfx::Attachment::depth("depth", Gfx::ColorFormat::D24_UNORM_S8_UINT)})));
+            Gfx::Renderer::create<TestFirstPassInterface>(
+                "present_pass",
+                {},
+                default_window,
+                scene)
+            ->attach(Gfx::RenderPass::create<SceneRendererInterface>(
+                "forward_pass", {
+                    Gfx::Attachment::color("color", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
+                    Gfx::Attachment::depth("depth", Gfx::ColorFormat::D24_UNORM_S8_UINT, Gfx::ClearValue::depth_stencil({1, 0}))},
+                scene)));
 
-        Gfx::ShaderCompiler compiler;
-        const auto                  vertex_code   = compiler.compile_raw(VERTEX, "main", Gfx::EShaderStage::Vertex, "internal://test_mat");
-        const auto                  fragment_code = compiler.compile_raw(FRAGMENT, "main", Gfx::EShaderStage::Fragment, "internal://test_mat");
-        auto                        test_mat      = Gfx::Pipeline::create("test material", engine.get_device(), renderer.lock()->get_render_pass(),
-                                                                          std::vector{Gfx::ShaderModule::create(engine.get_device(), vertex_code.get()), Gfx::ShaderModule::create(engine.get_device(), fragment_code.get())},
-                                                                                  Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None,
-                                                                                                                     .alpha_mode = Gfx::EAlphaMode::Opaque,
-                                                                                                                     .depth_test = false,
-                                                                                                                     .stage_input_override = std::vector{
-                                                                                                                         Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                                                         Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
-                                                                                                                         Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                                                         Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                                                         Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
-                                                                                                                     }});
+        auto& rp = renderer.lock()->get_children()[0];
 
-        auto gltf_mat = engine.asset_registry().create<MaterialAsset>("GltfMat", test_mat);
+        auto material = MaterialImport::from_path(
+            "resources/shaders/default_mesh.hlsl",
+            Gfx::Pipeline::CreateInfos{.stage_input_override =
+                std::vector{
+                    Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                    Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
+                    Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                    Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                    Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                }},
+            {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, rp->get_render_pass());
 
-        camera = scene.add_component<FpsCameraComponent>("test_cam", renderer);
+        auto present_material = MaterialImport::from_path("resources/shaders/present_pass.hlsl",
+                                                          Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None, .depth_test = false},
+                                                          {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, renderer.lock()->get_render_pass());
+        auto present_material_instance = engine.asset_registry().create<MaterialInstanceAsset>("present material instance", present_material);
+
+        camera = scene.add_component<FpsCameraComponent>("test_cam", rp);
         AssimpImporter importer;
-        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, gltf_mat, camera.cast<CameraComponent>());
+        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, material, camera.cast<CameraComponent>());
     }
 
-    void tick_game(Eng::Engine&, double delta_second) override
+    void tick_game(Engine&, double delta_second) override
     {
         auto glfw_ptr = default_window.lock()->raw();
 
@@ -207,7 +228,6 @@ public:
         }
         else
         {
-
             float dx = static_cast<float>(pos_x) - last_cursor_pos.x;
             float dy = static_cast<float>(pos_y) - last_cursor_pos.y;
 
@@ -230,8 +250,8 @@ public:
         scene.tick(delta_second);
     }
 
-    bool                                   set_first_pos = false;
-    glm::vec2                              last_cursor_pos;
+    bool                           set_first_pos = false;
+    glm::vec2                      last_cursor_pos;
     TObjectRef<FpsCameraComponent> camera;
     std::weak_ptr<Gfx::Window>     default_window;
     Scene                          scene;
