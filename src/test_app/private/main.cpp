@@ -164,6 +164,7 @@ public:
         camera = scene.add_component<FpsCameraComponent>("test_cam", rp);
         AssimpImporter importer;
         importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, camera.cast<CameraComponent>(), rp->get_render_pass());
+        //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", scene, camera.cast<CameraComponent>(), rp->get_render_pass());
     }
 
     void tick_game(Engine&, double delta_second) override
@@ -246,6 +247,6 @@ int main()
 
     Config config = {};
 
-    Eng::Engine engine(config);
+    Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

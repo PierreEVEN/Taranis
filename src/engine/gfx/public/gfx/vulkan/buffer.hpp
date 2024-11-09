@@ -90,7 +90,7 @@ public:
         return ptr;
     }
 
-private:
+  private:
     bool   own_data      = false;
     void*  ptr           = nullptr;
     size_t element_count = 0;

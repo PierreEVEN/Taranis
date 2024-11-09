@@ -20,7 +20,9 @@ end
 
 set_runtimes(is_mode("debug") and "MTd" or "MT")
 		
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "stb", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp")
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp")
+
+add_requires("freeimage", {configs = {rgb = true}})
 
 function declare_module(module_name, deps, packages, is_executable, enable_reflection)
     if DEBUG then

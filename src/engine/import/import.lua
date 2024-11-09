@@ -1,7 +1,7 @@
 declare_module(
     "import", 
     {"core"}, 
-    {"stb", "assimp"}, 
+    {"freeimage", "assimp"}, 
     false, 
     false
 )
