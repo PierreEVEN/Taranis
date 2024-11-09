@@ -10,7 +10,7 @@ set_defaultmode("release")
 set_rundir(".")
 
 DEBUG = false;
-BUILD_MONOLITHIC = true;
+BUILD_MONOLITHIC = false;
 
 if is_mode("release") then
     set_symbols("hidden")
@@ -89,10 +89,18 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
             packages_name = "";
             for _, package in ipairs(packages) do
                 if type(package) == "table" then
-                    add_packages(package.name, {public = package.public})
+                    if not BUILD_MONOLITHIC then
+                        add_packages(package.name, {public = true})
+                    else
+                        add_packages(package.name, {public = package.public})
+                    end
                     packages_name = packages_name..", "..package.name
                 else
-                    add_packages(package)
+                    if not BUILD_MONOLITHIC then
+                        add_packages(package, {public = true})
+                    else
+                        add_packages(package)
+                    end
                     packages_name = packages_name..", "..package
                 end
             end

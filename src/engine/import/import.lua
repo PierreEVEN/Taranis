@@ -1,7 +1,10 @@
 declare_module(
     "import", 
     {"core"}, 
-    {"freeimage", "assimp"}, 
+    {
+        "freeimage",
+        "assimp"
+    }, 
     false, 
     false
 )
