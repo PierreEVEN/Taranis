@@ -10,7 +10,7 @@ set_defaultmode("release")
 set_rundir(".")
 
 DEBUG = false;
-BUILD_MONOLITHIC = false;
+BUILD_MONOLITHIC = true;
 
 if is_mode("release") then
     set_symbols("hidden")
