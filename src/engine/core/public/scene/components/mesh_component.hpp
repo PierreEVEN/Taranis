@@ -30,10 +30,10 @@ public:
     {
     };
 
-    void draw(const Gfx::CommandBuffer& command_buffer) const;
+    void draw(const Gfx::CommandBuffer& command_buffer);
 
-    TObjectRef<MeshAsset>             mesh;
-    TObjectRef<CameraComponent>       temp_cam;
+    TObjectRef<MeshAsset>       mesh;
+    TObjectRef<CameraComponent> temp_cam;
 };
 
 }

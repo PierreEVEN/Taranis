@@ -4,7 +4,6 @@
 #include "engine.hpp"
 #include "object_allocator.hpp"
 #include "test_reflected_header.hpp"
-#include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
 
 #include <gfx/window.hpp>
@@ -15,10 +14,8 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/device.hpp"
-#include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "import/assimp_import.hpp"
-#include "import/material_import.hpp"
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
@@ -54,8 +51,8 @@ public:
 
             if (new_draw_res != draw_res)
             {
-                render_pass->resize(draw_res);
                 draw_res = new_draw_res;
+                render_pass->resize(draw_res);
             }
             ImGui::Image(imgui.add_image(render_pass->get_attachments()[0].lock()), ImGui::GetContentRegionAvail());
         }
@@ -159,31 +156,14 @@ public:
             ->attach(Gfx::RenderPass::create<SceneRendererInterface>(
                 "forward_pass", {
                     Gfx::Attachment::color("color", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
-                    Gfx::Attachment::depth("depth", Gfx::ColorFormat::D24_UNORM_S8_UINT, Gfx::ClearValue::depth_stencil({1, 0}))},
+                    Gfx::Attachment::depth("depth", Gfx::ColorFormat::D32_SFLOAT, Gfx::ClearValue::depth_stencil({0, 0}))},
                 scene)));
 
         auto& rp = renderer.lock()->get_children()[0];
 
-        auto material = MaterialImport::from_path(
-            "resources/shaders/default_mesh.hlsl",
-            Gfx::Pipeline::CreateInfos{.stage_input_override =
-                std::vector{
-                    Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                    Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
-                    Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                    Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                    Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
-                }},
-            {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, rp->get_render_pass());
-
-        auto present_material = MaterialImport::from_path("resources/shaders/present_pass.hlsl",
-                                                          Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None, .depth_test = false},
-                                                          {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, renderer.lock()->get_render_pass());
-        auto present_material_instance = engine.asset_registry().create<MaterialInstanceAsset>("present material instance", present_material);
-
         camera = scene.add_component<FpsCameraComponent>("test_cam", rp);
         AssimpImporter importer;
-        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, material, camera.cast<CameraComponent>());
+        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, camera.cast<CameraComponent>(), rp->get_render_pass());
     }
 
     void tick_game(Engine&, double delta_second) override
@@ -200,11 +180,11 @@ public:
         {
             mov_vec.x = -1;
         }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
         {
             mov_vec.y = 1;
         }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
+        if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
         {
             mov_vec.y = -1;
         }
@@ -244,8 +224,6 @@ public:
         glm::vec3 vec = mov_vec.x * forward + mov_vec.y * right + mov_vec.z * up;
 
         camera->set_position(camera->get_position() + static_cast<float>(delta_second) * 500.f * vec);
-
-        // LOG_WARNING("cam : {} :: {}   /   {}, {}, {}", camera->get_pitch(), camera->get_yaw(), forward.x, forward.y, forward.z);
 
         scene.tick(delta_second);
     }

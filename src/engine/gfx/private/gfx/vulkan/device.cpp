@@ -17,7 +17,6 @@ const std::vector device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 void Device::next_frame()
 {
-    LOG_WARNING("Next frame : {}", current_image);
     glfwPollEvents();
     current_image = (current_image + 1) % image_count;
 }
@@ -29,7 +28,6 @@ void Device::wait() const
 
 void Device::flush_resources()
 {
-    LOG_WARNING("Flush : {}", current_image);
     std::lock_guard lock(resource_mutex);
     pending_kill_resources[current_image].clear();
 }

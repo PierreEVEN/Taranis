@@ -158,8 +158,6 @@ void RenderPassInstance::resize(glm::uvec2 base_resolution)
     if (desired_res.y == 0)
         desired_res.y = 1;
 
-
-
     if (framebuffer_resolution == desired_res)
         return;
     framebuffer_resolution = desired_res;

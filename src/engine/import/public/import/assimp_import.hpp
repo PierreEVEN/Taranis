@@ -41,11 +41,16 @@ class BufferData;
 class AssimpImporter
 {
 public:
+    enum class MaterialType
+    {
+        Opaque
+    };
+
     AssimpImporter();
 
     struct SceneLoader
     {
-        SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene, const TObjectRef<MaterialAsset>& in_base_material, const TObjectRef<CameraComponent>& in_temp_cam);
+        SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam, std::weak_ptr<Gfx::VkRendererPass> render_pass);
 
         void decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene);
 
@@ -57,7 +62,8 @@ public:
         };
 
         TObjectRef<TextureAsset>          find_or_load_texture(std::string path);
-        TObjectRef<MaterialInstanceAsset> find_or_load_material(int id);
+        TObjectRef<MaterialInstanceAsset> find_or_load_material_instance(int id);
+        TObjectRef<MaterialAsset>         find_or_load_material(MaterialType type);
         MeshSection&                      find_or_load_mesh(int id);
         TObjectRef<SamplerAsset>          get_sampler();
 
@@ -66,13 +72,14 @@ public:
         std::unordered_map<int, std::shared_ptr<MeshSection>>      meshes;
         TObjectRef<SamplerAsset>                                   sampler;
         const aiScene*                                             scene;
-        TObjectRef<MaterialAsset>                                  base_material;
+        TObjectRef<MaterialAsset>      materials_base;
         TObjectRef<CameraComponent>                                temp_cam;
         std::filesystem::path                                      file_path;
+        std::weak_ptr<Gfx::VkRendererPass>                         render_pass;
     };
 
 
-    void load_from_path(const std::filesystem::path& path, Scene& output_scene, const TObjectRef<MaterialAsset>& in_base_material, const TObjectRef<CameraComponent>& in_temp_cam) const;
+    void load_from_path(const std::filesystem::path& path, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const;
 
     std::shared_ptr<Assimp::Importer> importer;
 

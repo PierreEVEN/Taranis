@@ -10,15 +10,17 @@
 namespace Eng
 {
 
-void MeshComponent::draw(const Gfx::CommandBuffer& command_buffer) const
+void MeshComponent::draw(const Gfx::CommandBuffer& command_buffer)
 {
     if (mesh)
     {
         struct Pc
         {
-            glm::mat4 camera = glm::mat4(1);
+            glm::mat4 camera;
+            glm::mat4 model;
         };
         Pc pc;
+        pc.model  = get_transform();
         pc.camera = transpose(temp_cam->perspective_view_matrix());
 
         for (const auto& section : mesh->get_sections())

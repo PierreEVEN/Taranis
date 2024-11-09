@@ -226,7 +226,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         .depthTestEnable       = create_infos.depth_test,
         .depthWriteEnable      = create_infos.depth_test,
-        .depthCompareOp        = VK_COMPARE_OP_LESS,
+        .depthCompareOp        = VK_COMPARE_OP_GREATER_OR_EQUAL,
         .depthBoundsTestEnable = VK_FALSE,
         .stencilTestEnable     = VK_FALSE,
         .minDepthBounds        = 0.0f,

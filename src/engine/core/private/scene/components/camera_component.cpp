@@ -5,6 +5,8 @@
 #include "engine.hpp"
 #include <numbers>
 
+#include <glm/ext/matrix_clip_space.hpp>
+
 namespace Eng
 {
 
@@ -12,17 +14,19 @@ void CameraComponent::recompute()
 {
     //outdated = false;
 
-    auto res = render_pass.lock()->resolution();
+    view = translate(mat4_cast(inverse(get_rotation())), -get_position());
 
-    float pi = std::numbers::pi_v<float>;
+    auto  res    = render_pass.lock()->resolution();
+    float aspect = static_cast<float>(res.x) / static_cast<float>(res.y);
+    assert(std::abs(aspect - std::numeric_limits<float>::epsilon()) > static_cast<float>(0));
+    float     h = 1.f / std::tan(fov * 0.5f);
+    float     w = h / aspect;
+    perspective      = {
+        {0, 0, 0, 1},
+        {w, 0, 0, 0},
+        {0, h, 0, 0},
+        {0, 0, z_near, 0}};
 
-    view = translate(mat4_cast(glm::quat(glm::vec3{0, 0, -0}) * get_rotation()), -get_position());
-
-    glm::vec3 forward = get_rotation() * glm::vec3(1, 0, 0);
-    glm::vec3 right   = get_rotation() * glm::vec3(0, 1, 0);
-    glm::vec3 up      = get_rotation() * glm::vec3(0, 0, 1);
-
-    perspective      = glm::perspective(90.f, static_cast<float>(res.x) / static_cast<float>(res.y), 0.1f, 10000.f);
     perspective_view = perspective * view;
 }
 
@@ -41,7 +45,7 @@ void FpsCameraComponent::set_yaw(float in_yaw)
 void FpsCameraComponent::update_rotation()
 {
 
-    set_rotation(glm::quat(glm::vec3{0, pitch, 0}) * glm::quat(glm::vec3{0, 0, yaw}));
+    set_rotation(glm::quat(glm::vec3{0, 0, 0}) * glm::quat(glm::vec3{0, pitch, yaw}));
 
 }
 } // namespace Eng

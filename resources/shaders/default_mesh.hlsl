@@ -26,7 +26,7 @@ struct PushConsts
 VsToFs vs_main(VSInput input)
 {
     VsToFs Out;
-    Out.Pos    = mul(pc.camera, float4(input.pos, 1));
+    Out.Pos = mul(pc.camera, mul(pc.model, float4(input.pos, 1)));
     Out.Uvs = input.uv;
     return Out;
 }
@@ -38,5 +38,8 @@ float pow_cord(float val)
 
 float4 fs_main(VsToFs input) : SV_TARGET
 {
-    return albedo.Sample(sSampler, input.Uvs, 1);
+    float4 color = albedo.Sample(sSampler, input.Uvs, 1);
+    if (color.a < 0.9)
+        discard;
+    return color;
 }

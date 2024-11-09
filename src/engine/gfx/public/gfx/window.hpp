@@ -17,7 +17,7 @@ class RenderPass;
 struct WindowConfig
 {
     std::string name       = "no name";
-    glm::uvec2  resolution = {800, 600};
+    glm::uvec2  resolution = {1920, 1080};
 };
 
 class Window : public std::enable_shared_from_this<Window>

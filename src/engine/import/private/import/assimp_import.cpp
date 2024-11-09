@@ -15,6 +15,9 @@
 #include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
 #include "assets/sampler_asset.hpp"
+#include "import/material_import.hpp"
+
+#include <numbers>
 
 
 namespace Eng
@@ -25,9 +28,9 @@ AssimpImporter::AssimpImporter() : importer(std::make_shared<Assimp::Importer>()
 {
 }
 
-AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene, const TObjectRef<MaterialAsset>& in_base_material,
-                                         const TObjectRef<CameraComponent>& in_temp_cam)
-    : scene(in_scene), base_material(in_base_material), temp_cam(in_temp_cam), file_path(in_file_path)
+AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam,
+                                         std::weak_ptr<Gfx::VkRendererPass> in_render_pass)
+    : scene(in_scene), temp_cam(in_temp_cam), file_path(in_file_path), render_pass(in_render_pass)
 {
 
     decompose_node(scene->mRootNode, {}, output_scene);
@@ -35,7 +38,7 @@ AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_f
 
 }
 
-void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& output_scene, const TObjectRef<MaterialAsset>& in_base_material, const TObjectRef<CameraComponent>& in_temp_cam) const
+void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const
 {
     const aiScene* scene = importer->ReadFile(path.string(), 0);
     if (!scene)
@@ -43,13 +46,14 @@ void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& ou
         LOG_ERROR("Failed to load scene from path {}", path.string());
         return;
     }
-    SceneLoader loader(path, scene, output_scene, in_base_material, in_temp_cam);
+    SceneLoader loader(path, scene, output_scene, in_temp_cam, render_pass);
 }
 
 void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene)
 {
     TObjectRef<SceneComponent> this_component;
 
+    float pi = std::numbers::pi_v<float>;
     if (node->mNumMeshes > 0)
     {
         auto new_mesh = Engine::get().asset_registry().create<MeshAsset>(node->mName.C_Str());
@@ -65,6 +69,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         else
         {
             this_component = output_scene.add_component<MeshComponent>(node->mName.C_Str(), temp_cam, new_mesh);
+            this_component->set_rotation(glm::quat({-pi / 2, 0, 0}));
         }
     }
     else
@@ -76,6 +81,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         else
         {
             this_component = output_scene.add_component<SceneComponent>(node->mName.C_Str());
+            this_component->set_rotation(glm::quat({-pi / 2, 0, 0}));
         }
     }
 
@@ -127,13 +133,14 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(std::
     }
 }
 
-TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_material(int id)
+TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_material_instance(int id)
 {
     if (auto found = materials.find(id); found != materials.end())
         return found->second;
-    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", base_material);
 
     auto mat = scene->mMaterials[id];
+
+    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(MaterialType::Opaque));
 
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE); ++i)
     {
@@ -155,6 +162,25 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     }
 
     return materials.emplace(id, new_mat).first->second;
+}
+
+TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(MaterialType type)
+{
+    if (materials_base)
+        return materials_base;
+
+    materials_base = MaterialImport::from_path("resources/shaders/default_mesh.hlsl",
+                                               Gfx::Pipeline::CreateInfos{.stage_input_override =
+                                                   std::vector{
+                                                       Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                       Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
+                                                       Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                       Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                       Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                                                   }},
+                                               {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, render_pass);
+
+    return materials_base;
 }
 
 AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_load_mesh(int id)
@@ -193,7 +219,7 @@ AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_l
         }
 
         auto base_buffer = Gfx::BufferData(triangles.data(), 2, triangles.size());
-        auto new_section = std::make_shared<MeshSection>(find_or_load_material(mesh->mMaterialIndex), vertices, base_buffer.copy());
+        auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, base_buffer.copy());
         meshes.emplace(id, new_section);
         return *new_section;
     }
@@ -209,7 +235,7 @@ AssimpImporter::SceneLoader::MeshSection& AssimpImporter::SceneLoader::find_or_l
             triangles[i * 3 + 1] = face.mIndices[1];
             triangles[i * 3 + 2] = face.mIndices[2];
         }
-        auto new_section = std::make_shared<MeshSection>(find_or_load_material(mesh->mMaterialIndex), vertices, Gfx::BufferData(triangles.data(), 4, triangles.size()).copy());
+        auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, Gfx::BufferData(triangles.data(), 4, triangles.size()).copy());
         meshes.emplace(id, new_section);
         return *new_section;
     }

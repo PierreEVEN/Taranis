@@ -45,6 +45,8 @@ private:
     void recompute();
 
     bool                                       outdated = true;
+    float                                      fov      = 90.0f;
+    float                                      z_near   = 0.01f;
     glm::mat4                                  view;
     glm::mat4                                  perspective;
     glm::mat4                                  perspective_view;

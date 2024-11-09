@@ -15,6 +15,7 @@ namespace Eng
 {
 TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path& path)
 {
+    stbi_set_flip_vertically_on_load(true);  
     std::ifstream        input(path, std::ios::binary);
     std::vector<uint8_t> buffer(std::istreambuf_iterator(input), {});
     return load_raw(path.filename().string(), Gfx::BufferData(buffer.data(), 1, buffer.size()));
