@@ -17,13 +17,13 @@ TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path
 {
     std::ifstream        input(path, std::ios::binary);
     std::vector<uint8_t> buffer(std::istreambuf_iterator(input), {});
-    return load_raw(path.filename().string(), buffer);
+    return load_raw(path.filename().string(), Gfx::BufferData(buffer.data(), 1, buffer.size()));
 }
 
-TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, const std::vector<uint8_t>& data)
+TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, const Gfx::BufferData& raw)
 {
-    int      x = 0, y = 0, channels = 0;
-    stbi_uc* buffer = stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &x, &y, &channels, 0);
+    int      x      = 0, y = 0, channels = 0;
+    stbi_uc* buffer = stbi_load_from_memory(static_cast<const stbi_uc*>(raw.data()), static_cast<int>(raw.get_byte_size()), &x, &y, &channels, 0);
     if (!buffer)
     {
         LOG_ERROR("Failed to load image {}", file_name);

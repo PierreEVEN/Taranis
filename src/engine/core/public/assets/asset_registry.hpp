@@ -41,6 +41,8 @@ public:
         return assets;
     }
 
+
+
 private:
     std::unordered_map<void*, TObjectPtr<AssetBase>> assets;
 };

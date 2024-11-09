@@ -17,16 +17,12 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/shader_module.hpp"
+#include "import/assimp_import.hpp"
 #include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
-
-namespace Engine::Gfx
-{
-class ImGuiWrapper;
-}
 
 
 const char* VERTEX = "\
@@ -42,7 +38,7 @@ const char* VERTEX = "\
 struct VsToFs\
 {\
     float4 Pos : SV_Position;\
-    float4 vtxpos : POSITION0;\
+    float2 Uvs : TEXCOORD0;\
 };\
 struct PushConsts\
 {\
@@ -53,7 +49,7 @@ VsToFs                                           main(VSInput input)\
 {\
     VsToFs Out;\
     Out.Pos    = mul(pc.camera, float4(input.pos, 1));\
-    Out.vtxpos = float4(input.pos, 1);\
+    Out.Uvs = input.uv;\
     return Out;\
 }";
 
@@ -61,7 +57,7 @@ const char* FRAGMENT = "\
                      struct VsToFs\
 {\
     float4 Pos : SV_Position;\
-    float4 vtxpos : POSITION0;\
+    float2 Uvs : TEXCOORD0;\
 };\
 \
 float pow_cord(float val)\
@@ -69,16 +65,18 @@ float pow_cord(float val)\
     return pow(abs(sin(val * 50)), 10);\
 }\
 \
-/*[[vk::binding(0)]] SamplerState sSampler;\
-[[vk::binding(1)]] Texture2D    sTexture;*/\
+[[vk::binding(0)]] SamplerState sSampler;\
+[[vk::binding(1)]] Texture2D    albedo;\
 \
 float4 main(VsToFs input) : SV_TARGET\
 {\
-    return float4(0.5, 0.6, 0, 1);\
-    /*float intens = ((pow_cord(input.vtxpos.x) + pow_cord(input.vtxpos.y) + pow_cord(input.vtxpos.z)) * 0.4 + 0.1) * 0.01;\
-    return sTexture.Sample(sSampler, input.vtxpos.xy * 0.01) + float4(float3(intens, intens, intens), 1);*/\
+    return albedo.Sample(sSampler, input.Uvs, 1);\
 }";
 
+namespace Engine::Gfx
+{
+class ImGuiWrapper;
+}
 
 class TestFirstPassInterface : public Engine::Gfx::RenderPassInterface
 {
@@ -137,12 +135,13 @@ public:
     void init(Engine::Engine& engine, const std::weak_ptr<Engine::Gfx::Window>& in_default_window) override
     {
         default_window = in_default_window;
-        auto renderer = default_window.lock()->set_renderer(Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
-                                            ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                                      Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
-                                            ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                                      Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                                                      Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
+        auto renderer  = default_window.lock()->set_renderer(
+            Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
+            ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                      Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
+            ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                      Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                      Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
         Engine::StbImporter::load_from_path("./resources/cat.jpeg");
 
         auto rp = engine.get_device().lock()->find_or_create_render_pass(Engine::Gfx::Renderer::create("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})})
@@ -152,37 +151,32 @@ public:
         Engine::Gfx::ShaderCompiler compiler;
         const auto                  vertex_code   = compiler.compile_raw(VERTEX, "main", Engine::Gfx::EShaderStage::Vertex, "internal://test_mat");
         const auto                  fragment_code = compiler.compile_raw(FRAGMENT, "main", Engine::Gfx::EShaderStage::Fragment, "internal://test_mat");
-        auto                        test_mat      = Engine::Gfx::Pipeline::create("test material", engine.get_device(), rp,
-                                                      std::vector{Engine::Gfx::ShaderModule::create(engine.get_device(), vertex_code.get()), Engine::Gfx::ShaderModule::create(engine.get_device(), fragment_code.get())},
-                                                      Engine::Gfx::Pipeline::CreateInfos{.culling = Engine::Gfx::ECulling::None,
-                                                                                                                     .polygon_mode = Engine::Gfx::EPolygonMode::Line,
-                                                                                         .alpha_mode = Engine::Gfx::EAlphaMode::Opaque,
-                                                                                         .depth_test = false,
-                                                                                         .stage_input_override = std::vector{
-                                                                                             Engine::Gfx::StageInputOutputDescription{0, 0, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                             Engine::Gfx::StageInputOutputDescription{1, 12, Engine::Gfx::ColorFormat::R32G32_SFLOAT},
-                                                                                             Engine::Gfx::StageInputOutputDescription{2, 20, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                             Engine::Gfx::StageInputOutputDescription{3, 32, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                             Engine::Gfx::StageInputOutputDescription{4, 44, Engine::Gfx::ColorFormat::R32G32B32A32_SFLOAT},
-                                                                                         }});
+        auto                        test_mat      = Engine::Gfx::Pipeline::create("test material", Engine::Engine::get().get_device(), rp,
+                                                                                  std::vector{Engine::Gfx::ShaderModule::create(Engine::Engine::get().get_device(), vertex_code.get()),
+                                                                                              Engine::Gfx::ShaderModule::create(Engine::Engine::get().get_device(), fragment_code.get())},
+                                                                                  Engine::Gfx::Pipeline::CreateInfos{.culling = Engine::Gfx::ECulling::None,
+                                                                                                                     .alpha_mode = Engine::Gfx::EAlphaMode::Opaque,
+                                                                                                                     .depth_test = false,
+                                                                                                                     .stage_input_override = std::vector{
+                                                                                                                         Engine::Gfx::StageInputOutputDescription{0, 0, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                                                                         Engine::Gfx::StageInputOutputDescription{1, 12, Engine::Gfx::ColorFormat::R32G32_SFLOAT},
+                                                                                                                         Engine::Gfx::StageInputOutputDescription{2, 20, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                                                                         Engine::Gfx::StageInputOutputDescription{3, 32, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                                                                         Engine::Gfx::StageInputOutputDescription{4, 44, Engine::Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                                                                                                                     }});
 
-        auto mat_test               = engine.asset_registry().create<Engine::MaterialAsset>("test mat", test_mat);
-        auto test_material_instance = engine.asset_registry().create<Engine::MaterialInstanceAsset>("test mat instance", mat_test);
+        auto gltf_mat = Engine::Engine::get().asset_registry().create<Engine::MaterialAsset>("GltfMat", test_mat);
 
         camera = scene.add_component<Engine::FpsCameraComponent>("test_cam", renderer);
-        Engine::GltfImporter::load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
-        for (const auto& asset : engine.asset_registry().all_assets())
-            if (auto mesh = asset.second.cast<Engine::MeshAsset>())
-                scene.add_component<Engine::MeshComponent>(mesh->get_name(), camera.cast<Engine::CameraComponent>(), mesh, test_material_instance);
-
+        Engine::AssimpImporter importer;
+        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, gltf_mat, camera.cast<Engine::CameraComponent>());
     }
 
     void tick_game(Engine::Engine&, double delta_second) override
     {
         auto glfw_ptr = default_window.lock()->raw();
 
-        glm::vec3 mov_vec {0};
-
+        glm::vec3 mov_vec{0};
 
         if (glfwGetKey(glfw_ptr, GLFW_KEY_W))
         {
@@ -231,24 +225,23 @@ public:
         last_cursor_pos = {pos_x, pos_y};
 
         glm::vec3 forward = camera->get_rotation() * glm::vec3(1, 0, 0);
-        glm::vec3 right = camera->get_rotation() * glm::vec3(0, 1, 0);
-        glm::vec3 up = camera->get_rotation() * glm::vec3(0, 0, 1);
-
+        glm::vec3 right   = camera->get_rotation() * glm::vec3(0, 1, 0);
+        glm::vec3 up      = camera->get_rotation() * glm::vec3(0, 0, 1);
 
         glm::vec3 vec = mov_vec.x * forward + mov_vec.y * right + mov_vec.z * up;
 
         camera->set_position(camera->get_position() + static_cast<float>(delta_second) * 500.f * vec);
 
-        LOG_WARNING("cam : {} :: {}   /   {}, {}, {}", camera->get_pitch(), camera->get_yaw(), forward.x, forward.y, forward.z);
+        // LOG_WARNING("cam : {} :: {}   /   {}, {}, {}", camera->get_pitch(), camera->get_yaw(), forward.x, forward.y, forward.z);
 
         scene.tick(delta_second);
     }
 
-    bool                                set_first_pos = false;
-    glm::vec2                           last_cursor_pos;
+    bool                                   set_first_pos = false;
+    glm::vec2                              last_cursor_pos;
     TObjectRef<Engine::FpsCameraComponent> camera;
-    std::weak_ptr<Engine::Gfx::Window>  default_window;
-    Engine::Scene scene;
+    std::weak_ptr<Engine::Gfx::Window>     default_window;
+    Engine::Scene                          scene;
 };
 
 int main()

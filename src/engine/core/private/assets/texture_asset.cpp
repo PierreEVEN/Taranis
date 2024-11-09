@@ -7,6 +7,11 @@
 namespace Engine
 {
 
+const Gfx::ColorFormat& TextureAsset::get_format() const
+{
+    return image->get_params().format;
+}
+
 TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos) : infos(create_infos)
 {
     Gfx::ColorFormat     format;

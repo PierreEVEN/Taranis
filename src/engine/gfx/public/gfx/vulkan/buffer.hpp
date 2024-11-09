@@ -20,25 +20,25 @@ enum class EBufferType
 
 enum class EBufferUsage
 {
-    INDEX_DATA             = 0x00000001, // used as index get
-    VERTEX_DATA            = 0x00000002, // used as vertex get
-    GPU_MEMORY             = 0x00000003, // used as storage get
-    UNIFORM_BUFFER         = 0x00000004, // used as uniform get
+    INDEX_DATA = 0x00000001,             // used as index get
+    VERTEX_DATA = 0x00000002,            // used as vertex get
+    GPU_MEMORY = 0x00000003,             // used as storage get
+    UNIFORM_BUFFER = 0x00000004,         // used as uniform get
     INDIRECT_DRAW_ARGUMENT = 0x00000005, // used for indirect begin commands
-    TRANSFER_MEMORY        = 0x00000006, // used for indirect begin commands
+    TRANSFER_MEMORY = 0x00000006,        // used for indirect begin commands
 };
 
 enum class EBufferAccess
 {
-    DEFAULT    = 0x00000000, // Choose best configuration
-    GPU_ONLY   = 0x00000001, // Data will be cached on GPU
+    DEFAULT = 0x00000000,    // Choose best configuration
+    GPU_ONLY = 0x00000001,   // Data will be cached on GPU
     CPU_TO_GPU = 0x00000002, // frequent transfer from CPU to GPU
     GPU_TO_CPU = 0x00000003, // frequent transfer from GPU to CPU
 };
 
 class BufferData
 {
-  public:
+public:
     BufferData() : ptr(nullptr), element_count(0), stride(0)
     {
     }
@@ -59,12 +59,12 @@ class BufferData
             free(ptr);
     }
 
-    BufferData copy() const
+    std::shared_ptr<BufferData> copy() const
     {
-        void* new_data = nullptr;
+        void* new_data = malloc(stride * element_count);
         memcpy(new_data, ptr, stride * element_count);
-        BufferData buffer = BufferData(new_data, stride, element_count);
-        buffer.own_data   = true;
+        auto buffer      = std::make_shared<BufferData>(new_data, stride, element_count);
+        buffer->own_data = true;
         return buffer;
     }
 
@@ -90,7 +90,7 @@ class BufferData
         return ptr;
     }
 
-  private:
+private:
     bool   own_data      = false;
     void*  ptr           = nullptr;
     size_t element_count = 0;
@@ -99,7 +99,7 @@ class BufferData
 
 class Buffer
 {
-  public:
+public:
     struct CreateInfos
     {
         EBufferUsage  usage;
@@ -119,6 +119,7 @@ class Buffer
             buffer->set_data(0, data);
         return new_buffer;
     }
+
     Buffer(Buffer&)  = delete;
     Buffer(Buffer&&) = delete;
 
@@ -141,7 +142,7 @@ class Buffer
 
     class Resource : public DeviceResource
     {
-      public:
+    public:
         Resource(const std::string& name, std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
         ~Resource();
         void          set_data(size_t start_index, const BufferData& data);
@@ -152,7 +153,7 @@ class Buffer
         VmaAllocation allocation    = VK_NULL_HANDLE;
     };
 
-  private:
+private:
     Buffer(std::string name, std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
     size_t                                 stride        = 0;
     size_t                                 element_count = 0;

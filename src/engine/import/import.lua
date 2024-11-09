@@ -1,7 +1,7 @@
 declare_module(
     "import", 
     {"core"}, 
-    {"stb", "tinygltf"}, 
+    {"stb", "assimp"}, 
     false, 
     false
 )

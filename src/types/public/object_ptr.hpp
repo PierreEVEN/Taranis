@@ -1,9 +1,9 @@
 #pragma once
-#include "../../../build/reflection/core/public/assets/asset_base.gen.hpp"
 
 #include <cassert>
 #include <iostream>
 #include <type_traits>
+#include "class.hpp"
 
 namespace Reflection
 {

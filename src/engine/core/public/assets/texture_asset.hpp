@@ -2,6 +2,8 @@
 #include "asset_base.hpp"
 
 #include "assets/texture_asset.gen.hpp"
+#include "gfx/vulkan/image.hpp"
+
 #include <cstdint>
 #include <memory>
 
@@ -17,7 +19,8 @@ class Image;
 class TextureAsset : public AssetBase
 {
     REFLECT_BODY()
-  public:
+
+public:
     struct CreateInfos
     {
         uint32_t width    = 0;
@@ -30,7 +33,9 @@ class TextureAsset : public AssetBase
         return view;
     }
 
-  private:
+    const Gfx::ColorFormat& get_format() const;
+
+private:
     friend class AssetRegistry;
     TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos);
 

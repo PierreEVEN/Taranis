@@ -5,6 +5,12 @@
 
 namespace Engine
 {
+class SamplerAsset;
+class TextureAsset;
+}
+
+namespace Engine
+{
 class MaterialAsset;
 
 namespace Gfx
@@ -22,6 +28,9 @@ public:
 
     const std::shared_ptr<Gfx::Pipeline>& get_base_resource() const;
     const std::shared_ptr<Gfx::DescriptorSet>& get_descriptor_resource() const;
+
+    void set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler) const;
+    void set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture) const;
 
 private:
     TObjectRef<MaterialAsset>           base;

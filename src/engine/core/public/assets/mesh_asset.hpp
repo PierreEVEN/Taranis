@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_base.hpp"
+#include "object_ptr.hpp"
 
 #include "assets/mesh_asset.gen.hpp"
 #include <glm/vec2.hpp>
@@ -7,6 +8,16 @@
 #include <glm/vec4.hpp>
 #include <memory>
 #include <vector>
+
+namespace Engine
+{
+class MaterialInstanceAsset;
+}
+
+namespace Engine
+{
+class MaterialAsset;
+}
 
 namespace Engine
 {
@@ -20,7 +31,13 @@ class MeshAsset : public AssetBase
 {
     REFLECT_BODY()
 
-  public:
+public:
+    struct Section
+    {
+        std::shared_ptr<Gfx::Mesh>        mesh;
+        TObjectRef<MaterialInstanceAsset> material;
+    };
+
     struct Vertex
     {
         glm::vec3 pos;
@@ -30,14 +47,18 @@ class MeshAsset : public AssetBase
         glm::vec4 color;
     };
 
-    MeshAsset(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices);
-
-    const std::shared_ptr<Gfx::Mesh>& get_resource() const
+    MeshAsset()
     {
-        return mesh;
     }
 
-  private:
-    std::shared_ptr<Gfx::Mesh> mesh;
+    void add_section(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material);
+
+    const std::vector<Section>& get_sections() const
+    {
+        return mesh_sections;
+    }
+
+private:
+    std::vector<Section> mesh_sections;
 };
 } // namespace Engine

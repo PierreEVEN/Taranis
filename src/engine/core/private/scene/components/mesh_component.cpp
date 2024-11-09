@@ -12,7 +12,7 @@ namespace Engine
 
 void MeshComponent::draw(const Gfx::CommandBuffer& command_buffer) const
 {
-    if (mesh && material)
+    if (mesh)
     {
         struct Pc
         {
@@ -21,10 +21,16 @@ void MeshComponent::draw(const Gfx::CommandBuffer& command_buffer) const
         Pc pc;
         pc.camera = transpose(temp_cam->perspective_view_matrix());
 
-        command_buffer.bind_pipeline(*material->get_base_resource());
-        command_buffer.bind_descriptors(*material->get_descriptor_resource(), *material->get_base_resource());
-        command_buffer.push_constant(Gfx::EShaderStage::Vertex, *material->get_base_resource(), Gfx::BufferData(pc));
-        command_buffer.draw_mesh(*mesh->get_resource());
+        for (const auto& section : mesh->get_sections())
+        {
+            if (section.material)
+            {
+                command_buffer.bind_pipeline(*section.material->get_base_resource());
+                command_buffer.bind_descriptors(*section.material->get_descriptor_resource(), *section.material->get_base_resource());
+                command_buffer.push_constant(Gfx::EShaderStage::Vertex, *section.material->get_base_resource(), Gfx::BufferData(pc));
+                command_buffer.draw_mesh(*section.mesh);
+            }
+        }
     }
 }
 }

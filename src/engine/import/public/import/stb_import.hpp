@@ -12,12 +12,17 @@ class path;
 
 namespace Engine
 {
+namespace Gfx
+{
+class BufferData;
+}
+
 class TextureAsset;
 
 class StbImporter
 {
   public:
     static TObjectRef<TextureAsset> load_from_path(const std::filesystem::path& path);
-    static TObjectRef<TextureAsset> load_raw(const std::string& file_name, const std::vector<uint8_t>& path);
+    static TObjectRef<TextureAsset> load_raw(const std::string& file_name, const Gfx::BufferData& raw);
 };
 } // namespace Engine
