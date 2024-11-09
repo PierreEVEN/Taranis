@@ -7,7 +7,7 @@
 #include "gfx/vulkan/vk_check.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 static VkDescriptorType vk_descriptor_type(EBindingType type)
 {
@@ -310,4 +310,4 @@ Pipeline::~Pipeline()
     vkDestroyPipeline(device.lock()->raw(), ptr, nullptr);
     vkDestroyPipelineLayout(device.lock()->raw(), layout, nullptr);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

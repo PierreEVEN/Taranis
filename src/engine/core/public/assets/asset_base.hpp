@@ -2,7 +2,7 @@
 
 #include "assets\asset_base.gen.hpp"
 
-namespace Engine
+namespace Eng
 {
 class AssetBase
 {
@@ -27,4 +27,4 @@ private:
     char*          name;
     AssetRegistry* registry;
 };
-} // namespace Engine
+} // namespace Eng

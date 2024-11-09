@@ -10,7 +10,7 @@
 
 struct ImGuiContext;
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Window;
 class DescriptorSet;
@@ -52,4 +52,4 @@ class ImGuiWrapper
     std::unordered_map<ImTextureID, std::shared_ptr<ImageView>>                                            per_image_ids;
     std::string                                                                                            name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

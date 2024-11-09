@@ -7,7 +7,7 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 CommandPool::CommandPool(std::string in_name, std::weak_ptr<Device> in_device, const uint32_t& in_queue_family) : device(std::move(in_device)), queue_family(in_queue_family), name(std::move(in_name))
 {
@@ -52,4 +52,4 @@ void CommandPool::free(VkCommandBuffer command_buffer, std::thread::id thread)
         vkFreeCommandBuffers(device.lock()->raw(), command_pool->second, 1, &command_buffer);
     }
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

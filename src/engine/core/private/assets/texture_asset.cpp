@@ -4,7 +4,7 @@
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
 
-namespace Engine
+namespace Eng
 {
 
 const Gfx::ColorFormat& TextureAsset::get_format() const
@@ -52,4 +52,4 @@ TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos
         image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = format, .width = infos.width, .height = infos.height}, data);
     view = Gfx::ImageView::create(get_name(), image);
 }
-} // namespace Engine
+} // namespace Eng

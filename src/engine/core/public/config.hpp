@@ -1,7 +1,7 @@
 #pragma once
 #include "gfx/gfx.hpp"
 
-namespace Engine
+namespace Eng
 {
 class Config
 {
@@ -9,4 +9,4 @@ class Config
     Gfx::GfxConfig gfx;
 };
 
-} // namespace Engine
+} // namespace Eng

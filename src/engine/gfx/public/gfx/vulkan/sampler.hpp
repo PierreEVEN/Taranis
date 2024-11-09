@@ -3,7 +3,7 @@
 #include <string>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -38,4 +38,4 @@ class Sampler
     VkSampler             ptr;
     VkDescriptorImageInfo descriptor_infos;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

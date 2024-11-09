@@ -11,7 +11,7 @@
 #include <fstream>
 #include <string>
 
-namespace Engine
+namespace Eng
 {
 TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path& path)
 {
@@ -34,4 +34,4 @@ TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, con
     stbi_image_free(buffer);
     return text;
 }
-} // namespace Engine
+} // namespace Eng

@@ -2,7 +2,7 @@
 
 #include <ranges>
 
-namespace Engine
+namespace Eng
 {
 void SceneComponent::internal_tick(double delta_second)
 {

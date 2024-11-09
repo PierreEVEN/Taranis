@@ -5,7 +5,7 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "queue_family.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class DescriptorSet;
 class Pipeline;
@@ -59,4 +59,4 @@ class CommandBuffer
     std::thread::id       thread_id;
     std::string           name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

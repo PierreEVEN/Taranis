@@ -5,7 +5,7 @@
 
 struct GLFWwindow;
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class SwapchainRenderer;
 class Renderer;
@@ -61,4 +61,4 @@ class Window : public std::enable_shared_from_this<Window>
     bool                     should_close = false;
     GLFWwindow*              ptr;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

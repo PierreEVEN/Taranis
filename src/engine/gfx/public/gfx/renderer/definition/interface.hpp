@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 class CommandBuffer;
@@ -25,4 +25,4 @@ class DefaultRenderPassInterface : public RenderPassInterface
     {
     }
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

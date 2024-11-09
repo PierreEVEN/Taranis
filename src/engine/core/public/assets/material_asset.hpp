@@ -3,13 +3,13 @@
 #include "object_ptr.hpp"
 #include "assets\material_asset.gen.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class DescriptorSet;
 class Pipeline;
 }
 
-namespace Engine
+namespace Eng
 {
 class MaterialAsset : public AssetBase
 {
@@ -26,4 +26,4 @@ public:
 private:
     std::shared_ptr<Gfx::Pipeline> pipeline;
 };
-} // namespace Engine
+} // namespace Eng

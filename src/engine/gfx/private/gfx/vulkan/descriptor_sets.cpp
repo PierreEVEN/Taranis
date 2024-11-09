@@ -9,7 +9,7 @@
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/sampler.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 DescriptorSet::DescriptorSet(const std::weak_ptr<Device>& in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static)
 {
@@ -115,4 +115,4 @@ VkWriteDescriptorSet DescriptorSet::SamplerDescriptor::get()
         .pImageInfo      = &sampler->get_descriptor_infos(),
     };
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

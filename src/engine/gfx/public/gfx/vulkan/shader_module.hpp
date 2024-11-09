@@ -6,7 +6,7 @@
 
 #include "gfx/shaders/shader_compiler.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -38,4 +38,4 @@ class ShaderModule
     VkShaderModule        ptr = VK_NULL_HANDLE;
     std::weak_ptr<Device> device;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

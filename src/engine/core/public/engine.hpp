@@ -6,7 +6,7 @@
 
 #include <chrono>
 
-namespace Engine
+namespace Eng
 {
 class AssetRegistry;
 class Config;
@@ -79,4 +79,4 @@ class Engine
 
     Config app_config;
 };
-} // namespace Engine
+} // namespace Eng

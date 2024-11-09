@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class CommandPool;
 class Surface;
@@ -91,4 +91,4 @@ class Queues
     static std::shared_ptr<QueueFamily> find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
                                                                       const std::vector<VkQueueFlags>& desired_queue_flags);
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

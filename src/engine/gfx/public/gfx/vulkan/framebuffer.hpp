@@ -4,7 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Semaphore;
 class RenderPassInstanceBase;
@@ -45,4 +45,4 @@ class Framebuffer
     VkFramebuffer                  ptr = VK_NULL_HANDLE;
     std::shared_ptr<CommandBuffer> command_buffer;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

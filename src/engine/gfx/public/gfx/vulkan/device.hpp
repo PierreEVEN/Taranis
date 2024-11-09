@@ -7,7 +7,7 @@
 
 #include <vk_mem_alloc.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class VkRendererPass;
 class DescriptorPool;
@@ -187,4 +187,4 @@ public:
 private:
     std::weak_ptr<Device> device_ref;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

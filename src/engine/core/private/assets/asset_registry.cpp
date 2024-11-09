@@ -1,6 +1,6 @@
 #include "assets/asset_registry.hpp"
 
-namespace Engine
+namespace Eng
 {
 AssetRegistry::~AssetRegistry()
 {
@@ -8,4 +8,4 @@ AssetRegistry::~AssetRegistry()
     for (auto& asset : map_copy)
         asset.second.destroy();
 }
-} // namespace Engine
+} // namespace Eng

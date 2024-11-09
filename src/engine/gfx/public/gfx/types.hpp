@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 enum class ColorFormat
 {
@@ -117,4 +117,4 @@ enum class ColorFormat
 uint8_t get_format_channel_count(ColorFormat format);
 uint8_t get_format_bytes_per_pixel(ColorFormat format);
 bool    is_depth_format(ColorFormat format);
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

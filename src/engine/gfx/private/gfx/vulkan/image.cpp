@@ -5,7 +5,7 @@
 #include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 VkImageUsageFlags vk_usage(const ImageParameter& texture_parameters)
 {
@@ -309,4 +309,4 @@ void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer,
     image_layout = new_layout;
     vkCmdPipelineBarrier(command_buffer.raw(), source_stage, destination_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

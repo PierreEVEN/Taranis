@@ -4,7 +4,7 @@
 
 #include "vulkan/buffer.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 class Buffer;
@@ -61,4 +61,4 @@ class Mesh
     std::shared_ptr<Buffer> index_buffer;
     std::string             name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

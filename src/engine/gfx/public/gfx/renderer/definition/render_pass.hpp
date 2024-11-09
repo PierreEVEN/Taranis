@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Attachment;
 
@@ -77,11 +77,11 @@ class RenderPass : public std::enable_shared_from_this<RenderPass>
         infos.name        = pass_name;
     }
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx
 
-template <> struct std::hash<Engine::Gfx::RenderPass::Definition>
+template <> struct std::hash<Eng::Gfx::RenderPass::Definition>
 {
-    size_t operator()(const Engine::Gfx::RenderPass::Definition& val) const noexcept
+    size_t operator()(const Eng::Gfx::RenderPass::Definition& val) const noexcept
     {
         auto ite = val.attachments.begin();
         if (ite == val.attachments.end())

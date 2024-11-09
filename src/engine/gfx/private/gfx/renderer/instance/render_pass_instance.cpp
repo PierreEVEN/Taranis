@@ -8,7 +8,7 @@
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 
 RenderPassInstanceBase::RenderPassInstanceBase(std::string in_name, const std::shared_ptr<VkRendererPass>& in_render_pass, const std::shared_ptr<RenderPassInterface>& in_interface, RenderPass::Definition in_definition)
@@ -246,4 +246,4 @@ void RendererInstance::render(uint32_t output_framebuffer, uint32_t current_fram
     new_frame_internal();
     RenderPassInstanceBase::render(output_framebuffer, current_frame);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

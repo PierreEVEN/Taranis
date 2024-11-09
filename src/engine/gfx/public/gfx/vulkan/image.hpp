@@ -9,7 +9,7 @@
 #include "gfx/types.hpp"
 #include "vk_mem_alloc.h"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class CommandBuffer;
 class Device;
@@ -136,4 +136,4 @@ class Image
     std::vector<std::shared_ptr<ImageResource>> images;
     std::string                                 name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

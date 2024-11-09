@@ -3,7 +3,7 @@
 #include <string>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -28,4 +28,4 @@ class Semaphore
     VkSemaphore           ptr;
     std::weak_ptr<Device> device;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

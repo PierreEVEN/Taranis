@@ -11,7 +11,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 const std::vector device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -133,4 +133,4 @@ void Device::destroy_resources()
     vmaDestroyAllocator(allocator);
     pending_kill_resources.clear();
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

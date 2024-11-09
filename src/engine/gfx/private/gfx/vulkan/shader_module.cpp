@@ -4,7 +4,7 @@
 
 #include "gfx/vulkan/device.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 ShaderModule::ShaderModule(const std::weak_ptr<Device>& in_device, ShaderProperties in_properties) : properties(std::move(in_properties)), device(in_device)
 {
@@ -22,4 +22,4 @@ ShaderModule::~ShaderModule()
 {
     vkDestroyShaderModule(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

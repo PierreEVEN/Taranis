@@ -2,7 +2,7 @@
 
 #include "gfx/vulkan/device.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Semaphore::Semaphore(const std::string& name, std::weak_ptr<Device> in_device) : device(std::move(in_device))
 {
@@ -15,4 +15,4 @@ Semaphore::~Semaphore()
 {
     vkDestroySemaphore(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

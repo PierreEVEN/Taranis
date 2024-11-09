@@ -3,7 +3,7 @@
 #include "object_ptr.hpp"
 #include "assets\sampler_asset.gen.hpp"
 
-namespace Engine
+namespace Eng
 {
 namespace Gfx
 {

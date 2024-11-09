@@ -20,7 +20,7 @@ namespace std::filesystem
 class path;
 }
 
-namespace Engine
+namespace Eng
 {
 class Scene;
 

@@ -2,7 +2,7 @@
 
 #include "gfx/vulkan/buffer.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 void BufferData::copy_to(uint8_t* destination) const
 {
@@ -227,4 +227,4 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
 
     vmaUnmapMemory(device().lock()->get_allocator(), allocation);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

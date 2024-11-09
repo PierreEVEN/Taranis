@@ -5,7 +5,7 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image) : device(in_image->get_device()), name(std::move(in_name))
 {
@@ -87,4 +87,4 @@ ImageView::Resource::~Resource()
 {
     vkDestroyImageView(device().lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

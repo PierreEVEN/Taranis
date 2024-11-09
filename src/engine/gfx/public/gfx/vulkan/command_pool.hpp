@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class QueueFamily;
 class Device;
@@ -32,4 +32,4 @@ class CommandPool
     std::unordered_map<std::thread::id, VkCommandPool> command_pools;
     std::string                                        name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

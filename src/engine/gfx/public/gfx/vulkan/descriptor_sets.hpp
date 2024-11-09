@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class ImageView;
 class Pipeline;
@@ -89,4 +89,4 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
     std::weak_ptr<Device> device;
     bool                  b_static;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

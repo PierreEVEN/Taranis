@@ -10,7 +10,7 @@ namespace std::filesystem
 class path;
 }
 
-namespace Engine
+namespace Eng
 {
 namespace Gfx
 {
@@ -25,4 +25,4 @@ class StbImporter
     static TObjectRef<TextureAsset> load_from_path(const std::filesystem::path& path);
     static TObjectRef<TextureAsset> load_raw(const std::string& file_name, const Gfx::BufferData& raw);
 };
-} // namespace Engine
+} // namespace Eng

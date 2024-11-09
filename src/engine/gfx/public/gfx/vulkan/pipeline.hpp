@@ -6,7 +6,7 @@
 
 #include "gfx/shaders/shader_compiler.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class ShaderModule;
 class Device;
@@ -103,4 +103,4 @@ class Pipeline
     VkPipeline                      ptr                   = VK_NULL_HANDLE;
     std::weak_ptr<Device>           device;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

@@ -10,7 +10,7 @@
 #include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Fence;
 
@@ -156,4 +156,4 @@ void CommandBuffer::push_constant(EShaderStage stage, const Pipeline& pipeline, 
 {
     vkCmdPushConstants(ptr, pipeline.get_layout(), static_cast<VkShaderStageFlags>(stage), 0, static_cast<uint32_t>(data.get_byte_size()), data.data());
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

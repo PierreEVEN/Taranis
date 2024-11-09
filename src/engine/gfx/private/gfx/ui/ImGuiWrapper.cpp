@@ -51,7 +51,7 @@ float4 main(VsToFs input) : SV_TARGET{\
     return input.Color * sTexture.Sample(sSampler, input.UV);\
 }";
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
     : device(std::move(in_device)), target_window(std::move(in_target_window)), name(std::move(in_name))
@@ -384,4 +384,4 @@ ImTextureID ImGuiWrapper::add_image(const std::shared_ptr<ImageView>& image_view
     }
     return found_descriptor->second.first;
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

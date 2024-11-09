@@ -2,7 +2,7 @@
 
 #include "gfx/vulkan/device.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Fence::Fence(const std::string& name, std::weak_ptr<Device> in_device, bool signaled) : device(std::move(in_device))
 {
@@ -26,4 +26,4 @@ void Fence::wait() const
 {
     VK_CHECK(vkWaitForFences(device.lock()->raw(), 1, &ptr, true, UINT64_MAX), "Failed to wait for fence")
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

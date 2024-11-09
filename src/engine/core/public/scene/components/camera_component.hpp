@@ -3,12 +3,12 @@
 #include "scene_component.hpp"
 #include "scene\components\camera_component.gen.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class RenderPassInstanceBase;
 }
 
-namespace Engine
+namespace Eng
 {
 class CameraComponent : public SceneComponent
 {

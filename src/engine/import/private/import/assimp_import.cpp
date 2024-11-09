@@ -17,7 +17,7 @@
 #include "assets/sampler_asset.hpp"
 
 
-namespace Engine
+namespace Eng
 {
 
 

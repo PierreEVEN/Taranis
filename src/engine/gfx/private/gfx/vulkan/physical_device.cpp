@@ -9,7 +9,7 @@
 #include "gfx/vulkan/swapchain.hpp"
 #include "gfx/window.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Config;
 
@@ -133,4 +133,4 @@ bool PhysicalDevice::check_extension_support()
 
     return requiredExtensions.empty();
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

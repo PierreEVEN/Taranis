@@ -13,7 +13,7 @@
 #include "gfx/vulkan/vk_check.hpp"
 #include "gfx/window.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Surface::Surface(const std::string& in_name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& in_window)
     : window(in_window), instance_ref(instance), name(in_name) { VK_CHECK(glfwCreateWindowSurface(instance_ref.lock()->raw(), window.lock()->raw(), nullptr, &ptr), "Failed to create window surface") }
@@ -39,4 +39,4 @@ void Surface::render() const
     if (swapchain)
         swapchain->render();
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

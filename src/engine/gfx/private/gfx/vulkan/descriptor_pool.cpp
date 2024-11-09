@@ -6,7 +6,7 @@
 
 static constexpr uint32_t DESCRIPTOR_PER_POOL = 200;
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 DescriptorPool::DescriptorPool(std::weak_ptr<Device> in_device) : device(std::move(in_device))
 {
@@ -174,4 +174,4 @@ bool DescriptorPool::Pool::free(const VkDescriptorSet& desc_set)
     space_left++;
     return is_empty();
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

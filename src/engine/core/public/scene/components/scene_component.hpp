@@ -6,7 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include "scene\components\scene_component.gen.hpp"
 
-namespace Engine
+namespace Eng
 {
 class Scene;
 

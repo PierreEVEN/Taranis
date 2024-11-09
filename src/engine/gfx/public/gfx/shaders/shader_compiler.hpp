@@ -14,7 +14,7 @@ namespace std::filesystem
 class path;
 }
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 struct StageInputOutputDescription
 {
@@ -81,4 +81,4 @@ class ShaderCompiler
     IDxcCompiler3*      compiler = nullptr;
     IDxcUtils*          utils    = nullptr;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

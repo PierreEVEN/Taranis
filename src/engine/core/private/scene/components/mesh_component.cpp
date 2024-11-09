@@ -7,7 +7,7 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "scene/components/camera_component.hpp"
 
-namespace Engine
+namespace Eng
 {
 
 void MeshComponent::draw(const Gfx::CommandBuffer& command_buffer) const

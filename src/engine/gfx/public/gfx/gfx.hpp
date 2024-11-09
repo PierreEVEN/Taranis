@@ -3,7 +3,7 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 
 class GfxConfig
@@ -14,4 +14,4 @@ class GfxConfig
     bool        allow_integrated_gpus    = false;
     uint8_t     swapchain_image_count    = 2;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

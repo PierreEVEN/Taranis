@@ -4,7 +4,6 @@
 #include "engine.hpp"
 #include "object_allocator.hpp"
 #include "test_reflected_header.hpp"
-#include "assets/material_instance_asset.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/mesh_asset.hpp"
 
@@ -17,13 +16,16 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/shader_module.hpp"
+#include "gfx/vulkan/vk_render_pass.hpp"
 #include "import/assimp_import.hpp"
-#include "import/gltf_import.hpp"
 #include "import/stb_import.hpp"
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
 
+#include <ranges>
+
+using namespace Eng;
 
 const char* VERTEX = "\
               struct VSInput\
@@ -73,24 +75,24 @@ float4 main(VsToFs input) : SV_TARGET\
     return albedo.Sample(sSampler, input.Uvs, 1);\
 }";
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class ImGuiWrapper;
 }
 
-class TestFirstPassInterface : public Engine::Gfx::RenderPassInterface
+class TestFirstPassInterface : public Gfx::RenderPassInterface
 {
 public:
-    TestFirstPassInterface(std::weak_ptr<Engine::Gfx::Window> parent_window, Engine::Scene& in_scene) : window(std::move(parent_window)), scene(&in_scene)
+    TestFirstPassInterface(std::weak_ptr<Gfx::Window> parent_window, Scene& in_scene) : window(std::move(parent_window)), scene(&in_scene)
     {
     }
 
-    void init(const std::weak_ptr<Engine::Gfx::Device>& device, const Engine::Gfx::RenderPassInstanceBase& render_pass) override
+    void init(const std::weak_ptr<Gfx::Device>& device, const Gfx::RenderPassInstanceBase& render_pass) override
     {
-        imgui = std::make_unique<Engine::Gfx::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
+        imgui = std::make_unique<Gfx::ImGuiWrapper>("imgui_renderer", render_pass.get_render_pass(), device, window);
     }
 
-    void render(const Engine::Gfx::RenderPassInstanceBase& render_pass, const Engine::Gfx::CommandBuffer& command_buffer) override
+    void render(const Gfx::RenderPassInstanceBase& render_pass, const Gfx::CommandBuffer& command_buffer) override
     {
         scene->draw(command_buffer);
 
@@ -98,13 +100,13 @@ public:
 
         if (ImGui::Begin("test"))
         {
-            ImGui::LabelText("ms", "%lf", Engine::Engine::get().delta_second * 1000);
-            ImGui::LabelText("fps", "%lf", 1.0 / Engine::Engine::get().delta_second);
+            ImGui::LabelText("ms", "%lf", Engine::get().delta_second * 1000);
+            ImGui::LabelText("fps", "%lf", 1.0 / Engine::get().delta_second);
 
             int idx = 0;
-            for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
+            for (const auto& asset : Engine::get().asset_registry().all_assets() | std::views::values)
             {
-                if (auto texture = asset.second.cast<Engine::TextureAsset>())
+                if (auto texture = asset.cast<TextureAsset>())
                 {
                     ImGui::Image(imgui->add_image(texture->get_view()), {100, 100});
                     if (idx++ % 10 != 0)
@@ -112,8 +114,8 @@ public:
                 }
             }
             ImGui::Dummy({});
-            for (const auto& asset : Engine::Engine::get().asset_registry().all_assets())
-                ImGui::Text("%s : %s", asset.second->get_class()->name(), asset.second->get_name());
+            for (const auto& asset : Engine::get().asset_registry().all_assets() | std::views::values)
+                ImGui::Text("%s : %s", asset->get_class()->name(), asset->get_name());
         }
         ImGui::End();
 
@@ -123,56 +125,47 @@ public:
     }
 
 private:
-    std::unique_ptr<Engine::Gfx::ImGuiWrapper> imgui;
-    std::weak_ptr<Engine::Gfx::Window>         window;
-    Engine::Scene*                             scene;
+    std::unique_ptr<Gfx::ImGuiWrapper> imgui;
+    std::weak_ptr<Gfx::Window>         window;
+    Scene*                             scene;
 };
 
 
-class TestApp : public Engine::Application
+class TestApp : public Application
 {
 public:
-    void init(Engine::Engine& engine, const std::weak_ptr<Engine::Gfx::Window>& in_default_window) override
+    void init(Eng::Engine &engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         default_window = in_default_window;
         auto renderer  = default_window.lock()->set_renderer(
-            Engine::Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
-            ->attach(Engine::Gfx::RenderPass::create("forward_pass", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                      Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D24_UNORM_S8_UINT)}))
-            ->attach(Engine::Gfx::RenderPass::create("forward_test", {Engine::Gfx::Attachment::color("color", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                      Engine::Gfx::Attachment::color("normal", Engine::Gfx::ColorFormat::R8G8B8A8_UNORM),
-                                                                      Engine::Gfx::Attachment::depth("depth", Engine::Gfx::ColorFormat::D32_SFLOAT)})));
-        Engine::StbImporter::load_from_path("./resources/cat.jpeg");
+            Gfx::Renderer::create<TestFirstPassInterface>("present_pass", {.clear_color = Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})}, default_window, scene)
+            ->attach(Gfx::RenderPass::create("forward_pass", {Gfx::Attachment::color("color", Gfx::ColorFormat::R8G8B8A8_UNORM),
+                                                                      Gfx::Attachment::depth("depth", Gfx::ColorFormat::D24_UNORM_S8_UINT)})));
 
-        auto rp = engine.get_device().lock()->find_or_create_render_pass(Engine::Gfx::Renderer::create("present_pass", {.clear_color = Engine::Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})})
-                                                                         ->init_for_swapchain(*default_window.lock()->get_surface()->get_swapchain())
-                                                                         ->get_infos());
-
-        Engine::Gfx::ShaderCompiler compiler;
-        const auto                  vertex_code   = compiler.compile_raw(VERTEX, "main", Engine::Gfx::EShaderStage::Vertex, "internal://test_mat");
-        const auto                  fragment_code = compiler.compile_raw(FRAGMENT, "main", Engine::Gfx::EShaderStage::Fragment, "internal://test_mat");
-        auto                        test_mat      = Engine::Gfx::Pipeline::create("test material", Engine::Engine::get().get_device(), rp,
-                                                                                  std::vector{Engine::Gfx::ShaderModule::create(Engine::Engine::get().get_device(), vertex_code.get()),
-                                                                                              Engine::Gfx::ShaderModule::create(Engine::Engine::get().get_device(), fragment_code.get())},
-                                                                                  Engine::Gfx::Pipeline::CreateInfos{.culling = Engine::Gfx::ECulling::None,
-                                                                                                                     .alpha_mode = Engine::Gfx::EAlphaMode::Opaque,
+        Gfx::ShaderCompiler compiler;
+        const auto                  vertex_code   = compiler.compile_raw(VERTEX, "main", Gfx::EShaderStage::Vertex, "internal://test_mat");
+        const auto                  fragment_code = compiler.compile_raw(FRAGMENT, "main", Gfx::EShaderStage::Fragment, "internal://test_mat");
+        auto                        test_mat      = Gfx::Pipeline::create("test material", engine.get_device(), renderer.lock()->get_render_pass(),
+                                                                          std::vector{Gfx::ShaderModule::create(engine.get_device(), vertex_code.get()), Gfx::ShaderModule::create(engine.get_device(), fragment_code.get())},
+                                                                                  Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None,
+                                                                                                                     .alpha_mode = Gfx::EAlphaMode::Opaque,
                                                                                                                      .depth_test = false,
                                                                                                                      .stage_input_override = std::vector{
-                                                                                                                         Engine::Gfx::StageInputOutputDescription{0, 0, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                                                         Engine::Gfx::StageInputOutputDescription{1, 12, Engine::Gfx::ColorFormat::R32G32_SFLOAT},
-                                                                                                                         Engine::Gfx::StageInputOutputDescription{2, 20, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                                                         Engine::Gfx::StageInputOutputDescription{3, 32, Engine::Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                                                                         Engine::Gfx::StageInputOutputDescription{4, 44, Engine::Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                                                                                                                         Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                                                                         Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
+                                                                                                                         Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                                                                         Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                                                                         Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
                                                                                                                      }});
 
-        auto gltf_mat = Engine::Engine::get().asset_registry().create<Engine::MaterialAsset>("GltfMat", test_mat);
+        auto gltf_mat = engine.asset_registry().create<MaterialAsset>("GltfMat", test_mat);
 
-        camera = scene.add_component<Engine::FpsCameraComponent>("test_cam", renderer);
-        Engine::AssimpImporter importer;
-        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, gltf_mat, camera.cast<Engine::CameraComponent>());
+        camera = scene.add_component<FpsCameraComponent>("test_cam", renderer);
+        AssimpImporter importer;
+        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", scene, gltf_mat, camera.cast<CameraComponent>());
     }
 
-    void tick_game(Engine::Engine&, double delta_second) override
+    void tick_game(Eng::Engine&, double delta_second) override
     {
         auto glfw_ptr = default_window.lock()->raw();
 
@@ -239,9 +232,9 @@ public:
 
     bool                                   set_first_pos = false;
     glm::vec2                              last_cursor_pos;
-    TObjectRef<Engine::FpsCameraComponent> camera;
-    std::weak_ptr<Engine::Gfx::Window>     default_window;
-    Engine::Scene                          scene;
+    TObjectRef<FpsCameraComponent> camera;
+    std::weak_ptr<Gfx::Window>     default_window;
+    Scene                          scene;
 };
 
 int main()
@@ -253,8 +246,8 @@ int main()
     TObjectPtr<ParentA> foo = allocator.construct<ParentA>(10);
     foo.destroy();
 
-    Engine::Config config = {};
+    Config config = {};
 
-    Engine::Engine engine(config);
-    engine.run<TestApp>(Engine::Gfx::WindowConfig{.name = "primary"});
+    Eng::Engine engine(config);
+    engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

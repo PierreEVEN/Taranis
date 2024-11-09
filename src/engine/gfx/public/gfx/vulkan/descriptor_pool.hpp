@@ -4,7 +4,7 @@
 
 #include "descriptor_sets.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 struct PoolDescription
 {
@@ -22,11 +22,11 @@ struct PoolDescription
 
     std::vector<VkDescriptorPoolSize> pool_sizes;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx
 
-template <> struct std::hash<Engine::Gfx::PoolDescription>
+template <> struct std::hash<Eng::Gfx::PoolDescription>
 {
-    size_t operator()(const Engine::Gfx::PoolDescription& val) const noexcept
+    size_t operator()(const Eng::Gfx::PoolDescription& val) const noexcept
     {
         auto ite = val.pool_sizes.begin();
         if (ite == val.pool_sizes.end())
@@ -40,7 +40,7 @@ template <> struct std::hash<Engine::Gfx::PoolDescription>
     }
 };
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -90,4 +90,4 @@ class DescriptorPool
     std::weak_ptr<Device>                                                                      device;
     std::unordered_map<PoolDescription, std::pair<size_t, std::vector<std::shared_ptr<Pool>>>> pools;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

@@ -8,7 +8,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Renderer;
 class Fence;
@@ -92,4 +92,4 @@ class Swapchain : public std::enable_shared_from_this<Swapchain>
     std::vector<std::shared_ptr<Fence>>     in_flight_fences;
     std::string                             name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

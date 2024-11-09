@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace Engine
+namespace Eng
 {
 namespace Gfx
 {
@@ -47,4 +47,4 @@ private:
     uint32_t    channels = 0;
     CreateInfos infos;
 };
-} // namespace Engine
+} // namespace Eng

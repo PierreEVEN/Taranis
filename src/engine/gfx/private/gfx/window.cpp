@@ -6,7 +6,7 @@
 
 #include <unordered_map>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 static size_t WINDOW_ID = 0;
 
@@ -58,4 +58,4 @@ std::weak_ptr<SwapchainRenderer> Window::set_renderer(const std::shared_ptr<Rend
 {
     return surface->set_renderer(present_pass);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

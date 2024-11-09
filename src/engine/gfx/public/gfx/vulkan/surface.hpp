@@ -3,7 +3,7 @@
 #include <string>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class SwapchainRenderer;
 class Renderer;
@@ -51,4 +51,4 @@ private:
     std::string                name;
     VkSurfaceKHR               ptr = VK_NULL_HANDLE;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

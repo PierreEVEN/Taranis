@@ -4,7 +4,7 @@
 #include <utility>
 #include <vulkan/vulkan_core.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -33,4 +33,4 @@ class Fence
     VkFence               ptr;
     std::weak_ptr<Device> device;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

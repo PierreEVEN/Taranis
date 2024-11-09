@@ -2,22 +2,22 @@
 #include "scene_component.hpp"
 #include "scene\components\mesh_component.gen.hpp"
 
-namespace Engine
+namespace Eng
 {
 class CameraComponent;
 }
 
-namespace Engine
+namespace Eng
 {
 class MaterialInstanceAsset;
 }
 
-namespace Engine
+namespace Eng
 {
 class MeshAsset;
 }
 
-namespace Engine
+namespace Eng
 {
 
 class MeshComponent : public SceneComponent

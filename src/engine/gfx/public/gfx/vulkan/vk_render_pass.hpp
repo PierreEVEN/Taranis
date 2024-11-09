@@ -6,7 +6,7 @@
 #include <utility>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -43,4 +43,4 @@ class VkRendererPass
     std::weak_ptr<Device>  device;
     VkRenderPass           ptr = VK_NULL_HANDLE;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

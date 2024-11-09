@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_set>
 
-namespace Engine
+namespace Eng
 {
 class AssetBase;
 
@@ -46,4 +46,4 @@ public:
 private:
     std::unordered_map<void*, TObjectPtr<AssetBase>> assets;
 };
-} // namespace Engine
+} // namespace Eng

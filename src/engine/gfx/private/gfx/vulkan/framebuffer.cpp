@@ -7,7 +7,7 @@
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Framebuffer::Framebuffer(const std::string& name, std::weak_ptr<Device> in_device, const RenderPassInstanceBase& render_pass, size_t image_index) : device(std::move(in_device))
 {
@@ -39,4 +39,4 @@ Framebuffer::~Framebuffer()
 {
     vkDestroyFramebuffer(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

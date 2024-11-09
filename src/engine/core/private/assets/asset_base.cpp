@@ -2,13 +2,13 @@
 
 #include "assets/asset_registry.hpp"
 
-namespace Engine
+namespace Eng
 {
 
-Engine::AssetBase::~AssetBase()
+AssetBase::~AssetBase()
 {
     free(name);
     registry->assets.erase(this);
 }
 
-} // namespace Engine
+} // namespace Eng

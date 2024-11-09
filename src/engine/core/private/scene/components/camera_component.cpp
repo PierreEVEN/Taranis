@@ -5,7 +5,7 @@
 #include "engine.hpp"
 #include <numbers>
 
-namespace Engine
+namespace Eng
 {
 
 void CameraComponent::recompute()
@@ -44,4 +44,4 @@ void FpsCameraComponent::update_rotation()
     set_rotation(glm::quat(glm::vec3{0, pitch, 0}) * glm::quat(glm::vec3{0, 0, yaw}));
 
 }
-} // namespace Engine
+} // namespace Eng

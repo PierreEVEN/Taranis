@@ -6,7 +6,7 @@
 #include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
 
-namespace Engine
+namespace Eng
 {
 Scene::Scene()
 {

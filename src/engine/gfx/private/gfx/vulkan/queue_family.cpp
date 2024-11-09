@@ -9,7 +9,7 @@
 #include "gfx/vulkan/physical_device.hpp"
 #include "gfx/vulkan/surface.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Queues::Queues(const PhysicalDevice& physical_device, const Surface& surface)
 {
@@ -183,4 +183,4 @@ auto Queues::find_best_suited_queue_family(const std::unordered_map<uint32_t, st
     }
     return best_queue;
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

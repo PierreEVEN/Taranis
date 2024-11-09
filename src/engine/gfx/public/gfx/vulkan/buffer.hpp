@@ -5,7 +5,7 @@
 
 #include "device.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class Device;
 
@@ -163,4 +163,4 @@ private:
     std::weak_ptr<Device>                  device;
     std::string                            name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

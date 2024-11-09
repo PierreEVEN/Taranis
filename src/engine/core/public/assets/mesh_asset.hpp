@@ -9,17 +9,17 @@
 #include <memory>
 #include <vector>
 
-namespace Engine
+namespace Eng
 {
 class MaterialInstanceAsset;
 }
 
-namespace Engine
+namespace Eng
 {
 class MaterialAsset;
 }
 
-namespace Engine
+namespace Eng
 {
 namespace Gfx
 {
@@ -61,4 +61,4 @@ public:
 private:
     std::vector<Section> mesh_sections;
 };
-} // namespace Engine
+} // namespace Eng

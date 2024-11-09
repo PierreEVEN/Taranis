@@ -6,7 +6,7 @@
 #include <optional>
 #include <string>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class ClearValue
 {
@@ -113,4 +113,4 @@ class Attachment
     ClearValue  clear_value_val;
 };
 
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

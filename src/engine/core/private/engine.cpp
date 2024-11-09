@@ -11,7 +11,7 @@
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
 
-namespace Engine
+namespace Eng
 {
 Engine* engine_singleton = nullptr;
 
@@ -96,4 +96,4 @@ double Engine::get_seconds() const
 {
     return static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count()) / 1000000.0;
 }
-} // namespace Engine
+} // namespace Eng

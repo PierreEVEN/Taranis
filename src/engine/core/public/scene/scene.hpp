@@ -9,7 +9,7 @@
 
 class ContiguousObjectAllocator;
 
-namespace Engine
+namespace Eng
 {
 namespace Gfx
 {
@@ -58,4 +58,4 @@ public:
 
 
 };
-} // namespace Engine
+} // namespace Eng

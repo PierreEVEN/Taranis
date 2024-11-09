@@ -63,7 +63,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
         func(instance, debugMessenger, pAllocator);
 }
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Instance::Instance(GfxConfig& config)
 {
@@ -198,4 +198,4 @@ std::vector<const char*> Instance::get_required_extensions(const GfxConfig& conf
 
     return extensions;
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

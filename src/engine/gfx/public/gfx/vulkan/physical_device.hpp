@@ -6,7 +6,7 @@
 #include "swapchain.hpp"
 #include "vk_check.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class GfxConfig;
 
@@ -36,4 +36,4 @@ class PhysicalDevice
 
     VkPhysicalDevice ptr                     = VK_NULL_HANDLE;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

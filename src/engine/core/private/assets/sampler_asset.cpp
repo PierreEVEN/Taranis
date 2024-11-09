@@ -5,7 +5,7 @@
 #include "gfx/vulkan/sampler.hpp"
 
 
-namespace Engine
+namespace Eng
 {
 
 SamplerAsset::SamplerAsset()

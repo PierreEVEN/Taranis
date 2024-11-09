@@ -7,7 +7,7 @@
 #include "assets/texture_asset.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 
-namespace Engine
+namespace Eng
 {
 
 MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material) : base(base_material)
@@ -37,4 +37,4 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
 {
     descriptors->bind_image(binding, texture->get_view());
 }
-} // namespace Engine
+} // namespace Eng

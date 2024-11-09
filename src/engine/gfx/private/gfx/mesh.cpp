@@ -1,6 +1,6 @@
 #include "gfx/mesh.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t in_vertex_structure_size, EBufferType in_buffer_type, const BufferData* vertices, const BufferData* indices)
     : buffer_type(in_buffer_type), vertex_structure_size(in_vertex_structure_size), index_type(IndexBufferType::Uint32), device(in_device), name(std::move(in_name))
@@ -125,4 +125,4 @@ void Mesh::set_indexed_vertices(size_t start_vertex, const BufferData& vertex_da
     reserve_indices(start_index + index_data.get_element_count(), type);
     index_buffer->set_data(start_index, index_data);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

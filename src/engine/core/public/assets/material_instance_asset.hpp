@@ -3,13 +3,13 @@
 #include "object_ptr.hpp"
 #include "assets\material_instance_asset.gen.hpp"
 
-namespace Engine
+namespace Eng
 {
 class SamplerAsset;
 class TextureAsset;
 }
 
-namespace Engine
+namespace Eng
 {
 class MaterialAsset;
 
@@ -36,4 +36,4 @@ private:
     TObjectRef<MaterialAsset>           base;
     std::shared_ptr<Gfx::DescriptorSet> descriptors;
 };
-} // namespace Engine
+} // namespace Eng

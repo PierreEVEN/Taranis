@@ -5,7 +5,7 @@
 
 #include <array>
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 
 VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Device>& in_device, RenderPass::Definition in_infos) : infos(std::move(in_infos)), device(in_device)
@@ -88,4 +88,4 @@ VkRendererPass::~VkRendererPass()
 {
     vkDestroyRenderPass(device.lock()->raw(), ptr, nullptr);
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

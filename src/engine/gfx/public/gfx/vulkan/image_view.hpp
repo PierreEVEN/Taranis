@@ -6,7 +6,7 @@
 #include "gfx/types.hpp"
 #include "image.hpp"
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 class ImageViewResource;
 class Device;
@@ -63,4 +63,4 @@ class ImageView
     std::weak_ptr<Device>                  device;
     std::string                            name;
 };
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx

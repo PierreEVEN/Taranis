@@ -36,7 +36,7 @@ void ThrowIfFailed(HRESULT hr)
     }
 }
 
-namespace Engine::Gfx
+namespace Eng::Gfx
 {
 ShaderCompiler::ShaderCompiler()
 {
@@ -248,4 +248,4 @@ std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProper
     spvReflectDestroyShaderModule(&module);
     return {};
 }
-} // namespace Engine::Gfx
+} // namespace Eng::Gfx
