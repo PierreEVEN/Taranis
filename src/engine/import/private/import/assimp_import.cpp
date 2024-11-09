@@ -171,7 +171,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     return materials.emplace(id, new_mat).first->second;
 }
 
-TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(MaterialType type)
+TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(MaterialType)
 {
     if (materials_base)
         return materials_base;

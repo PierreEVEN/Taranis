@@ -38,7 +38,7 @@ public:
         ptr->scene              = scene;
         ptr->name               = new char[name.size() + 1];
         memcpy(const_cast<char*>(ptr->name), name.c_str(), name.size() + 1);
-        new (alloc->ptr) T(std::forward<Args>(args)...);
+        new(alloc->ptr) T(std::forward<Args>(args)...);
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
@@ -87,6 +87,16 @@ public:
             b_transform_dirty = false;
         }
         return transform;
+    }
+
+    const std::vector<TObjectPtr<SceneComponent>>& get_nodes() const
+    {
+        return children;
+    }
+
+    const char* get_name() const
+    {
+        return name;
     }
 
 protected:

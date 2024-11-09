@@ -51,6 +51,11 @@ public:
         return allocator->iter<T>();
     }
 
+    const std::vector<TObjectPtr<SceneComponent>>& get_nodes() const
+    {
+        return root_nodes;
+    }
+
   private:
     std::unique_ptr<ContiguousObjectAllocator> allocator;
 

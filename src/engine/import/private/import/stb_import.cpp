@@ -54,7 +54,7 @@ TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path
 
 TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, const Gfx::BufferData& raw)
 {
-    FIMEMORY*         mem_handle   = FreeImage_OpenMemory(const_cast<BYTE*>(static_cast<const BYTE*>(raw.data())), raw.get_byte_size());
+    FIMEMORY*         mem_handle   = FreeImage_OpenMemory(const_cast<BYTE*>(static_cast<const BYTE*>(raw.data())), static_cast<DWORD>(raw.get_byte_size()));
     FREE_IMAGE_FORMAT image_format = FreeImage_GetFileTypeFromMemory(mem_handle, 0);
     if (image_format == FIF_UNKNOWN)
         image_format = FreeImage_GetFIFFromFilename(file_name.c_str());

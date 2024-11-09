@@ -224,7 +224,10 @@ template <typename T, typename... Args> TObjectPtr<T> make_object_ptr(Args&&... 
 
 template <typename T> class TObjectRef final : public IObject
 {
-public:
+    template <typename V> friend class TObjectPtr;
+    template <typename V> friend class TObjectRef;
+
+  public:
     TObjectRef() = default;
 
     TObjectRef(const TObjectRef&& in_object) noexcept
@@ -310,14 +313,14 @@ public:
     {
         if (!allocation)
             return !other.allocation;
-        return allocation == other->allocation && allocation->ptr == other.allocation->ptr;
+        return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
     }
 
     template <typename V> bool operator==(const TObjectRef<V>& other) const
     {
         if (!allocation)
             return !other.allocation;
-        return allocation == other->allocation && allocation->ptr == other.allocation->ptr;
+        return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
     }
 
     template <typename V> TObjectRef& operator=(const TObjectRef<V>& other)
