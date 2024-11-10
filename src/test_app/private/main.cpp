@@ -75,6 +75,226 @@ public:
     TObjectRef<SamplerAsset>          sampler;
 };
 
+struct Attachment
+{
+    static Attachment slot(const std::string& in_name)
+    {
+        return Attachment{in_name};
+    }
+
+    Attachment& format(const Gfx::ColorFormat& format)
+    {
+        color_format = format;
+        return *this;
+    }
+
+
+    Attachment& clear_color(const glm::vec4& clear_color)
+    {
+        clear_color_value = clear_color;
+        return *this;
+    }
+
+    Attachment& clear_depth(const glm::vec2& clear_depth)
+    {
+        clear_depth_value = clear_depth;
+        return *this;
+    }
+
+    std::string              name;
+    Gfx::ColorFormat         color_format      = Gfx::ColorFormat::UNDEFINED;
+    std::optional<glm::vec4> clear_color_value = {};
+    std::optional<glm::vec2> clear_depth_value = {};
+
+private:
+    Attachment(std::string in_name) : name(std::move(in_name))
+    {
+    }
+};
+
+class IRenderPass
+{
+
+};
+
+class TestRenderPass : public IRenderPass
+{
+public:
+    TestRenderPass(int)
+    {
+    }
+};
+
+struct RenderPassKey
+{
+    using Elem = std::pair<Gfx::ColorFormat, bool>;
+
+    std::vector<Elem> pass_data;
+
+    void sort()
+    {
+        std::ranges::sort(pass_data,
+                          [](const Elem& a, const Elem& b)
+                          {
+                              if (a.first == b.first)
+                                  return a.second > b.second;
+
+                              return static_cast<int>(a.first) > static_cast<int>(b.first);
+                          });
+    }
+
+    bool operator==(RenderPassKey& other)
+    {
+        if (pass_data.size() != other.pass_data.size())
+            return false;
+        for (auto a = pass_data.begin(), b = other.pass_data.begin(); a != pass_data.end(); ++a, ++b)
+            if (a->second != b->second || a->first != b->first)
+                return false;
+        return true;
+    }
+};
+
+template <> struct std::hash<RenderPassKey>
+{
+    size_t operator()(const RenderPassKey& val) const noexcept
+    {
+        auto ite = val.pass_data.begin();
+        if (ite == val.pass_data.end())
+            return 0;
+        size_t hash = std::hash<int32_t>()(static_cast<uint32_t>(ite->first) + 1);
+        for (; ite != val.pass_data.end(); ++ite)
+        {
+            hash ^= std::hash<int32_t>()(static_cast<uint32_t>(ite->first) + 1) * 13;
+        }
+        return hash;
+    }
+};
+
+class RenderNode
+{
+    friend class Renderer;
+
+    class IRenderPassInitializer
+    {
+    public:
+        virtual std::shared_ptr<IRenderPassInitializer> construct() = 0;
+    };
+
+    template <typename T, typename... Args> class TRenderPassInitializer : public IRenderPassInitializer
+    {
+    public:
+        TRenderPassInitializer(Args&&... in_args) : tuple_value(std::tuple<Args...>(std::forward<Args>(in_args)...))
+        {
+        }
+
+        std::shared_ptr<IRenderPassInitializer> construct() override
+        {
+            construct_with_tuple(tuple_value, std::index_sequence_for<Args...>());
+            return {};
+        }
+
+    private:
+        std::shared_ptr<T> construct_internal(Args... in_args)
+        {
+            return std::make_shared<T>(in_args...);
+        }
+
+        template <std::size_t... Is>
+        std::shared_ptr<T> construct_with_tuple(const std::tuple<Args...>& tuple, std::index_sequence<Is...>)
+        {
+            return construct_internal(std::get<Is>(tuple)...);
+        }
+
+        std::tuple<Args...> tuple_value;
+    };
+
+
+    RenderNode() = default;
+
+public:
+    RenderNode& require(std::initializer_list<std::string> required)
+    {
+        for (const auto& item : required)
+            dependencies.insert(item);
+        return *this;
+    }
+
+    RenderNode& require(const std::string& required)
+    {
+        dependencies.insert(required);
+        return *this;
+    }
+
+    RenderNode& with_imgui(bool enable)
+    {
+        b_with_imgui = enable;
+        return *this;
+    }
+
+    RenderNode& add_attachment(const std::string& name, Attachment attachment)
+    {
+        attachments.emplace(name, attachment);
+        return *this;
+    }
+
+    RenderNode& operator[](Attachment attachment)
+    {
+        attachments.emplace(attachment.name, attachment);
+        return *this;
+    }
+
+    template <typename T, typename... Args> RenderNode& render_pass(Args&&... args)
+    {
+        render_pass_initializer = std::make_shared<TRenderPassInitializer<T, Args...>>(std::forward<Args>(args)...);
+        return *this;
+    }
+
+
+    std::shared_ptr<IRenderPassInitializer>     render_pass_initializer;
+    std::unordered_map<std::string, Attachment> attachments;
+    std::unordered_set<std::string>             dependencies;
+    bool                                        b_with_imgui = false;
+};
+
+
+class Renderer
+{
+public:
+    Renderer() = default;
+
+    RenderNode& operator[](const std::string& node)
+    {
+        if (auto found = nodes.find(node); found != nodes.end())
+            return found->second;
+        return nodes.emplace(node, RenderNode{}).first->second;
+    }
+
+private:
+    std::unordered_map<std::string, RenderNode> nodes;
+};
+
+void build()
+{
+    Renderer renderer;
+
+    renderer["gbuffers"]
+        [Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT)]
+        [Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM)]
+        [Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM)]
+        [Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT)];
+
+    renderer["gbuffer_resolve"]
+        .require("gbuffers")
+        [Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
+
+    renderer["present"]
+        .require("gbuffer_resolve")
+        .with_imgui(true)
+        [Attachment::slot("target")]
+        .render_pass<TestRenderPass>(5);
+}
+
+
 class TestApp : public Application
 {
 public:
