@@ -3,16 +3,21 @@
 #include "engine.hpp"
 #include "object_allocator.hpp"
 #include "test_reflected_header.hpp"
+#include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
+#include "assets/sampler_asset.hpp"
 #include <gfx/window.hpp>
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/renderer/instance/swapchain_renderer.hpp"
 #include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
+#include "gfx/vulkan/command_buffer.hpp"
+#include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "import/assimp_import.hpp"
+#include "import/material_import.hpp"
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
@@ -40,6 +45,35 @@ public:
     Scene* scene;
 };
 
+class GBufferResolveInterface : public Gfx::RenderPassInterface
+{
+public:
+    void init(const std::weak_ptr<Gfx::Device>&, const Gfx::RenderPassInstanceBase& render_pass) override
+    {
+        auto base_mat = MaterialImport::from_path("resources/shaders/gbuffer_resolve.hlsl", Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None}, {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment},
+                                                  render_pass.get_render_pass());
+        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat);
+        sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler");
+
+        auto attachments = render_pass.get_children()[0]->get_attachments();
+
+        material->set_sampler("sSampler", sampler);
+        material->get_descriptor_resource()->bind_image("gbuffer_position", attachments[0].lock());
+        material->get_descriptor_resource()->bind_image("gbuffer_albedo_m", attachments[1].lock());
+        material->get_descriptor_resource()->bind_image("gbuffer_normal_r", attachments[2].lock());
+        material->get_descriptor_resource()->bind_image("gbuffer_depth", attachments[3].lock());
+    }
+
+    void render(const Gfx::RenderPassInstanceBase&, const Gfx::CommandBuffer& command_buffer) override
+    {
+        command_buffer.bind_pipeline(*material->get_base_resource());
+        command_buffer.bind_descriptors(*material->get_descriptor_resource(), *material->get_base_resource());
+        command_buffer.draw_procedural(6, 0, 1, 0);
+    }
+
+    TObjectRef<MaterialInstanceAsset> material;
+    TObjectRef<SamplerAsset>          sampler;
+};
 
 class TestApp : public Application
 {
@@ -53,11 +87,14 @@ public:
             Gfx::Renderer::create(
                 "present_pass",
                 {})
-            ->attach(Gfx::RenderPass::create<SceneRendererInterface>(
-                "forward_pass", {
-                    Gfx::Attachment::color("color", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
-                    Gfx::Attachment::depth("depth", Gfx::ColorFormat::D32_SFLOAT, Gfx::ClearValue::depth_stencil({0, 0}))},
-                *scene)));
+            ->attach(Gfx::RenderPass::create<GBufferResolveInterface>("gbuffers-resolve", {
+                                                                          Gfx::Attachment::color("target", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1}))})
+                ->attach(Gfx::RenderPass::create<SceneRendererInterface>("gbuffers", {
+                                                                             Gfx::Attachment::color("position", Gfx::ColorFormat::R32G32B32A32_SFLOAT, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
+                                                                             Gfx::Attachment::color("albedo-m", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
+                                                                             Gfx::Attachment::color("normal-r", Gfx::ColorFormat::R8G8B8A8_UNORM, Gfx::ClearValue::color({0.2, 0.2, 0.5, 1})),
+                                                                             Gfx::Attachment::depth("depth", Gfx::ColorFormat::D32_SFLOAT, Gfx::ClearValue::depth_stencil({0, 0}))},
+                                                                         *scene))));
 
         renderer.lock()->imgui_context()->new_window<Viewport>("Viewport", renderer.lock()->get_children()[0], scene);
         renderer.lock()->imgui_context()->new_window<ContentBrowser>("Content browser", engine.asset_registry());

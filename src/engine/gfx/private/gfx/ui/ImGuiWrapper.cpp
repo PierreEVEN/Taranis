@@ -130,19 +130,33 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
 
     ImGuiStyle& style = ImGui::GetStyle();
     ImGui::StyleColorsDark();
+
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(.18f, .18f, .18f, 1);
+    style.Colors[ImGuiCol_CheckMark] = ImVec4(.62f, .62f, .62f, 1);
+    style.Colors[ImGuiCol_SliderGrab] = ImVec4(.62f, .62f, .62f, 1);
+    style.Colors[ImGuiCol_Button] = ImVec4(.27f, .27f, .27f, 1);
+    style.Colors[ImGuiCol_Header] = ImVec4(.28f, .28f, .28f, 1);
+    style.Colors[ImGuiCol_Tab] = ImVec4(.08f, .08f, .08f, .86f);
+    style.Colors[ImGuiCol_TabUnfocused] = ImVec4(.1f, .1f, .1f, .86f);
+    style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(.2f, .2f, .2f, 1);
+    style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4(.07f, .07f, .07f, 1);
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(.11f, .11f, .11f, 1);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(.06f, .06f, .06f, 1);
+    style.Colors[ImGuiCol_TabActive] = ImVec4(.52f, .52f, .52f, 1);
+
     style.WindowRounding     = 0;
     style.ScrollbarRounding  = 0;
     style.TabRounding        = 0;
     style.WindowBorderSize   = 1;
     style.PopupBorderSize    = 1;
     style.WindowTitleAlign.x = 0.5f;
-    style.FramePadding.x     = 6.f;
-    style.FramePadding.y     = 6.f;
+    style.FramePadding.x     = 12.f;
+    style.FramePadding.y     = 10.f;
     style.WindowPadding.x    = 4.f;
     style.WindowPadding.y    = 4.f;
-    style.GrabMinSize        = 16.f;
-    style.ScrollbarSize      = 20.f;
-    style.IndentSpacing      = 30.f;
+    style.GrabMinSize        = 12.f;
+    style.ScrollbarSize      = 16.f;
+    style.IndentSpacing      = 17.f;
 
     ImGuiViewport* main_viewport  = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = nullptr;

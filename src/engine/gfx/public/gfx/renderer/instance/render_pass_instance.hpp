@@ -78,6 +78,7 @@ public:
     }
 
 protected:
+    friend class RendererInstance;
     ResizeCallback                                   resize_callback = nullptr;
     void                                             new_frame_internal();
     std::shared_ptr<RenderPassInterface>             interface;

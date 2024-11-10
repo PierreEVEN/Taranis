@@ -111,6 +111,14 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
     end)
 end
 
+
+target("data", function(target)
+    set_kind("object")
+    for _, file in pairs(os.files("resources/**")) do
+        add_headerfiles(file)
+    end
+end)
+
 add_defines("ENABLE_VALIDATION_LAYER")
 if DEBUG then
     print("################ building modules ################")

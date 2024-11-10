@@ -129,7 +129,6 @@ RenderPassInstance::RenderPassInstance(const std::string&            in_name, co
                                        const RenderPass::Definition& in_definition)
     : RenderPassInstanceBase(in_name, in_render_pass, in_interface, in_definition)
 {
-    interface->init(device, *this);
 }
 
 RenderPassInstance::~RenderPassInstance()
@@ -234,6 +233,8 @@ RendererInstance::RendererInstance(const std::string& in_name, const std::shared
                 add_child_render_pass(instanced_passes.find(dep)->second);
             remaining.emplace_back(dep);
         }
+        if (auto found = instanced_passes.find(def); found != instanced_passes.end())
+            found->second->interface->init(device, *found->second);
     }
 
     interface->init(device, *this);

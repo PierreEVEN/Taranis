@@ -36,10 +36,23 @@ float pow_cord(float val)
     return pow(abs(sin(val * 50)), 10);
 }
 
-float4 fs_main(VsToFs input) : SV_TARGET
+struct FsOutput
 {
-    float4 color = albedo.Sample(sSampler, input.Uvs, 1);
-    if (color.a < 0.9)
+    float3 position : SV_TARGET0;
+    float4 albedo_m : SV_TARGET1;
+    float4 normal_r : SV_TARGET2;
+};
+
+
+FsOutput fs_main(VsToFs input)
+{
+    float4 tex_col = albedo.Sample(sSampler, input.Uvs, 1);
+
+    FsOutput output;
+    output.position = float3(0, 0, 0);
+    output.albedo_m = float4(tex_col.rgb, 0);
+    output.normal_r = float4(0, 0, 1, 1);
+    if (tex_col.a < 0.9)
         discard;
-    return color;
+    return output;
 }
