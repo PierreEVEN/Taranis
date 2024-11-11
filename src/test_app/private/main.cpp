@@ -43,7 +43,10 @@ public:
 
 class GBufferResolveInterface : public Gfx::IRenderPass
 {
-public:
+  public:
+    GBufferResolveInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
+    {
+    }
     void init(const Gfx::RenderPassInstance& render_pass) override
     {
         auto base_mat = MaterialImport::from_path("resources/shaders/gbuffer_resolve.hlsl", Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None}, {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment},
@@ -64,6 +67,9 @@ public:
 
     void render(const Gfx::RenderPassInstance&, const Gfx::CommandBuffer& command_buffer) override
     {
+        for (auto iterator = scene->iterate<CameraComponent>(); iterator; ++iterator)
+            command_buffer.push_constant(Gfx::EShaderStage::Fragment, *material->get_base_resource(), Gfx::BufferData{iterator->get_position()});
+
         command_buffer.bind_pipeline(*material->get_base_resource());
         command_buffer.bind_descriptors(*material->get_descriptor_resource(), *material->get_base_resource());
         command_buffer.draw_procedural(6, 0, 1, 0);
@@ -71,12 +77,8 @@ public:
 
     TObjectRef<MaterialInstanceAsset> material;
     TObjectRef<SamplerAsset>          sampler;
+    std::shared_ptr<Scene>            scene;
 };
-
-void build()
-{
-}
-
 
 class PresentPass : public Gfx::IRenderPass
 {
@@ -114,7 +116,7 @@ public:
 
         renderer1["gbuffer_resolve"]
             .require("gbuffers")
-            .render_pass<GBufferResolveInterface>()
+            .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
         renderer1["present"]
@@ -129,7 +131,7 @@ public:
 
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         AssimpImporter importer;
-        //importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", *scene, camera.cast<CameraComponent>(), rp);
+        importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", *scene, camera.cast<CameraComponent>(), rp);
         //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", *scene, camera.cast<CameraComponent>(), rp);
         //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", *scene, camera.cast<CameraComponent>(), rp);
     }
