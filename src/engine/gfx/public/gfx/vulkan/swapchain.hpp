@@ -1,5 +1,6 @@
 #pragma once
 #include "gfx/types.hpp"
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 
 #include <glm/vec2.hpp>
 #include <memory>
@@ -25,22 +26,25 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR>   presentModes;
 };
 
-class Swapchain : public std::enable_shared_from_this<Swapchain>
+class Swapchain final : public RenderPassInstance
 {
   public:
-    static std::shared_ptr<Swapchain> create(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, bool vsync = false)
+    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false)
     {
-        return std::shared_ptr<Swapchain>(new Swapchain(std::move(name), device, surface, vsync));
+        return std::shared_ptr<Swapchain>(new Swapchain(device, surface, renderer, vsync));
     }
 
     Swapchain(Swapchain&)  = delete;
     Swapchain(Swapchain&&) = delete;
-    ~Swapchain();
+    virtual ~Swapchain();
 
     VkSwapchainKHR raw() const
     {
         return ptr;
     }
+
+    std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const override;
+    const Fence* get_signal_fence(DeviceImageId device_image) const override;
 
     static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
     static VkPresentModeKHR   choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes, bool vsync);
@@ -48,14 +52,12 @@ class Swapchain : public std::enable_shared_from_this<Swapchain>
 
     void create_or_recreate();
 
-    void render();
+    void draw();
 
     std::weak_ptr<Surface> get_surface() const
     {
         return surface;
     }
-
-    std::weak_ptr<SwapchainRenderer> set_renderer(const std::shared_ptr<Renderer>& present_step);
 
     std::weak_ptr<ImageView> get_image_view() const;
 
@@ -72,24 +74,27 @@ class Swapchain : public std::enable_shared_from_this<Swapchain>
     const Semaphore& get_image_available_semaphore(uint32_t image_index) const;
     const Fence&     get_in_flight_fence(uint32_t image_index) const;
 
+
+    std::weak_ptr<Device> get_device() const
+    {
+        return device;
+    }
+
   private:
-    Swapchain(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, bool vsync = false);
+    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false);
     bool vsync = true;
 
     bool render_internal();
 
     void destroy();
 
-    std::weak_ptr<Device>                   device;
     std::weak_ptr<Surface>                  surface;
     VkSwapchainKHR                          ptr              = VK_NULL_HANDLE;
     ColorFormat                             swapchain_format = ColorFormat::UNDEFINED;
     glm::uvec2                              extent           = {};
     std::vector<VkImage>                    swapChainImages;
     std::shared_ptr<ImageView>              image_view;
-    std::shared_ptr<SwapchainRenderer>      renderer;
     std::vector<std::shared_ptr<Semaphore>> image_available_semaphores;
     std::vector<std::shared_ptr<Fence>>     in_flight_fences;
-    std::string                             name;
 };
 } // namespace Eng::Gfx

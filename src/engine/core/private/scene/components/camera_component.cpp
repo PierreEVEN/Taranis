@@ -1,14 +1,15 @@
 #include "scene/components/camera_component.hpp"
 
-#include "gfx/renderer/instance/render_pass_instance.hpp"
-
 #include "engine.hpp"
 #include <numbers>
 
-#include <glm/ext/matrix_clip_space.hpp>
-
 namespace Eng
 {
+
+void CameraComponent::update_viewport_resolution(const glm::uvec2& in_resolution)
+{
+    resolution = in_resolution;
+}
 
 void CameraComponent::recompute()
 {
@@ -16,8 +17,7 @@ void CameraComponent::recompute()
 
     view = translate(mat4_cast(inverse(get_rotation())), -get_position());
 
-    auto  res    = render_pass.lock()->resolution();
-    float aspect = static_cast<float>(res.x) / static_cast<float>(res.y);
+    float aspect = static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
     assert(std::abs(aspect - std::numeric_limits<float>::epsilon()) > static_cast<float>(0));
     float     h = 1.f / std::tan(glm::radians(fov) * 0.5f);
     float     w = h / aspect;

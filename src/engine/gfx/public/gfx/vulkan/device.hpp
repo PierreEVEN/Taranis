@@ -4,6 +4,7 @@
 
 #include "gfx/renderer/definition/render_pass.hpp"
 #include "physical_device.hpp"
+#include "gfx/renderer/definition/renderer.hpp"
 
 #include <vk_mem_alloc.h>
 
@@ -42,7 +43,7 @@ public:
     }
 
     static const std::vector<const char*>& get_device_extensions();
-    std::shared_ptr<VkRendererPass>        find_or_create_render_pass(const RenderPass::Definition& infos);
+    std::shared_ptr<VkRendererPass>        find_or_create_render_pass(const RenderPassKey& key);
 
     void destroy_resources();
 
@@ -167,17 +168,17 @@ public:
 private:
     bool b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
-    std::unordered_map<RenderPass::Definition, std::shared_ptr<VkRendererPass>> render_passes;
-    std::unique_ptr<Queues>                                                     queues;
-    PhysicalDevice                                                              physical_device;
-    VkDevice                                                                    ptr = VK_NULL_HANDLE;
-    VmaAllocator                                                                allocator;
-    uint32_t                                                                    image_count   = 2;
-    uint32_t                                                                    current_image = 0;
-    std::mutex                                                                  resource_mutex;
-    std::vector<std::vector<std::shared_ptr<DeviceResource>>>                   pending_kill_resources;
-    std::shared_ptr<DescriptorPool>                                             descriptor_pool;
-    std::weak_ptr<Instance>                                                     instance;
+    std::unordered_map<RenderPassKey, std::shared_ptr<VkRendererPass>> render_passes;
+    std::unique_ptr<Queues>                                            queues;
+    PhysicalDevice                                                     physical_device;
+    VkDevice                                                           ptr = VK_NULL_HANDLE;
+    VmaAllocator                                                       allocator;
+    uint32_t                                                           image_count   = 2;
+    uint32_t                                                           current_image = 0;
+    std::mutex                                                         resource_mutex;
+    std::vector<std::vector<std::shared_ptr<DeviceResource>>>          pending_kill_resources;
+    std::shared_ptr<DescriptorPool>                                    descriptor_pool;
+    std::weak_ptr<Instance>                                            instance;
 };
 
 class DeviceResource : public std::enable_shared_from_this<DeviceResource>

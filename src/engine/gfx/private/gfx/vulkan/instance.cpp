@@ -130,14 +130,14 @@ const std::vector<const char*>& Instance::validation_layers()
     return validationLayers;
 }
 
-void Instance::begin_debug_marker(const VkCommandBuffer& cmd, const std::string& name, glm::vec4 color) const
+void Instance::begin_debug_marker(const VkCommandBuffer& cmd, const std::string& name, const std::array<float, 4>& color) const
 {
     if (debug_messenger != VK_NULL_HANDLE)
     {
         auto func = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(ptr, "vkCmdBeginDebugUtilsLabelEXT"));
         if (func != nullptr)
         {
-            VkDebugUtilsLabelEXT infos{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, .pLabelName = name.c_str(), .color = {color.r, color.g, color.b, color.a}};
+            VkDebugUtilsLabelEXT infos{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, .pLabelName = name.c_str(), .color = {color[0], color[1], color[2], color[3]}};
             func(cmd, &infos);
         }
     }

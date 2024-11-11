@@ -40,7 +40,7 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
     if (new_draw_res != draw_res)
     {
         draw_res = new_draw_res;
-        render_pass->resize(draw_res);
+        render_pass->try_resize(draw_res);
     }
     ImGui::Image(ctx.add_image(render_pass->get_attachments()[0].lock()), ImGui::GetContentRegionAvail());
 }

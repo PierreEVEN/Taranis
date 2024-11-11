@@ -1,152 +1,91 @@
 #pragma once
-#include "gfx/renderer/definition/render_pass.hpp"
 
-#include <functional>
-#include <glm/vec2.hpp>
+#include "gfx/renderer/definition/renderer.hpp"
+
 #include <memory>
 #include <string>
-#include <utility>
-#include <vector>
 
 namespace Eng::Gfx
 {
-class ImGuiWrapper;
+class ImageView;
 }
 
 namespace Eng::Gfx
 {
-class Framebuffer;
-class RenderPassInstance;
-class Image;
-class RenderPassInterface;
-class VkRendererPass;
-class ImageView;
-class Semaphore;
 class Fence;
+class Semaphore;
+class Framebuffer;
 class Swapchain;
+class ImGuiWrapper;
+class VkRendererPass;
 
-class RenderPassInstanceBase
+using SwapchainImageId = uint8_t;
+using DeviceImageId    = uint8_t;
+
+class RenderPassInstance
 {
 public:
-    RenderPassInstanceBase(std::string name, const std::shared_ptr<VkRendererPass>& render_pass, const std::shared_ptr<RenderPassInterface>& interface, RenderPass::Definition definition);
+    RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const std::string& name, bool b_is_present);
 
-    [[nodiscard]] const std::weak_ptr<VkRendererPass>& get_render_pass() const
+    // Should be called before each frame to reset all draw flags
+    void         reset_for_next_frame();
+    virtual void try_resize(const glm::uvec2& new_resolution);
+    virtual void draw(SwapchainImageId swapchain_image, DeviceImageId device_image);
+
+    // Wait these semaphore before writing to render targets
+    virtual std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const;
+
+    // Retrieve the fence that will be signaled once the image rendering is finished
+    virtual const Fence* get_signal_fence(DeviceImageId device_image) const;
+
+    const glm::uvec2& resolution() const
     {
-        return render_pass;
+        return current_resolution;
     }
 
-    virtual std::vector<std::weak_ptr<ImageView>> get_attachments() const = 0;
-
-    virtual void render(uint32_t output_framebuffer, uint32_t current_frame);
-
-    virtual const Semaphore* get_wait_semaphores(uint32_t) const
+    // Get render pass definition
+    const RenderNode& get_definition() const
     {
-        return nullptr;
+        return definition;
     }
 
-    virtual const Fence* get_signal_fence(uint32_t) const
+    // Find the image for the given input attachment name
+    std::weak_ptr<ImageView> get_attachment(const std::string& dependency_name) const
     {
-        return nullptr;
+        if (auto found = attachments_view.find(dependency_name); found != attachments_view.end())
+            return found->second;
+        return {};
     }
 
-    void add_child_render_pass(std::shared_ptr<RenderPassInstance> child)
+    std::weak_ptr<VkRendererPass> get_render_pass_resource() const
     {
-        children.emplace_back(child);
-    }
-
-    virtual glm::uvec2 resolution() const = 0;
-
-    const std::vector<std::shared_ptr<RenderPassInstance>>& get_children() const
-    {
-        return children;
-    }
-
-    using ResizeCallback = std::function<glm::uvec2(glm::uvec2)>;
-
-    void set_resize_callback(ResizeCallback in_resize_callback)
-    {
-        resize_callback = std::move(in_resize_callback);
-    }
-
-    virtual void resize(glm::uvec2)
-    {
-    }
-
-    ImGuiWrapper* imgui_context() const
-    {
-        return imgui.get();
+        return render_pass_resource;
     }
 
 protected:
-    friend class RendererInstance;
-    ResizeCallback                                   resize_callback = nullptr;
-    void                                             new_frame_internal();
-    std::shared_ptr<RenderPassInterface>             interface;
-    bool                                             rendered = false;
-    std::weak_ptr<Device>                            device;
-    std::vector<std::shared_ptr<RenderPassInstance>> children;
-    std::weak_ptr<VkRendererPass>                    render_pass;
-    std::vector<std::shared_ptr<Framebuffer>>        framebuffers;
-    std::string                                      name;
-    RenderPass::Definition                           definition;
-    std::shared_ptr<ImGuiWrapper>                    imgui;
+
+    bool                  draw_called = false;
+    std::weak_ptr<Device> device;
+
+    // One framebuffer per swapchain or device image
+    std::vector<std::unique_ptr<Framebuffer>> framebuffers;
+
+    // One view per attachment
+    std::unordered_map<std::string, std::shared_ptr<ImageView>> attachments_view;
+
+    // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new one to be sure
+    // we are always submitting valid images
+    std::vector<std::unique_ptr<Framebuffer>>                   next_frame_framebuffers;
+    std::unordered_map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
+
+  private:
+
+    glm::uvec2                      current_resolution;
+    RenderNode                      definition;
+    std::shared_ptr<VkRendererPass> render_pass_resource;
+    std::shared_ptr<IRenderPass>    render_pass_interface;
+    std::unique_ptr<ImGuiWrapper>   imgui;
+
+    std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 };
-
-class RendererInstance : public RenderPassInstanceBase
-{
-public:
-    RendererInstance(const std::string& name, const std::shared_ptr<VkRendererPass>& render_pass, const std::shared_ptr<RenderPass>& present_pass);
-    void render(uint32_t output_framebuffer, uint32_t current_frame) override;
-};
-
-class RenderPassInstance : public RenderPassInstanceBase
-{
-public:
-    RenderPassInstance(const std::string& name, const std::shared_ptr<VkRendererPass>& render_pass, const std::shared_ptr<RenderPassInterface>& interface, const RenderPass::Definition& definition);
-    ~RenderPassInstance();
-
-    std::vector<std::weak_ptr<ImageView>> get_attachments() const override
-    {
-        std::vector<std::weak_ptr<ImageView>> attachments;
-        for (const auto& attachment : framebuffer_image_views)
-            attachments.emplace_back(attachment);
-        return attachments;
-    }
-
-    void render(uint32_t output_framebuffer, uint32_t current_frame) override;
-
-    glm::uvec2 resolution() const override
-    {
-        return framebuffer_resolution;
-    }
-
-    void resize(glm::uvec2 base_resolution) override;
-
-private:
-    glm::uvec2 framebuffer_resolution = {0, 0};
-
-    // These images will be used for the next frame because the current one are still being used by parent render passes. We need to wait the next render pass
-    std::vector<std::shared_ptr<Image>>       replacement_framebuffer_images;
-    std::vector<std::shared_ptr<ImageView>>   replacement_framebuffer_image_views;
-    std::vector<std::shared_ptr<Framebuffer>> replacement_framebuffers;
-
-    std::vector<std::shared_ptr<Image>>     framebuffer_images;
-    std::vector<std::shared_ptr<ImageView>> framebuffer_image_views;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-} // namespace Eng::Gfx
+}

@@ -1,16 +1,46 @@
 #include "gfx/renderer/definition/renderer.hpp"
 
+#include "logger.hpp"
 #include "gfx/renderer/definition/render_pass.hpp"
 #include "gfx/vulkan/swapchain.hpp"
 
+#include <ranges>
+
 namespace Eng::Gfx
 {
-std::shared_ptr<RenderPass> Renderer::init_for_swapchain(const Swapchain& swapchain) const
+const RenderNode& Renderer::get_node(const std::string& pass_name) const
 {
-    auto renderer_step                = RenderPass::create(pass_name, {Attachment::color("color", swapchain.get_format(), create_infos.clear_color)});
-    renderer_step->infos.present_pass = true;
-    renderer_step->interface          = interface;
-    renderer_step->dependencies       = dependencies;
-    return renderer_step;
+    if (auto found = nodes.find(pass_name); found != nodes.end())
+        return found->second;
+    LOG_FATAL("There is no render pass named {}", pass_name);
+}
+
+std::optional<std::string> Renderer::root_node() const
+{
+    std::unordered_set<std::string> roots;
+    for (const auto& node_name : nodes | std::views::keys)
+        roots.insert(node_name);
+
+    for (const auto& node : nodes | std::views::values)
+        for (const auto& require : node.dependencies)
+            roots.erase(require);
+
+    if (roots.empty())
+    {
+        if (nodes.empty())
+            LOG_ERROR("Renderer has no root render pass (renderer is empty)");
+        else
+            LOG_ERROR("Renderer has no root render pass (maybe circular dependency)");
+        return {};
+    }
+
+    if (roots.size() != 1)
+    {
+        LOG_ERROR("Renderer have multiple roots");
+        for (const auto& root : roots)
+            LOG_WARNING("\t'{}", root);
+        return {};
+    }
+    return *roots.begin();
 }
 } // namespace Eng::Gfx

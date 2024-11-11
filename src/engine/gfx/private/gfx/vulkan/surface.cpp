@@ -24,19 +24,21 @@ Surface::~Surface()
     vkDestroySurfaceKHR(instance_ref.lock()->raw(), ptr, nullptr);
 }
 
-void Surface::create_swapchain(const std::weak_ptr<Device>& device)
+void Surface::set_device(const std::weak_ptr<Device>& in_device)
 {
-    swapchain = Swapchain::create(name + "_swp", device, weak_from_this());
+    device = in_device;
 }
 
-std::weak_ptr<SwapchainRenderer> Surface::set_renderer(const std::shared_ptr<Renderer>& present_pass) const
+void Surface::set_renderer(const Renderer& renderer)
 {
-    return swapchain->set_renderer(present_pass);
+    if (!device.lock())
+        LOG_FATAL("Surface::set_device have not been called !");
+    swapchain = Swapchain::create(device, weak_from_this(), renderer, false);
 }
 
 void Surface::render() const
 {
     if (swapchain)
-        swapchain->render();
+        swapchain->draw();
 }
 } // namespace Eng::Gfx

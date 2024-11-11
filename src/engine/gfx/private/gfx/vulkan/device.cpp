@@ -103,15 +103,15 @@ const std::vector<const char*>& Device::get_device_extensions()
     return device_extensions;
 }
 
-std::shared_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPass::Definition& infos)
+std::shared_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPassKey& key)
 {
-    const auto existing = render_passes.find(infos);
+    const auto existing = render_passes.find(key);
 
     if (existing != render_passes.end())
         return existing->second;
 
-    const auto new_render_pass = VkRendererPass::create(infos.name + "_pass", shared_from_this(), infos);
-    render_passes.emplace(infos, new_render_pass);
+    const auto new_render_pass = VkRendererPass::create(key.name + "_pass", shared_from_this(), key);
+    render_passes.emplace(key, new_render_pass);
     return new_render_pass;
 }
 

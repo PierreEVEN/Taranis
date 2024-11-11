@@ -52,7 +52,7 @@ std::weak_ptr<Gfx::Window> Engine::new_window(const Gfx::WindowConfig& config)
         else
             LOG_FATAL("{}", physical_device.error())
     }
-    window->get_surface()->create_swapchain(gfx_device);
+    window->get_surface()->set_device(gfx_device);
     // Todo : OnCreateWindow
     windows.emplace(window->get_id(), window);
     return window;

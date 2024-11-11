@@ -15,10 +15,9 @@ class CameraComponent : public SceneComponent
     REFLECT_BODY();
 
 public:
-    CameraComponent(const std::weak_ptr<Gfx::RenderPassInstanceBase>& target_render_pass) : render_pass(target_render_pass)
+    CameraComponent()
     {
     };
-
 
     const glm::mat4& view_matrix()
     {
@@ -41,6 +40,8 @@ public:
         return perspective_view;
     }
 
+    void update_viewport_resolution(const glm::uvec2& resolution);
+
 private:
     void recompute();
 
@@ -50,7 +51,7 @@ private:
     glm::mat4                                  view;
     glm::mat4                                  perspective;
     glm::mat4                                  perspective_view;
-    std::weak_ptr<Gfx::RenderPassInstanceBase> render_pass;
+    glm::uvec2                                 resolution;
 };
 
 
@@ -59,7 +60,7 @@ class FpsCameraComponent : public CameraComponent
     REFLECT_BODY();
 
 public:
-    FpsCameraComponent(const std::weak_ptr<Gfx::RenderPassInstanceBase>& target_render_pass) : CameraComponent(target_render_pass)
+    FpsCameraComponent()
     {
     };
 

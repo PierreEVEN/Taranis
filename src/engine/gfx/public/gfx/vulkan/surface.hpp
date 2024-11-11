@@ -34,9 +34,9 @@ public:
         return window;
     }
 
-    void                             create_swapchain(const std::weak_ptr<Device>& device);
-    std::weak_ptr<SwapchainRenderer> set_renderer(const std::shared_ptr<Renderer>& present_pass) const;
-    void                             render() const;
+    void set_device(const std::weak_ptr<Device>& device);
+    void set_renderer(const Renderer& renderer);
+    void render() const;
 
     const std::shared_ptr<Swapchain>& get_swapchain() const
     {
@@ -45,6 +45,7 @@ public:
 
 private:
     Surface(const std::string& name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& window);
+    std::weak_ptr<Device>      device;
     std::weak_ptr<Window>      window;
     std::weak_ptr<Instance>    instance_ref;
     std::shared_ptr<Swapchain> swapchain;

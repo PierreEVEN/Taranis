@@ -1,6 +1,5 @@
 #include "gfx/vulkan/framebuffer.hpp"
 
-#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/image_view.hpp"
@@ -9,12 +8,12 @@
 
 namespace Eng::Gfx
 {
-Framebuffer::Framebuffer(const std::string& name, std::weak_ptr<Device> in_device, const RenderPassInstanceBase& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets)
+Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, size_t image_index , const std::vector<std::shared_ptr<ImageView>>& render_targets)
     : DeviceResource(std::move(in_device))
 {
+    auto& name                 = render_pass.get_definition().name;
     command_buffer             = CommandBuffer::create(name + "_cmd", device(), QueueSpecialization::Graphic);
     render_finished_semaphores = Semaphore::create(name + "_sem", device());
-    const auto rp              = render_pass.get_render_pass().lock();
 
     std::vector<VkImageView> views;
     for (const auto& view : render_targets)
@@ -24,7 +23,7 @@ Framebuffer::Framebuffer(const std::string& name, std::weak_ptr<Device> in_devic
 
     VkFramebufferCreateInfo create_infos = {
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .renderPass = rp->raw(),
+        .renderPass      = render_pass.get_render_pass_resource().lock()->raw(),
         .attachmentCount = static_cast<uint32_t>(views.size()),
         .pAttachments = views.data(),
         .width = render_pass.resolution().x,

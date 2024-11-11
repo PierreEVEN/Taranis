@@ -12,7 +12,6 @@ class Renderer;
 class Device;
 class Instance;
 class Surface;
-class RenderPass;
 
 struct WindowConfig
 {
@@ -47,7 +46,7 @@ class Window : public std::enable_shared_from_this<Window>
         should_close = true;
     }
 
-    std::weak_ptr<SwapchainRenderer> set_renderer(const std::shared_ptr<Renderer>& present_pass) const;
+    void set_renderer(const Renderer& renderer) const;
 
     std::shared_ptr<Surface> get_surface() const
     {

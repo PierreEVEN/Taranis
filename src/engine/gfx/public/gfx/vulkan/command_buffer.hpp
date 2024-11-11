@@ -43,6 +43,9 @@ class CommandBuffer
     void end() const;
     void submit(VkSubmitInfo submit_infos, const Fence* optional_fence = nullptr) const;
 
+    void begin_debug_marker(const std::string& name, const std::array<float, 4>& color) const;
+    void end_debug_marker() const;
+
     void draw_procedural(uint32_t vertex_count, uint32_t first_vertex, uint32_t instance_count, uint32_t first_instance) const;
     void bind_pipeline(const Pipeline& pipeline) const;
     void bind_descriptors(const DescriptorSet& descriptors, const Pipeline& pipeline) const;

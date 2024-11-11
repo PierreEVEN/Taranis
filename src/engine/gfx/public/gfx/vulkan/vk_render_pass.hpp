@@ -1,5 +1,5 @@
 #pragma once
-#include "gfx/renderer/definition/render_pass.hpp"
+#include "gfx/renderer/definition/renderer.hpp"
 
 #include <memory>
 #include <string>
@@ -13,9 +13,9 @@ class Device;
 class VkRendererPass
 {
   public:
-    static std::shared_ptr<VkRendererPass> create(const std::string& name, const std::weak_ptr<Device>& device, RenderPass::Definition infos)
+    static std::shared_ptr<VkRendererPass> create(const std::string& name, const std::weak_ptr<Device>& device, RenderPassKey key)
     {
-        return std::shared_ptr<VkRendererPass>(new VkRendererPass(name, device, std::move(infos)));
+        return std::shared_ptr<VkRendererPass>(new VkRendererPass(name, device, std::move(key)));
     }
 
     VkRendererPass(VkRendererPass&&) = delete;
@@ -27,9 +27,9 @@ class VkRendererPass
         return ptr;
     }
 
-    const RenderPass::Definition& get_infos() const
+    const RenderPassKey& get_key() const
     {
-        return infos;
+        return key;
     }
 
     std::weak_ptr<Device> get_device() const
@@ -38,8 +38,8 @@ class VkRendererPass
     }
 
   private:
-    VkRendererPass(const std::string& name, const std::weak_ptr<Device>& device, RenderPass::Definition infos);
-    RenderPass::Definition infos;
+    VkRendererPass(const std::string& name, const std::weak_ptr<Device>& device, RenderPassKey key);
+    RenderPassKey          key;
     std::weak_ptr<Device>  device;
     VkRenderPass           ptr = VK_NULL_HANDLE;
 };

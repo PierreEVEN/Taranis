@@ -8,15 +8,15 @@
 namespace Eng::Gfx
 {
 
-VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Device>& in_device, RenderPass::Definition in_infos) : infos(std::move(in_infos)), device(in_device)
+VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Device>& in_device, RenderPassKey in_key) : key(std::move(in_key)), device(in_device)
 {
     std::vector<VkAttachmentDescription> attachments;
     std::vector<VkAttachmentReference>   color_attachment_references;
     std::optional<VkAttachmentReference> depth_attachment_references;
 
-    for (const auto& attachment : infos.attachments)
+    for (const auto& attachment : key.pass_data)
     {
-        if (attachment.is_depth())
+        if (is_depth_format(attachment.first))
             depth_attachment_references = VkAttachmentReference{
                 .attachment = static_cast<uint32_t>(attachments.size()),
                 .layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -28,14 +28,14 @@ VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Devi
             });
 
         attachments.emplace_back(VkAttachmentDescription{
-            .format         = static_cast<VkFormat>(attachment.get_format()),
+            .format         = static_cast<VkFormat>(attachment.first),
             .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = attachment.clear_value().is_none() ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .loadOp         = attachment.first ? VK_ATTACHMENT_LOAD_OP_CLEAR: VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
             .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
             .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = infos.present_pass ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .finalLayout    = key.b_present ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         });
     }
 
@@ -60,7 +60,7 @@ VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Devi
                                       },
                                       VkSubpassDependency{
                                           .srcSubpass   = 0,                   // Producer of the dependency is our single subpass
-                                          .dstSubpass   = VK_SUBPASS_EXTERNAL, // Consumer are all commands outside the render pass
+                                          .dstSubpass   = VK_SUBPASS_EXTERNAL, // Consumer are all commands outside the draw pass
                                           .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                           // is a storeOp stage for color color_attachments
                                           .dstStageMask  = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // Do not block any subsequent work
@@ -80,7 +80,7 @@ VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Devi
         .pDependencies   = dependencies.data(),
     };
 
-    VK_CHECK(vkCreateRenderPass(in_device.lock()->raw(), &renderPassInfo, nullptr, &ptr), "Failed to create render pass")
+    VK_CHECK(vkCreateRenderPass(in_device.lock()->raw(), &renderPassInfo, nullptr, &ptr), "Failed to create draw pass")
     in_device.lock()->debug_set_object_name(name, ptr);
 }
 
