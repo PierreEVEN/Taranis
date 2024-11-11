@@ -111,7 +111,7 @@ std::shared_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderP
         return existing->second;
 
     const auto new_render_pass = VkRendererPass::create(key.name + "_pass", shared_from_this(), key);
-    render_passes.emplace(key, new_render_pass);
+    assert(render_passes.emplace(key, new_render_pass).second);
     return new_render_pass;
 }
 

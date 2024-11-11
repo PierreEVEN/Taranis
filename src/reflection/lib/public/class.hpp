@@ -62,7 +62,7 @@ public:
     {
         if constexpr (StaticClassInfos<ParentClass>::value)
         {
-            CastFunctions.emplace(Class::make_type_id<ParentClass>(), CastFunc(
+            cast_functions.insert_or_assign(Class::make_type_id<ParentClass>(), CastFunc(
                                       [](const Class* desired_class, void* from_ptr) -> void* {
                                           return ParentClass::static_class()->cast_to(desired_class,
                                                                                       reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
@@ -81,7 +81,7 @@ public:
 
         for (const auto& parent : parents)
         {
-            if (const auto cast_fn = CastFunctions.find(parent->get_id()); cast_fn != CastFunctions.end())
+            if (const auto cast_fn = cast_functions.find(parent->get_id()); cast_fn != cast_functions.end())
                 if (void* ToPtr = cast_fn->second(To, Ptr))
                     return ToPtr;
         }
@@ -113,7 +113,7 @@ public:
     static void register_class_internal(Class* inClass);
 
     std::vector<Class*>                  parents = {};
-    std::unordered_map<size_t, CastFunc> CastFunctions;
+    std::unordered_map<size_t, CastFunc> cast_functions;
 
     size_t      type_size = 0;
     std::string type_name;

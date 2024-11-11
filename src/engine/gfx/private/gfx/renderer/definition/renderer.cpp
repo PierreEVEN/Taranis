@@ -1,7 +1,6 @@
 #include "gfx/renderer/definition/renderer.hpp"
 
 #include "logger.hpp"
-#include "gfx/renderer/definition/render_pass.hpp"
 #include "gfx/vulkan/swapchain.hpp"
 
 #include <ranges>
@@ -42,5 +41,27 @@ std::optional<std::string> Renderer::root_node() const
         return {};
     }
     return *roots.begin();
+}
+
+Renderer Renderer::compile(ColorFormat target_format) const
+{
+    Renderer copy = *this;
+
+    assert(!copy.b_compiled);
+    copy.b_compiled = true;
+
+    auto root = copy.root_node();
+    if (!root)
+        LOG_FATAL("Failed to compile renderer");
+
+    auto& attachment = copy[*root].attachments;
+
+    if (attachment.empty())
+        copy[*root][Attachment::slot("present").format(target_format)];
+    else if (attachment.size() == 1)
+        attachment.begin()->second.color_format = target_format;
+    else
+        LOG_FATAL("Failed to compiler renderer : the root node can only contain one attachment")
+    return copy;
 }
 } // namespace Eng::Gfx

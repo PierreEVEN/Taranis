@@ -14,9 +14,9 @@ VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Devi
     std::vector<VkAttachmentReference>   color_attachment_references;
     std::optional<VkAttachmentReference> depth_attachment_references;
 
-    for (const auto& attachment : key.pass_data)
+    for (const auto& attachment : key.attachments)
     {
-        if (is_depth_format(attachment.first))
+        if (is_depth_format(attachment.color_format))
             depth_attachment_references = VkAttachmentReference{
                 .attachment = static_cast<uint32_t>(attachments.size()),
                 .layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -28,9 +28,9 @@ VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Devi
             });
 
         attachments.emplace_back(VkAttachmentDescription{
-            .format         = static_cast<VkFormat>(attachment.first),
+            .format         = static_cast<VkFormat>(attachment.color_format),
             .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = attachment.first ? VK_ATTACHMENT_LOAD_OP_CLEAR: VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .loadOp         = attachment.has_clear() ? VK_ATTACHMENT_LOAD_OP_CLEAR: VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
             .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,

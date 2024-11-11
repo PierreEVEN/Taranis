@@ -21,8 +21,14 @@ ImageView::ImageView(std::string in_name, std::weak_ptr<Device> in_device, std::
 
 ImageView::~ImageView()
 {
-    for (const auto& resource : views)
-        device.lock()->drop_resource(resource);
+    if (views.size() != 1)
+    {
+        for (size_t i = 0; i < views.size(); ++i)
+            device.lock()->drop_resource(views[i], i);
+    }
+    else
+        for (const auto& resource : views)
+            device.lock()->drop_resource(resource);
 }
 
 VkImageView ImageView::raw_current() const
@@ -55,29 +61,29 @@ ImageView::Resource::Resource(const std::string& name, const std::weak_ptr<Devic
 
 ImageView::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos) : DeviceResource(device)
 {
-    VkImageViewCreateInfo image_view_infos{.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                           .image    = image,
+    VkImageViewCreateInfo image_view_infos{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                                           .image = image,
                                            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                                           .format   = static_cast<VkFormat>(create_infos.format),
+                                           .format = static_cast<VkFormat>(create_infos.format),
                                            .components =
-                                               {
-                                                   .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                   .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                   .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                   .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                               },
+                                           {
+                                               .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                               .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                               .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                               .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                           },
                                            .subresourceRange = {
-                                               .aspectMask     = static_cast<VkImageAspectFlags>(is_depth_format(create_infos.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT),
-                                               .baseMipLevel   = 0,
-                                               .levelCount     = 1,
+                                               .aspectMask = static_cast<VkImageAspectFlags>(is_depth_format(create_infos.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT),
+                                               .baseMipLevel = 0,
+                                               .levelCount = 1,
                                                .baseArrayLayer = 0,
-                                               .layerCount     = 1,
+                                               .layerCount = 1,
                                            }};
     VK_CHECK(vkCreateImageView(device.lock()->raw(), &image_view_infos, nullptr, &ptr), "failed to create swapchain image views")
 
     descriptor_infos = VkDescriptorImageInfo{
-        .sampler     = VK_NULL_HANDLE,
-        .imageView   = ptr,
+        .sampler = VK_NULL_HANDLE,
+        .imageView = ptr,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
     device.lock()->debug_set_object_name(name, ptr);

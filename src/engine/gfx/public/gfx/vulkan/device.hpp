@@ -2,7 +2,6 @@
 #include "instance.hpp"
 #include <unordered_map>
 
-#include "gfx/renderer/definition/render_pass.hpp"
 #include "physical_device.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 
@@ -47,12 +46,12 @@ public:
 
     void destroy_resources();
 
-    uint32_t get_image_count() const
+    uint8_t get_image_count() const
     {
         return image_count;
     }
 
-    uint32_t get_current_image() const
+    uint8_t get_current_image() const
     {
         return current_image;
     }
@@ -173,8 +172,8 @@ private:
     PhysicalDevice                                                     physical_device;
     VkDevice                                                           ptr = VK_NULL_HANDLE;
     VmaAllocator                                                       allocator;
-    uint32_t                                                           image_count   = 2;
-    uint32_t                                                           current_image = 0;
+    uint8_t                                                            image_count   = 2;
+    uint8_t                                                            current_image = 0;
     std::mutex                                                         resource_mutex;
     std::vector<std::vector<std::shared_ptr<DeviceResource>>>          pending_kill_resources;
     std::shared_ptr<DescriptorPool>                                    descriptor_pool;

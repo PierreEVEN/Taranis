@@ -11,7 +11,7 @@ ObjectAllocation* ContiguousObjectPool::allocate()
     reserve(component_count + 1);
     allocation->ptr = static_cast<uint8_t*>(memory) + (component_count * stride);
     std::memset(allocation->ptr, 0, stride);
-    allocation_map.emplace(allocation->ptr, allocation);
+    assert(allocation_map.emplace(allocation->ptr, allocation).second);
     component_count += 1;
     return allocation;
 }
@@ -21,16 +21,16 @@ void ContiguousObjectPool::free(void* ptr)
     if (auto obj_ptr = allocation_map.find(ptr); obj_ptr != allocation_map.end())
     {
         void* removed_element = obj_ptr->second->ptr;
-        obj_ptr->second->ptr = nullptr;
+        obj_ptr->second->ptr  = nullptr;
         allocation_map.erase(obj_ptr);
         component_count--;
 
         if (component_count > 0)
         {
             memcpy(removed_element, nth(component_count), stride);
-            auto moved_elem = allocation_map.find(nth(component_count));
+            auto moved_elem         = allocation_map.find(nth(component_count));
             moved_elem->second->ptr = removed_element;
-            allocation_map.emplace(removed_element, moved_elem->second);
+            assert(allocation_map.emplace(removed_element, moved_elem->second).second);
             allocation_map.erase(nth(component_count));
         }
 
@@ -92,7 +92,7 @@ void ContiguousObjectPool::move_old_to_new_block(void* old, void* new_block)
         if (auto found = allocation_map.find(old_ptr); found != allocation_map.end())
         {
             found->second->ptr = new_ptr;
-            new_alloc_map.emplace(new_ptr, found->second);
+            assert(new_alloc_map.emplace(new_ptr, found->second).second);
         }
     }
     allocation_map = new_alloc_map;
@@ -100,18 +100,8 @@ void ContiguousObjectPool::move_old_to_new_block(void* old, void* new_block)
 
 ObjectAllocation* ContiguousObjectAllocator::allocate(const Reflection::Class* component_class)
 {
-    ObjectAllocation* allocation = nullptr;
-    if (auto pool = pools.find(component_class); pool != pools.end())
-    {
-        allocation = pool->second->allocate();
-    }
-    else
-    {
-        auto insertion = pools.emplace(component_class, std::make_unique<ContiguousObjectPool>(component_class));
-        if (insertion.second)
-            allocation = insertion.first->second->allocate();
-    }
-    allocation->allocator = this;
+    ObjectAllocation* allocation = pools.emplace(component_class, std::make_unique<ContiguousObjectPool>(component_class)).first->second->allocate();
+    allocation->allocator        = this;
     return allocation;
 }
 

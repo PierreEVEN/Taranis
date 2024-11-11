@@ -5,7 +5,9 @@
 
 #include <algorithm>
 #include <memory>
+#include <ranges>
 #include <string>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <glm/vec2.hpp>
@@ -26,7 +28,7 @@ public:
         return Attachment{in_name};
     }
 
-    Attachment& format(const Gfx::ColorFormat& format)
+    Attachment& format(const ColorFormat& format)
     {
         color_format = format;
         return *this;
@@ -50,7 +52,7 @@ public:
     }
 
     std::string              name;
-    Gfx::ColorFormat         color_format      = Gfx::ColorFormat::UNDEFINED;
+    ColorFormat              color_format      = ColorFormat::UNDEFINED;
     std::optional<glm::vec4> clear_color_value = {};
     std::optional<glm::vec2> clear_depth_value = {};
 
@@ -63,41 +65,36 @@ private:
 class IRenderPass
 {
 public:
-    virtual void init(const RenderPassInstance& render_pass)
+    virtual void init(const RenderPassInstance&)
     {
     }
-    virtual void render(const RenderPassInstance& render_pass, const CommandBuffer& command_buffer)
-    {
-    }
-};
 
-class TestRenderPass : public IRenderPass
-{
-public:
-    TestRenderPass(int)
+    virtual void on_create_framebuffer(const RenderPassInstance&)
+    {
+    }
+
+    virtual void render(const RenderPassInstance&, const CommandBuffer&)
     {
     }
 };
 
 struct RenderPassKey
 {
-    using Elem = std::pair<Gfx::ColorFormat, bool>;
-
-    bool operator==(RenderPassKey& other)
+    bool operator==(const RenderPassKey& other) const
     {
         if (b_present != other.b_present)
             return false;
-        if (pass_data.size() != other.pass_data.size())
+        if (attachments.size() != other.attachments.size())
             return false;
-        for (auto a = pass_data.begin(), b = other.pass_data.begin(); a != pass_data.end(); ++a, ++b)
-            if (a->second != b->second || a->first != b->first)
+        for (auto a = attachments.begin(), b = other.attachments.begin(); a != attachments.end(); ++a, ++b)
+            if (a->color_format != b->color_format || a->has_clear() != b->has_clear())
                 return false;
         return true;
     }
 
-    std::vector<Elem> pass_data;
-    std::string       name;
-    bool              b_present = false;
+    std::vector<Attachment> attachments;
+    std::string             name;
+    bool                    b_present = false;
 };
 
 } // namespace Eng::Gfx
@@ -105,13 +102,13 @@ template <> struct std::hash<Eng::Gfx::RenderPassKey>
 {
     size_t operator()(const Eng::Gfx::RenderPassKey& val) const noexcept
     {
-        auto ite = val.pass_data.begin();
-        if (ite == val.pass_data.end())
+        auto ite = val.attachments.begin();
+        if (ite == val.attachments.end())
             return 0;
-        size_t hash = std::hash<uint32_t>()(static_cast<uint32_t>(ite->first) + 1);
-        for (; ite != val.pass_data.end(); ++ite)
+        size_t hash = std::hash<uint32_t>()(static_cast<uint32_t>(ite->color_format) + 1);
+        for (; ite != val.attachments.end(); ++ite)
         {
-            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(ite->first) + 1) * 13;
+            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(ite->color_format) + 1) * 13;
         }
         return hash;
     }
@@ -164,8 +161,8 @@ public:
         RenderPassKey key;
         key.name      = name;
         key.b_present = b_present;
-        for (const auto& attachment : attachments)
-            key.pass_data.emplace_back(attachment.second.color_format, attachment.second.has_clear());
+        for (const auto& attachment : attachments | std::views::values)
+            key.attachments.emplace_back(attachment);
         return key;
     }
 
@@ -184,20 +181,14 @@ public:
 
     RenderNode& with_imgui(bool enable, const std::weak_ptr<Window>& input_window = {})
     {
-        b_with_imgui = enable;
-        imgui_input_window = enable ? input_window : nullptr;
-        return *this;
-    }
-
-    RenderNode& add_attachment(const std::string& in_name, const Attachment& attachment)
-    {
-        attachments.emplace(in_name, attachment);
+        b_with_imgui       = enable;
+        imgui_input_window = enable ? input_window : std::weak_ptr<Window>{};
         return *this;
     }
 
     RenderNode& operator[](const Attachment& attachment)
     {
-        attachments.emplace(attachment.name, attachment);
+        attachments.insert_or_assign(attachment.name, attachment);
         return *this;
     }
 
@@ -222,9 +213,6 @@ public:
 
     RenderNode& operator[](const std::string& node)
     {
-        if (auto found = nodes.find(node); found != nodes.end())
-            return found->second;
-
         auto& found = nodes.emplace(node, RenderNode{}).first->second;
         found.name  = node;
         return found;
@@ -233,7 +221,15 @@ public:
     const RenderNode&          get_node(const std::string& pass_name) const;
     std::optional<std::string> root_node() const;
 
+    Renderer compile(ColorFormat target_format) const;
+
+    bool compiled() const
+    {
+        return b_compiled;
+    }
+
 private:
+    bool                                        b_compiled = false;
     std::unordered_map<std::string, RenderNode> nodes;
 };
 

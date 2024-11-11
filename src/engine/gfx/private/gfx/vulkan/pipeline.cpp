@@ -234,9 +234,9 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
     };
 
     std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment;
-    for (const auto& attachment : render_pass.lock()->get_infos().attachments)
+    for (const auto& attachment : render_pass.lock()->get_key().attachments)
     {
-        if (attachment.is_depth())
+        if (is_depth_format(attachment.color_format))
         {
         }
         else

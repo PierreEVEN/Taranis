@@ -102,7 +102,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(std::
         if (embed->mHeight == 0)
         {
             auto new_tex = StbImporter::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
-            textures.emplace(path, new_tex);
+            assert(textures.emplace(path, new_tex).second);
             return new_tex;
         }
         else
@@ -112,7 +112,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(std::
                                                                                TextureAsset::CreateInfos{.width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight), .channels = 4});
 
             auto new_tex = StbImporter::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
-            textures.emplace(path, new_tex);
+            assert(textures.emplace(path, new_tex).second);
             return new_tex;
         }
     }
@@ -130,7 +130,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(std::
         }
 
         auto new_tex = StbImporter::load_from_path(fs_path);
-        textures.emplace(path, new_tex);
+        assert(textures.emplace(path, new_tex).second);
         return new_tex;
     }
 }
@@ -148,7 +148,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_texture("albedo", TextureAsset::get_default_asset());
 
-    for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE); ++i)
+    for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {
         aiString path;
         mat->GetTexture(aiTextureType_DIFFUSE, i, &path);
@@ -159,7 +159,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         break;
     }
 
-    for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_NORMALS); ++i)
+    for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_NORMALS);)
     {
         aiString path;
         mat->GetTexture(aiTextureType_NORMALS, i, &path);
@@ -222,7 +222,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
             if (face.mNumIndices != 3)
             {
                 LOG_ERROR("Mesh import doesn't support non triangle faces ! ({})", face.mNumIndices);
-                meshes.emplace(id, nullptr);
+                assert(meshes.emplace(id, nullptr).second);
                 return nullptr;
             }
             assert(face.mNumIndices == 3);
@@ -233,7 +233,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
 
         auto base_buffer = Gfx::BufferData(triangles.data(), 2, triangles.size());
         auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, base_buffer.copy());
-        meshes.emplace(id, new_section);
+        assert(meshes.emplace(id, new_section).second);
         return new_section;
     }
     else
@@ -249,7 +249,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
             triangles[i * 3 + 2] = face.mIndices[2];
         }
         auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, Gfx::BufferData(triangles.data(), 4, triangles.size()).copy());
-        meshes.emplace(id, new_section);
+        assert(meshes.emplace(id, new_section).second);
         return new_section;
     }
 }

@@ -62,7 +62,7 @@ PoolDescription::PoolDescription(const Pipeline& pipeline)
         if (found != sizes.end())
             found->second++;
         else
-            sizes.emplace(type, 1);
+            assert(sizes.emplace(type, 1).second);
     }
 
     for (const auto& entry : sizes)
@@ -81,10 +81,7 @@ VkDescriptorSet DescriptorPool::allocate(const Pipeline& pipeline, size_t& pool_
     std::lock_guard lock(pool_lock);
     auto            found = pools.find(description);
     if (found == pools.end())
-    {
-        pools.emplace(description, std::pair{0, std::vector<std::shared_ptr<Pool>>{}});
-        found = pools.find(description);
-    }
+        found = pools.emplace(description, std::pair{0, std::vector<std::shared_ptr<Pool>>{}}).first;
     auto& found_pool = found->second;
 
     for (size_t i = found_pool.first; i < found_pool.second.size(); ++i)

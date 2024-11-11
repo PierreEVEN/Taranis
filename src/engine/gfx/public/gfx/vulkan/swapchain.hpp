@@ -46,6 +46,8 @@ class Swapchain final : public RenderPassInstance
     std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const override;
     const Fence* get_signal_fence(DeviceImageId device_image) const override;
 
+    
+    static ColorFormat get_swapchain_format(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface);
     static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
     static VkPresentModeKHR   choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes, bool vsync);
     static glm::uvec2         choose_extent(const VkSurfaceCapabilitiesKHR& capabilities, glm::uvec2 base_extent);
@@ -71,10 +73,6 @@ class Swapchain final : public RenderPassInstance
         return swapchain_format;
     }
 
-    const Semaphore& get_image_available_semaphore(uint32_t image_index) const;
-    const Fence&     get_in_flight_fence(uint32_t image_index) const;
-
-
     std::weak_ptr<Device> get_device() const
     {
         return device;
@@ -84,8 +82,10 @@ class Swapchain final : public RenderPassInstance
     Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false);
     bool vsync = true;
 
-    bool render_internal();
+    std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;
+    uint8_t                    get_framebuffer_count() const override;
 
+    bool render_internal();
     void destroy();
 
     std::weak_ptr<Surface>                  surface;

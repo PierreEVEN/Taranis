@@ -1,7 +1,9 @@
 #pragma once
 
+#include "logger.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -29,7 +31,7 @@ public:
 
     // Should be called before each frame to reset all draw flags
     void         reset_for_next_frame();
-    virtual void try_resize(const glm::uvec2& new_resolution);
+    virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent);
     virtual void draw(SwapchainImageId swapchain_image, DeviceImageId device_image);
 
     // Wait these semaphore before writing to render targets
@@ -52,39 +54,60 @@ public:
     // Find the image for the given input attachment name
     std::weak_ptr<ImageView> get_attachment(const std::string& dependency_name) const
     {
+        if (attachments_view.empty())
+            LOG_FATAL("Attachments have not been initialized yet. Please wait framebuffer update");
         if (auto found = attachments_view.find(dependency_name); found != attachments_view.end())
             return found->second;
         return {};
     }
+
+    std::weak_ptr<RenderPassInstance> get_dependency(const std::string& name) const;
 
     std::weak_ptr<VkRendererPass> get_render_pass_resource() const
     {
         return render_pass_resource;
     }
 
+    using ResizeCallback = std::function<glm::uvec2(glm::uvec2)>;
+
+    void set_resize_callback(const ResizeCallback& in_callback)
+    {
+        resize_callback = in_callback;
+    }
+
+    ImGuiWrapper* imgui() const
+    {
+        return imgui_context.get();
+    }
+
 protected:
+    virtual std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment);
+
+    // Used to determine the desired framebuffer resolution from the window resolution
+    ResizeCallback resize_callback;
 
     bool                  draw_called = false;
     std::weak_ptr<Device> device;
 
     // One framebuffer per swapchain or device image
-    std::vector<std::unique_ptr<Framebuffer>> framebuffers;
+    std::vector<std::shared_ptr<Framebuffer>> framebuffers;
 
     // One view per attachment
     std::unordered_map<std::string, std::shared_ptr<ImageView>> attachments_view;
 
     // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new one to be sure
     // we are always submitting valid images
-    std::vector<std::unique_ptr<Framebuffer>>                   next_frame_framebuffers;
+    std::vector<std::shared_ptr<Framebuffer>>                   next_frame_framebuffers;
     std::unordered_map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
 
-  private:
+    virtual uint8_t get_framebuffer_count() const;
 
-    glm::uvec2                      current_resolution;
+private:
+    glm::uvec2                      current_resolution{0, 0};
     RenderNode                      definition;
     std::shared_ptr<VkRendererPass> render_pass_resource;
     std::shared_ptr<IRenderPass>    render_pass_interface;
-    std::unique_ptr<ImGuiWrapper>   imgui;
+    std::unique_ptr<ImGuiWrapper>   imgui_context;
 
     std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 };

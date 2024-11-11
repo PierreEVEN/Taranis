@@ -8,14 +8,15 @@
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
-#include "gfx/renderer/instance/swapchain_renderer.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
 
 namespace Eng::Gfx
 {
 Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer, bool in_vsync)
-    : RenderPassInstance(in_device, renderer, *renderer.root_node(), true), vsync(in_vsync), surface(in_surface)
+    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface)), *renderer.root_node(), true),
+      vsync(in_vsync),
+      surface(in_surface)
 {
     create_or_recreate();
 }
@@ -37,6 +38,12 @@ std::vector<const Semaphore*> Swapchain::get_semaphores_to_wait(DeviceImageId de
 const Fence* Swapchain::get_signal_fence(DeviceImageId device_image) const
 {
     return in_flight_fences[device_image].get();
+}
+
+ColorFormat Swapchain::get_swapchain_format(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface)
+{
+    SwapChainSupportDetails swapchain_support = in_device.lock()->get_physical_device().query_swapchain_support(*surface.lock());
+    return static_cast<ColorFormat>(choose_surface_format(swapchain_support.formats).format);
 }
 
 VkSurfaceFormatKHR Swapchain::choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats)
@@ -76,8 +83,8 @@ glm::uvec2 Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities
 {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
         return glm::uvec2{capabilities.currentExtent.width, capabilities.currentExtent.height};
-    base_extent.x = std::clamp(static_cast<uint32_t>(base_extent.x), capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-    base_extent.y = std::clamp(static_cast<uint32_t>(base_extent.y), capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    base_extent.x = std::clamp(base_extent.x, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    base_extent.y = std::clamp(base_extent.y, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
     return base_extent;
 }
 
@@ -95,7 +102,7 @@ void Swapchain::create_or_recreate()
     const auto window_extent         = surface.lock()->get_window().lock()->internal_extent();
     extent                           = choose_extent(swapchain_support.capabilities, window_extent);
 
-    uint32_t imageCount = swapchain_support.capabilities.minImageCount + 1;
+    uint32_t imageCount = get_framebuffer_count();
 
     if (swapchain_support.capabilities.maxImageCount > 0 && imageCount > swapchain_support.capabilities.maxImageCount)
     {
@@ -139,8 +146,6 @@ void Swapchain::create_or_recreate()
     swapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, swapChainImages.data());
 
-    image_view = ImageView::create(get_definition().name + "view", device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
-
     image_available_semaphores.clear();
     in_flight_fences.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
@@ -148,6 +153,10 @@ void Swapchain::create_or_recreate()
         image_available_semaphores.emplace_back(Semaphore::create(get_definition().name + "_sem_#" + std::to_string(i), device));
         in_flight_fences.emplace_back(Fence::create(get_definition().name + "_fence_#" + std::to_string(i), device, true));
     }
+
+    if (resize_callback)
+        LOG_FATAL("Resize callback can't be used with swapchain render pass");
+    create_or_resize(extent, extent);
 }
 
 void Swapchain::draw()
@@ -156,16 +165,25 @@ void Swapchain::draw()
         return;
 
     create_or_recreate();
-    try_resize(extent);
     if (render_internal())
         LOG_ERROR("Failed to draw frame : {}x{}", extent.x, extent.y);
+}
+
+std::shared_ptr<ImageView> Swapchain::create_view_for_attachment(const std::string& name)
+{
+    return ImageView::create(name + "view", device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
+}
+
+uint8_t Swapchain::get_framebuffer_count() const
+{
+    return device.lock()->get_image_count() + 1;
 }
 
 bool Swapchain::render_internal()
 {
     reset_for_next_frame();
     const auto device_ref    = device.lock();
-    uint32_t   current_frame = device.lock()->get_current_image();
+    uint8_t    current_frame = device.lock()->get_current_image();
 
     in_flight_fences[current_frame]->wait();
     device.lock()->flush_resources();
@@ -178,7 +196,7 @@ bool Swapchain::render_internal()
         VK_CHECK(acquire_result, "Failed to acquire next swapchain image")
     }
 
-    RenderPassInstance::draw(image_index, current_frame);
+    RenderPassInstance::draw(static_cast<uint8_t>(image_index), current_frame);
 
     // Submit to present queue
     const auto             render_finished_semaphore = framebuffers[image_index]->render_finished_semaphore().raw();

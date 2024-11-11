@@ -4,6 +4,7 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
+#include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 
@@ -12,17 +13,19 @@ namespace Eng::Gfx
 RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const std::string& name, bool b_is_present)
     : device(std::move(in_device)), definition(renderer.get_node(name))
 {
+    assert(renderer.compiled());
+
     // Init render pass tree
     for (const auto& dependency : definition.dependencies)
-        dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, name, false));
+        assert(dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, dependency, false)).second);
 
     render_pass_resource = device.lock()->find_or_create_render_pass(definition.get_key(b_is_present));
 
-    // Create imgui context
+    // Create imgui_context context
     if (definition.b_with_imgui)
     {
-        imgui = std::make_unique<ImGuiWrapper>(name, render_pass_resource, device, definition.imgui_input_window);
-        imgui->begin(resolution());
+        imgui_context = std::make_unique<ImGuiWrapper>(name, render_pass_resource, device, definition.imgui_input_window);
+        imgui_context->begin(resolution());
     }
 
     // Create render pass interface
@@ -41,6 +44,8 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
     draw_called = true;
 
     // Begin get record
+    if (framebuffers.empty())
+        LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
     const auto& framebuffer = framebuffers[swapchain_image];
     auto&       cmd         = framebuffer->get_command_buffer();
     cmd.begin(false);
@@ -52,19 +57,19 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
-    for (auto& attachment : definition.attachments)
+    for (auto& attachment : render_pass_resource->get_key().attachments)
     {
         VkClearValue clear_value;
         clear_value.color = {{0, 0, 0, 1}};
-        if (is_depth_format(attachment.second.color_format))
+        if (is_depth_format(attachment.color_format))
             clear_value.depthStencil = {0, 0};
-        if (attachment.second.has_clear())
+        if (attachment.has_clear())
         {
-            if (is_depth_format(attachment.second.color_format))
-                clear_value.depthStencil = VkClearDepthStencilValue{attachment.second.clear_depth_value->x, static_cast<uint32_t>(attachment.second.clear_depth_value->y)};
+            if (is_depth_format(attachment.color_format))
+                clear_value.depthStencil = VkClearDepthStencilValue{attachment.clear_depth_value->x, static_cast<uint32_t>(attachment.clear_depth_value->y)};
             else
                 clear_value.color =
-                    VkClearColorValue{.float32 = {attachment.second.clear_color_value->x, attachment.second.clear_color_value->y, attachment.second.clear_color_value->z, attachment.second.clear_color_value->w}};
+                    VkClearColorValue{.float32 = {attachment.clear_color_value->x, attachment.clear_color_value->y, attachment.clear_color_value->z, attachment.clear_color_value->w}};
         }
         clear_values.emplace_back(clear_value);
     }
@@ -104,10 +109,10 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
     if (render_pass_interface)
         render_pass_interface->render(*this, framebuffer->get_command_buffer());
 
-    if (imgui)
+    if (imgui_context)
     {
-        imgui->end(framebuffer->get_command_buffer());
-        imgui->begin(resolution());
+        imgui_context->end(framebuffer->get_command_buffer());
+        imgui_context->begin(resolution());
     }
 
     // End command get
@@ -152,29 +157,89 @@ const Fence* RenderPassInstance::get_signal_fence(DeviceImageId) const
     return nullptr;
 }
 
+std::weak_ptr<RenderPassInstance> RenderPassInstance::get_dependency(const std::string& name) const
+{
+    if (auto found = dependencies.find(name); found != dependencies.end())
+        return found->second;
+    return {};
+}
+
+std::shared_ptr<ImageView> RenderPassInstance::create_view_for_attachment(const std::string& attachment_name)
+{
+    auto attachment = definition.attachments.find(attachment_name);
+    if (attachment == definition.attachments.end())
+        LOG_FATAL("Attachment {} not found", attachment_name);
+    return ImageView::create(attachment_name,
+                             Image::create(attachment_name, device,
+                                           ImageParameter{
+                                               .format = attachment->second.color_format,
+                                               .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
+                                               .buffer_type = EBufferType::IMMEDIATE,
+                                               .width = resolution().x,
+                                               .height = resolution().y,
+                                           }));
+}
+
+uint8_t RenderPassInstance::get_framebuffer_count() const
+{
+    return device.lock()->get_image_count();
+}
+
 void RenderPassInstance::reset_for_next_frame()
 {
     draw_called = false;
-    for (const auto& dep : dependencies)
-        dep.second->reset_for_next_frame();
+    for (const auto& dependency : dependencies | std::views::values)
+        dependency->reset_for_next_frame();
+
+    if (!next_frame_framebuffers.empty())
+    {
+        for (size_t i = 0; i < framebuffers.size(); ++i)
+            device.lock()->drop_resource(framebuffers[i], i);
+        framebuffers = next_frame_framebuffers;
+        next_frame_framebuffers.clear();
+
+        assert(!next_frame_attachments_view.empty());
+        attachments_view = next_frame_attachments_view;
+        next_frame_attachments_view.clear();
+
+        if (render_pass_interface)
+            render_pass_interface->on_create_framebuffer(*this);
+    }
 }
 
-void RenderPassInstance::try_resize(const glm::uvec2& new_resolution)
+void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent)
 {
-    if (new_resolution == current_resolution && !framebuffers.empty())
+    glm::uvec2 desired_resolution = resize_callback ? resize_callback(viewport) : parent;
+
+    for (const auto& dep : dependencies)
+        dep.second->create_or_resize(viewport, desired_resolution);
+
+    if (desired_resolution == current_resolution && !framebuffers.empty())
         return;
 
-    current_resolution = new_resolution;
+    if (desired_resolution.x == 0 || desired_resolution.y == 0)
+    {
+        LOG_ERROR("Invalid framebuffer resolution : {}x{}", desired_resolution.x, desired_resolution.y);
+        if (desired_resolution.x == 0)
+            desired_resolution.x = 1;
+        if (desired_resolution.y == 0)
+            desired_resolution.y = 1;
+    }
 
+    current_resolution = desired_resolution;
+
+    next_frame_attachments_view.clear();
     next_frame_framebuffers.clear();
 
+    std::vector<std::shared_ptr<ImageView>> ordered_attachments;
+    for (const auto& attachment : render_pass_resource->get_key().attachments)
+    {
+        ordered_attachments.push_back(create_view_for_attachment(attachment.name));
+        assert(next_frame_attachments_view.emplace(attachment.name, ordered_attachments.back()).second);
+    }
 
-
-    for (const auto& attachment : attachments_view)
-    next_frame_attachments_view
-
-    for (size_t i = 0; i < )
-    next_frame_framebuffers.emplace(Framebuffer::create())
+    for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
+        next_frame_framebuffers.push_back(Framebuffer::create(device, *this, i, ordered_attachments));
 
 }
 } // namespace Eng

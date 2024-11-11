@@ -14,7 +14,7 @@ namespace Eng::Gfx
 DescriptorSet::DescriptorSet(const std::weak_ptr<Device>& in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static)
 {
     for (const auto& binding : in_pipeline->get_bindings())
-        descriptor_bindings.emplace(binding.name, binding.binding);
+        descriptor_bindings.insert_or_assign(binding.name, binding.binding);
 }
 
 DescriptorSet::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<Pipeline>& in_pipeline)
@@ -84,20 +84,24 @@ void DescriptorSet::Resource::update()
 
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
 {
+    if (!in_image)
+        LOG_FATAL("Cannot set null image in descriptor {}", binding_name);
     for (const auto& resource : resources)
         resource->outdated = true;
-    write_descriptors.emplace(binding_name, std::make_shared<ImageDescriptor>(in_image));
+    write_descriptors.insert_or_assign(binding_name, std::make_shared<ImageDescriptor>(in_image));
 }
 
 void DescriptorSet::bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler)
 {
     for (const auto& resource : resources)
         resource->outdated = true;
-    write_descriptors.emplace(binding_name, std::make_shared<SamplerDescriptor>(in_sampler));
+    write_descriptors.insert_or_assign(binding_name, std::make_shared<SamplerDescriptor>(in_sampler));
 }
 
 VkWriteDescriptorSet DescriptorSet::ImageDescriptor::get()
 {
+    if (!image)
+        LOG_FATAL("Invalid image descriptor");
     return VkWriteDescriptorSet{
         .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
@@ -108,6 +112,8 @@ VkWriteDescriptorSet DescriptorSet::ImageDescriptor::get()
 
 VkWriteDescriptorSet DescriptorSet::SamplerDescriptor::get()
 {
+    if (!sampler)
+        LOG_FATAL("Invalid sampler descriptor");
     return VkWriteDescriptorSet{
         .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,

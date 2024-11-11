@@ -3,6 +3,7 @@
 #include "file_data.hpp"
 #include "lexical_analyzer.hpp"
 
+#include <cassert>
 #include <filesystem>
 #include <iostream>
 
@@ -173,7 +174,7 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
                 absolute_class_name += "::" + elem.name;
             if (reflected_classes.contains(absolute_class_name))
                 error("Cannot implement multiple REFLECT_BODY() for the same class", body.line, body.column);
-            reflected_classes.emplace(absolute_class_name, ReflectedClass{context, body.line});
+            assert(reflected_classes.emplace(absolute_class_name, ReflectedClass{context, body.line}).second);
         }
         break;
         case TokenType::Block:

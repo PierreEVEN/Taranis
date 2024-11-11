@@ -23,7 +23,7 @@ Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     ptr = glfwCreateWindow(static_cast<int>(config.resolution.x), static_cast<int>(config.resolution.y), config.name.c_str(), nullptr, nullptr);
-    windows.emplace(ptr, this);
+    assert(windows.emplace(ptr, this).second);
 
     glfwSetWindowSizeCallback(ptr,
                               [](GLFWwindow* window, int, int)

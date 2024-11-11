@@ -45,7 +45,7 @@ void Queues::update_specializations()
     for (size_t i = 0; i < all_queues.size(); ++i)
     {
         all_queues[i]->set_name("queue-#" + std::to_string(i));
-        queue_map.emplace(all_queues[i]->index(), all_queues[i]);
+        assert(queue_map.emplace(all_queues[i]->index(), all_queues[i]).second);
     }
 
     const auto stored_map = queue_map;
@@ -98,27 +98,27 @@ void Queues::update_specializations()
     if (compute_queue)
     {
         graphic_queue->set_name("compute_queue");
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Compute), compute_queue);
+        preferred.insert_or_assign(static_cast<uint8_t>(QueueSpecialization::Compute), compute_queue);
     }
     if (transfer_queue)
     {
         graphic_queue->set_name("transfer_queue");
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Transfer), transfer_queue);
+        preferred.insert_or_assign(static_cast<uint8_t>(QueueSpecialization::Transfer), transfer_queue);
     }
     if (graphic_queue)
     {
         graphic_queue->set_name("graphic_queue");
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Graphic), graphic_queue);
+        preferred.insert_or_assign(static_cast<uint8_t>(QueueSpecialization::Graphic), graphic_queue);
     }
     if (async_compute_queue)
     {
         graphic_queue->set_name("async_compute_queue");
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::AsyncCompute), async_compute_queue);
+        preferred.insert_or_assign(static_cast<uint8_t>(QueueSpecialization::AsyncCompute), async_compute_queue);
     }
     if (present_queue)
     {
         graphic_queue->set_name("present_queue");
-        preferred.emplace(static_cast<uint8_t>(QueueSpecialization::Present), present_queue);
+        preferred.insert_or_assign(static_cast<uint8_t>(QueueSpecialization::Present), present_queue);
     }
 }
 

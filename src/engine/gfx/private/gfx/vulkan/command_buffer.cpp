@@ -50,9 +50,9 @@ void CommandBuffer::submit(VkSubmitInfo submit_infos = {}, const Fence* optional
     VK_CHECK(vkQueueSubmit(device.lock()->get_queues().get_queue(type)->raw(), 1, &submit_infos, optional_fence ? optional_fence->raw() : nullptr), "Failed to submit queue")
 }
 
-void CommandBuffer::begin_debug_marker(const std::string& name, const std::array<float, 4>& color) const
+void CommandBuffer::begin_debug_marker(const std::string& in_name, const std::array<float, 4>& color) const
 {
-    device.lock()->get_instance().lock()->begin_debug_marker(ptr, name, color);
+    device.lock()->get_instance().lock()->begin_debug_marker(ptr, in_name, color);
 }
 
 void CommandBuffer::end_debug_marker() const

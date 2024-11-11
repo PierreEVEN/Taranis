@@ -10,11 +10,11 @@
 namespace Eng
 {
 
-MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material) : base(base_material)
+MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material, bool b_in_static) : base(base_material), b_static(b_in_static)
 {
     if (base_material)
     {
-        descriptors = Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors", Engine::get().get_device(), base_material->get_resource());
+        descriptors = Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors", Engine::get().get_device(), base_material->get_resource(), b_static);
     }
 }
 

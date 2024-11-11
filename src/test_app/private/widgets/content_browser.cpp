@@ -5,7 +5,7 @@
 #include <ranges>
 
 
-void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
+void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
 {
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 7});
@@ -22,7 +22,7 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
     ImGui::SameLine();
 
     if (ImGui::Button("Save All"))
-        LOG_WARNING("NOPE FOR NOW");
+        LOG_DEBUG("NOPE FOR NOW");
 
     ImGui::PopStyleVar();
 
@@ -138,7 +138,7 @@ void ContentBrowser::draw_asset_thumbnail(const TObjectPtr<Eng::AssetBase>& asse
 
 void ContentBrowser::draw_asset_button(const TObjectPtr<Eng::AssetBase>& asset)
 {
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5, 0.5, 0.5, 0.2));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 0.2f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 4});
 
     //if (thumbnail == null)

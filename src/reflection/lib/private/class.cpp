@@ -1,5 +1,6 @@
 #include "class.hpp"
 
+#include <cassert>
 #include <unordered_map>
 
 namespace Reflection
@@ -34,16 +35,9 @@ Class* Class::get(const std::string& type_name)
 void Class::add_parent(const std::string& parent)
 {
     if (Class* FoundClass = get(parent))
-    {
         parents.push_back(FoundClass);
-    }
     else
-    {
-        if (auto found = get_classes_wait_registration().find(parent); found != get_classes_wait_registration().end())
-            found->second.push_back(this);
-        else
-            get_classes_wait_registration().emplace(parent, std::vector{this});
-    }
+        get_classes_wait_registration().emplace(parent, std::vector{this}).first->second.push_back(this);
 }
 
 bool Class::is_base_of(const Class* base, const Class* t)
@@ -75,6 +69,6 @@ void Class::register_class_internal(Class* inClass)
         get_classes_wait_registration().erase(inClass->name());
     }
 
-    get_classes().emplace(inClass->get_id(), inClass);
+    assert(get_classes().emplace(inClass->get_id(), inClass).second);
 }
 } // namespace Reflection

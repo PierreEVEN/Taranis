@@ -2,6 +2,7 @@
 #include "generator.hpp"
 #include "header_parser.hpp"
 
+#include <cassert>
 #include <filesystem>
 #include <iostream>
 
@@ -20,7 +21,7 @@ int main(int argc, char** argv)
     std::unordered_set<std::filesystem::path> outdated_files;
     for (auto const& dir_entry : std::filesystem::recursive_directory_iterator{output_dir})
         if (dir_entry.is_regular_file())
-            outdated_files.emplace(dir_entry.path());
+            assert(outdated_files.emplace(dir_entry.path()).second);
 
     bool b_started = false;
     auto start     = std::chrono::steady_clock::now();
