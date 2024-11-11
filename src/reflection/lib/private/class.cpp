@@ -1,6 +1,5 @@
 #include "class.hpp"
 
-#include <cassert>
 #include <unordered_map>
 
 namespace Reflection
@@ -69,6 +68,10 @@ void Class::register_class_internal(Class* inClass)
         get_classes_wait_registration().erase(inClass->name());
     }
 
-    assert(get_classes().emplace(inClass->get_id(), inClass).second);
+    if (!get_classes().emplace(inClass->get_id(), inClass).second)
+    {
+        std::cerr << "Failed to register class " << inClass->name() << "\n";
+        exit(-1);
+    }
 }
 } // namespace Reflection

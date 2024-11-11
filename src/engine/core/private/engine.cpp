@@ -54,7 +54,7 @@ std::weak_ptr<Gfx::Window> Engine::new_window(const Gfx::WindowConfig& config)
     }
     window->get_surface()->set_device(gfx_device);
     // Todo : OnCreateWindow
-    assert(windows.emplace(window->get_id(), window).second);
+    windows.emplace(window->get_id(), window);
     return window;
 }
 

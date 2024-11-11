@@ -410,8 +410,8 @@ ImTextureID ImGuiWrapper::add_image(const std::shared_ptr<ImageView>& image_view
     {
         assert(max_texture_id != UINT64_MAX);
         ImTextureID new_id = ++max_texture_id;
-        assert(per_image_descriptor.emplace(image_view, std::pair{new_id, nullptr}).second);
-        assert(per_image_ids.emplace(new_id, image_view).second);
+        per_image_descriptor.emplace(image_view, std::pair{new_id, nullptr});
+        per_image_ids.emplace(new_id, image_view);
         return new_id;
     }
     return found_descriptor->second.first;

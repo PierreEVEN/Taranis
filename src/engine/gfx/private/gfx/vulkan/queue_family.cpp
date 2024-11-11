@@ -45,7 +45,7 @@ void Queues::update_specializations()
     for (size_t i = 0; i < all_queues.size(); ++i)
     {
         all_queues[i]->set_name("queue-#" + std::to_string(i));
-        assert(queue_map.emplace(all_queues[i]->index(), all_queues[i]).second);
+        queue_map.emplace(all_queues[i]->index(), all_queues[i]);
     }
 
     const auto stored_map = queue_map;

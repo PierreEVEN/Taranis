@@ -22,8 +22,8 @@ Sampler::Sampler(const std::string& name, std::weak_ptr<Device> in_device, const
         .maxAnisotropy           = 16,
         .compareEnable           = VK_FALSE,
         .compareOp               = VK_COMPARE_OP_ALWAYS,
-        .minLod                  = 0.0f,
-        .maxLod                  = 0.0f,
+        .minLod                  = 0,
+        .maxLod                  = VK_LOD_CLAMP_NONE,
         .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
     };

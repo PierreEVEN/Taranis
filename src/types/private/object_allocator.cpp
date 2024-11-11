@@ -11,7 +11,7 @@ ObjectAllocation* ContiguousObjectPool::allocate()
     reserve(component_count + 1);
     allocation->ptr = static_cast<uint8_t*>(memory) + (component_count * stride);
     std::memset(allocation->ptr, 0, stride);
-    assert(allocation_map.emplace(allocation->ptr, allocation).second);
+    allocation_map.emplace(allocation->ptr, allocation);
     component_count += 1;
     return allocation;
 }
@@ -30,7 +30,7 @@ void ContiguousObjectPool::free(void* ptr)
             memcpy(removed_element, nth(component_count), stride);
             auto moved_elem         = allocation_map.find(nth(component_count));
             moved_elem->second->ptr = removed_element;
-            assert(allocation_map.emplace(removed_element, moved_elem->second).second);
+            allocation_map.emplace(removed_element, moved_elem->second);
             allocation_map.erase(nth(component_count));
         }
 
@@ -92,7 +92,7 @@ void ContiguousObjectPool::move_old_to_new_block(void* old, void* new_block)
         if (auto found = allocation_map.find(old_ptr); found != allocation_map.end())
         {
             found->second->ptr = new_ptr;
-            assert(new_alloc_map.emplace(new_ptr, found->second).second);
+            new_alloc_map.emplace(new_ptr, found->second);
         }
     }
     allocation_map = new_alloc_map;
@@ -100,6 +100,7 @@ void ContiguousObjectPool::move_old_to_new_block(void* old, void* new_block)
 
 ObjectAllocation* ContiguousObjectAllocator::allocate(const Reflection::Class* component_class)
 {
+    assert(component_class);
     ObjectAllocation* allocation = pools.emplace(component_class, std::make_unique<ContiguousObjectPool>(component_class)).first->second->allocate();
     allocation->allocator        = this;
     return allocation;

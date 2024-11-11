@@ -174,7 +174,7 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
                 absolute_class_name += "::" + elem.name;
             if (reflected_classes.contains(absolute_class_name))
                 error("Cannot implement multiple REFLECT_BODY() for the same class", body.line, body.column);
-            assert(reflected_classes.emplace(absolute_class_name, ReflectedClass{context, body.line}).second);
+            reflected_classes.emplace(absolute_class_name, ReflectedClass{context, body.line});
         }
         break;
         case TokenType::Block:

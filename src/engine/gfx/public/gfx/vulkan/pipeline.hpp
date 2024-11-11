@@ -50,7 +50,7 @@ enum class EAlphaMode
 
 class Pipeline
 {
-  public:
+public:
     struct CreateInfos
     {
         ECulling                                                culling      = ECulling::Front;
@@ -64,7 +64,7 @@ class Pipeline
     };
 
     static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
-                                            CreateInfos create_infos)
+                                            CreateInfos        create_infos)
     {
         return std::shared_ptr<Pipeline>(new Pipeline(name, std::move(device), render_pass, shader_stage, std::move(create_infos)));
     }
@@ -77,24 +77,28 @@ class Pipeline
     {
         return layout;
     }
+
     const VkDescriptorSetLayout& get_descriptor_layout() const
     {
         return descriptor_set_layout;
     }
+
     const VkPipeline& raw() const
     {
         return ptr;
     }
+
     const CreateInfos& infos() const
     {
         return create_infos;
     }
+
     const std::vector<BindingDescription>& get_bindings() const
     {
         return descriptor_bindings;
     }
 
-  private:
+private:
     Pipeline(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
     std::vector<BindingDescription> descriptor_bindings;
     CreateInfos                     create_infos;

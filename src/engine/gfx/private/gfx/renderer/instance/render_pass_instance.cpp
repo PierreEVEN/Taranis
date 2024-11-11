@@ -17,7 +17,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
 
     // Init render pass tree
     for (const auto& dependency : definition.dependencies)
-        assert(dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, dependency, false)).second);
+        dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, dependency, false));
 
     render_pass_resource = device.lock()->find_or_create_render_pass(definition.get_key(b_is_present));
 
@@ -235,7 +235,7 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
     for (const auto& attachment : render_pass_resource->get_key().attachments)
     {
         ordered_attachments.push_back(create_view_for_attachment(attachment.name));
-        assert(next_frame_attachments_view.emplace(attachment.name, ordered_attachments.back()).second);
+        next_frame_attachments_view.emplace(attachment.name, ordered_attachments.back());
     }
 
     for (uint8_t i = 0; i < get_framebuffer_count(); ++i)

@@ -18,6 +18,7 @@ class ImageView
     struct CreateInfos
     {
         ColorFormat format;
+        uint32_t    mip_levels = 1;
     };
 
     static std::shared_ptr<ImageView> create(std::string name, const std::shared_ptr<Image>& image)

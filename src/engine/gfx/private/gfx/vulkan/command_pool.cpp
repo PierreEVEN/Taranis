@@ -32,7 +32,7 @@ VkCommandBuffer CommandPool::allocate()
         VkCommandPool           ptr;
         VK_CHECK(vkCreateCommandPool(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create command pool")
         device.lock()->debug_set_object_name(name + "-$" + ss.str(), ptr);
-        assert(command_pools.emplace(std::this_thread::get_id(), ptr).second);
+        command_pools.emplace(std::this_thread::get_id(), ptr);
         command_pool = command_pools.find(std::this_thread::get_id());
     }
 

@@ -26,8 +26,8 @@ enum class EImageType
 
 enum class ETextureTransferCapabilities
 {
-    None            = 0x00000,
-    CopySource      = 0x00001,
+    None = 0x00000,
+    CopySource = 0x00001,
     CopyDestination = 0x00002,
 };
 
@@ -43,6 +43,38 @@ enum class ETextureGPUReadCapabilities
     Sampling,
 };
 
+struct MipMaps
+{
+    friend class ImageResource;
+
+    static MipMaps one()
+    {
+        return MipMaps(1);
+    }
+
+    static MipMaps all()
+    {
+        return MipMaps();
+    }
+
+    static MipMaps custom(uint32_t count)
+    {
+        return MipMaps(count);
+    }
+
+    const std::optional<uint32_t>& get() const
+    {
+        return mipmaps;
+    }
+
+private:
+    MipMaps(std::optional<uint32_t> c = {}) : mipmaps(c)
+    {
+    }
+
+    std::optional<uint32_t> mipmaps;
+};
+
 struct ImageParameter
 {
     ColorFormat                  format                 = ColorFormat::R8G8B8A8_UNORM;
@@ -50,38 +82,42 @@ struct ImageParameter
     ETextureTransferCapabilities transfer_capabilities  = ETextureTransferCapabilities::CopyDestination;
     ETextureGPUWriteCapabilities gpu_write_capabilities = ETextureGPUWriteCapabilities::None;
     ETextureGPUReadCapabilities  gpu_read_capabilities  = ETextureGPUReadCapabilities::Sampling;
-    std::optional<uint32_t>      mip_level;
-    EBufferType                  buffer_type = EBufferType::IMMUTABLE;
-    uint32_t                     width       = 1;
-    uint32_t                     height      = 1;
-    uint32_t                     depth       = 1;
-    bool                         read_only   = true;
+    MipMaps                      mip_level              = MipMaps::one();
+    EBufferType                  buffer_type            = EBufferType::IMMUTABLE;
+    uint32_t                     width                  = 1;
+    uint32_t                     height                 = 1;
+    uint32_t                     depth                  = 1;
+    bool                         read_only              = true;
 };
 
 class Image
 {
     friend class ImageView;
 
-  public:
+public:
     class ImageResource : public DeviceResource, public std::enable_shared_from_this<ImageResource>
     {
-      public:
+    public:
         ImageResource(std::string name, std::weak_ptr<Device> device, ImageParameter params);
         ImageResource(ImageResource&&) = delete;
         ImageResource(ImageResource&)  = delete;
         ~ImageResource();
         void set_data(const BufferData& data);
         void set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout);
+        void generate_mipmaps(uint32_t mipLevels, const CommandBuffer& command_buffer) const;
+
 
         VkImage       ptr          = VK_NULL_HANDLE;
         VkImageLayout image_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         VmaAllocation allocation   = VK_NULL_HANDLE;
         bool          outdated     = false;
-        uint32_t      layer_cout = 0, mip_levels = 0;
-        bool          is_depth = false;
-        glm::uvec2    res;
-        uint32_t      depth = 0;
-        std::string   name;
+        uint32_t      layer_cout   = 0;
+        uint32_t      mip_levels   = 0;        
+        bool        is_depth = false;
+        VkFormat    format;
+        glm::uvec2  res;
+        uint32_t    depth = 0;
+        std::string name;
     };
 
     static std::shared_ptr<Image> create(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params, const BufferData& data)
@@ -127,8 +163,10 @@ class Image
         return params;
     }
 
-  private:
-    Image(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params);
+    uint32_t get_mips_count() const;
+
+private:
+    Image(std::string name, std::weak_ptr<Device> device, const ImageParameter& params);
     glm::uvec2                                  extent;
     ImageParameter                              params;
     std::weak_ptr<Device>                       device;

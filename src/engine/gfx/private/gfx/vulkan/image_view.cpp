@@ -10,7 +10,10 @@ namespace Eng::Gfx
 ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image) : device(in_image->get_device()), name(std::move(in_name))
 {
     for (size_t i = 0; i < in_image->get_resource().size(); ++i)
-        views.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, in_image->get_resource()[i], CreateInfos{.format = in_image->get_params().format}));
+        views.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, in_image->get_resource()[i], CreateInfos{
+                                                          .format = in_image->get_params().format,
+                                                          .mip_levels = in_image->get_mips_count()
+                                                      }));
 }
 
 ImageView::ImageView(std::string in_name, std::weak_ptr<Device> in_device, std::vector<VkImage> raw_image, CreateInfos create_infos) : device(std::move(in_device)), name(std::move(in_name))
@@ -75,7 +78,7 @@ ImageView::Resource::Resource(const std::string& name, const std::weak_ptr<Devic
                                            .subresourceRange = {
                                                .aspectMask = static_cast<VkImageAspectFlags>(is_depth_format(create_infos.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT),
                                                .baseMipLevel = 0,
-                                               .levelCount = 1,
+                                               .levelCount = create_infos.mip_levels,
                                                .baseArrayLayer = 0,
                                                .layerCount = 1,
                                            }};

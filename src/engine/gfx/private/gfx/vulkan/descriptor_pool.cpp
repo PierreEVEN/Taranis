@@ -62,7 +62,7 @@ PoolDescription::PoolDescription(const Pipeline& pipeline)
         if (found != sizes.end())
             found->second++;
         else
-            assert(sizes.emplace(type, 1).second);
+            sizes.emplace(type, 1);
     }
 
     for (const auto& entry : sizes)
