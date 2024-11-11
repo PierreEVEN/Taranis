@@ -32,7 +32,8 @@ public:
         allocation->ptr              = data;
         allocation->object_class     = T::static_class();
         TObjectPtr<T>     object_ptr(allocation);
-        assets.emplace(data, object_ptr);
+        TObjectPtr<T> copy = object_ptr;
+        assets.emplace(data, copy);
         return object_ptr;
     }
 

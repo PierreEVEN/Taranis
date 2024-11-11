@@ -5,6 +5,11 @@
 #include <type_traits>
 #include "class.hpp"
 
+namespace Eng
+{
+class SceneComponent;
+}
+
 namespace Reflection
 {
 class Class;
@@ -16,10 +21,10 @@ public:
     virtual ~IObjectDestructor() = default;
 };
 
-template<typename T>
+template <typename T>
 class TObjectDestructor final : public IObjectDestructor
 {
-  public:
+public:
     TObjectDestructor(struct ObjectAllocation* in_allocation) : allocation(in_allocation)
     {
     }
@@ -95,6 +100,8 @@ protected:
         }
     }
 
+
+public:
     ObjectAllocation* allocation = nullptr;
 
 private:
@@ -111,34 +118,27 @@ template <typename T> class TObjectPtr final : public IObject
     template <typename V> friend class TObjectRef;
 
 public:
-    TObjectPtr() = default;
+    TObjectPtr()
+    {
+    }
 
     explicit TObjectPtr(T* in_object)
     {
         if (in_object)
         {
-            allocation = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = nullptr};
+            allocation             = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = nullptr};
             allocation->destructor = new TObjectDestructor<T>(allocation);
         }
     }
 
     explicit TObjectPtr(ObjectAllocation* in_allocation)
     {
-        allocation            = in_allocation;
+        allocation             = in_allocation;
         allocation->ptr_count  = 1;
         allocation->destructor = new TObjectDestructor<T>(allocation);
     }
 
     TObjectPtr(const TObjectPtr& other)
-    {
-        if (other)
-        {
-            allocation = other.allocation;
-            ++allocation->ptr_count;
-        }
-    }
-
-    TObjectPtr(const TObjectPtr&& other) noexcept
     {
         if (other)
         {
@@ -158,13 +158,22 @@ public:
         }
     }
 
-    template <typename V> TObjectPtr(const TObjectPtr<V>&& other) noexcept
+    TObjectPtr(TObjectPtr&& other) noexcept
+    {
+        if (other)
+        {
+            allocation       = std::move(other.allocation);
+            other.allocation = nullptr;
+        }
+    }
+
+    template <typename V> TObjectPtr(TObjectPtr<V>&& other) noexcept
     {
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
         if (other)
         {
-            allocation = other.allocation;
-            ++allocation->ptr_count;
+            allocation       = std::move(other.allocation);
+            other.allocation = nullptr;
         }
     }
 
@@ -221,31 +230,30 @@ template <typename T, typename... Args> TObjectPtr<T> make_object_ptr(Args&&... 
     return TObjectPtr<T>(new T(std::forward<Args>(args)...));
 }
 
-
 template <typename T> class TObjectRef final : public IObject
 {
     template <typename V> friend class TObjectPtr;
     template <typename V> friend class TObjectRef;
 
-  public:
+public:
     TObjectRef() = default;
 
-    TObjectRef(const TObjectRef&& in_object) noexcept
+    TObjectRef(TObjectRef&& in_object) noexcept
     {
         if (in_object)
         {
-            allocation = in_object.allocation;
-            ++allocation->ref_count;
+            allocation           = std::move(in_object.allocation);
+            in_object.allocation = nullptr;
         }
     }
 
-    template <typename V> TObjectRef(const TObjectPtr<V>&& in_object) noexcept
+    template <typename V> TObjectRef(TObjectPtr<V>&& in_object) noexcept
     {
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
         if (in_object)
         {
-            allocation = in_object.allocation;
-            ++allocation->ref_count;
+            allocation           = std::move(in_object.allocation);
+            in_object.allocation = nullptr;
         }
     }
 
@@ -256,22 +264,6 @@ template <typename T> class TObjectRef final : public IObject
             allocation = in_object.allocation;
             ++allocation->ref_count;
         }
-    }
-
-    template <typename V> TObjectRef<V> cast() const
-    {
-        static_assert(Reflection::StaticClassInfos<T>::name, "Cast of non reflected object is not allowed");
-        static_assert(Reflection::StaticClassInfos<V>::name, "Cast of non reflected object is not allowed");
-
-        if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
-        {
-            TObjectRef<V> other;
-            other.allocation = allocation;
-            ++allocation->ptr_count;
-            return other;
-        }
-
-        return TObjectRef<V>();
     }
 
     template <typename V> TObjectRef(const TObjectPtr<V>& in_object)
@@ -343,6 +335,22 @@ template <typename T> class TObjectRef final : public IObject
             allocation->ref_count++;
         }
         return *this;
+    }
+
+    template <typename V> TObjectRef<V> cast() const
+    {
+        static_assert(Reflection::StaticClassInfos<T>::name, "Cast of non reflected object is not allowed");
+        static_assert(Reflection::StaticClassInfos<V>::name, "Cast of non reflected object is not allowed");
+
+        if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
+        {
+            TObjectRef<V> other;
+            other.allocation = allocation;
+            ++allocation->ptr_count;
+            return other;
+        }
+
+        return TObjectRef<V>();
     }
 
     T* operator->() const

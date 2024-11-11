@@ -14,8 +14,8 @@ class MaterialAsset;
 class MaterialImport
 {
 public:
-    static TObjectRef<MaterialAsset> from_path(const std::filesystem::path& path, const Gfx::Pipeline::CreateInfos& create_infos, const std::vector<Gfx::EShaderStage>& stages,
-                                               const std::weak_ptr<Gfx::VkRendererPass>& renderer_pass);
+    static TObjectRef<MaterialAsset> from_path(const std::filesystem::path&            path, const Gfx::Pipeline::CreateInfos&        create_infos, const std::vector<Gfx::EShaderStage>& stages,
+                                             const std::weak_ptr<Gfx::VkRendererPass>& renderer_pass, const std::vector<std::string>& features = {});
 };
 
 

@@ -19,6 +19,4 @@ void SceneComponent::internal_tick(double delta_second)
         children.erase(deleted_node);
     tick(delta_second);
 }
-
-
 }

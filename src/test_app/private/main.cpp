@@ -207,6 +207,7 @@ public:
 
 int main()
 {
+    srand(0);
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
     Config config = {};
     Engine engine(config);

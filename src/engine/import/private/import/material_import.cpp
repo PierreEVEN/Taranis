@@ -8,8 +8,8 @@
 
 namespace Eng
 {
-TObjectRef<MaterialAsset> MaterialImport::from_path(const std::filesystem::path& path, const Gfx::Pipeline::CreateInfos& create_infos, const std::vector<Gfx::EShaderStage>& stages,
-                                                    const std::weak_ptr<Gfx::VkRendererPass>& renderer_pass)
+TObjectRef<MaterialAsset> MaterialImport::from_path(const std::filesystem::path&              path, const Gfx::Pipeline::CreateInfos&        create_infos, const std::vector<Gfx::EShaderStage>& stages,
+                                                    const std::weak_ptr<Gfx::VkRendererPass>& renderer_pass, const std::vector<std::string>& features)
 {
     std::vector<std::shared_ptr<Gfx::ShaderModule>> modules;
 
@@ -41,7 +41,7 @@ TObjectRef<MaterialAsset> MaterialImport::from_path(const std::filesystem::path&
             LOG_FATAL("Unhandled shader stage")
         }
 
-        const auto module_code = compiler.compile_raw(raw_code, ep, stage, path.string());
+        const auto module_code = compiler.compile_raw(raw_code, ep, stage, path.string(), features);
         modules.push_back(Gfx::ShaderModule::create(Engine::get().get_device(), module_code.get()));
     }
     auto pipeline = Gfx::Pipeline::create(path.filename().string(), Engine::get().get_device(), renderer_pass, modules, create_infos);

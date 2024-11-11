@@ -97,7 +97,7 @@ float4 fs_main(VsToFsStruct input) : SV_TARGET
 
     float3 light_dir = normalize(float3(0.5, 0.5, 1));
 
-    float3 ambiant_intensity = float3(0.2, 0.2, 0.2);
+    float3 ambiant_intensity = float3(0.1, 0.1, 0.1);
     float3 light_color       = float3(1, 1, 1);
 
     //float ao = texture(aoMap, TexCoords).r;

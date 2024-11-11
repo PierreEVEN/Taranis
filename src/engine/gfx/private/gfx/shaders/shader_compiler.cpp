@@ -45,7 +45,7 @@ ShaderCompiler::ShaderCompiler()
     utils->CreateDefaultIncludeHandler(&include_handler);
 }
 
-Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, bool b_debug) const
+Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, std::vector<std::string> features, bool b_debug) const
 {
     ShaderProperties result;
     result.entry_point = entry_point;
@@ -67,6 +67,16 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     std::vector  arguments{
         L"-E", w_entry_point.c_str(), L"-T", target_profile.c_str(), DXC_ARG_PACK_MATRIX_ROW_MAJOR, DXC_ARG_WARNINGS_ARE_ERRORS, DXC_ARG_ALL_RESOURCES_BOUND, L"-spirv",
     };
+
+    std::vector<std::wstring> features_w_string;
+
+    for (const auto& feature : features)
+    {
+        arguments.push_back(L"-D");
+        features_w_string.push_back(to_u16string(feature));
+        arguments.push_back(features_w_string.back().c_str());
+    }
+
     // Indicate that the shader should be in a debuggable state if in debug mode.
     // Else, set optimization level to 3.
     if (b_debug)
@@ -112,7 +122,7 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     return Result<ShaderProperties>::Ok(result);
 }
 
-Result<ShaderProperties> ShaderCompiler::load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, bool b_debug) const
+Result<ShaderProperties> ShaderCompiler::load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, std::vector<std::string> features, bool b_debug) const
 {
     std::string   shader_code;
     std::ifstream shader_file(path);
@@ -125,7 +135,7 @@ Result<ShaderProperties> ShaderCompiler::load_from_path(const std::filesystem::p
             shader_code += line + "\n";
         }
     }
-    return compile_raw(shader_code, entry_point, stage, path, b_debug);
+    return compile_raw(shader_code, entry_point, stage, path, features, b_debug);
 }
 
 std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProperties& properties)

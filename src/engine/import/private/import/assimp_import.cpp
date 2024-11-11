@@ -142,12 +142,24 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
 
     auto mat = scene->mMaterials[id];
 
-    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(MaterialType::Opaque));
+    MaterialType type = MaterialType::Opaque_Albedo;
+
+    if (mat->GetTextureCount(aiTextureType_NORMALS) > 0)
+    {
+        if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
+            type = MaterialType::Opaque_NormalMR;
+        else
+            type = MaterialType::Opaque_Normal;
+    }
+    else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
+        type = MaterialType::Opaque_MR;
+
+    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(type));
 
     new_mat->set_sampler("sSampler", get_sampler());
     if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_texture("albedo", TextureAsset::get_default_asset());
-
+    
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {
         aiString path;
@@ -164,30 +176,63 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         aiString path;
         mat->GetTexture(aiTextureType_NORMALS, i, &path);
         if (auto normal = find_or_load_texture(path.C_Str()))
-            new_mat->set_texture("normal", normal);
+            new_mat->set_texture("normal_map", normal);
+        else
+            new_mat->set_texture("normal_map", TextureAsset::get_default_asset());
         break;
     }
 
+    for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS);)
+    {
+        aiString path;
+        mat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, i, &path);
+        if (auto normal = find_or_load_texture(path.C_Str()))
+            new_mat->set_texture("mr_map", normal);
+        else
+            new_mat->set_texture("mr_map", TextureAsset::get_default_asset());
+        break;
+    }
+    
     return materials.emplace(id, new_mat).first->second;
 }
 
-TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(MaterialType)
+TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(MaterialType type)
 {
-    if (materials_base)
-        return materials_base;
+    if (auto found = materials_base.find(type); found != materials_base.end())
+        return found->second;
 
-    materials_base = MaterialImport::from_path("resources/shaders/default_mesh.hlsl",
-                                               Gfx::Pipeline::CreateInfos{.stage_input_override =
-                                                   std::vector{
-                                                       Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                       Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
-                                                       Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                       Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                       Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
-                                                   }},
-                                               {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, render_pass);
+    std::vector<std::string> features;
 
-    return materials_base;
+    switch (type)
+    {
+    case MaterialType::Opaque_Albedo:
+        break;
+    case MaterialType::Opaque_Normal:
+        features.emplace_back("FEAT_NORMAL");
+        break;
+    case MaterialType::Opaque_NormalMR:
+        features.emplace_back("FEAT_NORMAL");
+        features.emplace_back("FEAT_MR");
+        break;
+    case MaterialType::Opaque_MR:
+        features.emplace_back("FEAT_MR");
+        break;
+    case MaterialType::Translucent:
+        break;
+    }
+
+    return materials_base.emplace(type, MaterialImport::from_path("resources/shaders/default_mesh.hlsl",
+                                                                  Gfx::Pipeline::CreateInfos{.stage_input_override =
+                                                                      std::vector{
+                                                                          Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                          Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
+                                                                          Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                          Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                          Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                                                          Gfx::StageInputOutputDescription{5, 56, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                                                                      }},
+                                                                  {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, render_pass, features))
+                         .first->second;
 }
 
 std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneLoader::find_or_load_mesh(int id)
@@ -207,7 +252,10 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
         if (mesh->HasNormals())
             vertices[i].normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
         if (mesh->HasTangentsAndBitangents())
-            vertices[i].tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+        {
+            vertices[i].tangent   = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+            vertices[i].bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+        }
         if (mesh->HasVertexColors(0))
             vertices[i].color = glm::vec4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
     }

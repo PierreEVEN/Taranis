@@ -64,6 +64,7 @@ struct ShaderProperties
     std::vector<StageInputOutputDescription> stage_outputs;
     uint32_t                                 push_constant_size = 0;
     std::vector<uint8_t>                     spirv;
+    std::vector<std::string>                 features = {};
 };
 
 class ShaderCompiler
@@ -71,8 +72,8 @@ class ShaderCompiler
   public:
     ShaderCompiler();
 
-    Result<ShaderProperties> compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, bool b_debug = false) const;
-    Result<ShaderProperties> load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, bool b_debug = false) const;
+    Result<ShaderProperties> compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, std::vector<std::string> features = {}, bool b_debug = false) const;
+    Result<ShaderProperties> load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, std::vector<std::string> features = {}, bool b_debug = false) const;
 
   private:
     static std::optional<std::string> extract_spirv_properties(ShaderProperties& properties);

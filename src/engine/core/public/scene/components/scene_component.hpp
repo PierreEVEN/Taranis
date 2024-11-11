@@ -42,7 +42,7 @@ public:
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
-        children.push_back(obj_ptr);
+        children.emplace_back(obj_ptr);
         return obj_ptr;
     }
 
@@ -99,11 +99,12 @@ public:
         return name;
     }
 
+    std::vector<TObjectPtr<SceneComponent>> children{};
+
 protected:
     SceneComponent()
     {
-
-    };
+    }
 
 private:
     const char*  name;
@@ -112,9 +113,8 @@ private:
     bool      b_transform_dirty = true;
     glm::mat4 transform{1};
 
-    glm::vec3                               position{0};
-    glm::quat                               rotation = glm::identity<glm::quat>();
-    glm::vec3                               scale{1};
-    std::vector<TObjectPtr<SceneComponent>> children{};
+    glm::vec3 position{0};
+    glm::quat rotation = glm::identity<glm::quat>();
+    glm::vec3 scale{1};
 };
 }

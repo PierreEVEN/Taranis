@@ -43,7 +43,11 @@ class AssimpImporter
 public:
     enum class MaterialType
     {
-        Opaque
+        Opaque_Albedo,
+        Opaque_Normal,
+        Opaque_NormalMR,
+        Opaque_MR,
+        Translucent
     };
 
     AssimpImporter();
@@ -64,18 +68,18 @@ public:
         TObjectRef<TextureAsset>          find_or_load_texture(std::string path);
         TObjectRef<MaterialInstanceAsset> find_or_load_material_instance(int id);
         TObjectRef<MaterialAsset>         find_or_load_material(MaterialType type);
-        std::shared_ptr<MeshSection>     find_or_load_mesh(int id);
+        std::shared_ptr<MeshSection>      find_or_load_mesh(int id);
         TObjectRef<SamplerAsset>          get_sampler();
 
-        std::unordered_map<std::string, TObjectRef<TextureAsset>>  textures;
-        std::unordered_map<int, TObjectRef<MaterialInstanceAsset>> materials;
-        std::unordered_map<int, std::shared_ptr<MeshSection>>      meshes;
-        TObjectRef<SamplerAsset>                                   sampler;
-        const aiScene*                                             scene;
-        TObjectRef<MaterialAsset>      materials_base;
-        TObjectRef<CameraComponent>                                temp_cam;
-        std::filesystem::path                                      file_path;
-        std::weak_ptr<Gfx::VkRendererPass>                         render_pass;
+        std::unordered_map<std::string, TObjectRef<TextureAsset>>   textures;
+        std::unordered_map<int, TObjectRef<MaterialInstanceAsset>>  materials;
+        std::unordered_map<int, std::shared_ptr<MeshSection>>       meshes;
+        TObjectRef<SamplerAsset>                                    sampler;
+        const aiScene*                                              scene;
+        std::unordered_map<MaterialType, TObjectRef<MaterialAsset>> materials_base;
+        TObjectRef<CameraComponent>                                 temp_cam;
+        std::filesystem::path                                       file_path;
+        std::weak_ptr<Gfx::VkRendererPass>                          render_pass;
     };
 
 
