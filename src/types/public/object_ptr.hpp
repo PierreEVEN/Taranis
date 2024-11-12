@@ -100,7 +100,6 @@ protected:
         }
     }
 
-
 public:
     ObjectAllocation* allocation = nullptr;
 
@@ -245,6 +244,13 @@ public:
             allocation           = std::move(in_object.allocation);
             in_object.allocation = nullptr;
         }
+    }
+
+    explicit TObjectRef(ObjectAllocation* in_allocation)
+    {
+        assert(in_allocation->ptr && in_allocation->ptr_count > 0);
+        allocation = in_allocation;
+        allocation->ref_count++;
     }
 
     template <typename V> TObjectRef(TObjectPtr<V>&& in_object) noexcept

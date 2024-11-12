@@ -40,6 +40,7 @@ public:
     }
 
     ObjectAllocation* allocate();
+    ObjectAllocation* find(void* ptr);
     void              free(void* ptr);
 
     void* nth(size_t i) const
@@ -66,7 +67,7 @@ template <typename T> class TObjectIterator
 public:
     TObjectIterator(const std::vector<ContiguousObjectPool*>& in_classes) : classes(in_classes)
     {
-        class_iterator  = classes.begin();
+        class_iterator = classes.begin();
         if (class_iterator != classes.end())
             this_pool_count = (*class_iterator)->component_count;
     }
@@ -123,6 +124,14 @@ public:
     TObjectIterator<T> iter() const
     {
         return TObjectIterator<T>(find_pools(T::static_class()));
+    }
+
+    template <typename T> TObjectRef<T> get_ref(T* object, const Reflection::Class* static_class)
+    {
+        if (auto found = pools.find(static_class); found != pools.end())
+            if (auto* allocation = found->second->find(object))
+                return TObjectRef<T>(allocation);
+        return {};
     }
 
 private:

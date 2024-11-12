@@ -16,6 +16,13 @@ ObjectAllocation* ContiguousObjectPool::allocate()
     return allocation;
 }
 
+ObjectAllocation* ContiguousObjectPool::find(void* ptr)
+{
+    if (auto found = allocation_map.find(ptr); found != allocation_map.end())
+        return found->second;
+    return nullptr;
+}
+
 void ContiguousObjectPool::free(void* ptr)
 {
     if (auto obj_ptr = allocation_map.find(ptr); obj_ptr != allocation_map.end())

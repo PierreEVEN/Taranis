@@ -143,7 +143,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     auto mat = scene->mMaterials[id];
 
     MaterialType type = MaterialType::Opaque_Albedo;
-
+    /**/
     if (mat->GetTextureCount(aiTextureType_NORMALS) > 0)
     {
         if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
