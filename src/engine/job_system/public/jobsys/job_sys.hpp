@@ -104,34 +104,32 @@ class JobSystem final
 {
 public:
     JobSystem(size_t num_tasks);
-
     template <typename Ret = void, typename Lambda> JobHandle<Ret> schedule(Lambda job)
     {
         std::shared_ptr<TJob<Lambda, Ret>> task = std::make_shared<TJob<Lambda, Ret>>(job);
         jobs.enqueue(task);
+        job_added.notify_all();
         return JobHandle<Ret>(std::dynamic_pointer_cast<TJobRet<Ret>>(task));
     }
-
-    ~JobSystem();
 
 private:
     friend class Worker;
     std::vector<std::unique_ptr<Worker>>                       workers;
-    std::mutex                                                 stop_mutex;
-    std::condition_variable                                    stop_cv;
     moodycamel::BlockingConcurrentQueue<std::shared_ptr<IJob>> jobs;
+    std::mutex                                                 job_add_mutex;
+    std::condition_variable                                    job_added;
 };
 
 class Worker
 {
 public:
     Worker(JobSystem* job_system);
+    ~Worker();
     void stop();
 
 private:
     friend class JobSystem;
     JobSystem*       js          = nullptr;
     std::atomic_bool b_need_stop = false;
-    std::atomic_bool b_stopped   = false;
     std::thread      thread;
 };
