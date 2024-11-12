@@ -130,10 +130,14 @@ public:
         auto rp = engine.get_device().lock()->find_or_create_render_pass(renderer1.get_node("gbuffers").get_key(false));
 
         camera = scene->add_component<FpsCameraComponent>("test_cam");
-        AssimpImporter importer;
-        //importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", *scene, camera.cast<CameraComponent>(), rp);
-        importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", *scene, camera.cast<CameraComponent>(), rp);
-        importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", *scene, camera.cast<CameraComponent>(), rp);
+        engine.jobs().schedule(
+            [&, rp]
+            {
+                AssimpImporter importer;
+                importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", *scene, camera.cast<CameraComponent>(), rp);
+                //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", *scene, camera.cast<CameraComponent>(), rp);
+                //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", *scene, camera.cast<CameraComponent>(), rp);
+            });
     }
 
     void tick_game(Engine&, double delta_second) override
@@ -207,12 +211,9 @@ public:
 
 int main()
 {
-    srand(0);
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {
-
-    };
+    Config config = {};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

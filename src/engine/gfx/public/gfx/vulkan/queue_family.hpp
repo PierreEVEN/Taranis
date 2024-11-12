@@ -5,6 +5,8 @@
 
 namespace Eng::Gfx
 {
+class Fence;
+class CommandBuffer;
 class CommandPool;
 class Surface;
 class Device;
@@ -24,10 +26,11 @@ const char* get_queue_specialization_name(QueueSpecialization elem);
 
 class QueueFamily
 {
-  public:
+public:
     QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present);
     QueueFamily(QueueFamily&)  = delete;
     QueueFamily(QueueFamily&&) = delete;
+
     bool support_present() const
     {
         return queue_support_present;
@@ -37,28 +40,35 @@ class QueueFamily
     {
         return queue_flags;
     }
+
     uint32_t index() const
     {
         return queue_index;
     }
-    void    init_queue(const std::weak_ptr<Device>& device);
+
+    void init_queue(const std::weak_ptr<Device>& device);
+
     VkQueue raw() const
     {
         return ptr;
     }
+
     CommandPool& get_command_pool() const
     {
         return *command_pool;
     }
 
-    VkResult present(const VkPresentInfoKHR& present_infos) const;
+    VkResult present(const VkPresentInfoKHR& present_infos);
+    VkResult submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos = {}, const Fence* optional_fence = nullptr);
 
     void set_name(const std::string& in_name)
     {
         name = in_name;
     }
 
-  private:
+private:
+    std::mutex queue_mutex;
+
     uint32_t                     queue_index;
     VkQueueFlags                 queue_flags;
     bool                         queue_support_present;
@@ -70,7 +80,7 @@ class QueueFamily
 
 class Queues
 {
-  public:
+public:
     Queues(const PhysicalDevice& physical_device, const Surface& surface);
     Queues(Queues&)  = delete;
     Queues(Queues&&) = delete;
@@ -82,13 +92,13 @@ class Queues
         return all_queues;
     }
 
-  private:
+private:
     void update_specializations();
 
     std::unordered_map<uint8_t, std::shared_ptr<QueueFamily>> preferred;
     std::vector<std::shared_ptr<QueueFamily>>                 all_queues;
 
     static std::shared_ptr<QueueFamily> find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
-                                                                      const std::vector<VkQueueFlags>& desired_queue_flags);
+                                                                      const std::vector<VkQueueFlags>&                                  desired_queue_flags);
 };
 } // namespace Eng::Gfx

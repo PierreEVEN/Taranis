@@ -47,7 +47,7 @@ void CommandBuffer::submit(VkSubmitInfo submit_infos = {}, const Fence* optional
     submit_infos.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_infos.commandBufferCount = 1;
     submit_infos.pCommandBuffers    = &ptr;
-    VK_CHECK(vkQueueSubmit(device.lock()->get_queues().get_queue(type)->raw(), 1, &submit_infos, optional_fence ? optional_fence->raw() : nullptr), "Failed to submit queue")
+    VK_CHECK(device.lock()->get_queues().get_queue(type)->submit(*this, submit_infos, optional_fence), "Failed to submit queue");
 }
 
 void CommandBuffer::begin_debug_marker(const std::string& in_name, const std::array<float, 4>& color) const
