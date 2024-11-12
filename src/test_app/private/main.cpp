@@ -20,6 +20,8 @@
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
 #include "widgets/content_browser.hpp"
+#include "widgets/profiler.hpp"
+#include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
 
 using namespace Eng;
@@ -91,6 +93,8 @@ public:
     {
         rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency("gbuffer_resolve"), scene);
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
+        rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
+        rp.imgui()->new_window<ProfilerWindow>("Profiler");
     }
 
     std::shared_ptr<Scene> scene;

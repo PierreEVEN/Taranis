@@ -1,5 +1,6 @@
 #include "gfx/vulkan/swapchain.hpp"
 
+#include "profiler.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
@@ -91,7 +92,8 @@ glm::uvec2 Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities
 void Swapchain::create_or_recreate()
 {
     destroy();
-
+    
+    PROFILER_SCOPE(RecreateSwapchain);
     const auto device_ptr = device.lock();
 
     SwapChainSupportDetails swapchain_support = device_ptr->get_physical_device().query_swapchain_support(*surface.lock());
@@ -181,6 +183,7 @@ uint8_t Swapchain::get_framebuffer_count() const
 
 bool Swapchain::render_internal()
 {
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
     reset_for_next_frame();
     const auto device_ref    = device.lock();
     uint8_t    current_frame = device.lock()->get_current_image();

@@ -1,12 +1,23 @@
 #include "gfx/ui/ui_window.hpp"
 
-#include <imgui.h>
+#include "logger.hpp"
 
+#include <imgui.h>
+#include <unordered_map>
+
+
+std::unordered_map<std::string, size_t> named_windows;
 
 namespace Eng
 {
+UiWindow::~UiWindow()
+{
+    named_windows.find(name)->second--;
+}
+
 UiWindow::UiWindow(std::string in_name) : name(std::move(in_name))
 {
+    index = named_windows.emplace(name, 0).first->second++;
 }
 
 void UiWindow::draw_internal(Gfx::ImGuiWrapper& ctx)
@@ -17,7 +28,8 @@ void UiWindow::draw_internal(Gfx::ImGuiWrapper& ctx)
         if (b_enable_menu_bar)
             flags |= ImGuiWindowFlags_MenuBar;
 
-        if (ImGui::Begin(name.c_str(), &b_open, flags))
+        std::string window_name = name + "##" + std::to_string(index);
+        if (ImGui::Begin(window_name.c_str(), &b_open, flags))
         {
             draw(ctx);
         }

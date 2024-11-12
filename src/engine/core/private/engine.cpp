@@ -4,6 +4,7 @@
 
 #include "assets/asset_registry.hpp"
 #include "config.hpp"
+#include "profiler.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/physical_device.hpp"
@@ -17,6 +18,7 @@ Engine* engine_singleton = nullptr;
 
 Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::make_unique<JobSystem>(config.worker_threads ? config.worker_threads : std::thread::hardware_concurrency()))
 {
+    PROFILER_SCOPE(EngineInitialization);
     if (engine_singleton)
         LOG_FATAL("Cannot start multiple engine instances at the same time")
     engine_singleton = this;
@@ -41,6 +43,7 @@ Engine::~Engine()
 
 std::weak_ptr<Gfx::Window> Engine::new_window(const Gfx::WindowConfig& config)
 {
+    PROFILER_SCOPE(Engine_CreateWindow);
     const auto window = Gfx::Window::create(gfx_instance, config);
 
     if (!gfx_device)
@@ -54,7 +57,6 @@ std::weak_ptr<Gfx::Window> Engine::new_window(const Gfx::WindowConfig& config)
             LOG_FATAL("{}", physical_device.error())
     }
     window->get_surface()->set_device(gfx_device);
-    // Todo : OnCreateWindow
     windows.emplace(window->get_id(), window);
     return window;
 }

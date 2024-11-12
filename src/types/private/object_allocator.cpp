@@ -3,6 +3,7 @@
 #include "class.hpp"
 #include "logger.hpp"
 #include "object_ptr.hpp"
+#include "profiler.hpp"
 
 ObjectAllocation* ContiguousObjectPool::allocate()
 {
@@ -72,6 +73,7 @@ void ContiguousObjectPool::resize(size_t new_count)
     {
         if (new_count != allocated_count)
         {
+            PROFILER_SCOPE_NAMED(ResizeAllocation, std::format("Allocator resize for {}", object_class->name()));
             void* new_memory = std::realloc(memory, new_count * stride);
             if (!new_memory)
                 LOG_FATAL("Failed to allocate memory for object {}", object_class->name())

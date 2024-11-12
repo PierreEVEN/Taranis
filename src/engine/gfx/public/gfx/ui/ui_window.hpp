@@ -11,7 +11,7 @@ class ImGuiWrapper;
 class UiWindow
 {
 public:
-    virtual ~UiWindow() = default;
+    virtual ~UiWindow();
 
 private:
     friend class Gfx::ImGuiWrapper;
@@ -30,6 +30,7 @@ protected:
 private:
     virtual void draw_internal(Gfx::ImGuiWrapper& ctx);
     bool         b_open = true;
+    size_t       index = 0;
     std::string  name;
 };
 }

@@ -1,5 +1,6 @@
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 
+#include "profiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
@@ -43,6 +44,7 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
         return;
     draw_called = true;
 
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw render pass {}", definition.name));
     // Begin get record
     if (framebuffers.empty())
         LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
@@ -214,6 +216,7 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
     for (const auto& dep : dependencies)
         dep.second->create_or_resize(viewport, desired_resolution);
 
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize render pass {}", definition.name));
     if (desired_resolution == current_resolution && !framebuffers.empty())
         return;
 

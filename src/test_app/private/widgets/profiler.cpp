@@ -1,66 +1,80 @@
-#include "profiler.hpp"
+#include "widgets/profiler.hpp"
 
-#include <ranges>
+#include <algorithm>
+#include <imgui.h>
 
-static Profiler* profiler = nullptr;
-
-Profiler& Profiler::get()
+namespace Eng
 {
-    if (!profiler)
-        profiler = new Profiler();
-    return *profiler;
+ProfilerWindow::ProfilerWindow(const std::string& name) : UiWindow(name)
+{
+    Profiler::get().start_recording();
 }
 
-void Profiler::next_frame()
+void ProfilerWindow::DisplayData::build()
 {
-    if (!b_record)
-        return;
-    std::shared_ptr<ProfilerFrameData> last = recorded_frames.empty() ? nullptr : recorded_frames.back();
-    recorded_frames.emplace_back(std::move(current_frame));
-    current_frame = std::make_shared<ProfilerFrameData>();
+    boxes.clear();
 
-    if (last)
+    std::chrono::steady_clock::time_point start = displayed_frames[0]->start;
+
+    std::unordered_map<std::thread::id, std::vector<Profiler::ProfilerEvent>> all_events;
+
+    for (const auto& frame : displayed_frames)
     {
-        for (const auto& [k, v] : last->declared_thread_data)
+        for (auto& data : frame->declared_thread_data)
         {
-            ProfilerThreadData data;
-            data.markers.reserve(v.markers.size());
-            data.events.reserve(v.events.size());
-            current_frame->declared_thread_data.emplace(k, std::move(data));
-        }
-        for (const auto& [k, v] : last->other_thread_data)
-        {
-            ProfilerThreadData data;
-            data.markers.reserve(v.markers.size());
-            data.events.reserve(v.events.size());
-            current_frame->declared_thread_data.emplace(k, std::move(data));
+            for (const auto& markers : data.second.markers)
+            {
+                auto ms_x = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(markers.time - start).count()) / 1000000.0;
+                boxes.emplace_back(Box{
+                    .min_max = {ms_x, ms_x},
+                    .stage = 0,
+                    .color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
+                    .name = markers.name, .start = markers.time,
+                    .duration = std::chrono::steady_clock::duration(0),
+                });
+            }
+            for (const auto& events : data.second.events)
+            {
+                all_events.emplace(data.first, std::vector<Profiler::ProfilerEvent>{}).first->second.emplace_back(events);
+            }
         }
     }
 
+    // Sort events by start time
+    for (auto& thread_data : all_events)
+        std::ranges::sort(thread_data.second,
+                          [](const Profiler::ProfilerEvent& a, const Profiler::ProfilerEvent& b)
+                          {
+                              return a.start < b.start;
+                          });
+
+    for (const auto& thread_data : all_events)
+    {
+        for (const auto& event : thread_data.second)
+        {
+            auto ms_x     = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(event.start - start).count()) / 1000000.0;
+            auto ms_x_end = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - start).count()) / 1000000.0;
+            boxes.emplace_back(Box{
+                .min_max = {ms_x, ms_x_end},
+                .stage = 0,
+                .color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
+                .name = event.name,
+                .start = event.start,
+                .duration = event.end - event.start,
+            });
+        }
+    }
 }
 
-void Profiler::start_recording()
+void ProfilerWindow::draw(Gfx::ImGuiWrapper& ctx)
 {
-    recorded_frames.clear();
-    b_record = true;
+    auto last = Profiler::get().last_frame();
 
-    current_frame = std::make_shared<ProfilerFrameData>();
-    for (const auto& thread : worker_threads | std::views::keys)
-        current_frame->declared_thread_data.emplace(thread, ProfilerThreadData{});
-}
+    display_data = {.displayed_frames = {last}};
+    display_data.build();
 
-std::shared_ptr<Profiler::ProfilerFrameData> Profiler::last_frame()
-{
-    if (recorded_frames.empty())
-        return current_frame;
-    return recorded_frames.back();
-}
 
-std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> Profiler::stop_recording()
-{
-    std::vector<std::shared_ptr<ProfilerFrameData>> frames = recorded_frames;
-    frames.emplace_back(current_frame);
-    recorded_frames.clear();
-    current_frame = nullptr;
-    return frames;
+    
+
 }
+} // namespace Eng

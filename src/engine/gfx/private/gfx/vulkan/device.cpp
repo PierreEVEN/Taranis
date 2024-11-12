@@ -1,6 +1,8 @@
 #include "gfx/vulkan/device.hpp"
 
 #define VMA_IMPLEMENTATION
+#include "profiler.hpp"
+
 #include <vk_mem_alloc.h>
 
 #include "gfx/gfx.hpp"
@@ -79,6 +81,7 @@ Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instan
 
 std::shared_ptr<Device> Device::create(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface)
 {
+    PROFILER_SCOPE(CreateDevice);
     const auto device = std::shared_ptr<Device>(new Device(config, instance, physical_device, surface));
     for (const auto& queue : device->queues->all_families())
         queue->init_queue(device->weak_from_this());
