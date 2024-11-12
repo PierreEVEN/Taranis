@@ -44,17 +44,15 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
 
         float sizeX = ImGui::GetContentRegionAvail().x;
 
-        int widthItems = (int)(sizeX / 70);
+        int widthItems = static_cast<int>(sizeX / 70);
         ImGui::Columns(std::max(widthItems, 1), "", false);
 
-        for (const auto& asset : registry->all_assets() | std::views::values)
-        {
-            //if (!_filters.isEmpty() && !_filters.contains(elem.getClass()) || (!searchString.get().equals("") && !elem.getName().contains(searchString.get())))
-            //continue;
-
-            draw_asset_thumbnail(asset);
-            ImGui::NextColumn();
-        }
+        registry->for_each(
+            [this](const TObjectPtr<Eng::AssetBase>& asset)
+            {
+                draw_asset_thumbnail(asset);
+                ImGui::NextColumn();
+            });
         ImGui::Columns(1);
     }
     ImGui::EndChild();

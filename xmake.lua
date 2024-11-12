@@ -25,7 +25,7 @@ end
 
 set_runtimes(is_mode("debug") and "MTd" or "MT")
 		
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp")
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp", "concurrentqueue")
 
 add_requires("freeimage", {configs = {rgb = true}})
 

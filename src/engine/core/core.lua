@@ -1,6 +1,6 @@
 declare_module(
     "core", 
-    {"types", "gfx"}, 
+    {"types", "gfx", "job-sys"}, 
     {}, 
     false, 
     true

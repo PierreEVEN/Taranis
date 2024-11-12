@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "config.hpp"
+#include "jobsys/job_sys.hpp"
 
 #include <chrono>
 
@@ -63,6 +64,12 @@ class Engine
 
     double get_seconds() const;
 
+    
+    JobSystem& jobs()
+    {
+        return job_system;
+    }
+
   private:
     void run_internal();
 
@@ -78,5 +85,7 @@ class Engine
     std::unique_ptr<Application> app;
 
     Config app_config;
+
+    JobSystem job_system;
 };
 } // namespace Eng

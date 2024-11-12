@@ -3,6 +3,7 @@
 #include "logger.hpp"
 #include "object_ptr.hpp"
 
+#include <ranges>
 #include <string>
 #include <unordered_set>
 
@@ -16,10 +17,11 @@ class AssetRegistry
 
 public:
     AssetRegistry() = default;
-  ~AssetRegistry();
+    ~AssetRegistry();
 
     template <typename T, typename... Args> TObjectRef<T> create(std::string name, Args&&... args)
     {
+        std::lock_guard lock(asset_lock);
         static_assert(std::is_base_of_v<AssetBase, T>, "This type is not an asset");
         T* data    = static_cast<T*>(calloc(1, sizeof(T)));
         data->name = new char[name.size() + 1];
@@ -31,20 +33,21 @@ public:
         ObjectAllocation* allocation = new ObjectAllocation();
         allocation->ptr              = data;
         allocation->object_class     = T::static_class();
-        TObjectPtr<T>     object_ptr(allocation);
+        TObjectPtr<T> object_ptr(allocation);
         TObjectPtr<T> copy = object_ptr;
         assets.emplace(data, copy);
         return object_ptr;
     }
 
-    const std::unordered_map<void*, TObjectPtr<AssetBase>>& all_assets() const
+    void for_each(const std::function<void(const TObjectPtr<AssetBase>&)>& callback)
     {
-        return assets;
+        std::lock_guard lock(asset_lock);
+        for (const auto& asset : assets | std::views::values)
+            callback(asset);
     }
 
-
-
 private:
+    std::mutex                                       asset_lock;
     std::unordered_map<void*, TObjectPtr<AssetBase>> assets;
 };
 } // namespace Eng
