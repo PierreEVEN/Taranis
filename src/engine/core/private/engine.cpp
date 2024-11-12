@@ -15,7 +15,7 @@ namespace Eng
 {
 Engine* engine_singleton = nullptr;
 
-Engine::Engine(Config config) : app_config(std::move(config)), job_system(config.worker_threads ? config.worker_threads : std::thread::hardware_concurrency())
+Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::make_unique<JobSystem>(config.worker_threads ? config.worker_threads : std::thread::hardware_concurrency()))
 {
     if (engine_singleton)
         LOG_FATAL("Cannot start multiple engine instances at the same time")
@@ -29,6 +29,7 @@ Engine::Engine(Config config) : app_config(std::move(config)), job_system(config
 
 Engine::~Engine()
 {
+    job_system = nullptr;
     windows.clear();
     global_asset_registry = nullptr;
     if (gfx_device)

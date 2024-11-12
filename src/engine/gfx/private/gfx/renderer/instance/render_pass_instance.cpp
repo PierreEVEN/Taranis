@@ -57,7 +57,7 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
-    for (auto& attachment : render_pass_resource->get_key().attachments)
+    for (auto& attachment : render_pass_resource.lock()->get_key().attachments)
     {
         VkClearValue clear_value;
         clear_value.color = {{0, 0, 0, 1}};
@@ -76,7 +76,7 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
 
     const VkRenderPassBeginInfo begin_infos = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = render_pass_resource->raw(),
+        .renderPass = render_pass_resource.lock()->raw(),
         .framebuffer = framebuffer->raw(),
         .renderArea =
         {
@@ -232,7 +232,7 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
     next_frame_framebuffers.clear();
 
     std::vector<std::shared_ptr<ImageView>> ordered_attachments;
-    for (const auto& attachment : render_pass_resource->get_key().attachments)
+    for (const auto& attachment : render_pass_resource.lock()->get_key().attachments)
     {
         ordered_attachments.push_back(create_view_for_attachment(attachment.name));
         next_frame_attachments_view.emplace(attachment.name, ordered_attachments.back());

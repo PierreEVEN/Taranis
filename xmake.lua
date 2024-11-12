@@ -8,7 +8,8 @@ set_warnings("allextra")
 set_allowedmodes("debug", "release")
 set_defaultmode("release")
 set_rundir(".")
-
+set_runtimes(is_mode("debug") and "MTd" or "MT")
+		
 DEBUG = false;
 BUILD_MONOLITHIC = true;
 
@@ -23,10 +24,10 @@ if is_mode("release") then
     set_strip("all")
 end
 
-set_runtimes(is_mode("debug") and "MTd" or "MT")
-		
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp", "concurrentqueue")
+add_defines("ENABLE_VALIDATION_LAYER")
+add_defines("ENABLE_PROFILER")
 
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp", "concurrentqueue")
 add_requires("freeimage", {configs = {rgb = true}})
 
 function declare_module(module_name, deps, packages, is_executable, enable_reflection)
@@ -124,7 +125,6 @@ target("data", function(target)
     end
 end)
 
-add_defines("ENABLE_VALIDATION_LAYER")
 if DEBUG then
     print("################ building modules ################")
 end

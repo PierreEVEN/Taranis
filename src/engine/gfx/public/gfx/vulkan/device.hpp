@@ -42,7 +42,7 @@ public:
     }
 
     static const std::vector<const char*>& get_device_extensions();
-    std::shared_ptr<VkRendererPass>        find_or_create_render_pass(const RenderPassKey& key);
+    std::weak_ptr<VkRendererPass>        find_or_create_render_pass(const RenderPassKey& key);
 
     void destroy_resources();
 

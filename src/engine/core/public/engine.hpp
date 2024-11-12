@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "config.hpp"
+#include "logger.hpp"
 #include "jobsys/job_sys.hpp"
 
 #include <chrono>
@@ -67,7 +68,9 @@ class Engine
     
     JobSystem& jobs()
     {
-        return job_system;
+        if (!job_system)
+            LOG_FATAL("Job system is not valid in the current context");
+        return *job_system;
     }
 
   private:
@@ -86,6 +89,6 @@ class Engine
 
     Config app_config;
 
-    JobSystem job_system;
+    std::unique_ptr<JobSystem> job_system;
 };
 } // namespace Eng

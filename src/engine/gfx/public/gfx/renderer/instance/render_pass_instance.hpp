@@ -105,7 +105,7 @@ protected:
 private:
     glm::uvec2                      current_resolution{0, 0};
     RenderNode                      definition;
-    std::shared_ptr<VkRendererPass> render_pass_resource;
+    std::weak_ptr<VkRendererPass> render_pass_resource;
     std::shared_ptr<IRenderPass>    render_pass_interface;
     std::unique_ptr<ImGuiWrapper>   imgui_context;
 

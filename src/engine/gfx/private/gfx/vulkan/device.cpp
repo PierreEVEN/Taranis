@@ -103,7 +103,7 @@ const std::vector<const char*>& Device::get_device_extensions()
     return device_extensions;
 }
 
-std::shared_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPassKey& key)
+std::weak_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPassKey& key)
 {
     const auto existing = render_passes.find(key);
 
