@@ -73,7 +73,7 @@ public:
     {
     }
 
-    virtual void render(const RenderPassInstance&, const CommandBuffer&)
+    virtual void render(const RenderPassInstance&, CommandBuffer&)
     {
     }
 };

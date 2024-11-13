@@ -2,6 +2,7 @@
 
 #include "gfx/vulkan/command_buffer.hpp"
 
+#include "profiler.hpp"
 #include "gfx/mesh.hpp"
 #include "gfx/vulkan/buffer.hpp"
 #include "gfx/vulkan/command_pool.hpp"
@@ -24,12 +25,14 @@ CommandBuffer::~CommandBuffer()
     device.lock()->get_queues().get_queue(type)->get_command_pool().free(ptr, thread_id);
 }
 
-void CommandBuffer::begin(bool one_time) const
+void CommandBuffer::begin(bool one_time)
 {
     const VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = one_time ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : static_cast<VkCommandBufferUsageFlags>(0),
     };
+
+    last_pipeline = nullptr;
 
     VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer")
     device.lock()->debug_set_object_name(name, ptr);
@@ -65,11 +68,14 @@ void CommandBuffer::draw_procedural(uint32_t vertex_count, uint32_t first_vertex
     vkCmdDraw(ptr, vertex_count, instance_count, first_vertex, first_instance);
 }
 
-void CommandBuffer::bind_pipeline(const Pipeline& pipeline) const
+void CommandBuffer::bind_pipeline(const std::shared_ptr<Pipeline>& pipeline)
 {
-    if (pipeline.infos().line_width != 1.0f)
-        vkCmdSetLineWidth(ptr, pipeline.infos().line_width);
-    vkCmdBindPipeline(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.raw());
+    if (last_pipeline == pipeline)
+        return;
+    last_pipeline = pipeline;
+    if (pipeline->infos().line_width != 1.0f)
+        vkCmdSetLineWidth(ptr, pipeline->infos().line_width);
+    vkCmdBindPipeline(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->raw());
 }
 
 void CommandBuffer::bind_descriptors(const DescriptorSet& descriptors, const Pipeline& pipeline) const

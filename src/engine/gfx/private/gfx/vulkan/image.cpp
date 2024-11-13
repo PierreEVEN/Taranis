@@ -252,7 +252,7 @@ void Image::ImageResource::set_data(const BufferData& data)
         .imageOffset = {0, 0, 0},
         .imageExtent = {res.x, res.y, depth},
     };
-
+    
     vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer->raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     command_buffer->end();
 

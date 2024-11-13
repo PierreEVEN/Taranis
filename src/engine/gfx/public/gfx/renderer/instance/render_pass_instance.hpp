@@ -32,7 +32,8 @@ public:
     // Should be called before each frame to reset all draw flags
     void         reset_for_next_frame();
     virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent);
-    virtual void draw(SwapchainImageId swapchain_image, DeviceImageId device_image);
+    virtual void prepare(SwapchainImageId swapchain_image, DeviceImageId device_image);
+    virtual void submit(SwapchainImageId swapchain_image, DeviceImageId device_image);
 
     // Wait these semaphore before writing to render targets
     virtual std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const;
@@ -86,7 +87,8 @@ protected:
     // Used to determine the desired framebuffer resolution from the window resolution
     ResizeCallback resize_callback;
 
-    bool                  draw_called = false;
+    bool                  prepared = false;
+    bool                  submitted = false;
     std::weak_ptr<Device> device;
 
     // One framebuffer per swapchain or device image
@@ -100,7 +102,9 @@ protected:
     std::vector<std::shared_ptr<Framebuffer>>                   next_frame_framebuffers;
     std::unordered_map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
 
-    virtual uint8_t get_framebuffer_count() const;
+    virtual uint8_t                                                      get_framebuffer_count() const;
+
+    std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 
 private:
     glm::uvec2                      current_resolution{0, 0};
@@ -109,6 +113,5 @@ private:
     std::shared_ptr<IRenderPass>    render_pass_interface;
     std::unique_ptr<ImGuiWrapper>   imgui_context;
 
-    std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 };
 }

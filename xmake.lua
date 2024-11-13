@@ -15,7 +15,6 @@ BUILD_MONOLITHIC = true;
 
 if is_mode("debug") then
     set_optimize("fastest")
-    set_strip("all")
 end
 
 if is_mode("release") then

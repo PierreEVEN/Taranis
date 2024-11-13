@@ -5,6 +5,11 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "queue_family.hpp"
 
+namespace Eng
+{
+class MaterialAsset;
+}
+
 namespace Eng::Gfx
 {
 class DescriptorSet;
@@ -39,7 +44,7 @@ class CommandBuffer
         return ptr;
     }
 
-    void begin(bool one_time) const;
+    void begin(bool one_time);
     void end() const;
     void submit(VkSubmitInfo submit_infos, const Fence* optional_fence = nullptr) const;
 
@@ -47,7 +52,7 @@ class CommandBuffer
     void end_debug_marker() const;
 
     void draw_procedural(uint32_t vertex_count, uint32_t first_vertex, uint32_t instance_count, uint32_t first_instance) const;
-    void bind_pipeline(const Pipeline& pipeline) const;
+    void bind_pipeline(const std::shared_ptr<Pipeline>& pipeline);
     void bind_descriptors(const DescriptorSet& descriptors, const Pipeline& pipeline) const;
     void draw_mesh(const Mesh& in_buffer, uint32_t instance_count = 1, uint32_t first_instance = 0) const;
     void draw_mesh(const Mesh& in_buffer, uint32_t first_index, uint32_t vertex_offset, uint32_t index_count, uint32_t instance_count = 1, uint32_t first_instance = 0) const;
@@ -61,5 +66,6 @@ class CommandBuffer
     std::weak_ptr<Device> device;
     std::thread::id       thread_id;
     std::string           name;
+    std::shared_ptr<Pipeline> last_pipeline;
 };
 } // namespace Eng::Gfx

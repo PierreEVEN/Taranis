@@ -2,6 +2,9 @@
 
 #include "gfx/vulkan/buffer.hpp"
 
+#include "gfx/vulkan/command_buffer.hpp"
+#include "gfx/vulkan/fence.hpp"
+
 namespace Eng::Gfx
 {
 void BufferData::copy_to(uint8_t* destination) const
@@ -144,13 +147,15 @@ size_t Buffer::get_stride() const
     return buffers[0]->stride;
 }
 
-Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_device, const Buffer::CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
+Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
     : DeviceResource(std::move(in_device)), stride(in_stride), element_count(in_element_count)
 {
     assert(element_count != 0 && stride != 0);
 
-    VkBufferUsageFlags vk_usage  = 0;
-    VmaMemoryUsage     vma_usage = VMA_MEMORY_USAGE_UNKNOWN;
+    VkMemoryPropertyFlags required_flags = 0;
+    VkBufferUsageFlags    vk_usage       = 0;
+    VmaAllocationCreateFlags flags          = 0;
+    host_visible                         = false;
 
     switch (create_infos.usage)
     {
@@ -171,7 +176,17 @@ Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_dev
         break;
     case EBufferUsage::TRANSFER_MEMORY:
         vk_usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        host_visible   = true;
+        flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
         break;
+    }
+
+    if (create_infos.type == EBufferType::IMMEDIATE)
+    {
+        host_visible = true;
+        flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
+        required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
     }
 
     if (create_infos.type != EBufferType::IMMUTABLE)
@@ -180,37 +195,21 @@ Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_dev
         vk_usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }
 
-    switch (create_infos.access)
-    {
-    case EBufferAccess::DEFAULT:
-        vma_usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-        break;
-    case EBufferAccess::GPU_ONLY:
-        vma_usage = VMA_MEMORY_USAGE_GPU_ONLY;
-        break;
-    case EBufferAccess::CPU_TO_GPU:
-        vma_usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-        break;
-    case EBufferAccess::GPU_TO_CPU:
-        vma_usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-        break;
-    }
-
     const VkBufferCreateInfo buffer_create_info = {
-        .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size        = element_count * stride,
-        .usage       = vk_usage,
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = element_count * stride,
+        .usage = vk_usage,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
     const VmaAllocationCreateInfo allocInfo = {
-        .usage = vma_usage,
+        .flags = flags,
+        .usage = VMA_MEMORY_USAGE_AUTO,
+        .requiredFlags = required_flags,
     };
 
-    VmaAllocationInfo infos;
-    VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation, &infos), "failed to create buffer")
+    VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation, nullptr), "failed to create buffer")
     device().lock()->debug_set_object_name(name, ptr);
-    device().lock()->debug_set_object_name(name + "_memory", infos.deviceMemory);
 }
 
 Buffer::Resource::~Resource()
@@ -220,11 +219,35 @@ Buffer::Resource::~Resource()
 
 void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
 {
-    outdated      = false;
-    void* dst_ptr = nullptr;
-    VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory")
-    data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
+    if (host_visible)
+    {
+        outdated      = false;
+        void* dst_ptr = nullptr;
+        VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory")
+        data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
 
-    vmaUnmapMemory(device().lock()->get_allocator(), allocation);
+        vmaUnmapMemory(device().lock()->get_allocator(), allocation);
+    }
+    else
+    {
+        auto transfer_buffer = Buffer::create("transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+
+        auto command_buffer = CommandBuffer::create("transfer_cmd1", device(), QueueSpecialization::Transfer);
+
+        command_buffer->begin(true);
+
+        const VkBufferCopy region = {
+            .srcOffset = 0,
+            .dstOffset = start_index,
+            . size = data.get_byte_size(),
+        };
+
+        vkCmdCopyBuffer(command_buffer->raw(), transfer_buffer->raw_current(), ptr, 1, &region);
+        command_buffer->end();
+
+        const auto fence = Fence::create("fence", device());
+        command_buffer->submit({}, &*fence);
+        fence->wait();
+    }
 }
 } // namespace Eng::Gfx

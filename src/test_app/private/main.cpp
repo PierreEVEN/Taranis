@@ -33,10 +33,12 @@ public:
     {
     }
 
-    void render(const Gfx::RenderPassInstance& rp, const Gfx::CommandBuffer& command_buffer) override
+    void render(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer) override
     {
-        for (auto iterator = scene->iterate<CameraComponent>(); iterator; ++iterator)
-            iterator->update_viewport_resolution(rp.resolution());
+        scene->for_each<CameraComponent>([&rp](CameraComponent& object)
+        {
+            object.update_viewport_resolution(rp.resolution());
+        });
         scene->draw(command_buffer);
     }
 
@@ -45,10 +47,11 @@ public:
 
 class GBufferResolveInterface : public Gfx::IRenderPass
 {
-  public:
+public:
     GBufferResolveInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
+
     void init(const Gfx::RenderPassInstance& render_pass) override
     {
         auto base_mat = MaterialImport::from_path("resources/shaders/gbuffer_resolve.hlsl", Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None}, {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment},
@@ -67,12 +70,15 @@ class GBufferResolveInterface : public Gfx::IRenderPass
         material->get_descriptor_resource()->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void render(const Gfx::RenderPassInstance&, const Gfx::CommandBuffer& command_buffer) override
+    void render(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer) override
     {
-        for (auto iterator = scene->iterate<CameraComponent>(); iterator; ++iterator)
-            command_buffer.push_constant(Gfx::EShaderStage::Fragment, *material->get_base_resource(), Gfx::BufferData{iterator->get_position()});
+        scene->for_each<CameraComponent>(
+            [&](CameraComponent& object)
+            {
+                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *material->get_base_resource(), Gfx::BufferData{object.get_position()});
+            });
 
-        command_buffer.bind_pipeline(*material->get_base_resource());
+        command_buffer.bind_pipeline(material->get_base_resource());
         command_buffer.bind_descriptors(*material->get_descriptor_resource(), *material->get_base_resource());
         command_buffer.draw_procedural(6, 0, 1, 0);
     }
@@ -134,13 +140,27 @@ public:
         auto rp = engine.get_device().lock()->find_or_create_render_pass(renderer1.get_node("gbuffers").get_key(false));
 
         camera = scene->add_component<FpsCameraComponent>("test_cam");
+        std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
-            [&, rp]
+            [&, rp, importer]
             {
-                AssimpImporter importer;
-                importer.load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", *scene, camera.cast<CameraComponent>(), rp);
-                //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", *scene, camera.cast<CameraComponent>(), rp);
-                //importer.load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", *scene, camera.cast<CameraComponent>(), rp);
+                Scene temp_scene;
+                importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", temp_scene, camera.cast<CameraComponent>(), rp);
+                scene->merge(std::move(temp_scene));
+            });
+        engine.jobs().schedule(
+            [&, rp, importer]
+            {
+                Scene temp_scene;
+                importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
+                scene->merge(std::move(temp_scene));
+            });
+        engine.jobs().schedule(
+            [&, rp, importer]
+            {
+                Scene temp_scene;
+                importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
+                scene->merge(std::move(temp_scene));
             });
     }
 

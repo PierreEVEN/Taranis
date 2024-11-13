@@ -5,6 +5,8 @@
 #include <type_traits>
 #include "class.hpp"
 
+#include <shared_mutex>
+
 namespace Eng
 {
 class SceneComponent;
@@ -54,7 +56,6 @@ template <typename T> TObjectDestructor<T>::~TObjectDestructor()
 {
     static_cast<T*>(allocation->ptr)->~T();
 }
-
 class IObject
 {
     friend class ContiguousObjectPool;
@@ -100,15 +101,14 @@ protected:
         }
     }
 
-public:
-    ObjectAllocation* allocation = nullptr;
-
 private:
     void free()
     {
         delete allocation;
         allocation = nullptr;
     }
+
+    ObjectAllocation* allocation = nullptr;
 };
 
 template <typename T> class TObjectPtr final : public IObject

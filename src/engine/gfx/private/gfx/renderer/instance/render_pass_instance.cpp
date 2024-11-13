@@ -37,14 +37,14 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
     }
 }
 
-void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId device_image)
+void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId device_image)
 {
     // Call reset_for_next_frame() to reset all the draw graph
-    if (draw_called)
+    if (prepared)
         return;
-    draw_called = true;
+    prepared = true;
 
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw render pass {}", definition.name));
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for render pass {}", definition.name));
     // Begin get record
     if (framebuffers.empty())
         LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
@@ -55,7 +55,7 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
     cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
 
     for (const auto& child : dependencies)
-        child.second->draw(device_image, device_image);
+        child.second->prepare(device_image, device_image);
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
@@ -109,10 +109,15 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
     vkCmdSetScissor(framebuffer->get_command_buffer().raw(), 0, 1, &scissor);
 
     if (render_pass_interface)
+    {
+        PROFILER_SCOPE(RenderPass_BuildCommandBuffer);
         render_pass_interface->render(*this, framebuffer->get_command_buffer());
+    }
 
     if (imgui_context)
     {
+        PROFILER_SCOPE(RenderPass_DrawUI);
+        imgui_context->prepare_all_window();
         imgui_context->end(framebuffer->get_command_buffer());
         imgui_context->begin(resolution());
     }
@@ -124,11 +129,25 @@ void RenderPassInstance::draw(SwapchainImageId swapchain_image, DeviceImageId de
 
     framebuffer->get_command_buffer().end();
 
+}
+
+void RenderPassInstance::submit(SwapchainImageId swapchain_image, DeviceImageId device_image)
+{
+    if (submitted)
+        return;
+    submitted = true;
+
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for render pass {}", definition.name));
+
+    for (const auto& child : dependencies)
+        child.second->submit(device_image, device_image);
+
     // Submit get (wait children completion using children_semaphores)
     std::vector<VkSemaphore> children_semaphores;
     for (const auto& semaphore : get_semaphores_to_wait(device_image))
         children_semaphores.emplace_back(semaphore->raw());
 
+    const auto&                       framebuffer = framebuffers[swapchain_image];
     std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     const auto                        command_buffer_ptr            = framebuffer->get_command_buffer().raw();
     const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
@@ -189,7 +208,8 @@ uint8_t RenderPassInstance::get_framebuffer_count() const
 
 void RenderPassInstance::reset_for_next_frame()
 {
-    draw_called = false;
+    prepared  = false;
+    submitted = false;
     for (const auto& dependency : dependencies | std::views::values)
         dependency->reset_for_next_frame();
 

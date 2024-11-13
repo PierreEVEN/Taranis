@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cassert>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -50,12 +52,13 @@ public:
     class ProfilerFrameData
     {
     public:
-        ProfilerFrameData() = default;
+        ProfilerFrameData() : threads_lock(std::make_unique<std::shared_mutex>())
+        {
+        }
 
         std::chrono::steady_clock::time_point                   start;
-        std::unordered_map<std::thread::id, ProfilerThreadData> declared_thread_data;
-        std::mutex                                              other_thread_lock;
-        std::unordered_map<std::thread::id, ProfilerThreadData> other_thread_data;
+        std::unique_ptr<std::shared_mutex>                      threads_lock;
+        std::unordered_map<std::thread::id, ProfilerThreadData> thread_data;
     };
 
     static Profiler& get();
@@ -96,25 +99,27 @@ public:
 
     void                                            start_recording();
     std::shared_ptr<ProfilerFrameData>              last_frame();
+    std::vector<std::shared_ptr<ProfilerFrameData>> all_frames();
     std::vector<std::shared_ptr<ProfilerFrameData>> stop_recording();
-
-    void declare_worker_thread(std::thread::id id, const std::string& name)
-    {
-        worker_threads.emplace(id, name);
-    }
 
 private:
     ProfilerThreadData& get_thread_data() const
     {
         auto thread_id = std::this_thread::get_id();
-        if (auto found = current_frame->declared_thread_data.find(thread_id); found != current_frame->declared_thread_data.end())
-            return found->second;
-        std::lock_guard lk(current_frame->other_thread_lock);
-        return current_frame->other_thread_data.emplace(thread_id, ProfilerThreadData{}).first->second;
+
+        std::shared_lock global_lk(global_lock);
+        {
+            assert(b_record);
+            assert(current_frame);
+            std::shared_lock lk(*current_frame->threads_lock);
+            if (auto found = current_frame->thread_data.find(thread_id); found != current_frame->thread_data.end())
+                return found->second;
+        }
+        std::unique_lock lk(*current_frame->threads_lock);
+        return current_frame->thread_data.emplace(thread_id, ProfilerThreadData{}).first->second;
     }
 
-    std::unordered_map<std::thread::id, std::string> worker_threads;
-
+    mutable std::shared_mutex                       global_lock;
     bool                                            b_record = false;
     std::shared_ptr<ProfilerFrameData>              current_frame;
     std::vector<std::shared_ptr<ProfilerFrameData>> recorded_frames;

@@ -37,7 +37,7 @@ public:
         TObjectRef<SceneComponent> this_ref = scene->allocator->get_ref<SceneComponent>(this, get_class());
         if (!this_ref)
             LOG_FATAL("Internal error : failed to get ref to this object");
-        ObjectAllocation*          alloc    = this_ref->scene->allocator->allocate(T::static_class());
+        ObjectAllocation* alloc             = this_ref->scene->allocator->allocate(T::static_class());
         T*                         ptr      = static_cast<T*>(alloc->ptr);
         ptr->scene                          = this_ref->scene;
         ptr->name                           = new char[name.size() + 1];

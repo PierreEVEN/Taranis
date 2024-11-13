@@ -1,5 +1,6 @@
 #include "gfx/vulkan/queue_family.hpp"
 
+#include "profiler.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 
 #include <ranges>
@@ -157,6 +158,7 @@ void QueueFamily::init_queue(const std::weak_ptr<Device>& device)
 
 VkResult QueueFamily::present(const VkPresentInfoKHR& present_infos)
 {
+    PROFILER_SCOPE(PresentQueue);
     assert(queue_support_present);
     std::lock_guard lk(queue_mutex);
     return vkQueuePresentKHR(ptr, &present_infos);
@@ -164,6 +166,7 @@ VkResult QueueFamily::present(const VkPresentInfoKHR& present_infos)
 
 VkResult QueueFamily::submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos, const Fence* optional_fence)
 {
+    PROFILER_SCOPE(SubmitQueue);
     if (optional_fence)
         optional_fence->reset();
     auto cmds                       = cmd.raw();

@@ -104,6 +104,12 @@ class JobSystem final
 {
 public:
     JobSystem(size_t num_tasks);
+
+    ~JobSystem()
+    {
+        workers.clear();
+    }
+
     template <typename Ret = void, typename Lambda> JobHandle<Ret> schedule(Lambda job)
     {
         std::shared_ptr<TJob<Lambda, Ret>> task = std::make_shared<TJob<Lambda, Ret>>(job);

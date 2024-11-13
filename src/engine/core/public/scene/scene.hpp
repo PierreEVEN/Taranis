@@ -44,11 +44,12 @@ public:
 
     void tick(double delta_second);
 
-    void draw(const Gfx::CommandBuffer& command_buffer);
+    void draw(Gfx::CommandBuffer& command_buffer);
 
-    template <typename T> TObjectIterator<T> iterate()
+    template <typename T>
+    void for_each(const std::function<void(T&)>& callback) const
     {
-        return allocator->iter<T>();
+        allocator->for_each(callback);
     }
 
     const std::vector<TObjectPtr<SceneComponent>>& get_nodes() const
@@ -56,11 +57,19 @@ public:
         return root_nodes;
     }
 
+    void merge(Scene&& other_scene)
+    {
+        std::lock_guard lk(*merge_queue_mtx);
+        scenes_to_merge.push_back(std::move(other_scene));
+    }
+
   private:
+
+    std::unique_ptr<std::mutex> merge_queue_mtx;
+    std::vector<Scene> scenes_to_merge;
+
     std::unique_ptr<ContiguousObjectAllocator> allocator;
 
     std::vector<TObjectPtr<SceneComponent>> root_nodes;
-
-
 };
 } // namespace Eng

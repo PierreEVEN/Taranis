@@ -38,7 +38,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverity
         LOG_WARNING("VALIDATION WARNING : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
     else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
-        LOG_FATAL("VALIDATION ERROR : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text)
+        if (!message_text.find("obs-vulkan64"))
+            LOG_FATAL("VALIDATION ERROR : \n\tcontext : {}\n\tmessage id : {}\n\n\t{}", context, message_id, message_text);
     }
     else
     {

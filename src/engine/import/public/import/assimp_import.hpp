@@ -65,7 +65,7 @@ public:
             std::shared_ptr<Gfx::BufferData>  indices;
         };
 
-        TObjectRef<TextureAsset>          find_or_load_texture(std::string path);
+        TObjectRef<TextureAsset>          find_or_load_texture(const std::string& path);
         TObjectRef<MaterialInstanceAsset> find_or_load_material_instance(int id);
         TObjectRef<MaterialAsset>         find_or_load_material(MaterialType type);
         std::shared_ptr<MeshSection>      find_or_load_mesh(int id);

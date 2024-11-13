@@ -2,6 +2,8 @@
 
 #include "gfx/ui/ImGuiWrapper.hpp"
 
+#include "profiler.hpp"
+
 #include <imgui.h>
 
 #include "gfx/mesh.hpp"
@@ -229,15 +231,16 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
 
     ImGui::SetNextWindowPos(ImVec2(-4, -4));
     ImGui::SetNextWindowSize(ImVec2(static_cast<float>(draw_res.x) + 8.f, static_cast<float>(draw_res.y) + 8.f));
-    if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground))
+    if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus))
     {
         ImGui::DockSpace(ImGui::GetID("Master dockSpace"), ImVec2(0.f, 0.f), ImGuiDockNodeFlags_PassthruCentralNode);
     }
     ImGui::End();
 }
 
-void ImGuiWrapper::end(const CommandBuffer& cmd)
+void ImGuiWrapper::prepare_all_window()
 {
+    PROFILER_SCOPE(ImGuiPrepareWindows);
     ImGui::SetCurrentContext(imgui_context);
 
     for (int64_t i = windows.size() - 1; i >= 0; --i)
@@ -247,6 +250,11 @@ void ImGuiWrapper::end(const CommandBuffer& cmd)
         else
             windows.erase(windows.begin() + i);
     }
+}
+
+void ImGuiWrapper::end(CommandBuffer& cmd)
+{
+    ImGui::SetCurrentContext(imgui_context);
 
     ImGui::EndFrame();
     ImGui::Render();
@@ -317,7 +325,7 @@ void ImGuiWrapper::end(const CommandBuffer& cmd)
     int global_vtx_offset = 0;
     int global_idx_offset = 0;
 
-    cmd.bind_pipeline(*imgui_material);
+    cmd.bind_pipeline(imgui_material);
 
     bool used_other_image = true;
 

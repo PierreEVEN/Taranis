@@ -48,6 +48,25 @@ void ContiguousObjectPool::free(void* ptr)
         LOG_FATAL("Allocation {:x} is not allocated in this pool ({})", reinterpret_cast<size_t>(ptr), object_class->name())
 }
 
+void ContiguousObjectPool::merge(ContiguousObjectPool& other)
+{
+    if (other.component_count == 0)
+        return;
+
+    reserve(this->component_count + other.component_count);
+    memcpy(nth(component_count), other.nth(0), stride * other.component_count);
+    for (const auto& old_alloc : other.allocation_map)
+    {
+        ObjectAllocation* allocation = old_alloc.second;
+        allocation->ptr              = nth(other.nth_ptr(old_alloc.first) + component_count);
+        allocation_map.emplace(allocation->ptr, allocation);
+    }
+    component_count = component_count + other.component_count;
+    other.allocation_map.clear();
+    other.component_count = 0;
+    other.resize(0);
+}
+
 void ContiguousObjectPool::reserve(size_t desired_count)
 {
     if (desired_count == 0)
@@ -107,6 +126,10 @@ void ContiguousObjectPool::move_old_to_new_block(void* old, void* new_block)
     allocation_map = new_alloc_map;
 }
 
+ContiguousObjectAllocator::ContiguousObjectAllocator()
+{
+}
+
 ObjectAllocation* ContiguousObjectAllocator::allocate(const Reflection::Class* component_class)
 {
     assert(component_class);
@@ -121,6 +144,12 @@ void ContiguousObjectAllocator::free(const Reflection::Class* component_class, v
         pool->second->free(allocation);
     else
         LOG_FATAL("No object {} was allocated using this allocator", component_class->name())
+}
+
+void ContiguousObjectAllocator::merge_with(ContiguousObjectAllocator& other)
+{
+    for (const auto& pool : other.pools)
+        pools.emplace(pool.first, std::make_unique<ContiguousObjectPool>(pool.second->get_class())).first->second->merge(*pool.second);
 }
 
 std::vector<ContiguousObjectPool*> ContiguousObjectAllocator::find_pools(const Reflection::Class* parent_class) const

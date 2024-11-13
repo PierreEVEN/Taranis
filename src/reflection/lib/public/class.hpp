@@ -112,11 +112,11 @@ public:
 
     static void register_class_internal(Class* inClass);
 
+    std::string                          type_name;
     std::vector<Class*>                  parents = {};
     std::unordered_map<size_t, CastFunc> cast_functions;
 
     size_t      type_size = 0;
-    std::string type_name;
     size_t      type_id = 0;
 };
 } // namespace Reflection

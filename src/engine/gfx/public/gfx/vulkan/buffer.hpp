@@ -25,15 +25,7 @@ enum class EBufferUsage
     GPU_MEMORY = 0x00000003,             // used as storage get
     UNIFORM_BUFFER = 0x00000004,         // used as uniform get
     INDIRECT_DRAW_ARGUMENT = 0x00000005, // used for indirect begin commands
-    TRANSFER_MEMORY = 0x00000006,        // used for indirect begin commands
-};
-
-enum class EBufferAccess
-{
-    DEFAULT = 0x00000000,    // Choose best configuration
-    GPU_ONLY = 0x00000001,   // Data will be cached on GPU
-    CPU_TO_GPU = 0x00000002, // frequent transfer from CPU to GPU
-    GPU_TO_CPU = 0x00000003, // frequent transfer from GPU to CPU
+    TRANSFER_MEMORY = 0x00000006,        // host local memory used to transfer data to device memory
 };
 
 class BufferData
@@ -103,7 +95,6 @@ public:
     struct CreateInfos
     {
         EBufferUsage  usage;
-        EBufferAccess access = EBufferAccess::DEFAULT;
         EBufferType   type   = EBufferType::IMMUTABLE;
     };
 
@@ -149,6 +140,7 @@ public:
         size_t        stride        = 0;
         size_t        element_count = 0;
         bool          outdated      = false;
+        bool          host_visible  = false;
         VkBuffer      ptr           = VK_NULL_HANDLE;
         VmaAllocation allocation    = VK_NULL_HANDLE;
     };

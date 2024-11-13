@@ -37,8 +37,38 @@ void Device::flush_resources()
 Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)
     : queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device), instance(in_instance)
 {
-    float queuePriority = 1.0f;
 
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physical_device.raw(), &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+    {
+        std::string type_infos;
+        auto        flags = memProperties.memoryTypes[i].propertyFlags;
+        if (flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            type_infos += "| device-local";
+        if (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            type_infos += "| host-visible";
+        if (flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+            type_infos += "| host-coherent";
+        if (flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+            type_infos += "| host-cached";
+        if (flags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
+            type_infos += "| lazily-allocated";
+        if (flags & VK_MEMORY_PROPERTY_PROTECTED_BIT)
+            type_infos += "| protected";
+        if (flags & VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD)
+            type_infos += "| device-coherent";
+        if (flags & VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD)
+            type_infos += "| device-uncached";
+        if (flags & VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV)
+            type_infos += "| rdma-capable";
+
+        LOG_INFO("Memory type {} : {}", i, type_infos);
+    }
+
+    float queuePriority = 1.0f;
+    
     std::vector<VkDeviceQueueCreateInfo> queues_info;
     for (const auto& queue : queues->all_families())
     {

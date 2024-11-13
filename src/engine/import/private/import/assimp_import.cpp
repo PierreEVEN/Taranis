@@ -91,7 +91,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         decompose_node(node->mChildren[i], this_component, output_scene);
 }
 
-TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(std::string path)
+TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const std::string& path)
 {
     if (auto found = textures.find(path); found != textures.end())
         return found->second;
@@ -143,7 +143,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     auto mat = scene->mMaterials[id];
 
     MaterialType type = MaterialType::Opaque_Albedo;
-    /**/
+    /*
     if (mat->GetTextureCount(aiTextureType_NORMALS) > 0)
     {
         if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
@@ -152,14 +152,14 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
             type = MaterialType::Opaque_Normal;
     }
     else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
-        type = MaterialType::Opaque_MR;
+        type = MaterialType::Opaque_MR;*/
 
     auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(type));
 
     new_mat->set_sampler("sSampler", get_sampler());
-    if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
+    //if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_texture("albedo", TextureAsset::get_default_asset());
-    
+    /*
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {
         aiString path;
@@ -191,7 +191,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         else
             new_mat->set_texture("mr_map", TextureAsset::get_default_asset());
         break;
-    }
+    }*/
     
     return materials.emplace(id, new_mat).first->second;
 }

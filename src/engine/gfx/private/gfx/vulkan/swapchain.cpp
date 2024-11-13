@@ -188,8 +188,13 @@ bool Swapchain::render_internal()
     const auto device_ref    = device.lock();
     uint8_t    current_frame = device.lock()->get_current_image();
 
-    in_flight_fences[current_frame]->wait();
+    {
+        PROFILER_SCOPE(WaitSwapchainImageAvailable);
+        in_flight_fences[current_frame]->wait();
+    }
     device.lock()->flush_resources();
+
+
     uint32_t       image_index;
     const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
     if (acquire_result != VK_SUCCESS)
@@ -198,8 +203,8 @@ bool Swapchain::render_internal()
             return true;
         VK_CHECK(acquire_result, "Failed to acquire next swapchain image")
     }
-
-    RenderPassInstance::draw(static_cast<uint8_t>(image_index), current_frame);
+    RenderPassInstance::prepare(static_cast<uint8_t>(image_index), current_frame);
+    RenderPassInstance::submit(static_cast<uint8_t>(image_index), current_frame);
 
     // Submit to present queue
     const auto             render_finished_semaphore = framebuffers[image_index]->render_finished_semaphore().raw();

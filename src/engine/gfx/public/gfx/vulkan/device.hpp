@@ -146,7 +146,7 @@ public:
                 object_type = VK_OBJECT_TYPE_DESCRIPTOR_SET;
             else
                 LOG_FATAL("unhandled debug object type : {}", typeid(Object_T).name())
-
+            std::lock_guard               lk(object_name_mutex);
             const auto                    pfn_vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance.lock()->raw(), "vkSetDebugUtilsObjectNameEXT"));
             VkDebugUtilsObjectNameInfoEXT object_name_info                 = {
                 .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
@@ -165,6 +165,7 @@ public:
     }
 
 private:
+    std::mutex object_name_mutex;
     bool b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
     std::unordered_map<RenderPassKey, std::shared_ptr<VkRendererPass>> render_passes;
