@@ -116,7 +116,18 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
     ImGui::SameLine();
     ImGui::Checkbox("Record", &b_record);
     ImGui::SameLine();
+    if (ImGui::Button("Select all"))
+    {
+        size_t i = 0;
+        for (const auto& frame : display_data.displayed_frames)
+            display_data.selected_frames.insert(i++);
+        display_data.build();
+
+    }
+    ImGui::SameLine();
     ImGui::Checkbox("Always focus last frame", &b_always_display_last);
+    ImGui::SameLine();
+    ImGui::DragFloat("Scale", &scale);
 
     if (b_record)
     {
@@ -138,14 +149,14 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
     size_t i = 0;
     if (ImGui::BeginChild("FrameContainer", {0, 50}, 0, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        if (ImGui::BeginChild("frames", {static_cast<float>(display_data.displayed_frames.size()) * 6, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
+        if (ImGui::BeginChild("frames", {static_cast<float>(display_data.displayed_frames.size()) * 3, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
         {
             for (const auto& frame : display_data.displayed_frames)
             {
                 bool b_set_button = display_data.selected_frames.contains(i);
                 if (b_set_button)
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5, 0.5, 0, 1));
-                if (ImGui::Button(std::format("##but_frame_{}", i).c_str(), {5, 20}))
+                if (ImGui::Button(std::format("##but_frame_{}", i).c_str(), {3, 20}))
                 {
                     if (display_data.selected_frames.contains(i))
                         display_data.selected_frames.erase(i);
@@ -155,38 +166,51 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
                 }
                 if (b_set_button)
                     ImGui::PopStyleColor();
-                ImGui::SameLine(0, 1);
+                ImGui::SameLine(0, 0);
                 ++i;
+            }
+        }
+
+        ImGui::EndChild();
+    }
+    ImGui::EndChild();
+
+    float  total_max  = 0;
+    float total_min = FLT_MAX;
+    if (ImGui::BeginChild("LogsContainer", {0, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        if (ImGui::BeginChild("Logs", {last_max * scale, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
+        {
+            auto dl = ImGui::GetWindowDrawList();
+
+            ImVec2 base = ImGui::GetCursorPos() + ImGui::GetWindowPos();
+            for (const auto& box : display_data.boxes)
+            {
+                float step_height = 10;
+
+                if (box.min_max.x < total_min)
+                    total_min = box.min_max.x;
+                if (box.min_max.y > total_max)
+                    total_max = box.min_max.y;
+                auto min = base + ImVec2{static_cast<float>(box.min_max.x * scale), box.stage * step_height};
+                auto max = base + ImVec2{static_cast<float>(box.min_max.y * scale), (box.stage + 1) * step_height};
+                dl->AddRectFilled(min, max, box.color);
+
+                if (ImGui::IsMouseHoveringRect(min, max))
+                {
+                    dl->AddRectFilled(min, max, ImGui::ColorConvertFloat4ToU32({1, 1, 1, 1}));
+
+                    if (ImGui::BeginTooltip())
+                    {
+                        ImGui::Text("%s : %fms", box.name.c_str(), static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(box.duration).count()) / 1000.f);
+                        ImGui::EndPopup();
+                    }
+                }
             }
         }
         ImGui::EndChild();
     }
     ImGui::EndChild();
-
-    auto dl = ImGui::GetWindowDrawList();
-
-    ImVec2 base = ImGui::GetCursorPos() + ImGui::GetWindowPos();
-
-    for (const auto& box : display_data.boxes)
-    {
-        double scale       = 10;
-        float  step_height = 10;
-
-        auto min = base + ImVec2{static_cast<float>(box.min_max.x * scale), box.stage * step_height};
-        auto max = base + ImVec2{static_cast<float>(box.min_max.y * scale), (box.stage + 1) * step_height};
-
-        dl->AddRectFilled(min, max, box.color);
-
-        if (ImGui::IsMouseHoveringRect(min, max))
-        {
-            dl->AddRectFilled(min, max, ImGui::ColorConvertFloat4ToU32({1, 1, 1, 1}));
-
-            if (ImGui::BeginTooltip())
-            {
-                ImGui::Text("%s : %fms", box.name.c_str(), static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(box.duration).count()) / 1000.f);
-                ImGui::EndPopup();
-            }
-        }
-    }
+    last_max = total_max - total_min;
 }
 } // namespace Eng

@@ -2,6 +2,7 @@
 
 #include "gfx/vulkan/buffer.hpp"
 
+#include "profiler.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/fence.hpp"
 
@@ -221,6 +222,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
 {
     if (host_visible)
     {
+        PROFILER_SCOPE(CopyBufferDirect);
         outdated      = false;
         void* dst_ptr = nullptr;
         VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory")
@@ -230,6 +232,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
     }
     else
     {
+        PROFILER_SCOPE(CopyBufferIndirect);
         auto transfer_buffer = Buffer::create("transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
 
         auto command_buffer = CommandBuffer::create("transfer_cmd1", device(), QueueSpecialization::Transfer);

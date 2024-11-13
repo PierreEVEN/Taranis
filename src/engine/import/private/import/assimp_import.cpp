@@ -1,6 +1,7 @@
 #include "import/assimp_import.hpp"
 
 #include "engine.hpp"
+#include "profiler.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "gfx/vulkan/buffer.hpp"
@@ -32,7 +33,7 @@ AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_f
                                          std::weak_ptr<Gfx::VkRendererPass> in_render_pass)
     : scene(in_scene), temp_cam(in_temp_cam), file_path(in_file_path), render_pass(in_render_pass)
 {
-
+    PROFILER_SCOPE(DecomposeAssimpScene);
     decompose_node(scene->mRootNode, {}, output_scene);
     scene->mRootNode;
 
@@ -96,6 +97,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
     if (auto found = textures.find(path); found != textures.end())
         return found->second;
 
+    PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load texture {}", path));
     if (auto embed = scene->GetEmbeddedTexture(path.c_str()))
     {
 
@@ -140,10 +142,11 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     if (auto found = materials.find(id); found != materials.end())
         return found->second;
 
+    PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load material instance {}", id));
     auto mat = scene->mMaterials[id];
 
     MaterialType type = MaterialType::Opaque_Albedo;
-    /*
+
     if (mat->GetTextureCount(aiTextureType_NORMALS) > 0)
     {
         if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
@@ -152,14 +155,14 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
             type = MaterialType::Opaque_Normal;
     }
     else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
-        type = MaterialType::Opaque_MR;*/
+        type = MaterialType::Opaque_MR;
 
     auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(type));
 
     new_mat->set_sampler("sSampler", get_sampler());
-    //if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
+    if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_texture("albedo", TextureAsset::get_default_asset());
-    /*
+
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {
         aiString path;
@@ -191,7 +194,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         else
             new_mat->set_texture("mr_map", TextureAsset::get_default_asset());
         break;
-    }*/
+    }
     
     return materials.emplace(id, new_mat).first->second;
 }
@@ -201,6 +204,7 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(Mat
     if (auto found = materials_base.find(type); found != materials_base.end())
         return found->second;
 
+    PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load material"));
     std::vector<std::string> features;
 
     switch (type)
@@ -241,6 +245,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
         return found->second;
     auto mesh = scene->mMeshes[id];
 
+    PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load mesh"));
     std::vector<MeshAsset::Vertex> vertices(mesh->mNumVertices, {});
 
     for (size_t i = 0; i < mesh->mNumVertices; ++i)

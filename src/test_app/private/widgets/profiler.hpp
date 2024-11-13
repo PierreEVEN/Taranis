@@ -1,6 +1,7 @@
 #pragma once
 #include "gfx/ui/ui_window.hpp"
 
+#include <imgui.h>
 #include <profiler.hpp>
 #include <unordered_set>
 #include <glm/vec2.hpp>
@@ -34,7 +35,10 @@ protected:
     };
 
     bool b_record = true;
-    bool b_always_display_last = true;
+    bool b_always_display_last = false;
+
+    float scale = 10;
+    float last_max = 0;
 
     
     DisplayData display_data;

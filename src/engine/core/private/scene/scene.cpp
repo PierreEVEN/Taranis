@@ -17,6 +17,7 @@ Scene::Scene()
 
 void Scene::tick(double delta_second)
 {
+    PROFILER_SCOPE(SceneTick);
     {
         PROFILER_SCOPE(MergeScenes);
         std::lock_guard lk(*merge_queue_mtx);
@@ -49,6 +50,7 @@ void Scene::tick(double delta_second)
 
 void Scene::draw(Gfx::CommandBuffer& cmd_buffer)
 {
+    PROFILER_SCOPE(SceneDraw);
     for_each<MeshComponent>([&cmd_buffer](MeshComponent& object)
         {
             object.draw(cmd_buffer);

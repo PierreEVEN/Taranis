@@ -3,6 +3,7 @@
 #include "assets/texture_asset.hpp"
 #include "engine.hpp"
 #include "object_ptr.hpp"
+#include "profiler.hpp"
 #include "gfx/vulkan/buffer.hpp"
 
 #include <FreeImage.h>
@@ -54,6 +55,7 @@ TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path
 
 TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, const Gfx::BufferData& raw)
 {
+    PROFILER_SCOPE_NAMED(LoadImage, std::format("Load image {}", file_name));
     FIMEMORY*         mem_handle   = FreeImage_OpenMemory(const_cast<BYTE*>(static_cast<const BYTE*>(raw.data())), static_cast<DWORD>(raw.get_byte_size()));
     FREE_IMAGE_FORMAT image_format = FreeImage_GetFileTypeFromMemory(mem_handle, 0);
     if (image_format == FIF_UNKNOWN)
