@@ -54,9 +54,13 @@ public:
     public:
         ProfilerFrameData() : threads_lock(std::make_unique<std::shared_mutex>())
         {
+            min   = std::chrono::steady_clock::now();
+            start = std::chrono::steady_clock::now();
         }
 
         std::chrono::steady_clock::time_point                   start;
+        std::chrono::steady_clock::time_point                   end;
+        std::chrono::steady_clock::time_point                   min;
         std::unique_ptr<std::shared_mutex>                      threads_lock;
         std::unordered_map<std::thread::id, ProfilerThreadData> thread_data;
     };
@@ -76,7 +80,10 @@ public:
     {
         if (!b_record)
             return;
-        get_thread_data().events.push_back(event);
+        if (!current_frame)
+            return;
+        if (current_frame->min < event.start)
+            get_thread_data().events.push_back(event);
     }
 
     class EventRecorder
@@ -89,7 +96,7 @@ public:
         ~EventRecorder()
         {
             end = std::chrono::steady_clock::now();
-            Profiler::get().add_event({name, start, end});
+            get().add_event({name, start, end});
         }
 
         std::string                           name;

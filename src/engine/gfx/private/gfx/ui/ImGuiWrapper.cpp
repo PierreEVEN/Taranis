@@ -216,8 +216,8 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
     io.MouseDown[2]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_3);
     io.MouseDown[3]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_4);
     io.MouseDown[4]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_5);
+    io.AddMouseWheelEvent(target_window.lock()->get_scroll_delta().x, target_window.lock()->get_scroll_delta().y);
     io.MouseHoveredViewport = 0;
-
     double x_pos, y_pos;
     glfwGetCursorPos(target_window.lock()->raw(), &x_pos, &y_pos);
 

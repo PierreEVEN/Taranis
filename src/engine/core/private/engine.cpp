@@ -79,6 +79,8 @@ void Engine::run_internal()
 
         for (const auto& window : windows_to_remove)
             windows.erase(window);
+        for (const auto& window : windows)
+            window.second->reset_events();
         gfx_device->next_frame();
         Profiler::get().next_frame();
     }

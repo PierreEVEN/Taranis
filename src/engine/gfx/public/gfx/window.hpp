@@ -53,8 +53,18 @@ class Window : public std::enable_shared_from_this<Window>
         return surface;
     }
 
+    const glm::dvec2& get_scroll_delta() const
+    {
+        return scroll_delta;
+    }
+
+    void reset_events();
+
   private:
     Window(const WindowConfig& config);
+
+    glm::dvec2 scroll_delta;
+
     std::shared_ptr<Surface> surface;
     size_t                   id;
     bool                     should_close = false;

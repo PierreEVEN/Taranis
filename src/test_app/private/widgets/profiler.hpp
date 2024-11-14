@@ -29,18 +29,46 @@ protected:
 
         std::unordered_set<size_t>                                selected_frames;
         std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> displayed_frames;
-        std::vector<Box>                                          boxes;
+
+        struct ThreadGroup
+        {
+            int              num_stages = 0;
+            double           min = DBL_MAX;
+            double           max = DBL_MIN;
+            std::vector<Box> boxes;
+        };
+
+        double                                           global_min = DBL_MAX;
+        double                                           global_max = DBL_MIN;
+        std::unordered_map<std::thread::id, ThreadGroup> threads;
 
         void build();
     };
 
-    bool b_record = true;
+    void draw_selection();
+
+    struct Frames
+    {
+        bool  select_frame         = false;
+        bool  first_frame_selected = false;
+        float frames_zoom          = 5;
+        void  draw(DisplayData& display_data);
+    };
+
+
+    struct Selection
+    {
+        float scale    = 10;
+        void  draw(const DisplayData& display_data);
+    };
+
+    Frames    frames;
+    Selection selection;
+
+    bool b_record              = true;
     bool b_always_display_last = false;
 
-    float scale = 10;
-    float last_max = 0;
 
-    
     DisplayData display_data;
 
     void draw(Gfx::ImGuiWrapper& ctx) override;

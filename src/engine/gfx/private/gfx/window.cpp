@@ -19,6 +19,11 @@ std::shared_ptr<Window> Window::create(const std::weak_ptr<Instance>& instance, 
     return window;
 }
 
+void Window::reset_events()
+{
+    scroll_delta = {0, 0};
+}
+
 Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -31,6 +36,11 @@ Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
                                   windows[window]->render();
                               });
 
+    glfwSetScrollCallback(ptr,
+                              [](GLFWwindow* window, double x, double y)
+                              {
+                                  windows[window]->scroll_delta = {x, y};
+                              });
     glfwShowWindow(ptr);
 }
 

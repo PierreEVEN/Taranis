@@ -17,9 +17,9 @@ void Profiler::next_frame()
         return;
     std::unique_lock                   global_lk(global_lock);
     std::shared_ptr<ProfilerFrameData> last = recorded_frames.empty() ? nullptr : recorded_frames.back();
+    current_frame->end                      = std::chrono::steady_clock::now();
     recorded_frames.emplace_back(std::move(current_frame));
-    current_frame        = std::make_shared<ProfilerFrameData>();
-    current_frame->start = std::chrono::steady_clock::now();
+    current_frame = std::make_shared<ProfilerFrameData>();
     if (last)
     {
         for (const auto& [k, v] : last->thread_data)
@@ -40,8 +40,7 @@ void Profiler::start_recording()
     recorded_frames.clear();
     b_record = true;
 
-    current_frame        = std::make_shared<ProfilerFrameData>();
-    current_frame->start = std::chrono::steady_clock::now();
+    current_frame = std::make_shared<ProfilerFrameData>();
 }
 
 std::shared_ptr<Profiler::ProfilerFrameData> Profiler::last_frame()
@@ -64,6 +63,8 @@ std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> Profiler::stop_recordi
 {
     std::unique_lock                                global_lk(global_lock);
     std::vector<std::shared_ptr<ProfilerFrameData>> frames = recorded_frames;
+    if (current_frame)
+        current_frame->end = std::chrono::steady_clock::now();
     frames.emplace_back(current_frame);
     recorded_frames.clear();
     current_frame = nullptr;
