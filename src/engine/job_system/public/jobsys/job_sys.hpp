@@ -1,6 +1,9 @@
 #pragma once
 
+#include <iostream>
 #include <concurrentqueue/moodycamel/blockingconcurrentqueue.h>
+
+class Worker;
 
 class IJob
 {
@@ -13,7 +16,7 @@ template <typename Ret> class TJobRet : public IJob
 public:
     bool finished() const
     {
-        return ready.load();
+        return ready;
     }
 
     Ret await()
@@ -22,7 +25,7 @@ public:
         wait_cond.wait(lk,
                        [&]
                        {
-                           return ready.load();
+                           return ready;
                        });
 
         if constexpr (!std::is_same_v<Ret, void>)
@@ -39,7 +42,7 @@ public:
 protected:
     std::mutex              wait_mutex;
     std::condition_variable wait_cond;
-    std::atomic_bool        ready = false;
+    bool                    ready = false;
     Ret*                    ret   = nullptr;
 };
 
@@ -60,8 +63,10 @@ public:
         }
         else
             cb();
-
-        TJobRet<Ret>::ready = true;
+        {
+            std::lock_guard lk(TJobRet<Ret>::wait_mutex);
+            TJobRet<Ret>::ready = true;
+        }
         TJobRet<Ret>::wait_cond.notify_all();
     }
 
@@ -104,11 +109,9 @@ class JobSystem final
 {
 public:
     JobSystem(size_t num_tasks);
+    ~JobSystem();
 
-    ~JobSystem()
-    {
-        workers.clear();
-    }
+    static JobSystem& get();
 
     template <typename Ret = void, typename Lambda> JobHandle<Ret> schedule(Lambda job)
     {
@@ -116,6 +119,11 @@ public:
         jobs.enqueue(task);
         job_added.notify_all();
         return JobHandle<Ret>(std::dynamic_pointer_cast<TJobRet<Ret>>(task));
+    }
+
+    const std::vector<std::unique_ptr<Worker>>& get_workers() const
+    {
+        return workers;
     }
 
 private:
@@ -132,6 +140,11 @@ public:
     Worker(JobSystem* job_system);
     ~Worker();
     void stop();
+
+    std::thread::id thread_id() const
+    {
+        return thread.get_id();
+    }
 
 private:
     friend class JobSystem;

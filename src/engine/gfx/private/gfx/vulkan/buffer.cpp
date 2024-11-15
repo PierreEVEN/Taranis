@@ -162,9 +162,11 @@ Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_dev
     {
     case EBufferUsage::INDEX_DATA:
         vk_usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        vk_usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         break;
     case EBufferUsage::VERTEX_DATA:
         vk_usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        vk_usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         break;
     case EBufferUsage::GPU_MEMORY:
         vk_usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;

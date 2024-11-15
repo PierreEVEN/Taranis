@@ -1,6 +1,7 @@
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 
 #include "profiler.hpp"
+#include "../../../../../job_system/public/jobsys/job_sys.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
@@ -42,17 +43,20 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
     // Call reset_for_next_frame() to reset all the draw graph
     if (prepared)
         return;
-    prepared = true;
-
+    prepared                  = true;
+    current_framebuffer_index = swapchain_image;
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for render pass {}", definition.name));
-    // Begin get record
+
     if (framebuffers.empty())
         LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
-    const auto& framebuffer = framebuffers[swapchain_image];
-    auto&       cmd         = framebuffer->get_command_buffer();
-    cmd.begin(false);
+    const auto& framebuffer = framebuffers[current_framebuffer_index];
+    auto&       global_cmd  = framebuffer->get_command_buffer();
 
-    cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
+    if (render_pass_interface && render_pass_interface->record_threads() > 1)
+        global_cmd.create_secondaries();
+    global_cmd.begin(false);
+
+    global_cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
 
     for (const auto& child : dependencies)
         child.second->prepare(device_image, device_image);
@@ -70,8 +74,7 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
             if (is_depth_format(attachment.color_format))
                 clear_value.depthStencil = VkClearDepthStencilValue{attachment.clear_depth_value->x, static_cast<uint32_t>(attachment.clear_depth_value->y)};
             else
-                clear_value.color =
-                    VkClearColorValue{.float32 = {attachment.clear_color_value->x, attachment.clear_color_value->y, attachment.clear_color_value->z, attachment.clear_color_value->w}};
+                clear_value.color = VkClearColorValue{.float32 = {attachment.clear_color_value->x, attachment.clear_color_value->y, attachment.clear_color_value->z, attachment.clear_color_value->w}};
         }
         clear_values.emplace_back(clear_value);
     }
@@ -88,38 +91,112 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
         .pClearValues = clear_values.data(),
     };
-    vkCmdBeginRenderPass(framebuffer->get_command_buffer().raw(), &begin_infos, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(global_cmd.raw(), &begin_infos, global_cmd.get_secondary_command_buffers().empty() ? VK_SUBPASS_CONTENTS_INLINE : VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-    // Set viewport and scissor
-    const VkViewport viewport{
-        .x = 0,
-        .y = static_cast<float>(resolution().y),
-        // Flip viewport vertically to avoid textures to being displayed upside down
-        .width = static_cast<float>(resolution().x),
-        .height = -static_cast<float>(resolution().y),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f,
-    };
-    vkCmdSetViewport(framebuffer->get_command_buffer().raw(), 0, 1, &viewport);
-
-    const VkRect2D scissor{
-        .offset = VkOffset2D{0, 0},
-        .extent = VkExtent2D{resolution().x, resolution().y},
-    };
-    vkCmdSetScissor(framebuffer->get_command_buffer().raw(), 0, 1, &scissor);
-
-    if (render_pass_interface)
+    std::vector<CommandBuffer*> all_cmds;
+    if (global_cmd.get_secondary_command_buffers().empty())
     {
-        PROFILER_SCOPE(RenderPass_BuildCommandBuffer);
-        render_pass_interface->render(*this, framebuffer->get_command_buffer());
+        all_cmds = {&global_cmd};
+    }
+    else
+    {
+        for (const auto& cmd : global_cmd.get_secondary_command_buffers())
+            all_cmds.emplace_back(cmd.second.get());
     }
 
-    if (imgui_context)
     {
-        PROFILER_SCOPE(RenderPass_DrawUI);
-        imgui_context->prepare_all_window();
-        imgui_context->end(framebuffer->get_command_buffer());
-        imgui_context->begin(resolution());
+        if (render_pass_interface)
+        {
+            if (global_cmd.get_secondary_command_buffers().empty())
+            {
+                // Set viewport and scissor
+                const VkViewport viewport{
+                    .x = 0,
+                    .y = static_cast<float>(resolution().y),
+                    // Flip viewport vertically to avoid textures to being displayed upside down
+                    .width = static_cast<float>(resolution().x),
+                    .height = -static_cast<float>(resolution().y),
+                    .minDepth = 0.0f,
+                    .maxDepth = 1.0f,
+                };
+                vkCmdSetViewport(global_cmd.raw(), 0, 1, &viewport);
+
+                const VkRect2D scissor{
+                    .offset = VkOffset2D{0, 0},
+                    .extent = VkExtent2D{resolution().x, resolution().y},
+                };
+                vkCmdSetScissor(global_cmd.raw(), 0, 1, &scissor);
+
+                PROFILER_SCOPE(BuildCommandBufferSync);
+                render_pass_interface->render(*this, global_cmd, 0);
+
+                if (imgui_context)
+                {
+                    PROFILER_SCOPE(RenderPass_DrawUI);
+                    imgui_context->prepare_all_window();
+                    imgui_context->end(*all_cmds[0]);
+                    imgui_context->begin(resolution());
+                }
+            }
+            else
+            {
+
+                PROFILER_SCOPE(BuildCommandBufferAsync);
+                std::vector<JobHandle<VkCommandBuffer>> handles;
+                for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
+                {
+                    handles.emplace_back(JobSystem::get()
+                        .schedule<VkCommandBuffer>(
+                            [this, &global_cmd, &all_cmds, i]()
+                            {
+                                auto found = global_cmd.get_secondary_command_buffers().find(std::this_thread::get_id());
+                                if (found == global_cmd.get_secondary_command_buffers().end())
+                                    LOG_FATAL("Failed to get secondary command buffer for the current thread");
+
+                                found->second->begin_secondary(*this);
+
+                                // Set viewport and scissor
+                                const VkViewport viewport{
+                                    .x = 0,
+                                    .y = static_cast<float>(resolution().y),
+                                    // Flip viewport vertically to avoid textures to being displayed upside down
+                                    .width = static_cast<float>(resolution().x),
+                                    .height = -static_cast<float>(resolution().y),
+                                    .minDepth = 0.0f,
+                                    .maxDepth = 1.0f,
+                                };
+                                vkCmdSetViewport(found->second->raw(), 0, 1, &viewport);
+
+                                const VkRect2D scissor{
+                                    .offset = VkOffset2D{0, 0},
+                                    .extent = VkExtent2D{resolution().x, resolution().y},
+                                };
+                                vkCmdSetScissor(found->second->raw(), 0, 1, &scissor);
+
+                                PROFILER_SCOPE(RenderPass_BuildCommandBuffer);
+                                render_pass_interface->render(*this, *found->second.get(), i);
+
+                                if (imgui_context && i == 0)
+                                {
+                                    PROFILER_SCOPE(RenderPass_DrawUI);
+                                    imgui_context->prepare_all_window();
+                                    imgui_context->end(*all_cmds[0]);
+                                    imgui_context->begin(resolution());
+                                }
+                                found->second->end();
+                                return found->second->raw();
+                            }));
+                }
+                std::unordered_set<VkCommandBuffer> cmds_out;
+                for (const auto& handle : handles)
+                {
+                    cmds_out.insert(handle.await());
+                }
+                std::vector<VkCommandBuffer> cmds_out2(cmds_out.begin(), cmds_out.end());
+
+                vkCmdExecuteCommands(global_cmd.raw(), static_cast<uint32_t>(cmds_out2.size()), cmds_out2.data());
+            }
+        }
     }
 
     // End command get

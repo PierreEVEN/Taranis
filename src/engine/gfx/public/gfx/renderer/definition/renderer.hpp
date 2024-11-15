@@ -73,8 +73,13 @@ public:
     {
     }
 
-    virtual void render(const RenderPassInstance&, CommandBuffer&)
+    virtual void render(const RenderPassInstance&, CommandBuffer&, size_t)
     {
+    }
+
+    virtual size_t record_threads()
+    {
+        return 0;
     }
 };
 

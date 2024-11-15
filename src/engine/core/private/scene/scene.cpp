@@ -48,12 +48,12 @@ void Scene::tick(double delta_second)
     });
 }
 
-void Scene::draw(Gfx::CommandBuffer& cmd_buffer)
+void Scene::draw(Gfx::CommandBuffer& cmd_buffer, size_t idx, size_t num_threads)
 {
     PROFILER_SCOPE(SceneDraw);
-    for_each<MeshComponent>([&cmd_buffer](MeshComponent& object)
+    for_each_part<MeshComponent>([&cmd_buffer](MeshComponent& object)
         {
             object.draw(cmd_buffer);
-        });
+        }, idx, num_threads);
 }
 }

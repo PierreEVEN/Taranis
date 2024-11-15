@@ -19,24 +19,33 @@ CommandPool::~CommandPool()
         vkDestroyCommandPool(device.lock()->raw(), val, nullptr);
 }
 
-VkCommandBuffer CommandPool::allocate()
+VkCommandBuffer CommandPool::allocate(bool b_secondary, std::thread::id thread_id)
 {
     std::lock_guard lock(pool_mutex);
-    auto            command_pool = command_pools.find(std::this_thread::get_id());
+    auto            command_pool = command_pools.find(thread_id);
     if (command_pool == command_pools.end())
     {
         std::stringstream ss;
         ss << std::this_thread::get_id();
 
-        VkCommandPoolCreateInfo create_infos{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = queue_family};
-        VkCommandPool           ptr;
+        VkCommandPoolCreateInfo create_infos{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = queue_family
+        };
+        VkCommandPool ptr;
         VK_CHECK(vkCreateCommandPool(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create command pool")
         device.lock()->debug_set_object_name(name + "-$" + ss.str(), ptr);
-        command_pools.emplace(std::this_thread::get_id(), ptr);
-        command_pool = command_pools.find(std::this_thread::get_id());
+        command_pools.emplace(thread_id, ptr);
+        command_pool = command_pools.find(thread_id);
     }
 
-    VkCommandBufferAllocateInfo infos{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, .commandPool = command_pool->second, .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, .commandBufferCount = 1};
+    VkCommandBufferAllocateInfo infos{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = command_pool->second,
+        .level = b_secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1
+    };
 
     VkCommandBuffer out;
     VK_CHECK(vkAllocateCommandBuffers(device.lock()->raw(), &infos, &out), "failed to allocate command buffer")

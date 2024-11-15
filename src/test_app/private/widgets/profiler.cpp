@@ -82,8 +82,8 @@ void ProfilerWindow::DisplayData::build()
                     .min_max = {ms_x, ms_x},
                     .stage = 0,
                     .color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
-                    .name     = format_name(markers.name),
-                    .start    = markers.time,
+                    .name = format_name(markers.name),
+                    .start = markers.time,
                     .duration = std::chrono::steady_clock::duration(0),
                 });
             }
@@ -152,7 +152,7 @@ void ProfilerWindow::DisplayData::build()
                 .min_max = {ms_x, ms_x_end},
                 .stage = stage_index,
                 .color = ImGui::ColorConvertFloat4ToU32({r, g, b, 1}),
-                .name     = format_name(event.name),
+                .name = format_name(event.name),
                 .start = event.start,
                 .duration = event.end - event.start,
             });
@@ -279,9 +279,14 @@ void ProfilerWindow::Selection::draw(DisplayData& display_data)
     }
     if (ImGui::BeginChild("SelectionContainer", {0, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
     {
+        constexpr float step_height      = 15;
+        float           predicted_height = display_data.threads.size() * 20;
+        for (const auto& thread : display_data.threads)
+            predicted_height += thread.second.num_stages * step_height;
+
         last_scroll = ImGui::GetScrollX();
         float width = std::max(static_cast<float>(display_data.global_max - display_data.global_min) * scale, ImGui::GetContentRegionAvail().x);
-        if (ImGui::BeginChild("Selection", {width, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
+        if (ImGui::BeginChild("Selection", {width, predicted_height}, 0, ImGuiWindowFlags_HorizontalScrollbar))
         {
             auto   dl   = ImGui::GetWindowDrawList();
             ImVec2 base = ImGui::GetCursorScreenPos();
@@ -289,7 +294,6 @@ void ProfilerWindow::Selection::draw(DisplayData& display_data)
             float current_height = 0;
             for (const auto& thread : display_data.threads)
             {
-                constexpr float step_height = 15;
                 for (const auto& box : thread.second.boxes)
                 {
                     auto min = base + ImVec2{static_cast<float>(box.min_max.x * scale), box.stage * step_height + current_height};

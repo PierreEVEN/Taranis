@@ -26,7 +26,7 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 
     void bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image);
     void bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler);
-
+    std::mutex test_mtx;
   private:
     class Resource : public DeviceResource
     {

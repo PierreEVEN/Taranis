@@ -81,13 +81,18 @@ public:
         return imgui_context.get();
     }
 
+    std::weak_ptr<Framebuffer> get_current_framebuffer() const
+    {
+        return framebuffers[current_framebuffer_index];
+    }
+
 protected:
     virtual std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment);
 
     // Used to determine the desired framebuffer resolution from the window resolution
     ResizeCallback resize_callback;
 
-    bool                  prepared = false;
+    bool                  prepared  = false;
     bool                  submitted = false;
     std::weak_ptr<Device> device;
 
@@ -102,16 +107,17 @@ protected:
     std::vector<std::shared_ptr<Framebuffer>>                   next_frame_framebuffers;
     std::unordered_map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
 
-    virtual uint8_t                                                      get_framebuffer_count() const;
+    virtual uint8_t get_framebuffer_count() const;
 
     std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 
 private:
-    glm::uvec2                      current_resolution{0, 0};
-    RenderNode                      definition;
+    glm::uvec2                    current_resolution{0, 0};
+    RenderNode                    definition;
     std::weak_ptr<VkRendererPass> render_pass_resource;
-    std::shared_ptr<IRenderPass>    render_pass_interface;
-    std::unique_ptr<ImGuiWrapper>   imgui_context;
+    std::shared_ptr<IRenderPass>  render_pass_interface;
+    std::unique_ptr<ImGuiWrapper> imgui_context;
+    uint32_t                      current_framebuffer_index = 0;
 
 };
 }

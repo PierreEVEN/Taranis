@@ -44,12 +44,17 @@ public:
 
     void tick(double delta_second);
 
-    void draw(Gfx::CommandBuffer& command_buffer);
+    void draw(Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads);
 
     template <typename T>
     void for_each(const std::function<void(T&)>& callback) const
     {
         allocator->for_each(callback);
+    }
+
+    template <typename T> void for_each_part(const std::function<void(T&)>& callback, size_t part_index, size_t part_count) const
+    {
+        allocator->for_each_part(callback, part_index, part_count);
     }
 
     const std::vector<TObjectPtr<SceneComponent>>& get_nodes() const

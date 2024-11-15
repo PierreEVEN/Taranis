@@ -4,10 +4,26 @@
 
 #include <iostream>
 
+JobSystem* global_js = nullptr;
+
 JobSystem::JobSystem(size_t num_tasks)
 {
     for (size_t i = 0; i < num_tasks; ++i)
         workers.emplace_back(std::make_unique<Worker>(this));
+    assert(!global_js);
+    global_js = this;
+}
+
+JobSystem::~JobSystem()
+{
+    global_js = nullptr;
+    workers.clear();
+}
+
+JobSystem& JobSystem::get()
+{
+    assert(global_js);
+    return *global_js;
 }
 
 Worker::Worker(JobSystem* job_system) : js(job_system)

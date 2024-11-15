@@ -12,12 +12,19 @@
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
 
+#if WIN32
+#include <Windows.h>
+#endif
+
 namespace Eng
 {
 Engine* engine_singleton = nullptr;
 
 Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::make_unique<JobSystem>(config.worker_threads ? config.worker_threads : std::thread::hardware_concurrency()))
 {
+#if WIN32
+    timeBeginPeriod(1);
+#endif
     PROFILER_SCOPE(EngineInitialization);
     if (engine_singleton)
         LOG_FATAL("Cannot start multiple engine instances at the same time")

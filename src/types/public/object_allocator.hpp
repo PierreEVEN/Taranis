@@ -3,6 +3,7 @@
 #include "object_ptr.hpp"
 
 #include <memory>
+#include <ranges>
 #include <unordered_map>
 
 struct ObjectAllocation;
@@ -23,9 +24,6 @@ public:
 
 class ContiguousObjectPool
 {
-    template <typename T>
-    friend class TObjectIterator;
-
 public:
     ContiguousObjectPool(const Reflection::Class* in_object_class) : object_class(in_object_class), stride(object_class->stride())
     {
@@ -60,7 +58,12 @@ public:
         return object_class;
     }
 
-  private:
+    size_t size() const
+    {
+        return component_count;
+    }
+
+private:
     void reserve(size_t desired_count);
     void resize(size_t new_count);
     void move_old_to_new_block(void* old, void* new_block);
@@ -79,19 +82,20 @@ template <typename T> class TObjectIterator
 public:
     TObjectIterator(const std::vector<ContiguousObjectPool*>& in_classes) : classes(in_classes)
     {
-        class_iterator = classes.begin();
-        if (class_iterator != classes.end())
-            this_pool_count = (*class_iterator)->component_count;
+        if (classes.empty())
+            return;
+        current_class   = classes[0];
+        this_pool_count = current_class->size();
     }
 
     T& operator*() const
     {
-        return *static_cast<T*>((*class_iterator)->nth(index));
+        return *static_cast<T*>(current_class->nth(index));
     }
 
     T* operator->()
     {
-        return static_cast<T*>((*class_iterator)->nth(index));
+        return static_cast<T*>(current_class->nth(index));
     }
 
     TObjectIterator& operator++()
@@ -99,9 +103,12 @@ public:
         ++index;
         if (index >= this_pool_count)
         {
-            ++class_iterator;
-            if (class_iterator != classes.end())
-                this_pool_count = (*class_iterator)->component_count;
+            ++current_class_index;
+            if (current_class_index < classes.size())
+            {
+                current_class   = classes[current_class_index];
+                this_pool_count = current_class->size();
+            }
             else
                 this_pool_count = 0;
             index = 0;
@@ -111,13 +118,67 @@ public:
 
     operator bool() const
     {
-        return index < this_pool_count && class_iterator != classes.end();
+        return index < this_pool_count && current_class_index < classes.size();
     }
 
 private:
-    size_t                                             index           = 0;
-    size_t                                             this_pool_count = 0;
-    std::vector<ContiguousObjectPool*>::const_iterator class_iterator;
+    size_t                             index               = 0;
+    size_t                             this_pool_count     = 0;
+    size_t                             current_class_index = 0;
+    ContiguousObjectPool*              current_class       = nullptr;
+    std::vector<ContiguousObjectPool*> classes;
+};
+
+template <typename T> class TObjectIteratorPart
+{
+public:
+    TObjectIteratorPart(const std::vector<ContiguousObjectPool*>& in_classes, size_t first_pool_start, size_t last_pool_end) : classes(in_classes), index(first_pool_start), end(last_pool_end)
+  {
+      if (classes.empty())
+          return;
+      current_class   = classes[0];
+      this_pool_count = current_class->size();
+    }
+
+    T& operator*() const
+    {
+        return *static_cast<T*>(current_class->nth(index));
+    }
+
+    T* operator->()
+    {
+        return static_cast<T*>(current_class->nth(index));
+    }
+
+    TObjectIteratorPart& operator++()
+    {
+        ++index;
+        if (index >= this_pool_count)
+        {
+            ++current_class_index;
+            if (current_class_index < classes.size())
+            {
+                current_class   = classes[current_class_index];
+                this_pool_count = current_class->size();
+            }
+            else
+                this_pool_count = 0;
+            index = 0;
+        }
+        return *this;
+    }
+
+    operator bool() const
+    {
+        return index < this_pool_count && (current_class_index != classes.size() - 1 || index < end);
+    }
+
+private:
+    size_t                                             index               = 0;
+    size_t                                             end                 = 0;
+    size_t                                             this_pool_count     = 0;
+    size_t                                             current_class_index = 0;
+    ContiguousObjectPool*                              current_class       = nullptr;
     std::vector<ContiguousObjectPool*>                 classes;
 };
 
@@ -140,6 +201,19 @@ public:
     {
         for (auto ite = TObjectIterator<T>(find_pools(T::static_class())); ite; ++ite)
             callback(*ite);
+    }
+
+    template <typename T> void for_each_part(const std::function<void(T&)>& callback, size_t part_index, size_t part_count)
+    {
+        for (ContiguousObjectPool* pool : find_pools(T::static_class()))
+        {
+            size_t components_per_chunk = static_cast<size_t>(static_cast<double>(pool->size()) / static_cast<double>(part_count));
+            size_t start                = part_index * components_per_chunk;
+            size_t end                  = part_index == part_count - 1 ? pool->size() : (part_index + 1) * components_per_chunk;
+
+            for (size_t i = start; i < end; ++i)
+                callback(*static_cast<T*>(pool->nth(i)));
+        }
     }
 
     template <typename T> TObjectRef<T> get_ref(T* object, const Reflection::Class* static_class)

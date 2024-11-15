@@ -7,4 +7,7 @@ declare_module(
 )
 
 target("core")
+if is_plat("windows") then
+    add_syslinks("winmm")
+end
 set_group("engine")
