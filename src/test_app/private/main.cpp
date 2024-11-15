@@ -152,14 +152,14 @@ public:
             [&, rp, importer]
             {
                 Scene temp_scene;
-                importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
+                //importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
                 scene->merge(std::move(temp_scene));
             });
         engine.jobs().schedule(
             [&, rp, importer]
             {
                 Scene temp_scene;
-                importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
+                //importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
                 scene->merge(std::move(temp_scene));
             });
     }

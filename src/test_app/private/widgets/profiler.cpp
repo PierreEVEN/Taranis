@@ -80,14 +80,26 @@ void ProfilerWindow::DisplayData::build()
     // This is the timecode of the last item for this level
     for (const auto& thread_data : all_events)
     {
-        std::unordered_map<int, double> stage_endings;
+        struct StageData
+        {
+            double ending = 0;
+            bool   flip   = false;
+        };
+        std::vector<StageData> stage_data;
+
+        auto get_stage_data = [&stage_data](size_t stage) -> StageData& {
+            if (stage >= stage_data.size())
+                stage_data.resize(stage + 1);
+            return stage_data[stage];
+        };
+
         auto& thread    = threads.emplace(thread_data.first, ThreadGroup{}).first->second;
         int   max_stage = -1;
         for (const auto& event : thread_data.second)
         {
-            auto ms_x     = std::max(static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(event.start - start).count()) / 1000000.0, 0.0);
-            auto ms_x_end = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - start).count()) / 1000000.0;
-            int  stage    = 0;
+            auto ms_x        = std::max(static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(event.start - start).count()) / 1000000.0, 0.0);
+            auto ms_x_end    = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - start).count()) / 1000000.0;
+            int  stage_index = 0;
 
             if (ms_x_end > thread.max)
                 thread.max = ms_x_end;
@@ -95,17 +107,20 @@ void ProfilerWindow::DisplayData::build()
             if (ms_x < thread.min)
                 thread.min = ms_x;
 
-            while (stage_endings.emplace(stage, 0).first->second > ms_x)
-                stage++;
+            while (get_stage_data(stage_index).ending > ms_x)
+                stage_index++;
+            auto& found_stage_data  = get_stage_data(stage_index);
+            found_stage_data.ending = ms_x_end;
 
-            if (stage > max_stage)
-                max_stage = stage;
+            if (stage_index > max_stage)
+                max_stage = stage_index;
             float r, g, b;
-            ImGui::ColorConvertHSVtoRGB(stage * 0.1f, 1, 1, r, g, b);
-            stage_endings.insert_or_assign(stage, ms_x_end);
+            ImGui::ColorConvertHSVtoRGB(stage_index * 0.05f, found_stage_data.flip ? 0.8f : 0.65f, 1, r, g, b);
+            found_stage_data.flip   = !found_stage_data.flip;
+            found_stage_data.ending = ms_x_end;
             thread.boxes.emplace_back(Box{
                 .min_max = {ms_x, ms_x_end},
-                .stage = stage,
+                .stage = stage_index,
                 .color = ImGui::ColorConvertFloat4ToU32({r, g, b, 1}),
                 .name = event.name,
                 .start = event.start,

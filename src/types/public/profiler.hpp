@@ -1,5 +1,7 @@
 #pragma once
 
+#include "logger.hpp"
+
 #include <cassert>
 #include <mutex>
 #include <shared_mutex>
@@ -82,8 +84,7 @@ public:
             return;
         if (!current_frame)
             return;
-        if (current_frame->min < event.start)
-            get_thread_data().events.push_back(event);
+        get_thread_data().events.push_back(event);
     }
 
     class EventRecorder

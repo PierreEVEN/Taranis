@@ -25,7 +25,7 @@ end
 
 add_defines("ENABLE_VALIDATION_LAYER")
 add_defines("ENABLE_PROFILER")
-add_defines("ImDrawIdx=unsigned int")
+--add_defines("ImDrawIdx=unsigned int")
 
 add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "directxshadercompiler", "spirv-reflect", "assimp", "concurrentqueue")
 add_requires("freeimage", {configs = {rgb = true}})
