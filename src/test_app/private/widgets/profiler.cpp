@@ -236,7 +236,6 @@ void ProfilerWindow::Selection::draw(const DisplayData& display_data)
             ImVec2 base = ImGui::GetCursorScreenPos();
 
             float current_height = 0;
-            size_t i = 0;
             for (const auto& thread : display_data.threads)
             {
                 constexpr float step_height = 10;

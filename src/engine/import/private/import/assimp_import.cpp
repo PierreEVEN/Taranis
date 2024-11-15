@@ -41,6 +41,7 @@ AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_f
 
 void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const
 {
+    PROFILER_SCOPE_NAMED(LoadAssimpSceneFromPath, std::format("Load assimp scene from path {}", path.filename().string()));
     const aiScene* scene = importer->ReadFile(path.string(), 0);
     if (!scene)
     {

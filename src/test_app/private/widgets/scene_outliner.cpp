@@ -26,8 +26,8 @@ void SceneOutliner::display_node(const TObjectPtr<Eng::SceneComponent>& componen
         flags |= ImGuiTreeNodeFlags_Leaf;
     if (component == selected_component)
         flags |= ImGuiTreeNodeFlags_Selected;
-    auto name = std::format("{} [~{}]##{}", component->get_name(), component->children.size(), node_index);
-    const bool b_expand = ImGui::TreeNodeEx(name.c_str(), flags);
+    auto win_name = std::format("{} [~{}]##{}", component->get_name(), component->children.size(), node_index);
+    const bool b_expand = ImGui::TreeNodeEx(win_name.c_str(), flags);
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {

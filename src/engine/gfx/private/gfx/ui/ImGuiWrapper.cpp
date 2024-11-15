@@ -285,6 +285,10 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
+        for (size_t i = 0; i < 100 && i < cmd_list->VtxBuffer.Size; ++i)
+            LOG_WARNING("{}", cmd_list->IdxBuffer.Data[i]);
+
+
         mesh->set_indexed_vertices(vtx_offset, BufferData(cmd_list->VtxBuffer.Data, sizeof(ImDrawVert), cmd_list->VtxBuffer.Size), idx_offset,
                                    BufferData(cmd_list->IdxBuffer.Data, sizeof(ImDrawIdx), cmd_list->IdxBuffer.Size));
         vtx_offset += cmd_list->VtxBuffer.Size;
