@@ -41,6 +41,7 @@ protected:
         double                                           global_min = DBL_MAX;
         double                                           global_max = DBL_MIN;
         std::unordered_map<std::thread::id, ThreadGroup> threads;
+        bool                                             first_draw = true;
 
         void build();
     };
@@ -58,8 +59,9 @@ protected:
 
     struct Selection
     {
+        float last_scroll = 0;
         float scale    = 10;
-        void  draw(const DisplayData& display_data);
+        void  draw(DisplayData& display_data);
     };
 
     Frames    frames;
