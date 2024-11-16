@@ -1,4 +1,6 @@
 #pragma once
+#include "command_pool.hpp"
+
 #include <memory>
 #include <utility>
 
@@ -6,6 +8,11 @@
 #include "queue_family.hpp"
 
 #include <unordered_set>
+
+namespace std
+{
+class shared_mutex;
+}
 
 namespace Eng::Gfx
 {
@@ -36,6 +43,7 @@ struct Scissor
     uint32_t width;
     uint32_t height;
 };
+
 struct Viewport
 {
     float x = 0;
@@ -101,10 +109,12 @@ protected:
     void                                                        reset_stats();
     std::mutex                                                  secondary_vector_mtx;
     std::unordered_set<std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
+    std::unique_ptr<PoolLockGuard>                              pool_lock;
 
-private:
+  private:
     CommandBuffer(std::string name, std::weak_ptr<Device> device, QueueSpecialization type, std::thread::id thread_id, bool secondary = false);
     VkCommandBuffer           ptr = VK_NULL_HANDLE;
+    CommandPool::Mutex        pool_mtx;
     QueueSpecialization       type;
     std::weak_ptr<Device>     device;
     std::thread::id           thread_id;

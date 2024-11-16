@@ -37,10 +37,10 @@ Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
                               });
 
     glfwSetScrollCallback(ptr,
-                              [](GLFWwindow* window, double x, double y)
-                              {
-                                  windows[window]->scroll_delta = {x, y};
-                              });
+                          [](GLFWwindow* window, double x, double y)
+                          {
+                              windows[window]->scroll_delta = {x, y};
+                          });
     glfwShowWindow(ptr);
 }
 
@@ -52,8 +52,9 @@ Window::~Window()
 
 bool Window::render() const
 {
-    surface->render();
-
+    auto extent = internal_extent();
+    if (extent.x > 0 || extent.y > 0)
+        surface->render();
     return glfwWindowShouldClose(ptr) || should_close;
 }
 

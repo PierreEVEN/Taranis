@@ -104,7 +104,7 @@ public:
     }
 
 protected:
-    void draw(Gfx::ImGuiWrapper& ctx) override
+    void draw(Gfx::ImGuiWrapper&) override
     {
 
         ImGui::SliderInt("par", &worker_count, 1, 120);
@@ -125,7 +125,6 @@ public:
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
         rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
         rp.imgui()->new_window<ProfilerWindow>("Profiler");
-        rp.imgui()->new_window<TestWindow>("TESTT");
     }
 
     std::shared_ptr<Scene> scene;

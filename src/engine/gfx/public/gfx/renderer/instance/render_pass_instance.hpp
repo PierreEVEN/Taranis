@@ -2,6 +2,7 @@
 
 #include "logger.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
+#include "jobsys/job_sys.hpp"
 
 #include <functional>
 #include <memory>
@@ -31,9 +32,8 @@ public:
 
     // Should be called before each frame to reset all draw flags
     void         reset_for_next_frame();
-    virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent);
-    virtual void prepare(SwapchainImageId swapchain_image, DeviceImageId device_image);
-    virtual void submit(SwapchainImageId swapchain_image, DeviceImageId device_image);
+    virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force = false);
+    virtual void render(SwapchainImageId swapchain_image, DeviceImageId device_image);
 
     // Wait these semaphore before writing to render targets
     virtual std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const;
@@ -87,7 +87,6 @@ public:
     }
 
 protected:
-
     bool enable_parallel_rendering() const
     {
         return render_pass_interface && render_pass_interface->record_threads() > 1;

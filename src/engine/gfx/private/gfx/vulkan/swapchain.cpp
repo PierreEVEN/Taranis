@@ -86,19 +86,20 @@ glm::uvec2 Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities
 
 void Swapchain::create_or_recreate()
 {
+    const auto              device_ptr        = device.lock();
+    SwapChainSupportDetails swapchain_support = device_ptr->get_physical_device().query_swapchain_support(*surface.lock());
+
+    const auto window_extent = surface.lock()->get_window().lock()->internal_extent();
+    auto new_extent = choose_extent(swapchain_support.capabilities, window_extent);
+    if (new_extent.x <= 0 || new_extent.y <= 0)
+        return;
     destroy();
 
     PROFILER_SCOPE(RecreateSwapchain);
-    const auto device_ptr = device.lock();
-
-    SwapChainSupportDetails swapchain_support = device_ptr->get_physical_device().query_swapchain_support(*surface.lock());
-
     VkPresentModeKHR   presentMode   = choose_present_mode(swapchain_support.presentModes, vsync);
     VkSurfaceFormatKHR surfaceFormat = choose_surface_format(swapchain_support.formats);
     swapchain_format                 = static_cast<ColorFormat>(surfaceFormat.format);
-    const auto window_extent         = surface.lock()->get_window().lock()->internal_extent();
-    extent                           = choose_extent(swapchain_support.capabilities, window_extent);
-
+    extent = new_extent;
     uint32_t imageCount = get_framebuffer_count();
 
     if (swapchain_support.capabilities.maxImageCount > 0 && imageCount > swapchain_support.capabilities.maxImageCount)
@@ -149,7 +150,8 @@ void Swapchain::create_or_recreate()
 
     if (resize_callback)
         LOG_FATAL("Resize callback can't be used with swapchain render pass");
-    create_or_resize(extent, extent);
+    create_or_resize(extent, extent, true);
+    LOG_WARNING("RECREATED");
 }
 
 void Swapchain::draw()
@@ -186,7 +188,7 @@ bool Swapchain::render_internal()
     }
     device.lock()->flush_resources();
 
-    uint32_t image_index;
+    uint32_t       image_index;
     const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
     if (acquire_result != VK_SUCCESS)
     {
@@ -197,10 +199,9 @@ bool Swapchain::render_internal()
 
     if (current_frame >= in_flight_fences.size())
         in_flight_fences.resize(current_frame + 1, nullptr);
-    in_flight_fences[current_frame]     = get_render_finished_fence(static_cast<DeviceImageId>(image_index));
+    in_flight_fences[current_frame] = get_render_finished_fence(static_cast<DeviceImageId>(image_index));
 
-    RenderPassInstance::prepare(static_cast<uint8_t>(image_index), current_frame);
-    RenderPassInstance::submit(static_cast<uint8_t>(image_index), current_frame);
+    RenderPassInstance::render(static_cast<uint8_t>(image_index), current_frame);
 
     // Submit to present queue
     const auto             render_finished_semaphore = framebuffers[image_index]->render_finished_semaphore().raw();

@@ -38,7 +38,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
     }
 }
 
-void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId device_image)
+void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId device_image)
 {
     // Call reset_for_next_frame() to reset all the draw graph
     if (prepared)
@@ -54,7 +54,7 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
     global_cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
 
     for (const auto& child : dependencies | std::views::values)
-        child->prepare(device_image, device_image);
+        child->render(device_image, device_image);
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
@@ -112,49 +112,39 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
             handle.await()->end();
     }
     else
+    {
+        PROFILER_SCOPE(BuildCommandBufferSync);
         fill_command_buffer(global_cmd, 0);
+    }
 
     // End command get
     global_cmd.end_render_pass();
-    device.lock()->get_instance().lock()->end_debug_marker(global_cmd.raw());
+    global_cmd.end_debug_marker();
     global_cmd.end();
 
-}
+    {
+        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for render pass {}", definition.name));
 
-void RenderPassInstance::submit(SwapchainImageId swapchain_image, DeviceImageId device_image)
-{
-    if (submitted)
-        return;
-    submitted = true;
+        // Submit get (wait children completion using children_semaphores)
+        std::vector<VkSemaphore> children_semaphores;
+        for (const auto& semaphore : get_semaphores_to_wait(device_image))
+            children_semaphores.emplace_back(semaphore->raw());
 
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for render pass {}", definition.name));
-
-    for (const auto& child : dependencies)
-        child.second->submit(device_image, device_image);
-
-    // Submit get (wait children completion using children_semaphores)
-    std::vector<VkSemaphore> children_semaphores;
-    for (const auto& semaphore : get_semaphores_to_wait(device_image))
-        children_semaphores.emplace_back(semaphore->raw());
-
-    const auto& framebuffer = framebuffers[swapchain_image];
-    auto&       cmd         = framebuffer->current_cmd();
-
-    std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    const auto                        command_buffer_ptr            = cmd.raw();
-    const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
-    const VkSubmitInfo                submit_infos{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .waitSemaphoreCount = static_cast<uint32_t>(children_semaphores.size()),
-        .pWaitSemaphores = children_semaphores.data(),
-        .pWaitDstStageMask = wait_stage.data(),
-        .commandBufferCount = 1,
-        .pCommandBuffers = &command_buffer_ptr,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &render_finished_semaphore_ptr,
-    };
-
-    cmd.submit(submit_infos, framebuffer->get_render_finished_fence());
+        std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        const auto                        command_buffer_ptr            = global_cmd.raw();
+        const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
+        const VkSubmitInfo                submit_infos{
+                           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                           .waitSemaphoreCount   = static_cast<uint32_t>(children_semaphores.size()),
+                           .pWaitSemaphores      = children_semaphores.data(),
+                           .pWaitDstStageMask    = wait_stage.data(),
+                           .commandBufferCount   = 1,
+                           .pCommandBuffers      = &command_buffer_ptr,
+                           .signalSemaphoreCount = 1,
+                           .pSignalSemaphores    = &render_finished_semaphore_ptr,
+        };
+        global_cmd.submit(submit_infos, framebuffer->get_render_finished_fence());
+    }
 }
 
 std::vector<const Semaphore*> RenderPassInstance::get_semaphores_to_wait(DeviceImageId device_image) const
@@ -225,7 +215,6 @@ void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_in
 void RenderPassInstance::reset_for_next_frame()
 {
     prepared  = false;
-    submitted = false;
     for (const auto& dependency : dependencies | std::views::values)
         dependency->reset_for_next_frame();
 
@@ -245,15 +234,15 @@ void RenderPassInstance::reset_for_next_frame()
     }
 }
 
-void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent)
+void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force)
 {
     glm::uvec2 desired_resolution = resize_callback ? resize_callback(viewport) : parent;
 
     for (const auto& dep : dependencies)
-        dep.second->create_or_resize(viewport, desired_resolution);
+        dep.second->create_or_resize(viewport, desired_resolution, b_force);
 
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize render pass {}", definition.name));
-    if (desired_resolution == current_resolution && !framebuffers.empty())
+    if (!b_force && desired_resolution == current_resolution && !framebuffers.empty())
         return;
 
     if (desired_resolution.x == 0 || desired_resolution.y == 0)

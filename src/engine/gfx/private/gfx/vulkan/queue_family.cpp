@@ -9,7 +9,6 @@
 #include "gfx/vulkan/command_pool.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
-#include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/physical_device.hpp"
 #include "gfx/vulkan/surface.hpp"
 
@@ -29,7 +28,7 @@ Queues::Queues(const PhysicalDevice& physical_device, const Surface& surface)
     {
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(physical_device.raw(), i, surface.raw(), &presentSupport);
-        auto queue = std::make_shared<QueueFamily>(i, queueFamily.queueFlags, presentSupport);
+        auto queue = std::make_shared<QueueFamily>(i, queueFamily.queueFlags, presentSupport, queue_global_lock);
         all_queues.emplace_back(queue);
         i++;
     }
@@ -145,7 +144,8 @@ const char* get_queue_specialization_name(QueueSpecialization elem)
     return "Unhandled queue specialization name";
 }
 
-QueueFamily::QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present) : queue_index(index), queue_flags(flags), queue_support_present(support_present)
+QueueFamily::QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present, std::shared_ptr<std::shared_mutex> in_queue_global_lock)
+    : queue_index(index), queue_flags(flags), queue_support_present(support_present), queue_global_lock(in_queue_global_lock)
 {
 }
 
@@ -161,20 +161,35 @@ VkResult QueueFamily::present(const VkPresentInfoKHR& present_infos)
     PROFILER_SCOPE(PresentQueue);
     assert(queue_support_present);
     std::lock_guard lk(queue_mutex);
-    return vkQueuePresentKHR(ptr, &present_infos);
+    {
+        PROFILER_SCOPE(WaitQueueAvailable);
+        queue_global_lock->lock_shared();
+    }
+    auto result = vkQueuePresentKHR(ptr, &present_infos);
+    queue_global_lock->unlock_shared();
+    return result;
 }
 
 VkResult QueueFamily::submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos, const Fence* optional_fence)
 {
-    PROFILER_SCOPE(SubmitQueue);
     std::lock_guard lk(queue_mutex);
+    {
+        PROFILER_SCOPE(WaitQueueAvailable);
+        queue_global_lock->lock_shared();
+    }
     if (optional_fence)
+    {
+        PROFILER_SCOPE(ResetFence);
         optional_fence->reset();
+    }
     auto cmds                       = cmd.raw();
     submit_infos.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_infos.commandBufferCount = 1;
     submit_infos.pCommandBuffers    = &cmds;
-    return vkQueueSubmit(ptr, 1, &submit_infos, optional_fence ? optional_fence->raw() : nullptr);
+    PROFILER_SCOPE(SubmitQueue);
+    auto result = vkQueueSubmit(ptr, 1, &submit_infos, optional_fence ? optional_fence->raw() : nullptr);
+    queue_global_lock->unlock_shared();
+    return result;
 }
 
 auto Queues::find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,

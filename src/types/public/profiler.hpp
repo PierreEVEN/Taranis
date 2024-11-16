@@ -73,18 +73,22 @@ public:
 
     void add_marker(const ProfilerMarker& marker) const
     {
-        if (!b_record)
+        std::shared_lock lk1(global_lock);
+        if (!b_record || !current_frame)
             return;
-        get_thread_data().markers.push_back(marker);
+        auto&            data = get_thread_data();
+        std::shared_lock lk(*current_frame->threads_lock);
+        data.markers.push_back(marker);
     }
 
     void add_event(const ProfilerEvent& event) const
     {
-        if (!b_record)
+        std::shared_lock lk1(global_lock);
+        if (!b_record || !current_frame)
             return;
-        if (!current_frame)
-            return;
-        get_thread_data().events.push_back(event);
+        auto&            data = get_thread_data();
+        std::shared_lock lk(*current_frame->threads_lock);
+        data.events.push_back(event);
     }
 
     class EventRecorder
@@ -108,17 +112,13 @@ public:
     void                                            start_recording();
     std::shared_ptr<ProfilerFrameData>              last_frame();
     std::vector<std::shared_ptr<ProfilerFrameData>> all_frames();
-    std::vector<std::shared_ptr<ProfilerFrameData>> stop_recording();
+    void                                            stop_recording();
 
 private:
     ProfilerThreadData& get_thread_data() const
     {
         auto thread_id = std::this_thread::get_id();
-
-        std::shared_lock global_lk(global_lock);
         {
-            assert(b_record);
-            assert(current_frame);
             std::shared_lock lk(*current_frame->threads_lock);
             if (auto found = current_frame->thread_data.find(thread_id); found != current_frame->thread_data.end())
                 return found->second;

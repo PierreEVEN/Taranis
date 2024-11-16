@@ -40,7 +40,7 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
 
     glm::uvec2 new_draw_res = {static_cast<uint32_t>(ImGui::GetContentRegionAvail().x), static_cast<uint32_t>(ImGui::GetContentRegionAvail().y)};
 
-    if (new_draw_res != draw_res)
+    if (new_draw_res != draw_res && new_draw_res.x != 0 && new_draw_res.y != 0)
     {
         draw_res = new_draw_res;
         render_pass.lock()->create_or_resize(draw_res, draw_res);

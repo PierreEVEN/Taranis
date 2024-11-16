@@ -342,11 +342,11 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
 {
     if (ImGui::Button("clear"))
     {
-        Profiler::get().stop_recording();
         display_data.selected_frames.clear();
         display_data.displayed_frames.clear();
         display_data.build();
-        Profiler::get().start_recording();
+        Profiler::get().stop_recording();
+        //Profiler::get().start_recording();
     }
     ImGui::SameLine();
     ImGui::Checkbox("Record", &b_record);

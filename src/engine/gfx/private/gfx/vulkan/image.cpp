@@ -260,6 +260,7 @@ void Image::ImageResource::set_data(const BufferData& data)
     command_buffer->submit({}, &*fence);
     fence->wait();
 
+    command_buffer = nullptr;
     command_buffer = CommandBuffer::create(name + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
     command_buffer->begin(true);
     if (mip_levels > 1)

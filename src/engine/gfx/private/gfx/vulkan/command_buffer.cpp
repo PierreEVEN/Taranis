@@ -23,7 +23,9 @@ CommandBuffer::CommandBuffer(std::string in_name, std::weak_ptr<Device> in_devic
           std::move(
               in_name))
 {
-    ptr = device.lock()->get_queues().get_queue(type)->get_command_pool().allocate(secondary, thread_id);
+    auto allocation = device.lock()->get_queues().get_queue(type)->get_command_pool().allocate(secondary, thread_id);
+    ptr             = allocation.first;
+    pool_mtx        = allocation.second;
 }
 
 SecondaryCommandBuffer::SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& in_parent, const std::weak_ptr<Framebuffer>& in_framebuffer,
@@ -49,6 +51,8 @@ void CommandBuffer::begin(bool one_time)
         .flags = one_time ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : static_cast<VkCommandBufferUsageFlags>(0),
     };
 
+
+    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer")
     device.lock()->debug_set_object_name(name, ptr);
     reset_stats();
@@ -62,6 +66,7 @@ void CommandBuffer::end()
         return;
     is_recording = false;
     vkEndCommandBuffer(ptr);
+    pool_lock = nullptr;
 }
 
 void CommandBuffer::submit(VkSubmitInfo submit_infos = {}, const Fence* optional_fence)
@@ -72,6 +77,7 @@ void CommandBuffer::submit(VkSubmitInfo submit_infos = {}, const Fence* optional
     submit_infos.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_infos.commandBufferCount = 1;
     submit_infos.pCommandBuffers    = &ptr;
+    PoolLockGuard lk(pool_mtx);
     VK_CHECK(device.lock()->get_queues().get_queue(type)->submit(*this, submit_infos, optional_fence), "Failed to submit queue");
 }
 
@@ -221,8 +227,10 @@ void CommandBuffer::push_constant(EShaderStage stage, const Pipeline& pipeline, 
 
 void CommandBuffer::end_render_pass()
 {
+    PROFILER_SCOPE(EndRenderPass);
     if (!secondary_command_buffers.empty())
     {
+        PROFILER_SCOPE(ExecuteSecondaryCommandBuffers);
         std::vector<VkCommandBuffer> p_command_buffers;
         for (const auto& sec : secondary_command_buffers)
             p_command_buffers.emplace_back(sec->raw());
@@ -257,6 +265,7 @@ void SecondaryCommandBuffer::begin(bool)
         .pInheritanceInfo = &inheritance,
     };
 
+    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(raw(), &beginInfo), "failed to begin secondary command buffer");
     get_device().lock()->debug_set_object_name(get_name(), raw());
     reset_stats();

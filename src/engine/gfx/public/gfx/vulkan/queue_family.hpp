@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
@@ -27,7 +28,7 @@ const char* get_queue_specialization_name(QueueSpecialization elem);
 class QueueFamily
 {
 public:
-    QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present);
+    QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present, std::shared_ptr<std::shared_mutex> queue_global_lock);
     QueueFamily(QueueFamily&)  = delete;
     QueueFamily(QueueFamily&&) = delete;
 
@@ -71,6 +72,7 @@ private:
     VkQueue                      ptr = VK_NULL_HANDLE;
     std::shared_ptr<CommandPool> command_pool;
     std::string                  name;
+    std::shared_ptr<std::shared_mutex> queue_global_lock;
 };
 
 class Queues
@@ -87,11 +89,18 @@ public:
         return all_queues;
     }
 
+    std::shared_mutex& global_lock() const
+    {
+        return *queue_global_lock;
+    }
+
 private:
     void update_specializations();
 
     std::unordered_map<uint8_t, std::shared_ptr<QueueFamily>> preferred;
     std::vector<std::shared_ptr<QueueFamily>>                 all_queues;
+
+    std::shared_ptr<std::shared_mutex> queue_global_lock = std::make_shared<std::shared_mutex>();
 
     static std::shared_ptr<QueueFamily> find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
                                                                       const std::vector<VkQueueFlags>&                                  desired_queue_flags);

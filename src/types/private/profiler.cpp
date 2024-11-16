@@ -59,15 +59,14 @@ std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> Profiler::all_frames()
     return recorded_frames;
 }
 
-std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> Profiler::stop_recording()
+void Profiler::stop_recording()
 {
+    if (!b_record)
+        return;
     std::unique_lock                                global_lk(global_lock);
-    std::vector<std::shared_ptr<ProfilerFrameData>> frames = recorded_frames;
     if (current_frame)
         current_frame->end = std::chrono::steady_clock::now();
-    frames.emplace_back(current_frame);
     recorded_frames.clear();
     current_frame = nullptr;
     b_record      = false;
-    return frames;
 }

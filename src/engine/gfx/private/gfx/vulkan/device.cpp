@@ -25,11 +25,14 @@ void Device::next_frame()
 
 void Device::wait() const
 {
+    PROFILER_SCOPE(DeviceWaitIdle);
+    std::unique_lock lk(queues->global_lock());
     vkDeviceWaitIdle(ptr);
 }
 
 void Device::flush_resources()
 {
+    PROFILER_SCOPE(FlushResources);
     std::lock_guard lock(resource_mutex);
     pending_kill_resources[current_image].clear();
 }
@@ -37,7 +40,6 @@ void Device::flush_resources()
 Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)
     : queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device), instance(in_instance)
 {
-
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physical_device.raw(), &memProperties);
 
