@@ -48,11 +48,6 @@ public:
 
     void init_queue(const std::weak_ptr<Device>& device);
 
-    VkQueue raw() const
-    {
-        return ptr;
-    }
-
     CommandPool& get_command_pool() const
     {
         return *command_pool;

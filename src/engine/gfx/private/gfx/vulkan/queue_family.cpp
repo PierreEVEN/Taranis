@@ -167,13 +167,13 @@ VkResult QueueFamily::present(const VkPresentInfoKHR& present_infos)
 VkResult QueueFamily::submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos, const Fence* optional_fence)
 {
     PROFILER_SCOPE(SubmitQueue);
+    std::lock_guard lk(queue_mutex);
     if (optional_fence)
         optional_fence->reset();
     auto cmds                       = cmd.raw();
     submit_infos.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_infos.commandBufferCount = 1;
     submit_infos.pCommandBuffers    = &cmds;
-    std::lock_guard lk(queue_mutex);
     return vkQueueSubmit(ptr, 1, &submit_infos, optional_fence ? optional_fence->raw() : nullptr);
 }
 
