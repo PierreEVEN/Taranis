@@ -177,6 +177,8 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     // Create font texture
     uint8_t* pixels;
     int      width, height;
+    if (std::filesystem::exists("resources/fonts/Roboto-Medium.ttf"))
+        io.Fonts->AddFontFromFileTTF("resources/fonts/Roboto-Medium.ttf", 16.f);
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
     font_texture = Image::create(name + "_font_image", device,
@@ -217,7 +219,7 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
     io.MouseDown[2]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_3);
     io.MouseDown[3]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_4);
     io.MouseDown[4]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_5);
-    io.AddMouseWheelEvent(target_window.lock()->get_scroll_delta().x, target_window.lock()->get_scroll_delta().y);
+    io.AddMouseWheelEvent(static_cast<float>(target_window.lock()->get_scroll_delta().x), static_cast<float>(target_window.lock()->get_scroll_delta().y));
     io.MouseHoveredViewport = 0;
     double x_pos, y_pos;
     glfwGetCursorPos(target_window.lock()->raw(), &x_pos, &y_pos);

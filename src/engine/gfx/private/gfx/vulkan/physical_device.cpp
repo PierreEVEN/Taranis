@@ -64,7 +64,7 @@ Result<PhysicalDevice> PhysicalDevice::pick_best_physical_device(const std::weak
     {
         auto score = device.rate_device(config, *surface);
         if (score)
-            candidates.insert(std::make_pair(score.get(), device));
+            candidates.insert(std::make_pair(-score.get(), device));
         else
             errors.emplace_back(device.get_device_name() + " : " + score.error());
     }
@@ -105,7 +105,6 @@ Result<int32_t> PhysicalDevice::rate_device(const GfxConfig& config, const Surfa
     }
 
     score += deviceProperties.limits.maxImageDimension2D;
-
     return Result<int32_t>::Ok(score);
 }
 

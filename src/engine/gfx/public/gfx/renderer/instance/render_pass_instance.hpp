@@ -39,7 +39,7 @@ public:
     virtual std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const;
 
     // Retrieve the fence that will be signaled once the image rendering is finished
-    virtual const Fence* get_signal_fence(DeviceImageId device_image) const;
+    const Fence* get_render_finished_fence(DeviceImageId device_image) const;
 
     const glm::uvec2& resolution() const
     {
@@ -87,6 +87,11 @@ public:
     }
 
 protected:
+    bool enable_parallel_rendering() const
+    {
+        return render_pass_interface && render_pass_interface->record_threads() > 1;
+    }
+
     virtual std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment);
 
     // Used to determine the desired framebuffer resolution from the window resolution

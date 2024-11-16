@@ -29,6 +29,9 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
             ImGui::EndMenu();
         }
 
+        ImGui::Dummy({ImGui::GetContentRegionAvail().x - 75, 0});
+        ImGui::Text("%d fps", static_cast<int>(ImGui::GetIO().Framerate));
+
         ImGui::EndMenuBar();
     }
 

@@ -21,7 +21,7 @@ class CommandPool
     CommandPool(CommandPool&)  = delete;
     CommandPool(CommandPool&&) = delete;
     ~CommandPool();
-    VkCommandBuffer allocate(bool b_secondary = false, std::thread::id thread_id = std::this_thread::get_id());
+    VkCommandBuffer allocate(bool b_secondary, std::thread::id thread_id);
     void            free(VkCommandBuffer command_buffer, std::thread::id thread);
 
   private:

@@ -5,8 +5,13 @@
 #include "gfx/shaders/shader_compiler.hpp"
 #include "queue_family.hpp"
 
+#include <unordered_set>
+
 namespace Eng::Gfx
 {
+class SecondaryCommandBuffer;
+class VkRendererPass;
+class Framebuffer;
 class RenderPassInstance;
 }
 
@@ -31,6 +36,15 @@ struct Scissor
     uint32_t width;
     uint32_t height;
 };
+struct Viewport
+{
+    float x = 0;
+    float y = 0;
+    float width;
+    float height;
+    float min_depth = 0.f;
+    float max_depth = 1.f;
+};
 
 class CommandBuffer
 {
@@ -42,19 +56,16 @@ public:
 
     CommandBuffer(CommandBuffer&)  = delete;
     CommandBuffer(CommandBuffer&&) = delete;
-    ~CommandBuffer();
+    virtual ~CommandBuffer();
 
     VkCommandBuffer raw() const
     {
         return ptr;
     }
 
-    void create_secondaries();
-    void begin_secondary(const RenderPassInstance& rp);
-    void begin(bool one_time);
-    void end() const;
-    void merge_secondaries() const;
-    void submit(VkSubmitInfo submit_infos, const Fence* optional_fence = nullptr) const;
+    virtual void begin(bool one_time);
+    virtual void end();
+    void         submit(VkSubmitInfo submit_infos, const Fence* optional_fence = nullptr);
 
     void begin_debug_marker(const std::string& name, const std::array<float, 4>& color) const;
     void end_debug_marker() const;
@@ -65,23 +76,60 @@ public:
     void draw_mesh(const Mesh& in_buffer, uint32_t instance_count = 1, uint32_t first_instance = 0) const;
     void draw_mesh(const Mesh& in_buffer, uint32_t first_index, uint32_t vertex_offset, uint32_t index_count, uint32_t instance_count = 1, uint32_t first_instance = 0) const;
     void set_scissor(const Scissor& scissors) const;
+    void set_viewport(const Viewport& viewport) const;
     void push_constant(EShaderStage stage, const Pipeline& pipeline, const BufferData& data) const;
+    void end_render_pass();
 
-    const std::unordered_map<std::thread::id, std::shared_ptr<CommandBuffer>>& get_secondary_command_buffers() const
+    const std::weak_ptr<Device>& get_device() const
     {
-        return secondary_command_buffers;
+        return device;
     }
 
-private:
-    void reset_stats();
 
+    QueueSpecialization get_specialization() const
+    {
+        return type;
+    }
+
+    const std::string& get_name() const
+    {
+        return name;
+    }
+
+protected:
+    friend class SecondaryCommandBuffer;
+    void                                                        reset_stats();
+    std::mutex                                                  secondary_vector_mtx;
+    std::unordered_set<std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
+
+private:
     CommandBuffer(std::string name, std::weak_ptr<Device> device, QueueSpecialization type, std::thread::id thread_id, bool secondary = false);
-    VkCommandBuffer                                                     ptr = VK_NULL_HANDLE;
-    QueueSpecialization                                                 type;
-    std::weak_ptr<Device>                                               device;
-    std::thread::id                                                     thread_id;
-    std::string                                                         name;
-    std::shared_ptr<Pipeline>                                           last_pipeline;
-    std::unordered_map<std::thread::id, std::shared_ptr<CommandBuffer>> secondary_command_buffers;
+    VkCommandBuffer           ptr = VK_NULL_HANDLE;
+    QueueSpecialization       type;
+    std::weak_ptr<Device>     device;
+    std::thread::id           thread_id;
+    std::string               name;
+    std::shared_ptr<Pipeline> last_pipeline;
+    bool                      is_recording      = false;
+    bool                      b_wait_submission = false;
 };
+
+class SecondaryCommandBuffer : public CommandBuffer, public std::enable_shared_from_this<SecondaryCommandBuffer>
+{
+public:
+    static std::shared_ptr<SecondaryCommandBuffer> create(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer,
+                                                          std::thread::id    thread_id)
+    {
+        return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(name, parent, framebuffer, thread_id));
+    }
+
+    void begin(bool one_time) override;
+    void end() override;
+
+private:
+    SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer, std::thread::id thread_id);
+    std::weak_ptr<Framebuffer>   framebuffer;
+    std::weak_ptr<CommandBuffer> parent;
+};
+
 } // namespace Eng::Gfx

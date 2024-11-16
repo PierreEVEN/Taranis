@@ -42,7 +42,6 @@ std::string format_name(const std::string& base_name)
 
 void ProfilerWindow::DisplayData::build()
 {
-    first_draw = true;
     threads.clear();
     global_min = DBL_MAX;
     global_max = DBL_MIN;
@@ -164,6 +163,7 @@ void ProfilerWindow::DisplayData::build()
         if (thread.min < global_min)
             global_min = thread.min;
     }
+    target_width = global_max - global_min;
 }
 
 ImVec2 operator+(const ImVec2& a, const ImVec2& b)
@@ -256,16 +256,16 @@ void ProfilerWindow::Frames::draw(DisplayData& display_data)
 void ProfilerWindow::Selection::draw(DisplayData& display_data)
 {
     float min_scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(display_data.global_max - display_data.global_min));
-    if (display_data.first_draw)
-        scale = min_scale;
-    display_data.first_draw = false;
 
-    float old_scale = scale;
-    if (ImGui::IsMouseHoveringRect(ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetContentRegionAvail()))
+    if (display_data.target_width)
+        scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(*display_data.target_width));
+
+    if (!display_data.target_start && ImGui::IsMouseHoveringRect(ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetContentRegionAvail()))
     {
         if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || true)
         {
-            auto& io = ImGui::GetIO();
+            auto& io        = ImGui::GetIO();
+            float old_scale = scale;
             scale *= atan(io.MouseWheel) * 0.5f + 1;
             if (scale < min_scale)
                 scale = min_scale;
@@ -274,18 +274,26 @@ void ProfilerWindow::Selection::draw(DisplayData& display_data)
             double dist_not_scaled      = cursor_dist_to_start / old_scale;
             double dist_new_scaled      = dist_not_scaled * static_cast<double>(scale) - center;
 
-            ImGui::SetNextWindowScroll({static_cast<float>(dist_new_scaled), 0});
+            ImGui::SetNextWindowScroll({static_cast<float>(dist_new_scaled), last_scroll_y});
         }
     }
+    else if (display_data.target_start && !display_data.target_width)
+    {
+        ImGui::SetNextWindowScroll({static_cast<float>(*display_data.target_start * scale), last_scroll_y});
+        display_data.target_start = {};
+    }
+    display_data.target_width = {};
+
     if (ImGui::BeginChild("SelectionContainer", {0, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
     {
         constexpr float step_height      = 15;
-        float           predicted_height = display_data.threads.size() * 20;
+        float           predicted_height = display_data.threads.size() * 4;
         for (const auto& thread : display_data.threads)
             predicted_height += thread.second.num_stages * step_height;
 
-        last_scroll = ImGui::GetScrollX();
-        float width = std::max(static_cast<float>(display_data.global_max - display_data.global_min) * scale, ImGui::GetContentRegionAvail().x);
+        last_scroll   = ImGui::GetScrollX();
+        last_scroll_y = ImGui::GetScrollY();
+        float width   = std::max(static_cast<float>(display_data.global_max - display_data.global_min) * scale, ImGui::GetContentRegionAvail().x);
         if (ImGui::BeginChild("Selection", {width, predicted_height}, 0, ImGuiWindowFlags_HorizontalScrollbar))
         {
             auto   dl   = ImGui::GetWindowDrawList();
@@ -302,6 +310,11 @@ void ProfilerWindow::Selection::draw(DisplayData& display_data)
 
                     if (ImGui::IsMouseHoveringRect(min, max))
                     {
+                        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                        {
+                            display_data.target_width = box.min_max.y - box.min_max.x;
+                            display_data.target_start = box.min_max.x;
+                        }
                         dl->AddRectFilled(min, max, ImGui::ColorConvertFloat4ToU32({1, 1, 1, 1}));
 
                         if (ImGui::BeginTooltip())
@@ -314,9 +327,9 @@ void ProfilerWindow::Selection::draw(DisplayData& display_data)
                         dl->AddText(ImGui::GetFont(), step_height, min, ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}), box.name.c_str(), box.name.c_str() + box.name.size());
                 }
                 current_height += thread.second.num_stages * step_height;
-                current_height += 10;
+                current_height += 2;
                 dl->AddLine({base.x, base.y + current_height}, {base.x + width, base.y + current_height}, ImGui::ColorConvertFloat4ToU32({0.5, 0.5, 0.5, 1}), 2);
-                current_height += 10;
+                current_height += 2;
             }
         }
         ImGui::EndChild();

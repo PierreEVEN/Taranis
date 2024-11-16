@@ -1,7 +1,6 @@
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 
 #include "profiler.hpp"
-#include "../../../../../job_system/public/jobsys/job_sys.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
@@ -9,6 +8,7 @@
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
+#include "jobsys/job_sys.hpp"
 
 namespace Eng::Gfx
 {
@@ -49,17 +49,12 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
 
     if (framebuffers.empty())
         LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
-    const auto& framebuffer = framebuffers[current_framebuffer_index];
-    auto&       global_cmd  = framebuffer->get_command_buffer();
-
-    if (render_pass_interface && render_pass_interface->record_threads() > 1)
-        global_cmd.create_secondaries();
-    global_cmd.begin(false);
-
+    const auto&    framebuffer = framebuffers[current_framebuffer_index];
+    CommandBuffer& global_cmd  = framebuffer->begin();
     global_cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
 
-    for (const auto& child : dependencies)
-        child.second->prepare(device_image, device_image);
+    for (const auto& child : dependencies | std::views::values)
+        child->prepare(device_image, device_image);
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
@@ -91,120 +86,77 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
         .pClearValues = clear_values.data(),
     };
-    vkCmdBeginRenderPass(global_cmd.raw(), &begin_infos, global_cmd.get_secondary_command_buffers().empty() ? VK_SUBPASS_CONTENTS_INLINE : VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdBeginRenderPass(global_cmd.raw(), &begin_infos, enable_parallel_rendering() ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
 
-    std::vector<CommandBuffer*> all_cmds;
-    if (global_cmd.get_secondary_command_buffers().empty())
+    if (enable_parallel_rendering())
     {
-        all_cmds = {&global_cmd};
+        PROFILER_SCOPE(BuildCommandBufferAsync);
+        std::vector<JobHandle<CommandBuffer*>> handles;
+        for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
+        {
+            handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
+                [this, &framebuffer, i]()
+                {
+                    auto& cmd = framebuffer->current_cmd();
+                    cmd.begin(false);
+
+                    cmd.set_viewport({
+                        .y = static_cast<float>(resolution().y),
+                        .width = static_cast<float>(resolution().x),
+                        .height = -static_cast<float>(resolution().y),
+                    });
+                    cmd.set_scissor({0, 0, resolution().x, resolution().y});
+
+                    if (render_pass_interface)
+                    {
+                        PROFILER_SCOPE(BuildCommandBufferSync);
+                        render_pass_interface->render(*this, cmd, i);
+                    }
+
+                    if (imgui_context && i == 0)
+                    {
+                        PROFILER_SCOPE(RenderPass_DrawUI);
+                        imgui_context->prepare_all_window();
+                        imgui_context->end(cmd);
+                        imgui_context->begin(resolution());
+                    }
+                    return &cmd;
+                }));
+        }
+        for (const auto& handle : handles)
+            (void)handle.await();
+
+        for (const auto& handle : handles)
+            handle.await()->end();
     }
     else
     {
-        for (const auto& cmd : global_cmd.get_secondary_command_buffers())
-            all_cmds.emplace_back(cmd.second.get());
-    }
+        global_cmd.set_viewport({
+            .y = static_cast<float>(resolution().y),
+            .width = static_cast<float>(resolution().x),
+            .height = -static_cast<float>(resolution().y),
+        });
+        global_cmd.set_scissor({0, 0, resolution().x, resolution().y});
 
-    {
         if (render_pass_interface)
         {
-            if (global_cmd.get_secondary_command_buffers().empty())
-            {
-                // Set viewport and scissor
-                const VkViewport viewport{
-                    .x = 0,
-                    .y = static_cast<float>(resolution().y),
-                    // Flip viewport vertically to avoid textures to being displayed upside down
-                    .width = static_cast<float>(resolution().x),
-                    .height = -static_cast<float>(resolution().y),
-                    .minDepth = 0.0f,
-                    .maxDepth = 1.0f,
-                };
-                vkCmdSetViewport(global_cmd.raw(), 0, 1, &viewport);
+            PROFILER_SCOPE(BuildCommandBufferSync);
+            render_pass_interface->render(*this, global_cmd, 0);
+        }
 
-                const VkRect2D scissor{
-                    .offset = VkOffset2D{0, 0},
-                    .extent = VkExtent2D{resolution().x, resolution().y},
-                };
-                vkCmdSetScissor(global_cmd.raw(), 0, 1, &scissor);
-
-                PROFILER_SCOPE(BuildCommandBufferSync);
-                render_pass_interface->render(*this, global_cmd, 0);
-
-                if (imgui_context)
-                {
-                    PROFILER_SCOPE(RenderPass_DrawUI);
-                    imgui_context->prepare_all_window();
-                    imgui_context->end(*all_cmds[0]);
-                    imgui_context->begin(resolution());
-                }
-            }
-            else
-            {
-
-                PROFILER_SCOPE(BuildCommandBufferAsync);
-                std::vector<JobHandle<VkCommandBuffer>> handles;
-                for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
-                {
-                    handles.emplace_back(JobSystem::get()
-                        .schedule<VkCommandBuffer>(
-                            [this, &global_cmd, &all_cmds, i]()
-                            {
-                                auto found = global_cmd.get_secondary_command_buffers().find(std::this_thread::get_id());
-                                if (found == global_cmd.get_secondary_command_buffers().end())
-                                    LOG_FATAL("Failed to get secondary command buffer for the current thread");
-
-                                found->second->begin_secondary(*this);
-
-                                // Set viewport and scissor
-                                const VkViewport viewport{
-                                    .x = 0,
-                                    .y = static_cast<float>(resolution().y),
-                                    // Flip viewport vertically to avoid textures to being displayed upside down
-                                    .width = static_cast<float>(resolution().x),
-                                    .height = -static_cast<float>(resolution().y),
-                                    .minDepth = 0.0f,
-                                    .maxDepth = 1.0f,
-                                };
-                                vkCmdSetViewport(found->second->raw(), 0, 1, &viewport);
-
-                                const VkRect2D scissor{
-                                    .offset = VkOffset2D{0, 0},
-                                    .extent = VkExtent2D{resolution().x, resolution().y},
-                                };
-                                vkCmdSetScissor(found->second->raw(), 0, 1, &scissor);
-
-                                PROFILER_SCOPE(RenderPass_BuildCommandBuffer);
-                                render_pass_interface->render(*this, *found->second.get(), i);
-
-                                if (imgui_context && i == 0)
-                                {
-                                    PROFILER_SCOPE(RenderPass_DrawUI);
-                                    imgui_context->prepare_all_window();
-                                    imgui_context->end(*all_cmds[0]);
-                                    imgui_context->begin(resolution());
-                                }
-                                found->second->end();
-                                return found->second->raw();
-                            }));
-                }
-                std::unordered_set<VkCommandBuffer> cmds_out;
-                for (const auto& handle : handles)
-                {
-                    cmds_out.insert(handle.await());
-                }
-                std::vector<VkCommandBuffer> cmds_out2(cmds_out.begin(), cmds_out.end());
-
-                vkCmdExecuteCommands(global_cmd.raw(), static_cast<uint32_t>(cmds_out2.size()), cmds_out2.data());
-            }
+        if (imgui_context)
+        {
+            PROFILER_SCOPE(RenderPass_DrawUI);
+            imgui_context->prepare_all_window();
+            imgui_context->end(global_cmd);
+            imgui_context->begin(resolution());
         }
     }
 
     // End command get
-    vkCmdEndRenderPass(framebuffer->get_command_buffer().raw());
-
-    device.lock()->get_instance().lock()->end_debug_marker(framebuffer->get_command_buffer().raw());
-
-    framebuffer->get_command_buffer().end();
+    global_cmd.end_render_pass();
+    device.lock()->get_instance().lock()->end_debug_marker(global_cmd.raw());
+    global_cmd.end();
 
 }
 
@@ -224,9 +176,11 @@ void RenderPassInstance::submit(SwapchainImageId swapchain_image, DeviceImageId 
     for (const auto& semaphore : get_semaphores_to_wait(device_image))
         children_semaphores.emplace_back(semaphore->raw());
 
-    const auto&                       framebuffer = framebuffers[swapchain_image];
+    const auto& framebuffer = framebuffers[swapchain_image];
+    auto&       cmd         = framebuffer->current_cmd();
+
     std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    const auto                        command_buffer_ptr            = framebuffer->get_command_buffer().raw();
+    const auto                        command_buffer_ptr            = cmd.raw();
     const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
     const VkSubmitInfo                submit_infos{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -239,7 +193,7 @@ void RenderPassInstance::submit(SwapchainImageId swapchain_image, DeviceImageId 
         .pSignalSemaphores = &render_finished_semaphore_ptr,
     };
 
-    framebuffer->get_command_buffer().submit(submit_infos, get_signal_fence(device_image));
+    cmd.submit(submit_infos, framebuffer->get_render_finished_fence());
 }
 
 std::vector<const Semaphore*> RenderPassInstance::get_semaphores_to_wait(DeviceImageId device_image) const
@@ -250,9 +204,9 @@ std::vector<const Semaphore*> RenderPassInstance::get_semaphores_to_wait(DeviceI
     return semaphores;
 }
 
-const Fence* RenderPassInstance::get_signal_fence(DeviceImageId) const
+const Fence* RenderPassInstance::get_render_finished_fence(DeviceImageId device_image) const
 {
-    return nullptr;
+    return framebuffers[device_image]->get_render_finished_fence();
 }
 
 std::weak_ptr<RenderPassInstance> RenderPassInstance::get_dependency(const std::string& name) const
@@ -339,7 +293,7 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
     }
 
     for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
-        next_frame_framebuffers.push_back(Framebuffer::create(device, *this, i, ordered_attachments));
+        next_frame_framebuffers.push_back(Framebuffer::create(device, *this, i, ordered_attachments, enable_parallel_rendering()));
 
 }
 } // namespace Eng

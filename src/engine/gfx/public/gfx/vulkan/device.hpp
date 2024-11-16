@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "physical_device.hpp"
-#include "gfx/renderer/definition/renderer.hpp"
 
 #include <vk_mem_alloc.h>
 
@@ -187,6 +186,8 @@ public:
     DeviceResource(std::weak_ptr<Device> in_device) : device_ref(std::move(in_device))
     {
     }
+
+    virtual ~DeviceResource() = default;
 
     const std::weak_ptr<Device>& device() const
     {

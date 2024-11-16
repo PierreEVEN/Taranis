@@ -77,6 +77,7 @@ public:
     {
     }
 
+    // Get the number of thread used by this renderer (if > 1, parallel rendering will be automatically enabled)
     virtual size_t record_threads()
     {
         return 0;

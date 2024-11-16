@@ -1,9 +1,5 @@
 #include "jobsys/job_sys.hpp"
 
-#include "profiler.hpp"
-
-#include <iostream>
-
 JobSystem* global_js = nullptr;
 
 JobSystem::JobSystem(size_t num_tasks)
@@ -35,7 +31,6 @@ Worker::Worker(JobSystem* job_system) : js(job_system)
             {
                 std::shared_ptr<IJob> job = nullptr;
                 {
-                    PROFILER_SCOPE(Worker_WaitForTask);
                     std::unique_lock lk(js->job_add_mutex);
                     js->job_added.wait(lk,
                                        [&]

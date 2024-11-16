@@ -43,8 +43,7 @@ class Swapchain final : public RenderPassInstance
         return ptr;
     }
 
-    std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const override;
-    const Fence* get_signal_fence(DeviceImageId device_image) const override;
+    std::vector<const Semaphore*> get_semaphores_to_wait(SwapchainImageId swapchain_image) const override;
 
     
     static ColorFormat get_swapchain_format(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface);
@@ -95,6 +94,6 @@ class Swapchain final : public RenderPassInstance
     std::vector<VkImage>                    swapChainImages;
     std::shared_ptr<ImageView>              image_view;
     std::vector<std::shared_ptr<Semaphore>> image_available_semaphores;
-    std::vector<std::shared_ptr<Fence>>     in_flight_fences;
+    std::vector<const Fence*>               in_flight_fences;
 };
 } // namespace Eng::Gfx

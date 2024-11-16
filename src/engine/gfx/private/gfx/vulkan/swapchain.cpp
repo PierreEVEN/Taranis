@@ -29,16 +29,11 @@ Swapchain::~Swapchain()
     swapChainImages.clear();
 }
 
-std::vector<const Semaphore*> Swapchain::get_semaphores_to_wait(DeviceImageId device_image) const
+std::vector<const Semaphore*> Swapchain::get_semaphores_to_wait(SwapchainImageId swapchain_image) const
 {
     auto semaphores = RenderPassInstance::get_semaphores_to_wait(device.lock()->get_current_image());
-    semaphores.push_back(image_available_semaphores[device_image].get());
+    semaphores.push_back(image_available_semaphores[swapchain_image].get());
     return semaphores;
-}
-
-const Fence* Swapchain::get_signal_fence(DeviceImageId device_image) const
-{
-    return in_flight_fences[device_image].get();
 }
 
 ColorFormat Swapchain::get_swapchain_format(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface)
@@ -92,7 +87,7 @@ glm::uvec2 Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities
 void Swapchain::create_or_recreate()
 {
     destroy();
-    
+
     PROFILER_SCOPE(RecreateSwapchain);
     const auto device_ptr = device.lock();
 
@@ -149,12 +144,8 @@ void Swapchain::create_or_recreate()
     vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, swapChainImages.data());
 
     image_available_semaphores.clear();
-    in_flight_fences.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
-    {
         image_available_semaphores.emplace_back(Semaphore::create(get_definition().name + "_sem_#" + std::to_string(i), device));
-        in_flight_fences.emplace_back(Fence::create(get_definition().name + "_fence_#" + std::to_string(i), device, true));
-    }
 
     if (resize_callback)
         LOG_FATAL("Resize callback can't be used with swapchain render pass");
@@ -188,14 +179,14 @@ bool Swapchain::render_internal()
     const auto device_ref    = device.lock();
     uint8_t    current_frame = device.lock()->get_current_image();
 
+    if (current_frame < in_flight_fences.size() && in_flight_fences[current_frame])
     {
         PROFILER_SCOPE(WaitSwapchainImageAvailable);
         in_flight_fences[current_frame]->wait();
     }
     device.lock()->flush_resources();
 
-
-    uint32_t       image_index;
+    uint32_t image_index;
     const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
     if (acquire_result != VK_SUCCESS)
     {
@@ -203,6 +194,11 @@ bool Swapchain::render_internal()
             return true;
         VK_CHECK(acquire_result, "Failed to acquire next swapchain image")
     }
+
+    if (current_frame >= in_flight_fences.size())
+        in_flight_fences.resize(current_frame + 1, nullptr);
+    in_flight_fences[current_frame]     = get_render_finished_fence(image_index);
+
     RenderPassInstance::prepare(static_cast<uint8_t>(image_index), current_frame);
     RenderPassInstance::submit(static_cast<uint8_t>(image_index), current_frame);
 
@@ -230,6 +226,7 @@ bool Swapchain::render_internal()
 void Swapchain::destroy()
 {
     device.lock()->wait();
+    in_flight_fences.clear();
     image_view = nullptr;
 
     if (ptr != VK_NULL_HANDLE)

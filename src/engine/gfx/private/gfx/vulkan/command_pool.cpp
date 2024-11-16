@@ -26,7 +26,7 @@ VkCommandBuffer CommandPool::allocate(bool b_secondary, std::thread::id thread_i
     if (command_pool == command_pools.end())
     {
         std::stringstream ss;
-        ss << std::this_thread::get_id();
+        ss << thread_id;
 
         VkCommandPoolCreateInfo create_infos{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
