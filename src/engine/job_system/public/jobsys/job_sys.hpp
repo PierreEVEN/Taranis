@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <shared_mutex>
 #include <concurrentqueue/moodycamel/blockingconcurrentqueue.h>
 
 class Worker;
@@ -117,7 +118,7 @@ public:
     {
         std::shared_ptr<TJob<Lambda, Ret>> task = std::make_shared<TJob<Lambda, Ret>>(job);
         jobs.enqueue(task);
-        job_added.notify_all();
+        job_added.notify_one();
         return JobHandle<Ret>(std::dynamic_pointer_cast<TJobRet<Ret>>(task));
     }
 

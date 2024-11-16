@@ -197,7 +197,7 @@ bool Swapchain::render_internal()
 
     if (current_frame >= in_flight_fences.size())
         in_flight_fences.resize(current_frame + 1, nullptr);
-    in_flight_fences[current_frame]     = get_render_finished_fence(image_index);
+    in_flight_fences[current_frame]     = get_render_finished_fence(static_cast<DeviceImageId>(image_index));
 
     RenderPassInstance::prepare(static_cast<uint8_t>(image_index), current_frame);
     RenderPassInstance::submit(static_cast<uint8_t>(image_index), current_frame);

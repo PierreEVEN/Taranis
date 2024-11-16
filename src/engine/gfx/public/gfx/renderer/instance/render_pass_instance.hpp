@@ -87,6 +87,7 @@ public:
     }
 
 protected:
+
     bool enable_parallel_rendering() const
     {
         return render_pass_interface && render_pass_interface->record_threads() > 1;
@@ -117,6 +118,9 @@ protected:
     std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 
 private:
+
+    void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
+
     glm::uvec2                    current_resolution{0, 0};
     RenderNode                    definition;
     std::weak_ptr<VkRendererPass> render_pass_resource;

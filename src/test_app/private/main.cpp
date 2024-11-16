@@ -26,6 +26,8 @@
 
 using namespace Eng;
 
+int worker_count = 5;
+
 class SceneRendererInterface : public Gfx::IRenderPass
 {
 public:
@@ -44,7 +46,7 @@ public:
 
     size_t record_threads() override
     {
-        return std::thread::hardware_concurrency() - 3;
+        return std::thread::hardware_concurrency() * 3;
     }
 
     std::shared_ptr<Scene> scene;
@@ -93,6 +95,23 @@ public:
     std::shared_ptr<Scene>            scene;
 };
 
+class TestWindow : public UiWindow
+{
+public:
+    explicit TestWindow(const std::string& name)
+        : UiWindow(name)
+    {
+    }
+
+protected:
+    void draw(Gfx::ImGuiWrapper& ctx) override
+    {
+
+        ImGui::SliderInt("par", &worker_count, 1, 120);
+    }
+
+};
+
 class PresentPass : public Gfx::IRenderPass
 {
 public:
@@ -106,6 +125,7 @@ public:
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
         rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
         rp.imgui()->new_window<ProfilerWindow>("Profiler");
+        rp.imgui()->new_window<TestWindow>("TESTT");
     }
 
     std::shared_ptr<Scene> scene;

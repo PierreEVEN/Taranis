@@ -22,6 +22,10 @@ JobSystem& JobSystem::get()
     return *global_js;
 }
 
+#if _WIN32
+#include "Windows.h"
+#endif
+
 Worker::Worker(JobSystem* job_system) : js(job_system)
 {
     thread = std::thread(
@@ -45,6 +49,10 @@ Worker::Worker(JobSystem* job_system) : js(job_system)
                     job->run();
             }
         });
+
+#if _WIN32
+    SetThreadPriority((HANDLE)thread.native_handle(), THREAD_PRIORITY_HIGHEST);
+#endif
 }
 
 Worker::~Worker()

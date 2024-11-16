@@ -92,6 +92,7 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
     {
         PROFILER_SCOPE(BuildCommandBufferAsync);
         std::vector<JobHandle<CommandBuffer*>> handles;
+         // Jobs for other threads
         for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
         {
             handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
@@ -99,30 +100,11 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
                 {
                     auto& cmd = framebuffer->current_cmd();
                     cmd.begin(false);
-
-                    cmd.set_viewport({
-                        .y = static_cast<float>(resolution().y),
-                        .width = static_cast<float>(resolution().x),
-                        .height = -static_cast<float>(resolution().y),
-                    });
-                    cmd.set_scissor({0, 0, resolution().x, resolution().y});
-
-                    if (render_pass_interface)
-                    {
-                        PROFILER_SCOPE(BuildCommandBufferSync);
-                        render_pass_interface->render(*this, cmd, i);
-                    }
-
-                    if (imgui_context && i == 0)
-                    {
-                        PROFILER_SCOPE(RenderPass_DrawUI);
-                        imgui_context->prepare_all_window();
-                        imgui_context->end(cmd);
-                        imgui_context->begin(resolution());
-                    }
+                    fill_command_buffer(cmd, i);
                     return &cmd;
                 }));
         }
+
         for (const auto& handle : handles)
             (void)handle.await();
 
@@ -130,28 +112,7 @@ void RenderPassInstance::prepare(SwapchainImageId swapchain_image, DeviceImageId
             handle.await()->end();
     }
     else
-    {
-        global_cmd.set_viewport({
-            .y = static_cast<float>(resolution().y),
-            .width = static_cast<float>(resolution().x),
-            .height = -static_cast<float>(resolution().y),
-        });
-        global_cmd.set_scissor({0, 0, resolution().x, resolution().y});
-
-        if (render_pass_interface)
-        {
-            PROFILER_SCOPE(BuildCommandBufferSync);
-            render_pass_interface->render(*this, global_cmd, 0);
-        }
-
-        if (imgui_context)
-        {
-            PROFILER_SCOPE(RenderPass_DrawUI);
-            imgui_context->prepare_all_window();
-            imgui_context->end(global_cmd);
-            imgui_context->begin(resolution());
-        }
-    }
+        fill_command_buffer(global_cmd, 0);
 
     // End command get
     global_cmd.end_render_pass();
@@ -235,6 +196,30 @@ std::shared_ptr<ImageView> RenderPassInstance::create_view_for_attachment(const 
 uint8_t RenderPassInstance::get_framebuffer_count() const
 {
     return device.lock()->get_image_count();
+}
+
+void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_index) const
+{
+    cmd.set_viewport({
+        .y      = static_cast<float>(resolution().y),
+        .width  = static_cast<float>(resolution().x),
+        .height = -static_cast<float>(resolution().y),
+    });
+    cmd.set_scissor({0, 0, resolution().x, resolution().y});
+
+    if (render_pass_interface)
+    {
+        PROFILER_SCOPE(BuildCommandBufferSync);
+        render_pass_interface->render(*this, cmd, group_index);
+    }
+
+    if (imgui_context && group_index == 0)
+    {
+        PROFILER_SCOPE(RenderPass_DrawUI);
+        imgui_context->prepare_all_window();
+        imgui_context->end(cmd);
+        imgui_context->begin(resolution());
+    }
 }
 
 void RenderPassInstance::reset_for_next_frame()

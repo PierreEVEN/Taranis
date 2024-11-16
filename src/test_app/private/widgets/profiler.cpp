@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <imgui.h>
+#include <ranges>
 
 namespace Eng
 {
@@ -26,7 +27,7 @@ std::string format_name(const std::string& base_name)
             if (!std::isspace(base_name[i - 1]) && base_name[i - 1] != '_')
             {
                 out_name += ' ';
-                out_name += std::tolower(base_name[i]);
+                out_name += static_cast<char>(std::tolower(base_name[i]));
                 continue;
             }
         }
@@ -287,9 +288,9 @@ void ProfilerWindow::Selection::draw(DisplayData& display_data)
     if (ImGui::BeginChild("SelectionContainer", {0, 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
     {
         constexpr float step_height      = 15;
-        float           predicted_height = display_data.threads.size() * 4;
-        for (const auto& thread : display_data.threads)
-            predicted_height += thread.second.num_stages * step_height;
+        float           predicted_height = static_cast<float>(display_data.threads.size() * 4);
+        for (const auto& thread : display_data.threads | std::views::values)
+            predicted_height += thread.num_stages * step_height;
 
         last_scroll   = ImGui::GetScrollX();
         last_scroll_y = ImGui::GetScrollY();
