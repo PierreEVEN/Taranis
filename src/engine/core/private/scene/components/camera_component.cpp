@@ -23,7 +23,7 @@ void CameraComponent::recompute()
     float     w = h / aspect;
     perspective      = {
         {0, 0, 0, 1},
-        {w, 0, 0, 0},
+        {-w, 0, 0, 0},
         {0, h, 0, 0},
         {0, 0, z_near, 0}};
 
@@ -44,8 +44,6 @@ void FpsCameraComponent::set_yaw(float in_yaw)
 
 void FpsCameraComponent::update_rotation()
 {
-
     set_rotation(glm::quat(glm::vec3{0, 0, 0}) * glm::quat(glm::vec3{0, pitch, yaw}));
-
 }
 } // namespace Eng

@@ -169,7 +169,7 @@ public:
             [&, rp, importer]
             {
                 Scene temp_scene;
-                importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", temp_scene, camera.cast<CameraComponent>(), rp);
+                //importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", temp_scene, camera.cast<CameraComponent>(), rp);
                 scene->merge(std::move(temp_scene));
             });
         engine.jobs().schedule(
@@ -204,11 +204,11 @@ public:
         }
         if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
         {
-            mov_vec.y = 1;
+            mov_vec.y = -1;
         }
         if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
         {
-            mov_vec.y = -1;
+            mov_vec.y = 1;
         }
         if (glfwGetKey(glfw_ptr, GLFW_KEY_SPACE))
         {
@@ -228,14 +228,17 @@ public:
             set_first_pos   = true;
             last_cursor_pos = {pos_x, pos_y};
         }
-        else
+        else if (glfwGetMouseButton(glfw_ptr, GLFW_MOUSE_BUTTON_2))
         {
+            glfwSetInputMode(glfw_ptr, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             float dx = static_cast<float>(pos_x) - last_cursor_pos.x;
             float dy = static_cast<float>(pos_y) - last_cursor_pos.y;
 
-            camera->set_yaw(camera->get_yaw() + dx * 0.01f);
+            camera->set_yaw(camera->get_yaw() - dx * 0.01f);
             camera->set_pitch(camera->get_pitch() + dy * 0.01f);
         }
+        else
+            glfwSetInputMode(glfw_ptr, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
         last_cursor_pos = {pos_x, pos_y};
 

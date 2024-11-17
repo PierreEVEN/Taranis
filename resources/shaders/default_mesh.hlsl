@@ -87,7 +87,7 @@ FsOutput fs_main(VsToFs input)
     output.position = input.WorldPosition;
     output.albedo_m = float4(tex_col.rgb, mr.r);
     output.normal_r = float4(world_normal / 2 + 0.5, mr.g);
-    if (tex_col.a < 0.99)
+    if (tex_col.a < 0.25)
         discard;
     return output;
 }
