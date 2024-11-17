@@ -441,7 +441,17 @@ uint8_t get_format_bytes_per_pixel(ColorFormat format)
 
 bool is_depth_format(ColorFormat format)
 {
-    return format == ColorFormat::D24_UNORM_S8_UINT || format == ColorFormat::D32_SFLOAT || format == ColorFormat::D32_SFLOAT_S8_UINT;
+    switch (format)
+    {
+    case ColorFormat::D24_UNORM_S8_UINT:
+    case ColorFormat::D32_SFLOAT:
+    case ColorFormat::D32_SFLOAT_S8_UINT:
+    case ColorFormat::D16_UNORM:
+    case ColorFormat::D16_UNORM_S8_UINT:
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace Eng::Gfx

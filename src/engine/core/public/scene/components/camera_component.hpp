@@ -59,7 +59,7 @@ public:
         return resolution;
     }
 
-private:
+  private:
     void recompute();
 
 public:

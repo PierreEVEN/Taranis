@@ -7,6 +7,8 @@
 #include <vector>
 #include "scene\scene.gen.hpp"
 
+#include <glm/ext/matrix_float4x4.hpp>
+
 namespace Eng::Gfx
 {
 class RenderPassInstance;
@@ -110,6 +112,7 @@ private:
     TObjectRef<CameraComponent> active_camera;
 
     std::shared_ptr<Gfx::Buffer> scene_buffer;
+    glm::mat4                    last_pv;
 
     std::unique_ptr<std::mutex> merge_queue_mtx;
     std::vector<Scene>          scenes_to_merge;

@@ -81,18 +81,22 @@ void Scene::pre_draw(const Gfx::RenderPassInstance& render_pass)
     if (!active_camera)
         return;
 
+    if (!scene_buffer)
+        scene_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
+
+    const glm::mat4& new_pv = active_camera->perspective_view_matrix(render_pass.resolution());
+    if (last_pv == new_pv)
+        return;
+    last_pv                        = new_pv;
     glm::mat4 inv_view             = inverse(active_camera->view_matrix());
     glm::mat4 inv_perspective      = inverse(active_camera->perspective_matrix(render_pass.resolution()));
     glm::mat4 inv_perspective_view = inv_view * inv_perspective;
-
-    if (!scene_buffer)
-        scene_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
 
     scene_buffer->set_data(0, Gfx::BufferData{
                                SceneBufferData{
                                    .view_mat = transpose(active_camera->view_matrix()),
                                    .perspective_mat = transpose(active_camera->perspective_matrix(render_pass.resolution())),
-                                   .perspective_view_mat = transpose(active_camera->perspective_view_matrix(render_pass.resolution())),
+                                   .perspective_view_mat = transpose(last_pv),
                                    .in_view_mat = transpose(inv_view),
                                    .inv_perspective_mat = transpose(inv_perspective),
                                    .inv_perspective_view_mat = transpose(inv_perspective_view),

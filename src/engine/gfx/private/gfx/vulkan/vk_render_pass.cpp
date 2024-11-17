@@ -42,7 +42,7 @@ VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Devi
     VkSubpassDescription subpass{
         .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount    = static_cast<uint32_t>(attachments.size()) - (depth_attachment_references ? 1 : 0),
-        .pColorAttachments       = color_attachment_references.data(),
+        .pColorAttachments       = color_attachment_references.empty() ? nullptr : color_attachment_references.data(),
         .pDepthStencilAttachment = depth_attachment_references ? &*depth_attachment_references : nullptr,
     };
 

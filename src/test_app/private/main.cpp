@@ -28,10 +28,40 @@ using namespace Eng;
 
 int worker_count = 5;
 
-class SceneRendererInterface : public Gfx::IRenderPass
+class SceneShadowsInterface : public Gfx::IRenderPass
+{
+  public:
+    SceneShadowsInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
+    {
+    }
+
+    void pre_draw(const Gfx::RenderPassInstance& rp) override
+    {
+        scene->pre_draw(rp);
+    }
+
+    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
+    {
+        scene->draw(rp, command_buffer, thread_index, record_threads());
+    }
+
+    size_t record_threads() override
+    {
+        return std::thread::hardware_concurrency() * 3;
+    }
+
+    void pre_submit(const Gfx::RenderPassInstance& rp) override
+    {
+        scene->pre_submit(rp);
+    }
+
+    std::shared_ptr<Scene> scene;
+};
+
+class SceneGBuffers : public Gfx::IRenderPass
 {
 public:
-    SceneRendererInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
+    SceneGBuffers(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
 
@@ -147,9 +177,13 @@ class TestApp : public Application
         default_window = in_default_window;
 
         Gfx::Renderer renderer1;
+        
+        renderer1["shadows"]
+            .render_pass<SceneShadowsInterface>(scene)
+            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D16_UNORM).clear_depth({1.0f, 0.0f})];
 
         renderer1["gbuffers"]
-            .render_pass<SceneRendererInterface>(scene)
+            .render_pass<SceneGBuffers>(scene)
             [Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
             [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
             [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})]
@@ -157,6 +191,7 @@ class TestApp : public Application
 
         renderer1["gbuffer_resolve"]
             .require("gbuffers")
+            .require("shadows")
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
