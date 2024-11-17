@@ -5,7 +5,13 @@
 
 namespace Eng
 {
-MaterialAsset::MaterialAsset(const std::shared_ptr<Gfx::Pipeline>& in_pipeline) : pipeline(in_pipeline)
+MaterialAsset::MaterialAsset()
 {
+}
+
+void MaterialAsset::set_shader_code(const std::string& code)
+{
+    shader_code = code;
+    pipelines.clear();
 }
 }

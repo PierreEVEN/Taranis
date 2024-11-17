@@ -48,6 +48,12 @@ enum class EAlphaMode
     Additive
 };
 
+using ShaderPermutation = std::string;
+static constexpr ShaderPermutation SHADER_GBUFFER = "gbuffer";
+static constexpr ShaderPermutation SHADER_SHADOWS = "shadows";
+static constexpr ShaderPermutation SHADER_DEPTH_ONLY = "depth";
+
+
 class Pipeline
 {
 public:
