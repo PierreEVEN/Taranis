@@ -35,18 +35,24 @@ public:
     {
     }
 
-    void render(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
+    void pre_draw(const Gfx::RenderPassInstance& rp) override
     {
-        scene->for_each_part<CameraComponent>([&rp](CameraComponent& object)
-        {
-            object.update_viewport_resolution(rp.resolution());
-        }, thread_index, record_threads());
-        scene->draw(command_buffer, thread_index, record_threads());
+        scene->pre_draw(rp);
+    }
+
+    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
+    {
+        scene->draw(rp, command_buffer, thread_index, record_threads());
     }
 
     size_t record_threads() override
     {
         return std::thread::hardware_concurrency() * 3;
+    }
+
+    void pre_submit(const Gfx::RenderPassInstance& rp) override
+    {
+        scene->pre_submit(rp);
     }
 
     std::shared_ptr<Scene> scene;
@@ -77,7 +83,7 @@ public:
         material->get_descriptor_resource()->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void render(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
+    void draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
     {
         scene->for_each<CameraComponent>(
             [&](CameraComponent& object)
@@ -132,7 +138,8 @@ public:
 
 class TestApp : public Application
 {
-public:
+  public:
+
     void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
@@ -163,27 +170,28 @@ public:
 
         auto rp = engine.get_device().lock()->find_or_create_render_pass(renderer1.get_node("gbuffers").get_key(false));
 
-        camera                                   = scene->add_component<FpsCameraComponent>("test_cam");
+        camera = scene->add_component<FpsCameraComponent>("test_cam");
+        camera->activate();
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, rp, importer]
             {
                 Scene temp_scene;
-                //importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", temp_scene, camera.cast<CameraComponent>(), rp);
+                importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", temp_scene, rp);
                 scene->merge(std::move(temp_scene));
             });
         engine.jobs().schedule(
             [&, rp, importer]
             {
                 Scene temp_scene;
-                importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
+                //importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
                 scene->merge(std::move(temp_scene));
             });
         engine.jobs().schedule(
             [&, rp, importer]
             {
                 Scene temp_scene;
-                importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
+                //importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
                 scene->merge(std::move(temp_scene));
             });
     }

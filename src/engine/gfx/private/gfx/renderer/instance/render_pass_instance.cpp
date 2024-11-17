@@ -17,7 +17,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
 {
     assert(renderer.compiled());
 
-    // Init render pass tree
+    // Init draw pass tree
     for (const auto& dependency : definition.dependencies)
         dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, dependency, false));
 
@@ -30,7 +30,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
         imgui_context->begin(resolution());
     }
 
-    // Create render pass interface
+    // Create draw pass interface
     if (definition.render_pass_initializer)
     {
         render_pass_interface = definition.render_pass_initializer->construct();
@@ -45,7 +45,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         return;
     prepared                  = true;
     current_framebuffer_index = swapchain_image;
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for render pass {}", definition.name));
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.name));
 
     if (framebuffers.empty())
         LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
@@ -88,6 +88,12 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     };
     vkCmdBeginRenderPass(global_cmd.raw(), &begin_infos, enable_parallel_rendering() ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
 
+    if (render_pass_interface)
+    {
+        PROFILER_SCOPE(PreSubmit);
+        render_pass_interface->pre_draw(*this);
+    }
+
     if (enable_parallel_rendering())
     {
         PROFILER_SCOPE(BuildCommandBufferAsync);
@@ -122,8 +128,13 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     global_cmd.end_debug_marker();
     global_cmd.end();
 
+    if (render_pass_interface)
     {
-        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for render pass {}", definition.name));
+        PROFILER_SCOPE(PreSubmit);
+        render_pass_interface->pre_submit(*this);
+    }
+    {
+        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", definition.name));
 
         // Submit get (wait children completion using children_semaphores)
         std::vector<VkSemaphore> children_semaphores;
@@ -200,7 +211,7 @@ void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_in
     if (render_pass_interface)
     {
         PROFILER_SCOPE(BuildCommandBufferSync);
-        render_pass_interface->render(*this, cmd, group_index);
+        render_pass_interface->draw(*this, cmd, group_index);
     }
 
     if (imgui_context && group_index == 0)
@@ -241,7 +252,7 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
     for (const auto& dep : dependencies)
         dep.second->create_or_resize(viewport, desired_resolution, b_force);
 
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize render pass {}", definition.name));
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize draw pass {}", definition.name));
     if (!b_force && desired_resolution == current_resolution && !framebuffers.empty())
         return;
 

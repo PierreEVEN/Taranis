@@ -14,6 +14,7 @@ void BufferData::copy_to(uint8_t* destination) const
     memcpy(destination, ptr, stride * element_count);
 }
 
+
 Buffer::Buffer(std::string in_name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
     : stride(in_stride), element_count(in_element_count), params(create_infos), device(std::move(in_device)), name(std::move(in_name))
 {
@@ -66,6 +67,12 @@ bool Buffer::resize(size_t new_stride, size_t new_element_count)
     return true;
 }
 
+void Buffer::set_data_and_wait(size_t start_index, const BufferData& data)
+{
+    set_data(start_index, data);
+    wait_data_upload();
+}
+
 void Buffer::set_data(size_t start_index, const BufferData& data)
 {
     if (data.get_stride() * (start_index + data.get_element_count()) > get_stride() * get_element_count())
@@ -77,7 +84,7 @@ void Buffer::set_data(size_t start_index, const BufferData& data)
         LOG_FATAL("Cannot resize immutable buffer !!")
     case EBufferType::STATIC:
         device.lock()->wait();
-        buffers[0]->set_data(start_index, data);
+        buffers[0]->set_data_and_wait(start_index, data);
         break;
     case EBufferType::DYNAMIC:
         if (start_index != 0)
@@ -96,6 +103,28 @@ void Buffer::set_data(size_t start_index, const BufferData& data)
         buffers[device.lock()->get_current_image()]->set_data(start_index, data);
         break;
     }
+}
+
+void Buffer::wait_data_upload() const
+{
+    switch (params.type)
+    {
+    case EBufferType::IMMUTABLE:
+    case EBufferType::STATIC:
+        break;
+    case EBufferType::DYNAMIC:
+        buffers[device.lock()->get_current_image()]->wait_data_upload();
+    case EBufferType::IMMEDIATE:
+        buffers[device.lock()->get_current_image()]->wait_data_upload();
+        break;
+    }
+}
+
+const VkDescriptorBufferInfo& Buffer::get_descriptor_infos_current() const
+{
+    if (buffers.size() == 1)
+        return buffers[0]->descriptor_data;
+    return buffers[device.lock()->get_current_image()]->descriptor_data;
 }
 
 std::vector<VkBuffer> Buffer::raw() const
@@ -117,7 +146,7 @@ VkBuffer Buffer::raw_current()
     case EBufferType::DYNAMIC:
         if (buffers[device.lock()->get_current_image()]->outdated)
         {
-            buffers[device.lock()->get_current_image()]->set_data(0, temp_buffer_data);
+            buffers[device.lock()->get_current_image()]->set_data_and_wait(0, temp_buffer_data);
         }
         for (const auto& buffer : buffers)
             if (!buffer->outdated)
@@ -148,25 +177,39 @@ size_t Buffer::get_stride() const
     return buffers[0]->stride;
 }
 
-Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
-    : DeviceResource(std::move(in_device)), stride(in_stride), element_count(in_element_count)
+Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
+    : DeviceResource(std::move(in_device)), stride(in_stride), element_count(in_element_count), name(in_name)
 {
     assert(element_count != 0 && stride != 0);
 
-    VkMemoryPropertyFlags required_flags = 0;
-    VkBufferUsageFlags    vk_usage       = 0;
+    VkMemoryPropertyFlags    required_flags = 0;
+    VkBufferUsageFlags       vk_usage       = 0;
     VmaAllocationCreateFlags flags          = 0;
-    host_visible                         = false;
+    host_visible                            = false;
 
     switch (create_infos.usage)
     {
     case EBufferUsage::INDEX_DATA:
         vk_usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         vk_usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        if (create_infos.type == EBufferType::IMMEDIATE)
+        {
+            host_visible = true;
+            flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
+            required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        }
         break;
     case EBufferUsage::VERTEX_DATA:
         vk_usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         vk_usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        if (create_infos.type == EBufferType::IMMEDIATE)
+        {
+            host_visible = true;
+            flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
+            required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        }
         break;
     case EBufferUsage::GPU_MEMORY:
         vk_usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
@@ -179,17 +222,10 @@ Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_dev
         break;
     case EBufferUsage::TRANSFER_MEMORY:
         vk_usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        host_visible   = true;
+        host_visible = true;
         flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
         break;
-    }
-
-    if (create_infos.type == EBufferType::IMMEDIATE)
-    {
-        host_visible = true;
-        flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
-        required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
     }
 
     if (create_infos.type != EBufferType::IMMUTABLE)
@@ -212,6 +248,11 @@ Buffer::Resource::Resource(const std::string& name, std::weak_ptr<Device> in_dev
     };
 
     VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation, nullptr), "failed to create buffer")
+    descriptor_data = VkDescriptorBufferInfo{
+        .buffer = ptr,
+        .offset = 0,
+        .range = element_count * stride,
+    };
     device().lock()->debug_set_object_name(name, ptr);
 }
 
@@ -220,39 +261,66 @@ Buffer::Resource::~Resource()
     vmaDestroyBuffer(device().lock()->get_allocator(), ptr, allocation);
 }
 
+void Buffer::Resource::set_data_and_wait(size_t start_index, const BufferData& data)
+{
+    set_data(start_index, data);
+    wait_data_upload();
+}
+
 void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
 {
     if (host_visible)
     {
-        PROFILER_SCOPE(CopyBufferDirect);
+        PROFILER_SCOPE_NAMED(CopyBufferDirect, std::format("Copy buffer direct : {}", name));
         outdated      = false;
         void* dst_ptr = nullptr;
         VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory")
+        if (!dst_ptr)
+            LOG_FATAL("Failed to map memory");
         data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
 
         vmaUnmapMemory(device().lock()->get_allocator(), allocation);
     }
     else
     {
-        PROFILER_SCOPE(CopyBufferIndirect);
-        auto transfer_buffer = Buffer::create("transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+        PROFILER_SCOPE_NAMED(CopyBufferIndirect, std::format("Transfer buffer indirect : {}", name));
 
-        auto command_buffer = CommandBuffer::create("transfer_cmd1", device(), QueueSpecialization::Transfer);
+        if (data_update_fence)
+            data_update_fence->wait();
+        else
+            data_update_fence = Fence::create("fence", device());
+        Profiler::EventRecorder* transfer_profiler_event = new Profiler::EventRecorder("Create transfer buffer");
+        transfer_buffer         = create("transfer_buffer", device(), CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+        delete transfer_profiler_event;
 
-        command_buffer->begin(true);
+        Profiler::EventRecorder* transfer_profiler_event2 = new Profiler::EventRecorder("Create command buffer");
+        data_update_cmd                                   = CommandBuffer::create("transfer_cmd_" + name, device(), QueueSpecialization::Transfer);
+        delete transfer_profiler_event2;
+
+        data_update_cmd->begin(true);
 
         const VkBufferCopy region = {
             .srcOffset = 0,
             .dstOffset = start_index,
-            . size = data.get_byte_size(),
+            .size = data.get_byte_size(),
         };
 
-        vkCmdCopyBuffer(command_buffer->raw(), transfer_buffer->raw_current(), ptr, 1, &region);
-        command_buffer->end();
+        vkCmdCopyBuffer(data_update_cmd->raw(), transfer_buffer->raw_current(), ptr, 1, &region);
+        data_update_cmd->end();
 
-        const auto fence = Fence::create("fence", device());
-        command_buffer->submit({}, &*fence);
-        fence->wait();
+        data_update_cmd->submit({}, &*data_update_fence);
     }
+}
+
+void Buffer::Resource::wait_data_upload()
+{
+    if (data_update_fence)
+    {
+        PROFILER_SCOPE_NAMED(WaitBufferCopyIndirect, std::format("Wait buffer indirect transfer : {}", name));
+        data_update_fence->wait();
+    }
+    data_update_cmd   = nullptr;
+    data_update_fence = nullptr;
+    transfer_buffer   = nullptr;
 }
 } // namespace Eng::Gfx

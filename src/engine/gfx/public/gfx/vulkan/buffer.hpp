@@ -107,18 +107,22 @@ public:
     {
         auto new_buffer = std::shared_ptr<Buffer>(new Buffer(name, std::move(device), create_infos, data.get_stride(), data.get_element_count()));
         for (const auto& buffer : new_buffer->buffers)
-            buffer->set_data(0, data);
+            buffer->set_data_and_wait(0, data);
         return new_buffer;
     }
 
     Buffer(Buffer&)  = delete;
     Buffer(Buffer&&) = delete;
 
+    const VkDescriptorBufferInfo& get_descriptor_infos_current() const;
+
     ~Buffer();
 
     bool resize(size_t stride, size_t element_count);
 
+    void set_data_and_wait(size_t start_index, const BufferData& data);
     void set_data(size_t start_index, const BufferData& data);
+    void wait_data_upload() const;
 
     std::vector<VkBuffer> raw() const;
     VkBuffer              raw_current();
@@ -136,13 +140,22 @@ public:
     public:
         Resource(const std::string& name, std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
         ~Resource();
-        void          set_data(size_t start_index, const BufferData& data);
+        void          set_data_and_wait(size_t start_index, const BufferData& data);
+
+        void set_data(size_t start_index, const BufferData& data);
+        void wait_data_upload();
+
         size_t        stride        = 0;
         size_t        element_count = 0;
         bool          outdated      = false;
         bool          host_visible  = false;
         VkBuffer      ptr           = VK_NULL_HANDLE;
         VmaAllocation allocation    = VK_NULL_HANDLE;
+        VkDescriptorBufferInfo descriptor_data;
+        std::string            name;
+        std::shared_ptr<CommandBuffer> data_update_cmd;
+        std::shared_ptr<Fence>         data_update_fence;
+        std::shared_ptr<Buffer>        transfer_buffer;
     };
 
 private:

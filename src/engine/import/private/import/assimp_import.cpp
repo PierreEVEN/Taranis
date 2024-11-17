@@ -29,9 +29,9 @@ AssimpImporter::AssimpImporter() : importer(std::make_shared<Assimp::Importer>()
 {
 }
 
-AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam,
+AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene,
                                          std::weak_ptr<Gfx::VkRendererPass> in_render_pass)
-    : scene(in_scene), temp_cam(in_temp_cam), file_path(in_file_path), render_pass(in_render_pass)
+    : scene(in_scene), file_path(in_file_path), render_pass(in_render_pass)
 {
     PROFILER_SCOPE(DecomposeAssimpScene);
     decompose_node(scene->mRootNode, {}, output_scene);
@@ -39,7 +39,7 @@ AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_f
 
 }
 
-void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& output_scene, const TObjectRef<CameraComponent>& in_temp_cam, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const
+void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& output_scene, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const
 {
     PROFILER_SCOPE_NAMED(LoadAssimpSceneFromPath, std::format("Load assimp scene from path {}", path.filename().string()));
     const aiScene* scene = importer->ReadFile(path.string(), 0);
@@ -48,7 +48,7 @@ void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& ou
         LOG_ERROR("Failed to load scene from path {}", path.string());
         return;
     }
-    SceneLoader loader(path, scene, output_scene, in_temp_cam, render_pass);
+    SceneLoader loader(path, scene, output_scene, render_pass);
 }
 
 void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene)
@@ -68,11 +68,11 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         }
         if (parent)
         {
-            this_component = parent->add_component<MeshComponent>(node->mName.C_Str(), temp_cam, new_mesh);
+            this_component = parent->add_component<MeshComponent>(node->mName.C_Str(), new_mesh);
         }
         else
         {
-            this_component = output_scene.add_component<MeshComponent>(node->mName.C_Str(), temp_cam, new_mesh);
+            this_component = output_scene.add_component<MeshComponent>(node->mName.C_Str(), new_mesh);
             this_component->set_rotation(glm::quat({-pi / 2, 0, 0}));
         }
     }

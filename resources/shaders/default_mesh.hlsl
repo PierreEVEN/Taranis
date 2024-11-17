@@ -8,8 +8,27 @@ struct VSInput
     [[vk::location(5)]] float4 color : COLOR0;
 };
 
-[[vk::binding(0)]] SamplerState sSampler;
-[[vk::binding(1)]] Texture2D    albedo;
+struct Lights
+{
+    unsigned int directional_lights;
+    unsigned int point_lights;
+    unsigned int spot_lights;
+};
+
+struct SceneBufferData
+{
+    float4x4 view_mat;
+    float4x4 perspective_mat;
+    float4x4 perspective_view_mat;
+    float4x4 in_view_mat;
+    float4x4 inv_perspective_mat;
+    float4x4 inv_perspective_view_mat;
+    Lights   lights;
+};
+
+StructuredBuffer<SceneBufferData> scene_data_buffer;
+SamplerState sSampler;
+Texture2D albedo;
 
 #if FEAT_MR
 [[vk::binding(2)]] Texture2D mr_map;
@@ -30,7 +49,6 @@ struct VsToFs
 
 struct PushConsts
 {
-    float4x4 camera;
     float4x4 model;
 };
 
@@ -39,11 +57,11 @@ struct PushConsts
 VsToFs vs_main(VSInput input)
 {
     VsToFs Out;
-    Out.WorldPosition = mul(pc.model, float4(input.pos, 1)).xyz;
-    Out.Pos           = mul(pc.camera, float4(Out.WorldPosition, 1));
-    Out.Uvs           = input.uv;
-    Out.WorldNormals  = normalize(mul((float3x3)pc.model, input.normal));
-    Out.WorldTangents = input.tangent;
+    Out.WorldPosition   = mul(pc.model, float4(input.pos, 1)).xyz;
+    Out.Pos = mul(scene_data_buffer.Load(0).perspective_view_mat, float4(Out.WorldPosition, 1));
+    Out.Uvs             = input.uv;
+    Out.WorldNormals    = normalize(mul((float3x3)pc.model, input.normal));
+    Out.WorldTangents   = input.tangent;
     Out.WorldBitangents = input.bitangents;
     return Out;
 }
@@ -78,8 +96,8 @@ FsOutput fs_main(VsToFs input)
     float3 world_normal = normalize(input.WorldNormals);
     if (length(input.WorldTangents) > 0.001)
     {
-        float3 N = normalize(world_normal);
-        float3 T = normalize(abs(input.WorldTangents));
+        float3   N   = normalize(world_normal);
+        float3   T   = normalize(abs(input.WorldTangents));
         float3x3 TBN = float3x3(T, -normalize(cross(N, T)), N);
         world_normal = normalize(mul(TBN, local_normal));
     }

@@ -39,4 +39,14 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
         LOG_FATAL("Cannot set null texture");
     descriptors->bind_image(binding, texture->get_view());
 }
+
+void MaterialInstanceAsset::set_scene_data(const std::weak_ptr<Gfx::Buffer>& buffer_data)
+{
+    auto in_data = buffer_data.lock();
+    if (scene_buffer_data.lock() == in_data)
+        return;
+
+    descriptors->bind_buffer("scene_data_buffer", in_data);
+    scene_buffer_data = buffer_data;
+}
 } // namespace Eng

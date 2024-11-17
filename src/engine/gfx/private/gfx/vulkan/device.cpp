@@ -163,7 +163,7 @@ void Device::destroy_resources()
     VmaTotalStatistics stats;
     vmaCalculateStatistics(allocator, &stats);
     if (stats.total.statistics.allocationCount > 0)
-        LOG_FATAL("{} allocation were not destroyed", stats.total.statistics.allocationCount)
+        LOG_ERROR("{} allocation were not destroyed", stats.total.statistics.allocationCount);
 
     vmaDestroyAllocator(allocator);
     pending_kill_resources.clear();

@@ -7,6 +7,7 @@
 
 namespace Eng::Gfx
 {
+class Buffer;
 class ImageView;
 class Pipeline;
 class Sampler;
@@ -16,7 +17,7 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 {
     friend class Resource;
 
-  public:
+public:
     DescriptorSet(DescriptorSet&)  = delete;
     DescriptorSet(DescriptorSet&&) = delete;
     ~DescriptorSet();
@@ -24,15 +25,17 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 
     const VkDescriptorSet& raw_current() const;
 
-    void bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image);
-    void bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler);
+    void       bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image);
+    void       bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler);
+    void       bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer);
     std::mutex test_mtx;
-  private:
+
+private:
     class Resource : public DeviceResource
     {
         friend class DescriptorSet;
 
-      public:
+    public:
         Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<Pipeline>& in_pipeline);
         Resource(Resource&)  = delete;
         Resource(Resource&&) = delete;
@@ -40,7 +43,7 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 
         void update();
 
-      private:
+    private:
         bool                         outdated   = false;
         size_t                       pool_index = 0;
         std::shared_ptr<Pipeline>    pipeline;
@@ -52,16 +55,16 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 
     class Descriptor
     {
-      public:
-        Descriptor()                       = default;
-        Descriptor(Descriptor&)            = delete;
-        Descriptor(Descriptor&&)           = delete;
+    public:
+        Descriptor()             = default;
+        Descriptor(Descriptor&)  = delete;
+        Descriptor(Descriptor&&) = delete;
         virtual VkWriteDescriptorSet get() = 0;
     };
 
     class ImageDescriptor : public Descriptor
     {
-      public:
+    public:
         ImageDescriptor(std::shared_ptr<ImageView> in_image) : image(std::move(in_image))
         {
         }
@@ -72,13 +75,24 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 
     class SamplerDescriptor : public Descriptor
     {
-      public:
+    public:
         SamplerDescriptor(std::shared_ptr<Sampler> in_sampler) : sampler(std::move(in_sampler))
         {
         }
 
         VkWriteDescriptorSet     get() override;
         std::shared_ptr<Sampler> sampler;
+    };
+
+    class BufferDescriptor : public Descriptor
+    {
+    public:
+        BufferDescriptor(std::shared_ptr<Buffer> in_buffer) : buffer(std::move(in_buffer))
+        {
+        }
+
+        VkWriteDescriptorSet    get() override;
+        std::shared_ptr<Buffer> buffer;
     };
 
     std::unordered_map<std::string, std::shared_ptr<Descriptor>> write_descriptors;

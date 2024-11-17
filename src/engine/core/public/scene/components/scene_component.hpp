@@ -50,19 +50,19 @@ public:
         return obj_ptr;
     }
 
-    void set_position(glm::vec3 in_position)
+    virtual void set_position(glm::vec3 in_position)
     {
         position          = std::move(in_position);
         b_transform_dirty = true;
     }
 
-    void set_rotation(glm::quat in_rotation)
+    virtual void set_rotation(glm::quat in_rotation)
     {
         rotation          = std::move(in_rotation);
         b_transform_dirty = true;
     }
 
-    void set_scale(glm::vec3 in_scale)
+    virtual void set_scale(glm::vec3 in_scale)
     {
         scale             = std::move(in_scale);
         b_transform_dirty = true;
@@ -103,6 +103,11 @@ public:
         return name;
     }
 
+    Scene& get_scene() const
+    {
+        return *scene;
+    }
+
     std::vector<TObjectPtr<SceneComponent>> children{};
 
 protected:
@@ -112,7 +117,7 @@ protected:
 
 private:
     const char*  name;
-    const Scene* scene;
+    Scene* scene;
 
     bool      b_transform_dirty = true;
     glm::mat4 transform{1};

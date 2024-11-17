@@ -26,6 +26,8 @@ class Instance;
 class Application
 {
 public:
+    virtual ~Application() = default;
+
     virtual void init(Engine& engine, const std::weak_ptr<Gfx::Window>& default_window) = 0;
     virtual void tick_game(Engine& engine, double delta_second) = 0;
 };
@@ -33,7 +35,7 @@ public:
 
 class Engine
 {
-  public:
+public:
     Engine(Config config);
     Engine(Engine&&) = delete;
     Engine(Engine&)  = delete;
@@ -52,6 +54,7 @@ class Engine
     {
         return gfx_instance;
     }
+
     std::weak_ptr<Gfx::Device> get_device() const
     {
         return gfx_device;
@@ -65,7 +68,7 @@ class Engine
 
     double get_seconds() const;
 
-    
+
     JobSystem& jobs()
     {
         if (!job_system)
@@ -73,7 +76,7 @@ class Engine
         return *job_system;
     }
 
-  private:
+private:
     void run_internal();
 
     std::chrono::steady_clock::time_point last_time;

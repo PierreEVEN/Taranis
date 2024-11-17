@@ -41,6 +41,7 @@ Engine::~Engine()
 {
     job_system = nullptr;
     windows.clear();
+    app                   = nullptr;
     global_asset_registry = nullptr;
     if (gfx_device)
         gfx_device->destroy_resources();

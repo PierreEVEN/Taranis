@@ -95,7 +95,7 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
 void Mesh::set_vertices(size_t start_vertex, const BufferData& vertex_data)
 {
     reserve_vertices(start_vertex + vertex_data.get_element_count());
-    vertex_buffer->set_data(start_vertex, vertex_data);
+    vertex_buffer->set_data_and_wait(start_vertex, vertex_data);
 }
 
 void Mesh::set_indexed_vertices(size_t start_vertex, const BufferData& vertex_data, size_t start_index, const BufferData& index_data)
@@ -119,6 +119,6 @@ void Mesh::set_indexed_vertices(size_t start_vertex, const BufferData& vertex_da
     }
 
     reserve_indices(start_index + index_data.get_element_count(), type);
-    index_buffer->set_data(start_index, index_data);
+    index_buffer->set_data_and_wait(start_index, index_data);
 }
 } // namespace Eng::Gfx

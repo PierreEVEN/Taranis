@@ -7,6 +7,21 @@
 #include <vector>
 #include "scene\scene.gen.hpp"
 
+namespace Eng::Gfx
+{
+class RenderPassInstance;
+}
+
+namespace Eng::Gfx
+{
+class Buffer;
+}
+
+namespace Eng
+{
+class CameraComponent;
+}
+
 class ContiguousObjectAllocator;
 
 namespace Eng
@@ -44,7 +59,9 @@ public:
 
     void tick(double delta_second);
 
-    void draw(Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads);
+    void pre_draw(const Gfx::RenderPassInstance& render_pass);
+    void pre_submit(const Gfx::RenderPassInstance& render_pass);
+    void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads);
 
     template <typename T>
     void for_each(const std::function<void(T&)>& callback) const
@@ -55,6 +72,11 @@ public:
     template <typename T> void for_each_part(const std::function<void(T&)>& callback, size_t part_index, size_t part_count) const
     {
         allocator->for_each_part(callback, part_index, part_count);
+    }
+
+    template <typename T> TObjectRef<T> get_component_ref(T* component)
+    {
+        return allocator->get_ref<T>(component, component->get_class());
     }
 
     const std::vector<TObjectPtr<SceneComponent>>& get_nodes() const
@@ -68,10 +90,29 @@ public:
         scenes_to_merge.push_back(std::move(other_scene));
     }
 
-  private:
+    void set_active_camera(const TObjectRef<CameraComponent>& camera)
+    {
+        active_camera = camera;
+    }
+
+    const TObjectRef<CameraComponent>& get_active_camera()
+    {
+        return active_camera;
+    }
+
+    std::weak_ptr<Gfx::Buffer> get_scene_buffer() const
+    {
+        return scene_buffer;
+    }
+
+
+private:
+    TObjectRef<CameraComponent> active_camera;
+
+    std::shared_ptr<Gfx::Buffer> scene_buffer;
 
     std::unique_ptr<std::mutex> merge_queue_mtx;
-    std::vector<Scene> scenes_to_merge;
+    std::vector<Scene>          scenes_to_merge;
 
     std::unique_ptr<ContiguousObjectAllocator> allocator;
 

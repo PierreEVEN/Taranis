@@ -35,7 +35,7 @@ public:
     virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force = false);
     virtual void render(SwapchainImageId swapchain_image, DeviceImageId device_image);
 
-    // Wait these semaphore before writing to render targets
+    // Wait these semaphore before writing to draw targets
     virtual std::vector<const Semaphore*> get_semaphores_to_wait(DeviceImageId device_image) const;
 
     // Retrieve the fence that will be signaled once the image rendering is finished
@@ -46,7 +46,7 @@ public:
         return current_resolution;
     }
 
-    // Get render pass definition
+    // Get draw pass definition
     const RenderNode& get_definition() const
     {
         return definition;

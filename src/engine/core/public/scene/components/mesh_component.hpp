@@ -25,15 +25,14 @@ class MeshComponent : public SceneComponent
     REFLECT_BODY();
 
 public:
-    MeshComponent(const TObjectRef<CameraComponent>& in_temp_cam, const TObjectRef<MeshAsset>& in_mesh = {})
-        : mesh(in_mesh), temp_cam(in_temp_cam)
+    MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {})
+        : mesh(in_mesh)
     {
     };
 
     void draw(Gfx::CommandBuffer& command_buffer);
 
     TObjectRef<MeshAsset>       mesh;
-    TObjectRef<CameraComponent> temp_cam;
 };
 
 }

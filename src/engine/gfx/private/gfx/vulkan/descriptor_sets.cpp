@@ -98,15 +98,22 @@ void DescriptorSet::bind_sampler(const std::string& binding_name, const std::sha
     write_descriptors.insert_or_assign(binding_name, std::make_shared<SamplerDescriptor>(in_sampler));
 }
 
+void DescriptorSet::bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer)
+{
+    for (const auto& resource : resources)
+        resource->outdated = true;
+    write_descriptors.insert_or_assign(binding_name, std::make_shared<BufferDescriptor>(in_buffer));
+}
+
 VkWriteDescriptorSet DescriptorSet::ImageDescriptor::get()
 {
     if (!image)
         LOG_FATAL("Invalid image descriptor");
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        .pImageInfo      = &image->get_descriptor_infos_current(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .pImageInfo = &image->get_descriptor_infos_current(),
     };
 }
 
@@ -115,10 +122,22 @@ VkWriteDescriptorSet DescriptorSet::SamplerDescriptor::get()
     if (!sampler)
         LOG_FATAL("Invalid sampler descriptor");
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
-        .pImageInfo      = &sampler->get_descriptor_infos(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+        .pImageInfo = &sampler->get_descriptor_infos(),
+    };
+}
+
+VkWriteDescriptorSet DescriptorSet::BufferDescriptor::get()
+{
+    if (!buffer)
+        LOG_FATAL("Invalid buffer descriptor");
+    return VkWriteDescriptorSet{
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .descriptorCount = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .pBufferInfo = &buffer->get_descriptor_infos_current(),
     };
 }
 } // namespace Eng::Gfx

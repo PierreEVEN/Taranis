@@ -6,9 +6,21 @@
 namespace Eng
 {
 
-void CameraComponent::update_viewport_resolution(const glm::uvec2& in_resolution)
+CameraComponent::CameraComponent()
 {
-    resolution = in_resolution;
+}
+
+void CameraComponent::activate()
+{
+    get_scene().set_active_camera(get_scene().get_component_ref(this));
+}
+
+void CameraComponent::tick(double x)
+{
+    SceneComponent::tick(x);
+
+    if (!get_scene().get_active_camera())
+        activate();
 }
 
 void CameraComponent::recompute()
@@ -17,17 +29,35 @@ void CameraComponent::recompute()
 
     view = translate(mat4_cast(inverse(get_rotation())), -get_position());
 
+    if (resolution.x == 0 || resolution.y == 0)
+        return;
     float aspect = static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
     assert(std::abs(aspect - std::numeric_limits<float>::epsilon()) > static_cast<float>(0));
-    float     h = 1.f / std::tan(glm::radians(fov) * 0.5f);
-    float     w = h / aspect;
-    perspective      = {
+    float h     = 1.f / std::tan(glm::radians(fov) * 0.5f);
+    float w     = h / aspect;
+    perspective = {
         {0, 0, 0, 1},
         {-w, 0, 0, 0},
         {0, h, 0, 0},
         {0, 0, z_near, 0}};
 
     perspective_view = perspective * view;
+}
+
+void CameraComponent::set_position(glm::vec3 in_position)
+{
+    if (in_position == get_position())
+        return;
+    SceneComponent::set_position(in_position);
+    outdated = true;
+}
+
+void CameraComponent::set_rotation(glm::quat in_rotation)
+{
+    if (in_rotation == get_rotation())
+        return;
+    SceneComponent::set_rotation(in_rotation);
+    outdated = true;
 }
 
 void FpsCameraComponent::set_pitch(float in_pitch)

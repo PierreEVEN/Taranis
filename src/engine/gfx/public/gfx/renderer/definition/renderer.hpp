@@ -73,7 +73,15 @@ public:
     {
     }
 
-    virtual void render(const RenderPassInstance&, CommandBuffer&, size_t)
+    virtual void pre_draw(const RenderPassInstance&)
+    {
+    }
+
+    virtual void draw(const RenderPassInstance&, CommandBuffer&, size_t)
+    {
+    }
+
+    virtual void pre_submit(const RenderPassInstance&)
     {
     }
 
