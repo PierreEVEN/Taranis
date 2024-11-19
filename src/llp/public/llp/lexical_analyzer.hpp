@@ -1,4 +1,5 @@
 #pragma once
+
 #include "file_data.hpp"
 
 #include <string>
@@ -11,8 +12,7 @@ enum class TokenType
     Symbol,
     Word,
     Include,
-    ReflectedClassBody,
-    Block,
+    TokenizerBlock,
     Arguments,
     Number
 };
@@ -22,13 +22,13 @@ using Number  = std::string;
 using Word    = std::string;
 using Include = std::string;
 
-struct Block
+struct TokenizerBlock
 {
     struct Reader
     {
 
         size_t       location = 0;
-        const Block* parent;
+        const TokenizerBlock* parent;
 
         void operator++()
         {
@@ -60,14 +60,14 @@ struct Block
         return Reader{.parent = this};
     }
 
-    Block() = default;
-    Block(FileData::Reader& reader);
+    TokenizerBlock() = default;
+    TokenizerBlock(TextReader& reader);
     void print(size_t i = 0) const;
 
     std::vector<std::unique_ptr<IToken>> tokens;
 };
 
-using Arguments = Block;
+using Arguments = TokenizerBlock;
 
 struct ReflectedClassBody
 {
@@ -83,11 +83,12 @@ class IToken
     TokenType type;
     size_t    line;
     size_t    column;
+    size_t    offset;
 
     template <typename T> T& data();
 
   protected:
-    IToken(TokenType in_type, size_t in_line, size_t in_column) : type(in_type), line(in_line), column(in_column)
+    IToken(TokenType in_type, size_t in_line, size_t in_column, size_t in_offset) : type(in_type), line(in_line), column(in_column), offset(in_offset)
     {
     }
 };
@@ -95,7 +96,7 @@ class IToken
 template <typename T> class TToken : public IToken
 {
   public:
-    TToken(TokenType in_type, T in_data, size_t in_line, size_t in_column) : IToken(in_type, in_line, in_column)
+    TToken(TokenType in_type, T in_data, size_t in_line, size_t in_column, size_t in_offset) : IToken(in_type, in_line, in_column, in_offset)
     {
         data = std::move(in_data);
     }
@@ -103,7 +104,7 @@ template <typename T> class TToken : public IToken
     T data;
 };
 
-template <typename T> T* Block::Reader::consume(TokenType type)
+template <typename T> T* TokenizerBlock::Reader::consume(TokenType type)
 {
     if (*this && parent->tokens[location]->type == type)
     {
@@ -114,7 +115,7 @@ template <typename T> T* Block::Reader::consume(TokenType type)
     return nullptr;
 }
 
-template <typename T> bool Block::Reader::consume(TokenType type, T tested_value)
+template <typename T> bool TokenizerBlock::Reader::consume(TokenType type, T tested_value)
 {
     if (*this && parent->tokens[location]->type == type)
     {

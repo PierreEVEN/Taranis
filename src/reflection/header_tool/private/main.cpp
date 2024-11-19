@@ -1,10 +1,10 @@
-#include "file_data.hpp"
+#include "llp/file_data.hpp"
 #include "generator.hpp"
 #include "header_parser.hpp"
 
-#include <cassert>
 #include <filesystem>
 #include <iostream>
+#include <unordered_set>
 
 int main(int argc, char** argv)
 {
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
             const auto extension = dir_entry.path().extension();
             if (extension == ".hpp" || extension == ".h")
             {
-                auto source_header = std::make_shared<FileData>(dir_entry.path());
+                auto source_header = std::make_shared<FileReader>(dir_entry.path());
 
                 auto generated_header = std::filesystem::path(output_dir) / "public" / relative(dir_entry.path(), fixed_search_dir);
                 auto generated_source = std::filesystem::path(output_dir) / "private" / relative(dir_entry.path(), fixed_search_dir);
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
                 if (exists(generated_header))
                 {
-                    FileData target_data(generated_header);
+                    FileReader target_data(generated_header);
                     if (auto first_line = target_data.next_line())
                     {
                         if (first_line->starts_with("/// VERSION : "))

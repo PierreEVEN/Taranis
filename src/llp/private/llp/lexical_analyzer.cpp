@@ -1,9 +1,9 @@
-#include "lexical_analyzer.hpp"
+#include "llp/lexical_analyzer.hpp"
 
 #include <format>
 #include <iostream>
 
-Block::Block(FileData::Reader& reader)
+TokenizerBlock::TokenizerBlock(TextReader& reader)
 {
     for (; reader && !reader.try_consume_field("}") && !reader.try_consume_field(")");)
     {
@@ -58,34 +58,20 @@ Block::Block(FileData::Reader& reader)
                     include += *reader;
                 ++reader;
             } while (reader);
-            tokens.emplace_back(std::make_unique<TToken<Include>>(TokenType::Include, include, reader.current_line(), reader.current_char_index()));
+            tokens.emplace_back(std::make_unique<TToken<Include>>(TokenType::Include, include, reader.current_line(), reader.current_column(), reader.current_char_index()));
             reader.skip_line();
         }
 
-        // Reflect body
-        else if (reader.try_consume_field("REFLECT_BODY("))
-        {
-            std::vector<std::string> flags;
-            do
-            {
-                if (auto word = reader.consume_next_word())
-                    flags.emplace_back(*word);
-            } while (reader.try_consume_field(","));
-            if (reader.try_consume_field(")"))
-                tokens.emplace_back(std::make_unique<TToken<ReflectedClassBody>>(TokenType::ReflectedClassBody, ReflectedClassBody{reader.current_line(), reader.current_char_index(), flags}, reader.current_line(),
-                                                                                 reader.current_char_index()));
-        }
-
-        // Block
+        // TokenizerBlock
         else if (reader.try_consume_field("{"))
-            tokens.emplace_back(std::make_unique<TToken<Block>>(TokenType::Block, Block{reader}, reader.current_line(), reader.current_char_index()));
-        // Block
+            tokens.emplace_back(std::make_unique<TToken<TokenizerBlock>>(TokenType::TokenizerBlock, TokenizerBlock{reader}, reader.current_line(), reader.current_column(), reader.current_char_index()));
+        // TokenizerBlock
         else if (reader.try_consume_field("("))
-            tokens.emplace_back(std::make_unique<TToken<Block>>(TokenType::Arguments, Arguments{reader}, reader.current_line(), reader.current_char_index()));
+            tokens.emplace_back(std::make_unique<TToken<TokenizerBlock>>(TokenType::Arguments, Arguments{reader}, reader.current_line(), reader.current_column(), reader.current_char_index()));
 
         // Word
         else if (auto word = reader.consume_next_word())
-            tokens.emplace_back(std::make_unique<TToken<Word>>(TokenType::Word, *word, reader.current_line(), reader.current_char_index()));
+            tokens.emplace_back(std::make_unique<TToken<Word>>(TokenType::Word, *word, reader.current_line(), reader.current_column(), reader.current_char_index()));
 
         // Number
         else if (std::isdigit(*reader))
@@ -96,18 +82,18 @@ Block::Block(FileData::Reader& reader)
                 number += *reader;
                 ++reader;
             } while (reader && (std::isdigit(*reader) || *reader == '.'));
-            tokens.emplace_back(std::make_unique<TToken<Number>>(TokenType::Number, number, reader.current_line(), reader.current_char_index()));
+            tokens.emplace_back(std::make_unique<TToken<Number>>(TokenType::Number, number, reader.current_line(), reader.current_column(), reader.current_char_index()));
         }
         // Other
         else
         {
-            tokens.emplace_back(std::make_unique<TToken<Symbol>>(TokenType::Symbol, *reader, reader.current_line(), reader.current_char_index()));
+            tokens.emplace_back(std::make_unique<TToken<Symbol>>(TokenType::Symbol, *reader, reader.current_line(), reader.current_column(), reader.current_char_index()));
             ++reader;
         }
     }
 }
 
-void Block::print(size_t i) const
+void TokenizerBlock::print(size_t i) const
 {
     for (const auto& t : tokens)
     {
@@ -124,15 +110,9 @@ void Block::print(size_t i) const
         case TokenType::Include:
             std::cout << std::format("#include({})", t->data<Include>()) << '\n';
             break;
-        case TokenType::ReflectedClassBody:
-            std::cout << "CLASS_BODY(";
-            for (const auto& flag : t->data<ReflectedClassBody>().flags)
-                std::cout << flag << "," << '\n';
-            std::cout << ")\n";
-            break;
-        case TokenType::Block:
+        case TokenType::TokenizerBlock:
             std::cout << "BEGIN BLOCK{" << '\n';
-            t->data<Block>().print(i + 1);
+            t->data<TokenizerBlock>().print(i + 1);
             for (size_t x = 0; x < i; ++x)
                 std::cout << "\t";
             std::cout << "} BLOCK END" << '\n';

@@ -1,17 +1,16 @@
 #include "header_parser.hpp"
 
-#include "file_data.hpp"
-#include "lexical_analyzer.hpp"
+#include "llp/file_data.hpp"
+#include "llp/lexical_analyzer.hpp"
 
-#include <cassert>
 #include <filesystem>
 #include <iostream>
 
-HeaderParser::HeaderParser(const std::shared_ptr<FileData>& header_data, const std::filesystem::path& in_generated_header_include_path, const std::filesystem::path& in_header_path)
-    : generated_header_include_path(in_generated_header_include_path), header_path(in_header_path)
+HeaderParser::HeaderParser(const std::shared_ptr<FileReader>& header_data, std::filesystem::path in_generated_header_include_path, std::filesystem::path in_header_path)
+    : generated_header_include_path(std::move(in_generated_header_include_path)), header_path(std::move(in_header_path))
 {
     auto reader    = header_data->read();
-    tokenized_file = Block(reader);
+    tokenized_file = TokenizerBlock(reader);
     parse_block(tokenized_file, {});
 }
 
@@ -65,7 +64,7 @@ std::string HeaderParser::ReflectedClass::namespace_path() const
     return name;
 }
 
-void HeaderParser::parse_block(Block& block, const ParserContext& context)
+void HeaderParser::parse_block(TokenizerBlock& block, const ParserContext& context)
 {
     for (auto reader = block.read(); reader && !reader.consume<Symbol>(TokenType::Symbol, '}');)
     {
@@ -124,7 +123,7 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
                                 error("Expected class name", reader->line, reader->column);
                         } while (reader.consume<Symbol>(TokenType::Symbol, ','));
                     }
-                    if (auto* class_block = reader.consume<Block>(TokenType::Block))
+                    if (auto* class_block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
                         parse_block(*class_block, context.push_class(ClassDefinition{*class_name, parents}));
                 }
             }
@@ -143,15 +142,27 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
                         break;
                     }
 
-                } while (reader->type != TokenType::Block);
+                } while (reader->type != TokenType::TokenizerBlock);
                 if (!b_failed)
                 {
                     ParserContext new_context = context;
                     for (const auto& elem : added_namespace_stack)
                         new_context = new_context.push_namespace(elem);
-                    if (auto* class_block = reader.consume<Block>(TokenType::Block))
+                    if (auto* class_block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
                         parse_block(*class_block, new_context);
                 }
+            }
+            if (word == "REFLECT_BODY")
+            {
+                if (context.class_stack.empty())
+                    error("REFLECT_BODY() should not be declared outside classes", reader->line, reader->column);
+
+                std::string absolute_class_name;
+                for (const auto& elem : context.class_stack)
+                    absolute_class_name += "::" + elem.name;
+                if (reflected_classes.contains(absolute_class_name))
+                    error("Cannot implement multiple REFLECT_BODY() for the same class", reader->line, reader->column);
+                reflected_classes.emplace(absolute_class_name, ReflectedClass{context, reader->line});
             }
         }
         break;
@@ -163,22 +174,9 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
                 b_found_include = true;
             break;
         }
-        case TokenType::ReflectedClassBody:
-        {
-            auto& body = *reader.consume<ReflectedClassBody>(TokenType::ReflectedClassBody);
-            if (context.class_stack.empty())
-                error("REFLECT_BODY() should not be declared outside classes", body.line, body.column);
-
-            std::string absolute_class_name;
-            for (const auto& elem : context.class_stack)
-                absolute_class_name += "::" + elem.name;
-            if (reflected_classes.contains(absolute_class_name))
-                error("Cannot implement multiple REFLECT_BODY() for the same class", body.line, body.column);
-            reflected_classes.emplace(absolute_class_name, ReflectedClass{context, body.line});
-        }
         break;
-        case TokenType::Block:
-            if (auto* class_block = reader.consume<Block>(TokenType::Block))
+        case TokenType::TokenizerBlock:
+            if (auto* class_block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
                 parse_block(*class_block, context);
             break;
         case TokenType::Arguments:
@@ -194,7 +192,7 @@ void HeaderParser::parse_block(Block& block, const ParserContext& context)
     }
 }
 
-bool HeaderParser::parse_check_include(FileData::Reader& reader, const std::filesystem::path& desired_path)
+bool HeaderParser::parse_check_include(TextReader& reader, const std::filesystem::path& desired_path)
 {
     bool        started = false;
     std::string include;

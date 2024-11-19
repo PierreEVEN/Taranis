@@ -1,11 +1,10 @@
 #pragma once
-#include "file_data.hpp"
-#include "lexical_analyzer.hpp"
+#include "llp/file_data.hpp"
+#include "llp/lexical_analyzer.hpp"
 
 #include <filesystem>
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace std::filesystem
@@ -13,7 +12,7 @@ namespace std::filesystem
 class path;
 }
 
-class FileData;
+class FileReader;
 
 struct ClassDefinition
 {
@@ -44,7 +43,7 @@ class HeaderParser
         }
     };
 
-    HeaderParser(const std::shared_ptr<FileData>& header_data, const std::filesystem::path& generated_header_include_path, const std::filesystem::path& header_path);
+    HeaderParser(const std::shared_ptr<FileReader>& header_data, std::filesystem::path generated_header_include_path, std::filesystem::path header_path);
 
     struct ReflectedClass
     {
@@ -69,10 +68,10 @@ class HeaderParser
     }
 
   private:
-    Block tokenized_file;
+    TokenizerBlock tokenized_file;
 
-    void        parse_block(Block& block, const ParserContext& context);
-    static bool parse_check_include(FileData::Reader& reader, const std::filesystem::path& desired_path);
+    void        parse_block(TokenizerBlock& block, const ParserContext& context);
+    static bool parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
 
     void error(const std::string& message, size_t line, size_t column) const;
 

@@ -5,9 +5,8 @@ declare_module(
         {name = "vulkan-loader", public = true},
         {name = "vulkan-memory-allocator", public = true},
         {name = "glm", public = true},
-        "directxshadercompiler", 
-        "imgui", "spirv-reflect",
         "glfw",
+        "imgui",
         "imgui docking"
     }, 
     false, 

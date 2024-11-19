@@ -1,4 +1,4 @@
-declare_module("header_tool", {}, {}, true, false)
+declare_module("header_tool", {"llp"}, {}, true, false)
 
 target("header_tool")
 set_group("utils")

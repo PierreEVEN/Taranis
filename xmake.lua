@@ -13,8 +13,10 @@ set_runtimes(is_mode("debug") and "MTd" or "MT")
 DEBUG = false;
 BUILD_MONOLITHIC = true;
 
+option("build-tests", { default = false })
+
 if is_mode("debug") then
-    set_optimize("fastest")
+    --set_optimize("fastest")
 end
 
 if is_mode("release") then
@@ -22,6 +24,7 @@ if is_mode("release") then
     set_optimize("fastest")
     set_strip("all")
 end
+
 
 add_defines("ENABLE_VALIDATION_LAYER")
 add_defines("ENABLE_PROFILER")
@@ -128,3 +131,9 @@ if DEBUG then
 end
 
 includes("src/**.lua");
+if has_config("build-tests") then
+    includes("tests/**.lua")
+end
+
+option_end()
+    

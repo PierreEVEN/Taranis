@@ -1,22 +1,17 @@
-#include "gfx/shaders/shader_compiler.hpp"
+#include "shader_compiler/shader_compiler.hpp"
+
+#include "llp/file_data.hpp"
+#include "llp/lexical_analyzer.hpp"
 
 #include <codecvt>
-#include <fstream>
 
 #include <Windows.h>
 #include <d3d12shader.h>
 #include <dxcapi.h>
-#include <ranges>
-
-#include "gfx/vulkan/shader_module.hpp"
-#include "logger.hpp"
+#include <filesystem>
 
 #include <spirv_reflect.h>
 #include <wrl/client.h>
-
-#include "gfx/types.hpp"
-
-#include "gfx/vulkan/vk_check.hpp"
 
 #pragma warning(push)
 #pragma warning(disable : 4996)
@@ -27,17 +22,150 @@ static std::wstring to_u16string(const std::string& str)
 }
 #pragma warning(pop)
 
-void ThrowIfFailed(HRESULT hr)
+namespace Eng::Gfx
 {
-    if (FAILED(hr))
+ShaderSource::ShaderSource(const std::string& raw)
+{
+    TextReader     text_reader(raw);
+    TokenizerBlock code(text_reader);
+
+    for (auto reader = code.read(); reader;)
     {
-        std::string message = std::system_category().message(hr);
-        LOG_FATAL("{}", message)
+        switch (reader->type)
+        {
+        case TokenType::Symbol:
+        {
+            parse_errors.emplace_back(CompilationError{.error_message = "unexpected symbol", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+            return;
+        }
+        break;
+        case TokenType::Word:
+        {
+            const std::string& word = *reader.consume<Word>(TokenType::Word);
+            if (word == "option")
+            {
+                if (auto option_name = reader.consume<Word>(TokenType::Word))
+                {
+                    if (!reader.consume<Symbol>(TokenType::Symbol, '='))
+                    {
+                        parse_errors.emplace_back(CompilationError{.error_message = "Expected '='", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+                        return;
+                    }
+
+                    if (auto option_value = reader.consume<Word>(TokenType::Word))
+                    {
+                        if (*option_value == "true")
+                            options.insert_or_assign(*option_name, true);
+                        else if (*option_value == "false")
+                            options.insert_or_assign(*option_name, false);
+                        else
+                        {
+                            parse_errors.emplace_back(
+                                CompilationError{.error_message = "Invalid option value, expected true or false", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+                            return;
+                        }
+                        if (!reader.consume<Symbol>(TokenType::Symbol, ';'))
+                        {
+                            parse_errors.emplace_back(CompilationError{.error_message = "; expected", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    parse_errors.emplace_back(CompilationError{.error_message = "Expected option name", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+                    return;
+                }
+            }
+            else if (word == "pass")
+            {
+                if (auto pass_args = reader.consume<Arguments>(TokenType::Arguments))
+                {
+                    std::vector<RenderPass> passes;
+                    for (const auto& tk : pass_args->tokens)
+                    {
+                        switch (tk->type)
+                        {
+                        case TokenType::Word:
+                        {
+                            passes.emplace_back(tk->data<Word>());
+                        }
+                        break;
+                        case TokenType::Symbol:
+                        {
+                            {
+                                if (tk->data<Symbol>() == ',')
+                                    continue;
+                                parse_errors.emplace_back(CompilationError{.error_message = "Unexpected symbol", .line = static_cast<int64_t>(reader->line)});
+                                return;
+                            }
+                        }
+                        break;
+                        default:
+                            parse_errors.emplace_back(CompilationError{.error_message = "unexpected token", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+                            return;
+                        }
+                    }
+
+                    size_t start_location = reader->offset;
+                    if (auto block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
+                    {
+                        RenderPassSources found_pass;
+
+                        size_t end_location = reader ? reader->offset : UINT64_MAX;
+
+                        found_pass.raw = raw.substr(start_location, end_location - start_location);
+
+                        std::cout << " BLOCK = " << found_pass.raw << " " << start_location << " : " << end_location << std::endl;
+
+                        for (auto& pass : passes)
+                        {
+                            std::cout << pass << "\n";
+                            render_passes.insert_or_assign(pass, found_pass).first->second += found_pass;
+                        }
+                    }
+                    else
+                    {
+                        parse_errors.emplace_back(CompilationError{.error_message = "Expected block", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+                        return;
+                    }
+                }
+            }
+        }
+        break;
+        case TokenType::Include:
+        {
+            reader.consume<Include>(TokenType::Include);
+            parse_errors.emplace_back(CompilationError{.error_message = "Include directives are not supported", .line = static_cast<int64_t>(reader->line)});
+            return;
+        }
+        break;
+        case TokenType::TokenizerBlock:
+        {
+            reader.consume<TokenizerBlock>(TokenType::TokenizerBlock);
+            parse_errors.emplace_back(CompilationError{.error_message = "unexpected block", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+            return;
+        }
+        break;
+        case TokenType::Arguments:
+        {
+            reader.consume<Arguments>(TokenType::Arguments);
+            parse_errors.emplace_back(CompilationError{.error_message = "unexpected arguments", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+            return;
+        }
+        break;
+        case TokenType::Number:
+        {
+            reader.consume<Number>(TokenType::Number);
+            parse_errors.emplace_back(CompilationError{.error_message = "unexpected number", .line = static_cast<int64_t>(reader->line), .column = static_cast<int64_t>(reader->column)});
+            return;
+        }
+        break;
+        }
+
     }
 }
 
-namespace Eng::Gfx
-{
 ShaderCompiler::ShaderCompiler()
 {
     DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
@@ -45,14 +173,17 @@ ShaderCompiler::ShaderCompiler()
     utils->CreateDefaultIncludeHandler(&include_handler);
 }
 
-Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage stage, const std::filesystem::path& path, std::vector<std::string> features, bool b_debug) const
+CompilationResult ShaderCompiler::compile_raw(const std::string& raw, const std::string& entry_point, EShaderStage shader_stage, const std::filesystem::path& path, std::vector<std::pair<std::string, bool>> options,
+                                              bool               b_debug) const
 {
+    CompilationResult compilation_result;
+
     ShaderProperties result;
     result.entry_point = entry_point;
-    result.stage       = stage;
+    result.stage       = shader_stage;
 
     std::wstring target_profile;
-    switch (stage)
+    switch (shader_stage)
     {
     case EShaderStage::Vertex:
         target_profile = L"vs_6_6";
@@ -61,7 +192,8 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
         target_profile = L"ps_6_6";
         break;
     default:
-        LOG_FATAL("Unhandled shader stage")
+        compilation_result.errors.emplace_back(CompilationError{.error_message = "Unhandled shader stage"});
+        return compilation_result;
     }
     std::wstring w_entry_point = to_u16string(entry_point);
     std::vector  arguments{
@@ -70,10 +202,12 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
 
     std::vector<std::wstring> features_w_string;
 
-    for (const auto& feature : features)
+    for (const auto& feature : options)
     {
+        if (!feature.second)
+            continue;
         arguments.push_back(L"-D");
-        features_w_string.push_back(to_u16string(feature));
+        features_w_string.push_back(to_u16string(feature.first));
         arguments.push_back(features_w_string.back().c_str());
     }
 
@@ -89,8 +223,8 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     utils->CreateBlob(raw.data(), static_cast<UINT32>(raw.size()), DXC_CP_UTF8, &sourceBlob);
 
     DxcBuffer sourceBuffer{
-        .Ptr      = sourceBlob->GetBufferPointer(),
-        .Size     = sourceBlob->GetBufferSize(),
+        .Ptr = sourceBlob->GetBufferPointer(),
+        .Size = sourceBlob->GetBufferSize(),
         .Encoding = 0u,
     };
 
@@ -99,15 +233,23 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     const HRESULT                      hr = compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()), include_handler, IID_PPV_ARGS(&compiledShaderBuffer));
 
     if (FAILED(hr))
-        return Result<ShaderProperties>::Error(std::format("Failed to compile shader with path : {}", path.string()));
+    {
+        compilation_result.errors.emplace_back(CompilationError{.error_message = std::format("Failed to compile shader with path : {}", path.string())});
+        return compilation_result;
+    }
 
     // Get compilation errors (if any).
     Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors{};
-    ThrowIfFailed(compiledShaderBuffer->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));
+    if (FAILED(compiledShaderBuffer->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr)))
+    {
+        compilation_result.errors.emplace_back(CompilationError{.error_message = std::format("Failed to get shader errors : {}", std::system_category().message(hr))});
+        return compilation_result;
+    }
     if (errors && errors->GetStringLength() > 0)
     {
         const LPCSTR errorMessage = errors->GetStringPointer();
-        return Result<ShaderProperties>::Error(std::format("Failed to get dxc compiler output : {}", errorMessage));
+        compilation_result.errors.emplace_back(CompilationError{.error_message = std::format("Failed to get dxc compiler output : {}", errorMessage)});
+        return compilation_result;
     }
 
     Microsoft::WRL::ComPtr<IDxcBlob> compiledShaderBlob{nullptr};
@@ -117,25 +259,12 @@ Result<ShaderProperties> ShaderCompiler::compile_raw(const std::string& raw, con
     memcpy(result.spirv.data(), compiledShaderBlob->GetBufferPointer(), compiledShaderBlob->GetBufferSize());
 
     if (auto reflection = extract_spirv_properties(result))
-        return Result<ShaderProperties>::Error(*reflection);
-
-    return Result<ShaderProperties>::Ok(result);
-}
-
-Result<ShaderProperties> ShaderCompiler::load_from_path(const std::filesystem::path& path, const std::string& entry_point, EShaderStage stage, std::vector<std::string> features, bool b_debug) const
-{
-    std::string   shader_code;
-    std::ifstream shader_file(path);
-    if (shader_file.is_open())
     {
-        while (shader_file)
-        {
-            std::string line;
-            std::getline(shader_file, line);
-            shader_code += line + "\n";
-        }
+        compilation_result.errors.emplace_back(CompilationError{.error_message = std::format("Failed to get shader reflection : {}", *reflection)});
+        return compilation_result;
     }
-    return compile_raw(shader_code, entry_point, stage, path, features, b_debug);
+
+    return compilation_result;
 }
 
 std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProperties& properties)
@@ -217,7 +346,7 @@ std::optional<std::string> ShaderCompiler::extract_spirv_properties(ShaderProper
             binding_type = EBindingType::INPUT_ATTACHMENT;
             break;
         default:
-            LOG_FATAL("Unhandled descriptor type : {}", static_cast<int>(binding->descriptor_type))
+            return std::format("Unhandled descriptor type : {}", static_cast<int>(binding->descriptor_type));
         }
         properties.bindings.emplace_back(binding->name, binding->binding, binding_type);
     }

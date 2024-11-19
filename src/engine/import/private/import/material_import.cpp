@@ -48,6 +48,6 @@ TObjectRef<MaterialAsset> MaterialImport::from_path(const std::filesystem::path&
         modules.push_back(Gfx::ShaderModule::create(Engine::get().get_device(), module_code.get()));
     }
     auto pipeline = Gfx::Pipeline::create(path.filename().string(), Engine::get().get_device(), renderer_pass, modules, create_infos);
-    return Engine::get().asset_registry().create<MaterialAsset>(path.filename().string(), pipeline);
+    return Engine::get().asset_registry().create<MaterialAsset>(path.filename().string());
 }
 } // namespace Eng
