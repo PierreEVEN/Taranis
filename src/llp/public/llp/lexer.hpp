@@ -15,9 +15,9 @@ public:
         return block;
     }
 
-    const ParserError* get_error() const
+    const std::optional<ParserError>& get_error() const
     {
-        return error ? &*error : nullptr;
+        return error;
     }
 
 private:

@@ -81,6 +81,11 @@ public:
         return *block->get_tokens()[get_with_offset(0)];
     }
 
+    const Location& current_location()
+    {
+        return block->get_tokens()[idx]->location;
+    }
+
 private:
     size_t get_with_offset(size_t offset) const
     {
