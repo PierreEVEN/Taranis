@@ -1,23 +1,27 @@
 #pragma once
-#include <memory>
+#include "tokens.hpp"
+
 #include <string>
-#include <vector>
 
 namespace Llp
 {
-struct ILexerToken;
-
 class Lexer
 {
 public:
     Lexer(const std::string& source);
 
-    const std::vector<std::unique_ptr<ILexerToken>>& get_tokens() const
+    const Block& get_root() const
     {
-        return tokens;
+        return block;
+    }
+
+    const ParserError* get_error() const
+    {
+        return error ? &*error : nullptr;
     }
 
 private:
-    std::vector<std::unique_ptr<ILexerToken>> tokens;
+    std::optional<ParserError> error;
+    Block                      block;
 };
 }

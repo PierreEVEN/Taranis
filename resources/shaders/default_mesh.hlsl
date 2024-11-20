@@ -1,6 +1,9 @@
 option FEAT_MR     = false;
 option FEAT_NORMAL = false;
 
+culling = front;
+front_face = none;
+
 pass(GBuffer, Depth)
 {
     struct VSInput
