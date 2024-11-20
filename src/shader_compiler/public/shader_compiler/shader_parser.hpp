@@ -29,6 +29,7 @@ private:
     std::optional<Llp::ParserError> error;
 
     std::optional<Llp::ParserError> parse_pass_args(Llp::ArgumentsToken& args, std::vector<std::string>& pass_list);
+    const std::string               source_code;
 
 };
 }

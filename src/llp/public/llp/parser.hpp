@@ -81,7 +81,7 @@ public:
         return *block->get_tokens()[get_with_offset(0)];
     }
 
-    const Location& current_location()
+    const Location& current_location() const
     {
         return block->get_tokens()[idx]->location;
     }
