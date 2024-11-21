@@ -1,6 +1,6 @@
 declare_module(
     "gfx", 
-    {"types", "job-sys"}, 
+    {"types", "job-sys", "shader_compiler", "gfx_types"}, 
     {
         {name = "vulkan-loader", public = true},
         {name = "vulkan-memory-allocator", public = true},

@@ -3,6 +3,11 @@
 #include "assets\material_asset.gen.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 
+namespace ShaderCompiler
+{
+class ShaderParser;
+}
+
 namespace Eng::Gfx
 {
 class DescriptorSet;
@@ -20,16 +25,23 @@ public:
 
     void set_shader_code(const std::string& code);
 
-    const std::shared_ptr<Gfx::Pipeline>& get_resource(const Gfx::ShaderPermutation& permutation) const
-    {
-        if (auto found = pipelines.find(permutation); found != pipelines.end())
-            return found->second;
-        return {};
-    }
+    const std::shared_ptr<Gfx::Pipeline>& get_resource(const std::string& render_pass);
 
 private:
+    struct CompiledPass
+    {
 
-    std::unordered_map<Gfx::ShaderPermutation, std::shared_ptr<Gfx::Pipeline>> pipelines;
-    std::string shader_code;
+    };
+
+    void compile_pass(const std::string& render_pass);
+
+    std::unordered_map<std::string, std::shared_ptr<Gfx::Pipeline>> test;
+
+    std::unique_ptr<ShaderCompiler::ShaderParser> parser;
+
+    std::unordered_map<std::string, CompiledPass>                   compiled_passes;
+    std::unordered_map<std::string, std::shared_ptr<Gfx::Pipeline>> pipelines;
+    std::string                                                     shader_code;
+    std::unordered_map<std::string, bool>                           options;
 };
 } // namespace Eng

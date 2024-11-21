@@ -54,7 +54,7 @@ struct CompiledPass
 
 struct CompilationError
 {
-    CompilationError(const std::string& message) : message(message)
+    CompilationError(std::string message) : message(std::move(message))
     {
     }
 
@@ -74,7 +74,7 @@ public:
     struct Parameters
     {
         std::vector<std::string>              selected_passes = {};
-        std::filesystem::path                 source_path;
+        std::optional<std::filesystem::path>  source_path;
         std::unordered_map<std::string, bool> options_override = {};
         bool                                  b_debug          = false;
     };

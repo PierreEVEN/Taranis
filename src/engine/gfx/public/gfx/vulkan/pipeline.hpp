@@ -1,10 +1,13 @@
 #pragma once
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-#include "gfx/shaders/shader_compiler.hpp"
+struct StageInputOutputDescription;
+struct BindingDescription;
 
 namespace Eng::Gfx
 {
@@ -19,13 +22,8 @@ class Pipeline
 public:
     struct CreateInfos
     {
-        ECulling                                                culling      = ECulling::Back;
-        EFrontFace                                              front_face   = EFrontFace::CounterClockwise;
-        ETopology                                               topology     = ETopology::Triangles;
-        EPolygonMode                                            polygon_mode = EPolygonMode::Fill;
-        EAlphaMode                                              alpha_mode   = EAlphaMode::Opaque;
-        bool                                                    depth_test   = true;
-        float                                                   line_width   = 1.0f;
+        bool                                                    depth_test = true;
+        float                                                   line_width = 1.0f;
         std::optional<std::vector<StageInputOutputDescription>> stage_input_override;
     };
 

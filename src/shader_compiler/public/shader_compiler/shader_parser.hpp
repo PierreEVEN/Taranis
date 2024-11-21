@@ -38,10 +38,15 @@ public:
 
     const Eng::Gfx::PipelineOptions& get_pipeline_config() const
     {
-        return pipeline_options;   
+        return pipeline_options;
     }
 
-  private:
+    const std::unordered_map<std::string, bool>& get_default_options() const
+    {
+        return options;
+    }
+
+private:
     std::optional<Llp::ParserError>        parse();
     static std::optional<Llp::ParserError> parse_pass_args(Llp::ArgumentsToken& args, std::vector<std::string>& pass_list);
     std::optional<std::string>             parse_config_value(const std::string& key, const std::string& value);
@@ -53,8 +58,7 @@ public:
     Llp::Lexer                                                                 lexer;
     std::optional<Llp::ParserError>                                            error;
     Eng::Gfx::PipelineOptions                                                  pipeline_options;
-
-    const std::string source_code;
+    const std::string                                                          source_code;
 
 };
 }

@@ -26,7 +26,7 @@ int main()
 
     ShaderCompiler::Compiler compiler;
 
-    CompilationResult result;
+    ShaderCompiler::CompilationResult result;
     if (auto error = compiler.compile_raw(parser, {}, result))
     {
         std::cerr << "Compilation failed " << error->line << ":" << error->column << " : " << error->message << std::endl;
