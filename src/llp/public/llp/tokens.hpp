@@ -10,6 +10,7 @@ namespace Llp
 {
 enum class ELexerToken
 {
+    Null,
     Symbol,
     Semicolon,
     Coma,
@@ -30,6 +31,8 @@ inline const char* token_type_to_string(ELexerToken type)
 {
     switch (type)
     {
+    case ELexerToken::Null:
+        return "Null";
     case ELexerToken::Symbol:
         return "Symbol";
     case ELexerToken::Semicolon:

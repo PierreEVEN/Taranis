@@ -86,6 +86,14 @@ public:
         return block->get_tokens()[idx]->location;
     }
 
+    ELexerToken get_current_token_type() const
+    {
+        size_t offset = get_with_offset(0);
+        if (offset < block->get_tokens().size())
+            return block->get_tokens()[offset]->get_type();
+        return ELexerToken::Null;
+    }
+
 private:
     size_t get_with_offset(size_t offset) const
     {

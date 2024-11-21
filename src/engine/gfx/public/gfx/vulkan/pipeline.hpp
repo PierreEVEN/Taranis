@@ -13,40 +13,6 @@ class Device;
 class VkRendererPass;
 enum class ColorFormat;
 
-enum class ECulling
-{
-    None,
-    Front,
-    Back,
-    Both
-};
-
-enum class EFrontFace
-{
-    Clockwise,
-    CounterClockwise,
-};
-
-enum class ETopology
-{
-    Points,
-    Lines,
-    Triangles,
-};
-
-enum class EPolygonMode
-{
-    Point,
-    Line,
-    Fill,
-};
-
-enum class EAlphaMode
-{
-    Opaque,
-    Translucent,
-    Additive
-};
 
 class Pipeline
 {

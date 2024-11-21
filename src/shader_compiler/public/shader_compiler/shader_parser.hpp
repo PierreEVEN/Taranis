@@ -1,4 +1,5 @@
 #pragma once
+#include "gfx_types/pipeline.hpp"
 #include "llp/lexer.hpp"
 
 #include <string>
@@ -6,30 +7,54 @@
 
 namespace ShaderCompiler
 {
+struct EntryPoint
+{
+    std::string            name;
+    Eng::Gfx::EShaderStage stage;
+};
 
+struct ShaderBlock
+{
+    std::vector<EntryPoint> entry_point;
+    std::string             raw_code;
+    Llp::Location           start;
+    Llp::Location           end;
+};
 
 class ShaderParser
 {
 public:
     ShaderParser(const std::string& source_shader);
 
-private:
-    struct ShaderBlock
+    std::optional<Llp::ParserError> get_error() const
     {
-        std::string   raw_code;
-        Llp::Location start;
-        Llp::Location end;
-    };
+        return error;
+    }
 
-    std::optional<Llp::ParserError> parse();
+    const std::unordered_map<std::string, std::vector<std::shared_ptr<ShaderBlock>>>& get_passes() const
+    {
+        return passes;
+    }
+
+    const Eng::Gfx::PipelineOptions& get_pipeline_config() const
+    {
+        return pipeline_options;   
+    }
+
+  private:
+    std::optional<Llp::ParserError>        parse();
+    static std::optional<Llp::ParserError> parse_pass_args(Llp::ArgumentsToken& args, std::vector<std::string>& pass_list);
+    std::optional<std::string>             parse_config_value(const std::string& key, const std::string& value);
+
+    static std::optional<Llp::ParserError> parse_block(const Llp::BlockToken& args, ShaderBlock& block);
 
     std::unordered_map<std::string, std::vector<std::shared_ptr<ShaderBlock>>> passes;
-    std::unordered_map<std::string, bool> options;
-    Llp::Lexer                      lexer;
-    std::optional<Llp::ParserError> error;
+    std::unordered_map<std::string, bool>                                      options;
+    Llp::Lexer                                                                 lexer;
+    std::optional<Llp::ParserError>                                            error;
+    Eng::Gfx::PipelineOptions                                                  pipeline_options;
 
-    std::optional<Llp::ParserError> parse_pass_args(Llp::ArgumentsToken& args, std::vector<std::string>& pass_list);
-    const std::string               source_code;
+    const std::string source_code;
 
 };
 }

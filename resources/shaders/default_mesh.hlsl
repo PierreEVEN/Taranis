@@ -1,9 +1,6 @@
 option FEAT_MR     = false;
 option FEAT_NORMAL = false;
 
-culling = front;
-front_face = none;
-
 pass(GBuffer, Depth)
 {
     struct VSInput
@@ -62,7 +59,7 @@ pass(GBuffer, Depth)
 
     [[vk::push_constant]] ConstantBuffer<PushConsts> pc;
 
-    VsToFs fragment(VSInput input)
+    VsToFs vertex(VSInput input)
     {
         VsToFs Out;
         Out.WorldPosition   = mul(pc.model, float4(input.pos, 1)).xyz;
@@ -86,7 +83,7 @@ pass(GBuffer, Depth)
         float4 normal_r : SV_TARGET2;
     };
 
-    FsOutput fs_main(VsToFs input)
+    FsOutput fragment(VsToFs input)
     {
         float4 tex_col = albedo.Sample(sSampler, input.Uvs, 1);
 
