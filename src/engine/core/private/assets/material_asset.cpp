@@ -70,15 +70,13 @@ void MaterialAsset::compile_pass(const std::string& render_pass)
             std::cerr << "Compilation failed " << error->line << ":" << error->column << " : " << error->message << std::endl;
             return;
         }
+
+        compiled_passes.emplace()
     }
 
     if (auto found = compiled_passes.find(render_pass); found != compiled_passes.end())
-    {
         pipelines.emplace(render_pass, Gfx::Pipeline::create(get_name(), Engine::get().get_device(), , , ));
-    }
     else
-    {
         pipelines.emplace(render_pass, nullptr);
-    }
 }
 }
