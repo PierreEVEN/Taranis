@@ -133,7 +133,7 @@ std::optional<CompilationError> Compiler::compile_stage(Eng::Gfx::EShaderStage s
     const HRESULT                      hr = compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()), include_handler, IID_PPV_ARGS(&compiledShaderBuffer));
 
     if (FAILED(hr))
-        return CompilationError{std::format("Failed to compile shader with path : {}", params.source_path.string())};
+        return CompilationError{params.source_path ? std::format("Failed to compile shader with path : {}", params.source_path->string()) : "Failed to compile shader"};
 
     // Get compilation errors (if any).
     Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors{};
