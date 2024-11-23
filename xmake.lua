@@ -37,6 +37,12 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
         print("### "..module_name.." ###")
     end
     target(module_name, function (target)
+    
+        on_config(function (target)
+            os.mkdir("$(buildir)/shaders/")
+            target:add("defines", "SHADER_INTERMEDIATE_DIR=\"$(buildir)/shaders\"")
+        end)
+
 
         if is_executable then
             set_kind("binary")

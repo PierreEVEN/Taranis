@@ -3,18 +3,22 @@
 #include "gfx_types/pipeline.hpp"
 
 #include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-
-struct IDxcCompiler3;
-struct IDxcIncludeHandler;
-struct IDxcUtils;
+namespace slang
+{
+struct ISession;
+struct IModule;
+struct IGlobalSession;
+}
 
 namespace ShaderCompiler
 {
+class Compiler;
 class ShaderParser;
 
 struct StageInputOutputDescription
@@ -68,6 +72,22 @@ struct CompilationResult
     std::unordered_map<Eng::Gfx::RenderPass, CompiledPass> compiled_passes;
 };
 
+class Session
+{
+  public:
+    void compile(const std::filesystem::path& path);
+
+    ~Session();
+  private:
+    friend class Compiler;
+    Session(Compiler* in_compiler);
+
+    Compiler* compiler;
+
+    slang::ISession* session = nullptr;
+};
+
+
 class Compiler
 {
 public:
@@ -79,19 +99,23 @@ public:
         bool                                  b_debug          = false;
     };
 
-    Compiler();
     std::optional<CompilationError> compile_raw(const ShaderParser& parser, const Parameters& params, CompilationResult& compilation_result) const;
 
+    std::optional<CompilationError> pre_compile_shader(const std::filesystem::path& path);
+
+    static Compiler& get();
+
+    ~Compiler();
+
+    std::shared_ptr<Session> create_session();
+
 private:
-    std::optional<CompilationError> compile_pass(const std::string& pass, const ShaderParser& parser, const Parameters& params, CompilationResult& compilation_result) const;
+    friend Session;
 
-    std::optional<CompilationError> compile_stage(Eng::Gfx::EShaderStage stage, const std::string& code, const std::string& entry_point, const Parameters& params, CompiledStage& result) const;
+    slang::IModule* load_module(const std::filesystem::path& module_path);
 
+    slang::IGlobalSession* global_session = nullptr;
 
-    static std::optional<CompilationError> extract_spirv_properties(CompiledStage& properties);
-
-    IDxcIncludeHandler* include_handler;
-    IDxcCompiler3*      compiler = nullptr;
-    IDxcUtils*          utils    = nullptr;
+    Compiler();
 };
 }

@@ -31,6 +31,7 @@ private:
     struct CompiledPass
     {
         std::vector<uint32_t> spirv;
+
     };
 
     void compile_pass(const std::string& render_pass);
