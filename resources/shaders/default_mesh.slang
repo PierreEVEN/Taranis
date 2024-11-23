@@ -28,6 +28,8 @@ struct SceneBufferData
 };
 
 StructuredBuffer<SceneBufferData> scene_data_buffer;
+
+
 SamplerState                      sSampler;
 Texture2D                         albedo;
 Texture2D mr_map;
@@ -48,9 +50,17 @@ struct PushConsts
     float4x4 model;
 };
 
-ConstantBuffer<PushConsts> pc;
+[[vk::push_constant]]
+PushConsts pc;
+
+[__AttributeUsage(_AttributeTargets.Function)]
+struct RenderPassAttribute
+{
+    string render_pass;
+};
 
 [shader("vertex")]
+[RenderPass("GBuffers")]
 VsToFs vertex_main(VSInput input)
 {
     VsToFs Out;
@@ -63,21 +73,17 @@ VsToFs vertex_main(VSInput input)
     return Out;
 }
 
-float pow_cord(float val)
-{
-    return pow(abs(sin(val * 50)), 10);
-}
-
 struct FsOutput
 {
-    float3 position : SV_TARGET0;
-    float4 albedo_m : SV_TARGET1;
-    float4 normal_r : SV_TARGET2;
+    float3 position;
+    float4 albedo_m;
+    float4 normal_r;
 };
 
-extern static const bool GLOBAL_TEST;
+extern static const bool GLOBAL_TEST = false;
 
 [shader("fragment")]
+[RenderPass("GBuffers")]
 FsOutput fragment_main(VsToFs input)
 {
     float4 tex_col = albedo.Sample(sSampler, input.Uvs, 1);
@@ -86,9 +92,11 @@ FsOutput fragment_main(VsToFs input)
     float3 local_normal = float3(0, 0, 1);
 
     FsOutput output;
-    if (GLOBAL_TEST) {
-    mr = mr_map.Sample(sSampler, input.Uvs, 1).bg;
-    local_normal = (normal_map.Sample(sSampler, input.Uvs, 1).rgb - 0.5) * 2;
+
+    bool val = GLOBAL_TEST;
+    if (val) {
+        mr = mr_map.Sample(sSampler, input.Uvs, 1).bg;
+        local_normal = (normal_map.Sample(sSampler, input.Uvs, 1).rgb - 0.5) * 2;
     }
     
     float3 world_normal = normalize(input.WorldNormals);

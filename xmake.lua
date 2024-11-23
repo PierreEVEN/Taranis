@@ -29,8 +29,9 @@ end
 add_defines("ENABLE_VALIDATION_LAYER")
 add_defines("ENABLE_PROFILER")
 
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "slang", "assimp", "concurrentqueue")
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "spirv-reflect", "assimp", "concurrentqueue")
 add_requires("freeimage", {configs = {rgb = true}})
+add_requires("slang v2024.14.5", {verify = false})
 
 function declare_module(module_name, deps, packages, is_executable, enable_reflection)
     if DEBUG then

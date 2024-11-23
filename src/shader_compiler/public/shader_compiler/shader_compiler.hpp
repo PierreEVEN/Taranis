@@ -74,11 +74,13 @@ struct CompilationResult
 
 class Session
 {
-  public:
+public:
     void compile(const std::filesystem::path& path);
+    void extract_spirv_properties(const std::vector<uint8_t>& spirv, const std::string& entry_point);
 
     ~Session();
-  private:
+
+private:
     friend class Compiler;
     Session(Compiler* in_compiler);
 
