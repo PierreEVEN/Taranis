@@ -41,7 +41,9 @@ public:
     }
 
     static const std::vector<const char*>& get_device_extensions();
-    std::weak_ptr<VkRendererPass>        find_or_create_render_pass(const RenderPassKey& key);
+    std::weak_ptr<VkRendererPass>          find_or_create_render_pass(const RenderPassKey& key);
+    std::weak_ptr<VkRendererPass>          declare_render_pass(const RenderPassKey& key, const std::string& name);
+    std::weak_ptr<VkRendererPass>          get_render_pass(const std::string& name);
 
     void destroy_resources();
 
@@ -165,9 +167,10 @@ public:
 
 private:
     std::mutex object_name_mutex;
-    bool b_enable_validation_layers = false;
+    bool       b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
     std::unordered_map<RenderPassKey, std::shared_ptr<VkRendererPass>> render_passes;
+    std::unordered_map<std::string, std::weak_ptr<VkRendererPass>>     render_passes_named;
     std::unique_ptr<Queues>                                            queues;
     PhysicalDevice                                                     physical_device;
     VkDevice                                                           ptr = VK_NULL_HANDLE;

@@ -28,8 +28,8 @@ struct MaterialPermutation
 private:
     struct PassInfos
     {
-        std::vector<uint32_t>          spirv_code;
-        std::shared_ptr<Gfx::Pipeline> pipeline;
+        std::unordered_map<Gfx::EShaderStage, std::vector<uint32_t>> per_stage_code;
+        std::shared_ptr<Gfx::Pipeline>                               pipeline;
     };
 
     std::unordered_map<std::string, PassInfos> passes;

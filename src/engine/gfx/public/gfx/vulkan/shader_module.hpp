@@ -4,8 +4,6 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-#include "gfx/shaders/shader_compiler.hpp"
-
 namespace Eng::Gfx
 {
 class Device;

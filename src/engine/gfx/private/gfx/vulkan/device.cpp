@@ -150,6 +150,14 @@ std::weak_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPas
     return new_render_pass;
 }
 
+std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const std::string& name)
+{
+}
+
+std::weak_ptr<VkRendererPass> Device::get_render_pass(const std::string& name)
+{
+}
+
 void Device::destroy_resources()
 {
     wait();
