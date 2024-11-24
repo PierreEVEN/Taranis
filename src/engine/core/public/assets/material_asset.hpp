@@ -2,20 +2,41 @@
 #include "asset_base.hpp"
 #include "assets\material_asset.gen.hpp"
 #include "gfx/vulkan/pipeline.hpp"
+#include "gfx_types/pipeline.hpp"
+
+#include <filesystem>
 
 namespace ShaderCompiler
 {
-class ShaderParser;
+class Session;
 }
 
 namespace Eng::Gfx
 {
 class DescriptorSet;
 class Pipeline;
-}
+} // namespace Eng::Gfx
 
 namespace Eng
 {
+struct MaterialPermutation
+{
+    MaterialPermutation(const std::shared_ptr<ShaderCompiler::Session>& compiler_session, const Gfx::PermutationDescription& permutation_desc);
+
+    const std::shared_ptr<Eng::Gfx::Pipeline>& get_resource(const std::string& render_pass);
+
+private:
+    struct PassInfos
+    {
+        std::vector<uint32_t>          spirv_code;
+        std::shared_ptr<Gfx::Pipeline> pipeline;
+    };
+
+    std::unordered_map<std::string, PassInfos> passes;
+    std::shared_ptr<ShaderCompiler::Session>   compiler_session;
+    Gfx::PermutationDescription                permutation_description;
+};
+
 class MaterialAsset : public AssetBase
 {
     REFLECT_BODY()
@@ -23,26 +44,20 @@ class MaterialAsset : public AssetBase
 public:
     MaterialAsset();
 
-    void set_shader_code(const std::string& code);
+    void set_shader_code(const std::filesystem::path& code);
 
-    const std::shared_ptr<Gfx::Pipeline>& get_resource(const std::string& render_pass);
+    Gfx::PermutationDescription get_default_permutation() const
+    {
+        return Gfx::PermutationDescription(default_permutation);
+    }
+
+    std::weak_ptr<MaterialPermutation> get_permutation(const Gfx::PermutationDescription& permutation);
 
 private:
-    struct CompiledPass
-    {
-        std::vector<uint32_t> spirv;
+    Gfx::PermutationDescription default_permutation;
 
-    };
+    std::unordered_map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
 
-    void compile_pass(const std::string& render_pass);
-
-    std::unordered_map<std::string, std::shared_ptr<Gfx::Pipeline>> test;
-
-    std::unique_ptr<ShaderCompiler::ShaderParser> parser;
-
-    std::unordered_map<std::string, CompiledPass>                   compiled_passes;
-    std::unordered_map<std::string, std::shared_ptr<Gfx::Pipeline>> pipelines;
-    std::string                                                     shader_code;
-    std::unordered_map<std::string, bool>                           options;
+    std::shared_ptr<ShaderCompiler::Session> compiler_session;
 };
 } // namespace Eng

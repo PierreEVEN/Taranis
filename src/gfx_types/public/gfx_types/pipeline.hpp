@@ -1,5 +1,9 @@
 #pragma once
+#include <algorithm>
+#include <ranges>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace Eng::Gfx
 {
@@ -64,10 +68,83 @@ enum class EAlphaMode
 
 struct PipelineOptions
 {
-    ECulling     culling      = ECulling::Back;
-    EFrontFace   front_face   = EFrontFace::CounterClockwise;
-    ETopology    topology     = ETopology::Triangles;
-    EPolygonMode polygon = EPolygonMode::Fill;
-    EAlphaMode   alpha   = EAlphaMode::Opaque;
+    ECulling     culling    = ECulling::Back;
+    EFrontFace   front_face = EFrontFace::CounterClockwise;
+    ETopology    topology   = ETopology::Triangles;
+    EPolygonMode polygon    = EPolygonMode::Fill;
+    EAlphaMode   alpha      = EAlphaMode::Opaque;
 };
-}
+
+class PermutationGroup
+{
+public:
+    std::unordered_map<std::string, bool> permutation_group;
+};
+
+class PermutationDescription
+{
+public:
+    PermutationDescription() = default;
+
+    PermutationDescription(const PermutationGroup& group)
+    {
+        for (const auto& item : group.permutation_group | std::views::keys)
+            switch_names.emplace_back(item);
+        std::ranges::sort(switch_names);
+        for (const auto& item : group.permutation_group)
+            set(item.first, item.second);
+    }
+
+    bool operator==(const PermutationDescription& other) const
+    {
+        return other.bit_mask == bit_mask;
+    }
+
+    bool get(const std::string& key) const
+    {
+        for (size_t i = 0; i < switch_names.size(); ++i)
+        {
+            if (switch_names[i] == key)
+                return bit_mask & 1ull << i;
+        }
+        return false;
+    }
+
+    void set(const std::string& key, bool value)
+    {
+        for (size_t i = 0; i < switch_names.size(); ++i)
+        {
+            if (switch_names[i] == key)
+            {
+                if (value)
+                    bit_mask |= 1ull << i;
+                else
+                    bit_mask &= ~(1ull << i);
+                return;
+            }
+        }
+    }
+
+    const std::vector<std::string>& keys() const
+    {
+        return switch_names;
+    };
+
+    uint64_t bits() const
+    {
+        return bit_mask;
+    }
+
+private:
+    std::vector<std::string> switch_names;
+    uint64_t bit_mask = 0;
+};
+} // namespace Eng::Gfx
+
+template <> struct std::hash<Eng::Gfx::PermutationDescription>
+{
+    size_t operator()(const Eng::Gfx::PermutationDescription& val) const noexcept
+    {
+        return std::hash<uint64_t>()(val.bits());
+    }
+};

@@ -39,26 +39,9 @@ struct BindingDescription
     Eng::Gfx::EBindingType type;
 };
 
-struct CompiledStage
-{
-    Eng::Gfx::EShaderStage                   stage = Eng::Gfx::EShaderStage::Vertex;
-    std::string                              entry_point;
-    std::vector<BindingDescription>          bindings;
-    std::vector<StageInputOutputDescription> stage_inputs;
-    std::vector<StageInputOutputDescription> stage_outputs;
-    uint32_t                                 push_constant_size = 0;
-    std::vector<uint8_t>                     spirv;
-};
-
-struct CompiledPass
-{
-    Eng::Gfx::PipelineOptions                                 pipeline_config;
-    std::unordered_map<Eng::Gfx::EShaderStage, CompiledStage> stages;
-};
-
 struct CompilationError
 {
-    CompilationError(std::string message) : message(std::move(message))
+    CompilationError(std::string in_message, size_t in_line = 0, size_t in_column = 0) : message(std::move(in_message)), line(in_line), column(in_column)
     {
     }
 
@@ -66,50 +49,56 @@ struct CompilationError
     size_t      line = 0, column = 0;
 };
 
+struct StageData
+{
+    std::vector<uint8_t>            compiled_module;
+    std::vector<BindingDescription> bindings;
+    uint32_t                        push_constant_size = 0;
+};
+
 struct CompilationResult
 {
-    std::vector<CompilationError>                          errors;
-    std::unordered_map<Eng::Gfx::RenderPass, CompiledPass> compiled_passes;
+    CompilationResult& push_error(const CompilationError& error)
+    {
+        errors.emplace_back(error);
+        return *this;
+    }
+    std::vector<CompilationError>                         errors;
+    std::unordered_map<Eng::Gfx::EShaderStage, StageData> stages;
 };
 
 class Session
 {
 public:
-    void compile(const std::filesystem::path& path);
-    void extract_spirv_properties(const std::vector<uint8_t>& spirv, const std::string& entry_point);
+    CompilationResult compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const;
+
+    Eng::Gfx::PermutationDescription get_default_permutations_description() const
+    {
+        return {permutation_description};
+    }
 
     ~Session();
 
 private:
     friend class Compiler;
-    Session(Compiler* in_compiler);
+    Session(Compiler* in_compiler, const std::filesystem::path& path);
 
-    Compiler* compiler;
-
-    slang::ISession* session = nullptr;
+    Compiler*                  compiler = nullptr;
+    slang::IModule*            module   = nullptr;
+    slang::ISession*           session  = nullptr;
+    Eng::Gfx::PermutationGroup    permutation_description;
+    std::vector<CompilationError> load_errors;
 };
 
 
 class Compiler
 {
 public:
-    struct Parameters
-    {
-        std::vector<std::string>              selected_passes = {};
-        std::optional<std::filesystem::path>  source_path;
-        std::unordered_map<std::string, bool> options_override = {};
-        bool                                  b_debug          = false;
-    };
-
-    std::optional<CompilationError> compile_raw(const ShaderParser& parser, const Parameters& params, CompilationResult& compilation_result) const;
-
-    std::optional<CompilationError> pre_compile_shader(const std::filesystem::path& path);
+    ~Compiler();
 
     static Compiler& get();
 
-    ~Compiler();
-
-    std::shared_ptr<Session> create_session();
+    std::shared_ptr<Session> create_session(const std::filesystem::path& path);
 
 private:
     friend Session;

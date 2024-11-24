@@ -1,4 +1,9 @@
 
+import shader_base;
+
+extern static const bool PARAM_NORMAL_TEXTURE = false;
+extern static const bool PARAM_METAL_ROUGHNESS_TEXTURE = false;
+
 struct VSInput
 {
     float3 pos;
@@ -27,14 +32,6 @@ struct SceneBufferData
     Lights   lights;
 };
 
-StructuredBuffer<SceneBufferData> scene_data_buffer;
-
-
-SamplerState                      sSampler;
-Texture2D                         albedo;
-Texture2D mr_map;
-Texture2D normal_map;
-
 struct VsToFs
 {
     float4 Pos : SV_Position;
@@ -45,23 +42,23 @@ struct VsToFs
     float3 WorldBitangents;
 };
 
+StructuredBuffer<SceneBufferData> scene_data_buffer;
+
+SamplerState                      sSampler;
+Texture2D                         albedo;
+Texture2D mr_map;
+Texture2D normal_map;
+
 struct PushConsts
 {
     float4x4 model;
 };
+// PushConsts pc
 
-[[vk::push_constant]]
-PushConsts pc;
-
-[__AttributeUsage(_AttributeTargets.Function)]
-struct RenderPassAttribute
-{
-    string render_pass;
-};
 
 [shader("vertex")]
-[RenderPass("GBuffers")]
-VsToFs vertex_main(VSInput input)
+[RenderPass("gbuffers")]
+VsToFs vertex_main(VSInput input, uniform PushConsts pc)
 {
     VsToFs Out;
     Out.WorldPosition   = mul(pc.model, float4(input.pos, 1)).xyz;
@@ -80,10 +77,8 @@ struct FsOutput
     float4 normal_r;
 };
 
-extern static const bool GLOBAL_TEST = false;
-
+[RenderPass("gbuffers")]
 [shader("fragment")]
-[RenderPass("GBuffers")]
 FsOutput fragment_main(VsToFs input)
 {
     float4 tex_col = albedo.Sample(sSampler, input.Uvs, 1);
@@ -93,11 +88,11 @@ FsOutput fragment_main(VsToFs input)
 
     FsOutput output;
 
-    bool val = GLOBAL_TEST;
-    if (val) {
-        mr = mr_map.Sample(sSampler, input.Uvs, 1).bg;
+    if (PARAM_NORMAL_TEXTURE)
         local_normal = (normal_map.Sample(sSampler, input.Uvs, 1).rgb - 0.5) * 2;
-    }
+    if (PARAM_METAL_ROUGHNESS_TEXTURE)
+        mr = mr_map.Sample(sSampler, input.Uvs, 1).bg;
+   
     
     float3 world_normal = normalize(input.WorldNormals);
     if (length(input.WorldTangents) > 0.001)

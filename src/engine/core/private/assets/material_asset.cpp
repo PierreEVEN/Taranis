@@ -10,73 +10,31 @@ namespace Eng
 {
 MaterialAsset::MaterialAsset() = default;
 
-void MaterialAsset::set_shader_code(const std::string& code)
+void MaterialAsset::set_shader_code(const std::filesystem::path& code)
 {
-    pipelines.clear();
-    compiled_passes.clear();
-    shader_code = code;
-    if (!parser)
-        parser = std::make_unique<ShaderCompiler::ShaderParser>(shader_code);
-
-    // Update options
-    std::vector<std::string> outdated_options;
-    for (const auto& name : options | std::views::keys)
-        if (!parser->get_default_options().contains(name))
-            outdated_options.emplace_back(name);
-
-    for (const auto& outdated : outdated_options)
-        options.erase(outdated);
-
-    for (const auto& option : parser->get_default_options())
-        if (!options.contains(option.first))
-            options.emplace(option.first, option.second);
+    permutations.clear();
+    compiler_session    = ShaderCompiler::Compiler::get().create_session(code);
+    default_permutation = compiler_session->get_default_permutations_description();
 }
 
-const std::shared_ptr<Gfx::Pipeline>& MaterialAsset::get_resource(const std::string& render_pass)
+std::weak_ptr<MaterialPermutation> MaterialAsset::get_permutation(const Gfx::PermutationDescription& permutation)
 {
-    if (auto found = pipelines.find(render_pass); found != pipelines.end())
+    if (auto found = permutations.find(permutation); found != permutations.end())
         return found->second;
-
-    PROFILER_SCOPE_NAMED(CompilePass, "Compile pipeline pass " + render_pass);
-    compile_pass(render_pass);
-
-    if (auto found = pipelines.find(render_pass); found != pipelines.end())
-        return found->second;
-    return {};
+    return permutations.emplace(permutation, std::make_shared<MaterialPermutation>(compiler_session, permutation)).first->second;
 }
 
-void MaterialAsset::compile_pass(const std::string& render_pass)
+MaterialPermutation::MaterialPermutation(const std::shared_ptr<ShaderCompiler::Session>& in_compiler_session, const Gfx::PermutationDescription& permutation_desc) : compiler_session(in_compiler_session),
+    permutation_description(permutation_desc)
 {
-    if (!compiled_passes.contains(render_pass))
-    {
-        if (!parser)
-            parser = std::make_unique<ShaderCompiler::ShaderParser>(shader_code);
-
-        if (parser->get_error())
-            return;
-
-        ShaderCompiler::Compiler          compiler;
-        ShaderCompiler::CompilationResult result;
-
-        ShaderCompiler::Compiler::Parameters params{
-            .selected_passes  = {render_pass},
-            .source_path      = {},
-            .options_override = options,
-            .b_debug          = false,
-        };
-
-        if (auto error = compiler.compile_raw(*parser, {}, result))
-        {
-            std::cerr << "Compilation failed " << error->line << ":" << error->column << " : " << error->message << std::endl;
-            return;
-        }
-
-        compiled_passes.emplace()
-    }
-
-    if (auto found = compiled_passes.find(render_pass); found != compiled_passes.end())
-        pipelines.emplace(render_pass, Gfx::Pipeline::create(get_name(), Engine::get().get_device(), , , ));
-    else
-        pipelines.emplace(render_pass, nullptr);
 }
+
+const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const std::string& render_pass)
+{
+    if (auto found = passes.find(render_pass); found != passes.end())
+        return found->second.pipeline;
+
+    auto compilation_result = compiler_session->compile(render_pass, permutation_description);
+    return passes.emplace(render_pass, {}).first->second.pipeline;
+};
 }

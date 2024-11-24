@@ -1,11 +1,13 @@
 #include <utility>
 
 #include "gfx/vulkan/pipeline.hpp"
+#include "gfx_types/pipeline.hpp"
 
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/shader_module.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
+#include "gfx_types/format.hpp"
 
 namespace Eng::Gfx
 {
