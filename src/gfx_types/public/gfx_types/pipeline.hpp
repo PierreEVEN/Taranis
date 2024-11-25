@@ -73,6 +73,8 @@ struct PipelineOptions
     ETopology    topology   = ETopology::Triangles;
     EPolygonMode polygon    = EPolygonMode::Fill;
     EAlphaMode   alpha      = EAlphaMode::Opaque;
+    bool         depth_test = true;
+    float        line_width = 1.0f;
 };
 
 class PermutationGroup
@@ -137,7 +139,7 @@ public:
 
 private:
     std::vector<std::string> switch_names;
-    uint64_t bit_mask = 0;
+    uint64_t                 bit_mask = 0;
 };
 } // namespace Eng::Gfx
 

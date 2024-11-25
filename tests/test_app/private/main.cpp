@@ -2,20 +2,19 @@
 #include "config.hpp"
 #include "engine.hpp"
 #include "object_allocator.hpp"
+#include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
 #include "assets/sampler_asset.hpp"
 #include <gfx/window.hpp>
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
-#include "gfx/shaders/shader_compiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/device.hpp"
-#include "gfx/vulkan/pipeline.hpp"
+#include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
-#include "import/material_import.hpp"
 #include "scene/scene.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
@@ -97,8 +96,9 @@ public:
 
     void init(const Gfx::RenderPassInstance& render_pass) override
     {
-        auto base_mat = MaterialImport::from_path("resources/shaders/gbuffer_resolve.hlsl", Gfx::Pipeline::CreateInfos{.culling = Gfx::ECulling::None}, {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment},
-                                                  render_pass.get_render_pass_resource());
+        auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat");
+        base_mat->set_shader_code("gbuffer_resolve.hlsl");
+
         material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat, false);
         sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler");
         material->set_sampler("sSampler", sampler);
@@ -209,25 +209,19 @@ class TestApp : public Application
         camera->activate();
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
-            [&, rp, importer]
+            [&, importer]
             {
-                Scene temp_scene;
-                importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf", temp_scene, rp);
-                scene->merge(std::move(temp_scene));
+                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf")));
             });
         engine.jobs().schedule(
-            [&, rp, importer]
+            [&, importer]
             {
-                Scene temp_scene;
-                //importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
-                scene->merge(std::move(temp_scene));
+                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
             });
         engine.jobs().schedule(
-            [&, rp, importer]
+            [&, importer]
             {
-                Scene temp_scene;
-                //importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx", temp_scene, camera.cast<CameraComponent>(), rp);
-                scene->merge(std::move(temp_scene));
+                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
             });
     }
 

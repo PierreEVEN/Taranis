@@ -29,9 +29,8 @@ AssimpImporter::AssimpImporter() : importer(std::make_shared<Assimp::Importer>()
 {
 }
 
-AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene,
-                                         std::weak_ptr<Gfx::VkRendererPass> in_render_pass)
-    : scene(in_scene), file_path(in_file_path), render_pass(in_render_pass)
+AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene)
+    : scene(in_scene), file_path(in_file_path)
 {
     PROFILER_SCOPE(DecomposeAssimpScene);
     decompose_node(scene->mRootNode, {}, output_scene);
@@ -39,16 +38,18 @@ AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_f
 
 }
 
-void AssimpImporter::load_from_path(const std::filesystem::path& path, Scene& output_scene, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const
+Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
 {
+    Scene output_scene;
     PROFILER_SCOPE_NAMED(LoadAssimpSceneFromPath, std::format("Load assimp scene from path {}", path.filename().string()));
     const aiScene* scene = importer->ReadFile(path.string(), 0);
     if (!scene)
     {
         LOG_ERROR("Failed to load scene from path {}", path.string());
-        return;
+        return output_scene;
     }
-    SceneLoader loader(path, scene, output_scene, render_pass);
+    SceneLoader loader(path, scene, output_scene);
+    return output_scene;
 }
 
 void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene)
@@ -227,7 +228,7 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(Mat
     }
 
     return materials_base.emplace(type, MaterialImport::from_path("resources/shaders/default_mesh.hlsl",
-                                                                  Gfx::Pipeline::CreateInfos{.stage_input_override =
+                                                                  Gfx::Pipeline::CreateInfos{.vertex_stage_inputs =
                                                                       std::vector{
                                                                           Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
                                                                           Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},

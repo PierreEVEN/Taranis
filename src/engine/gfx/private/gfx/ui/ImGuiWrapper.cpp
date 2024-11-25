@@ -55,7 +55,7 @@ float4 main(VsToFs input) : SV_TARGET{\
 
 namespace Eng::Gfx
 {
-ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
+ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
     : device(std::move(in_device)), target_window(std::move(in_target_window)), name(std::move(in_name))
 {
     last_time = std::chrono::steady_clock::now();
@@ -64,20 +64,35 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
 
     image_sampler = Sampler::create(name + "_generic_sampler", device, Sampler::CreateInfos{});
 
-    ShaderCompiler compiler;
-    const auto     vertex_code   = compiler.compile_raw(IMGUI_VERTEX, "main", EShaderStage::Vertex, "internal://imgui");
-    const auto     fragment_code = compiler.compile_raw(IMGUI_FRAGMENT, "main", EShaderStage::Fragment, "internal://imgui");
-    if (!vertex_code)
-        LOG_FATAL("Failed to compile imgui vertex shader : {}", vertex_code.error())
-    if (!fragment_code)
-        LOG_FATAL("Failed to compile imgui fragment shader : {}", fragment_code.error())
-    const auto vertex_temp = ShaderModule::create(device, vertex_code.get());
+    auto compilation_result = ShaderCompiler::Compiler::get().create_session("internal/imgui")->compile(render_pass, PermutationDescription{});
+    if (!compilation_result.errors.empty())
+    {
+        for (const auto& error : compilation_result.errors)
+            LOG_ERROR("Imgui shader compilation failed : {}", error.message);
+        exit(-1);
+    }
 
-    imgui_material = Pipeline::create(name + "_pipeline", device, render_pass, std::vector{ShaderModule::create(device, vertex_code.get()), ShaderModule::create(device, fragment_code.get())},
-                                      Pipeline::CreateInfos{.culling = ECulling::None,
-                                                            .alpha_mode = EAlphaMode::Translucent,
-                                                            .depth_test = false,
-                                                            .stage_input_override = std::vector{
+    if (compilation_result.stages.empty())
+        LOG_ERROR("Imgui material is not compatible with render pass : {}", render_pass);
+
+    std::vector<std::shared_ptr<ShaderModule>> modules;
+    for (const auto& stage : compilation_result.stages | std::views::values)
+        modules.emplace_back(ShaderModule::create(device, stage));
+
+    auto rp = device.lock()->get_render_pass(render_pass);
+    if (!rp.lock())
+    {
+        LOG_ERROR("There is no render pass named {}", render_pass);
+        return;
+    }
+
+    imgui_material = Pipeline::create(name + "_pipeline", device, rp, modules,
+                                      Pipeline::CreateInfos{.options{
+                                                                .culling = ECulling::None,
+                                                                .alpha = EAlphaMode::Translucent,
+                                                                .depth_test = false,
+                                                            },
+                                                            .vertex_inputs = std::vector{
                                                                 StageInputOutputDescription{0, 0, ColorFormat::R32G32_SFLOAT},
                                                                 StageInputOutputDescription{1, 8, ColorFormat::R32G32_SFLOAT},
                                                                 StageInputOutputDescription{2, 16, ColorFormat::R8G8B8A8_UNORM},
@@ -134,18 +149,18 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::weak_ptr<VkRendererPa
     ImGuiStyle& style = ImGui::GetStyle();
     ImGui::StyleColorsDark();
 
-    style.Colors[ImGuiCol_FrameBg] = ImVec4(.18f, .18f, .18f, 1);
-    style.Colors[ImGuiCol_CheckMark] = ImVec4(.62f, .62f, .62f, 1);
-    style.Colors[ImGuiCol_SliderGrab] = ImVec4(.62f, .62f, .62f, 1);
-    style.Colors[ImGuiCol_Button] = ImVec4(.27f, .27f, .27f, 1);
-    style.Colors[ImGuiCol_Header] = ImVec4(.28f, .28f, .28f, 1);
-    style.Colors[ImGuiCol_Tab] = ImVec4(.08f, .08f, .08f, .86f);
-    style.Colors[ImGuiCol_TabUnfocused] = ImVec4(.1f, .1f, .1f, .86f);
+    style.Colors[ImGuiCol_FrameBg]            = ImVec4(.18f, .18f, .18f, 1);
+    style.Colors[ImGuiCol_CheckMark]          = ImVec4(.62f, .62f, .62f, 1);
+    style.Colors[ImGuiCol_SliderGrab]         = ImVec4(.62f, .62f, .62f, 1);
+    style.Colors[ImGuiCol_Button]             = ImVec4(.27f, .27f, .27f, 1);
+    style.Colors[ImGuiCol_Header]             = ImVec4(.28f, .28f, .28f, 1);
+    style.Colors[ImGuiCol_Tab]                = ImVec4(.08f, .08f, .08f, .86f);
+    style.Colors[ImGuiCol_TabUnfocused]       = ImVec4(.1f, .1f, .1f, .86f);
     style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(.2f, .2f, .2f, 1);
-    style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4(.07f, .07f, .07f, 1);
-    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(.11f, .11f, .11f, 1);
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(.06f, .06f, .06f, 1);
-    style.Colors[ImGuiCol_TabActive] = ImVec4(.52f, .52f, .52f, 1);
+    style.Colors[ImGuiCol_DockingEmptyBg]     = ImVec4(.07f, .07f, .07f, 1);
+    style.Colors[ImGuiCol_TitleBgActive]      = ImVec4(.11f, .11f, .11f, 1);
+    style.Colors[ImGuiCol_WindowBg]           = ImVec4(.06f, .06f, .06f, 1);
+    style.Colors[ImGuiCol_TabActive]          = ImVec4(.52f, .52f, .52f, 1);
 
     style.WindowRounding     = 0;
     style.ScrollbarRounding  = 0;
@@ -214,11 +229,11 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
     last_time                  = new_time;
 
     // Update mouse
-    io.MouseDown[0]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_1);
-    io.MouseDown[1]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_2);
-    io.MouseDown[2]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_3);
-    io.MouseDown[3]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_4);
-    io.MouseDown[4]         = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_5);
+    io.MouseDown[0] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_1);
+    io.MouseDown[1] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_2);
+    io.MouseDown[2] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_3);
+    io.MouseDown[3] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_4);
+    io.MouseDown[4] = glfwGetMouseButton(target_window.lock()->raw(), GLFW_MOUSE_BUTTON_5);
     io.AddMouseWheelEvent(static_cast<float>(target_window.lock()->get_scroll_delta().x), static_cast<float>(target_window.lock()->get_scroll_delta().y));
     io.MouseHoveredViewport = 0;
     double x_pos, y_pos;

@@ -53,7 +53,7 @@ public:
 
     struct SceneLoader
     {
-        SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene, std::weak_ptr<Gfx::VkRendererPass> render_pass);
+        SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene);
 
         void decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene);
 
@@ -77,11 +77,10 @@ public:
         const aiScene*                                              scene;
         std::unordered_map<MaterialType, TObjectRef<MaterialAsset>> materials_base;
         std::filesystem::path                                       file_path;
-        std::weak_ptr<Gfx::VkRendererPass>                          render_pass;
     };
 
 
-    void load_from_path(const std::filesystem::path& path, Scene& output_scene, const std::weak_ptr<Gfx::VkRendererPass>& render_pass) const;
+    Scene load_from_path(const std::filesystem::path& path) const;
 
     std::shared_ptr<Assimp::Importer> importer;
 

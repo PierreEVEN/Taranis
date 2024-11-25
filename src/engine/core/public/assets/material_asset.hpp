@@ -21,19 +21,19 @@ namespace Eng
 {
 struct MaterialPermutation
 {
-    MaterialPermutation(const std::shared_ptr<ShaderCompiler::Session>& compiler_session, const Gfx::PermutationDescription& permutation_desc);
+    MaterialPermutation(MaterialAsset* owner, Gfx::PermutationDescription permutation_desc);
 
     const std::shared_ptr<Eng::Gfx::Pipeline>& get_resource(const std::string& render_pass);
 
 private:
     struct PassInfos
     {
-        std::unordered_map<Gfx::EShaderStage, std::vector<uint32_t>> per_stage_code;
-        std::shared_ptr<Gfx::Pipeline>                               pipeline;
+        std::unordered_map<Gfx::EShaderStage, std::vector<uint8_t>> per_stage_code;
+        std::shared_ptr<Gfx::Pipeline>                              pipeline;
     };
 
     std::unordered_map<std::string, PassInfos> passes;
-    std::shared_ptr<ShaderCompiler::Session>   compiler_session;
+    MaterialAsset*                             owner = nullptr;
     Gfx::PermutationDescription                permutation_description;
 };
 
@@ -54,10 +54,13 @@ public:
     std::weak_ptr<MaterialPermutation> get_permutation(const Gfx::PermutationDescription& permutation);
 
 private:
+    friend class MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 
     std::unordered_map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
 
     std::shared_ptr<ShaderCompiler::Session> compiler_session;
+
+    Gfx::PipelineOptions options;
 };
 } // namespace Eng

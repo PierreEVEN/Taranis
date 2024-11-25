@@ -1,4 +1,6 @@
 #pragma once
+#include "shader_compiler/shader_compiler.hpp"
+
 #include <memory>
 #include <utility>
 #include <vector>
@@ -11,7 +13,7 @@ class Device;
 class ShaderModule
 {
   public:
-    static std::shared_ptr<ShaderModule> create(const std::weak_ptr<Device>& device, ShaderProperties properties)
+    static std::shared_ptr<ShaderModule> create(const std::weak_ptr<Device>& device, ShaderCompiler::StageData properties)
     {
         return std::shared_ptr<ShaderModule>(new ShaderModule(device, std::move(properties)));
     }
@@ -25,14 +27,14 @@ class ShaderModule
         return ptr;
     }
 
-    const ShaderProperties& infos() const
+    const ShaderCompiler::StageData& infos() const
     {
         return properties;
     }
 
   private:
-    ShaderModule(const std::weak_ptr<Device>& device, ShaderProperties properties);
-    ShaderProperties      properties;
+    ShaderModule(const std::weak_ptr<Device>& device, ShaderCompiler::StageData properties);
+    ShaderCompiler::StageData properties;
     VkShaderModule        ptr = VK_NULL_HANDLE;
     std::weak_ptr<Device> device;
 };

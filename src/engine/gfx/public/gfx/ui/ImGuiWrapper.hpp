@@ -33,7 +33,7 @@ class Pipeline;
 class ImGuiWrapper
 {
 public:
-    ImGuiWrapper(std::string name, const std::weak_ptr<VkRendererPass>& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
+    ImGuiWrapper(std::string name, const std::string& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
     void begin(glm::uvec2 draw_res);
     void prepare_all_window();

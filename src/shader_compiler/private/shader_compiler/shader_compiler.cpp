@@ -31,15 +31,6 @@ std::shared_ptr<Session> Compiler::create_session(const std::filesystem::path& p
     return std::shared_ptr<Session>(new Session(this, path));
 }
 
-slang::IModule* Compiler::load_module(const std::filesystem::path& module_path)
-{
-    if (exists(module_path))
-    {
-
-    }
-    return nullptr;
-}
-
 Compiler::Compiler()
 {
     if (SLANG_FAILED(createGlobalSession(&global_session)))
@@ -97,6 +88,70 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
 Session::~Session()
 {
     session->release();
+}
+
+InOutReflection::InOutReflection(slang::TypeReflection* slang_var)
+{
+    if (!can_reflect(slang_var))
+        return;
+    switch (slang_var->getKind())
+    {
+    case slang::TypeReflection::Kind::Struct:
+        for (size_t i = 0; i < slang_var->getFieldCount(); ++i)
+        {
+            push_variable(slang_var->getFieldByIndex(i));
+        }
+        break;
+    case slang::TypeReflection::Kind::Vector:
+    case slang::TypeReflection::Kind::Matrix:
+        switch (slang_var->getScalarType())
+        {
+        case slang::TypeReflection::None:
+        case slang::TypeReflection::Void:
+            break;
+        case slang::TypeReflection::Bool:
+        case slang::TypeReflection::Int8:
+        case slang::TypeReflection::UInt8:
+            total_stride += slang_var->getElementCount() * 1;
+            break;
+        case slang::TypeReflection::Float16:
+        case slang::TypeReflection::Int16:
+        case slang::TypeReflection::UInt16:
+            total_stride += slang_var->getElementCount() * 2;
+            break;
+        case slang::TypeReflection::Float32:
+        case slang::TypeReflection::UInt32:
+        case slang::TypeReflection::Int32:
+            total_stride += slang_var->getElementCount() * 4;
+            break;
+        case slang::TypeReflection::Int64:
+        case slang::TypeReflection::UInt64:
+        case slang::TypeReflection::Float64:
+            total_stride += slang_var->getElementCount() * 8;
+            break;
+        }
+        break;
+    }
+}
+
+void InOutReflection::push_variable(slang::VariableReflection* variable)
+{
+    if (can_reflect(variable->getType()))
+        total_stride += children.emplace(variable->getName(), InOutReflection(variable->getType())).first->second.total_stride;
+}
+
+bool InOutReflection::can_reflect(slang::TypeReflection* slang_var)
+{
+    switch (slang_var->getKind())
+    {
+    case slang::TypeReflection::Kind::Struct:
+        return true;
+    case slang::TypeReflection::Kind::Vector:
+    case slang::TypeReflection::Kind::Matrix:
+        return slang_var->getElementType()->getKind() == slang::TypeReflection::Kind::Scalar;
+    default:
+        return false;
+    }
 }
 
 CompilationResult Session::compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const
@@ -223,26 +278,30 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             // BINDINGS HERE
         }
 
-        Eng::Gfx::EShaderStage stage;
-
         switch (entry_point->getLayout()->getEntryPointByIndex(0)->getStage())
         {
         case SLANG_STAGE_VERTEX:
-            stage = Eng::Gfx::EShaderStage::Vertex;
+            data.stage = Eng::Gfx::EShaderStage::Vertex;
             break;
         case SLANG_STAGE_FRAGMENT:
-            stage = Eng::Gfx::EShaderStage::Fragment;
+            data.stage = Eng::Gfx::EShaderStage::Fragment;
             break;
         case SLANG_STAGE_COMPUTE:
-            stage = Eng::Gfx::EShaderStage::Compute;
+            data.stage = Eng::Gfx::EShaderStage::Compute;
             break;
         default:
             return result.push_error({"Unhandled shader stage type"});
         }
 
+        for (size_t pi = 0; pi < entry_point->getFunctionReflection()->getParameterCount(); ++pi)
+            data.inputs.push_variable(entry_point->getFunctionReflection()->getParameterByIndex(pi));
+
+        if (auto return_type = entry_point->getFunctionReflection()->getReturnType())
+            data.outputs     = InOutReflection(return_type);
+
         data.compiled_module = std::vector<uint8_t>(kernel_blob->getBufferSize());
         std::memcpy(data.compiled_module.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());
-        result.stages.emplace(stage, data);
+        result.stages.emplace(data.stage, data);
     }
     return result;
 }

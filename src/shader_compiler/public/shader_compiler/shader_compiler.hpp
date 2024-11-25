@@ -11,6 +11,12 @@
 
 namespace slang
 {
+struct TypeReflection;
+struct VariableReflection;
+}
+
+namespace slang
+{
 struct ISession;
 struct IModule;
 struct IGlobalSession;
@@ -49,11 +55,27 @@ struct CompilationError
     size_t      line = 0, column = 0;
 };
 
+struct InOutReflection
+{
+    InOutReflection() = default;
+    InOutReflection(slang::TypeReflection* slang_var);
+
+    void push_variable(slang::VariableReflection* variable);
+
+    static bool can_reflect(slang::TypeReflection* slang_var);
+
+    std::size_t total_stride = 0;
+    std::unordered_map<std::string, InOutReflection> children;
+};
+
 struct StageData
 {
     std::vector<uint8_t>            compiled_module;
     std::vector<BindingDescription> bindings;
+    Eng::Gfx::EShaderStage          stage;
     uint32_t                        push_constant_size = 0;
+    InOutReflection    inputs;
+    InOutReflection    outputs;
 };
 
 struct CompilationResult
@@ -63,9 +85,11 @@ struct CompilationResult
         errors.emplace_back(error);
         return *this;
     }
+
     std::vector<CompilationError>                         errors;
     std::unordered_map<Eng::Gfx::EShaderStage, StageData> stages;
 };
+
 
 class Session
 {
@@ -83,9 +107,9 @@ private:
     friend class Compiler;
     Session(Compiler* in_compiler, const std::filesystem::path& path);
 
-    Compiler*                  compiler = nullptr;
-    slang::IModule*            module   = nullptr;
-    slang::ISession*           session  = nullptr;
+    Compiler*                     compiler = nullptr;
+    slang::IModule*               module   = nullptr;
+    slang::ISession*              session  = nullptr;
     Eng::Gfx::PermutationGroup    permutation_description;
     std::vector<CompilationError> load_errors;
 };
@@ -102,8 +126,6 @@ public:
 
 private:
     friend Session;
-
-    slang::IModule* load_module(const std::filesystem::path& module_path);
 
     slang::IGlobalSession* global_session = nullptr;
 

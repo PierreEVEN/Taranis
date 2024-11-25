@@ -160,7 +160,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
     {
         if (stage->infos().stage == EShaderStage::Vertex)
         {
-            const auto input = create_infos.stage_input_override ? *create_infos.stage_input_override : stage->infos().stage_inputs;
+            const auto input = create_infos.vertex_inputs;
             for (const auto& input_property : input)
             {
                 vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
@@ -190,7 +190,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
 
     const VkPipelineInputAssemblyStateCreateInfo input_assembly{
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-        .topology               = vk_topology(create_infos.topology),
+        .topology               = vk_topology(create_infos.options.topology),
         .primitiveRestartEnable = VK_FALSE,
     };
 
@@ -204,14 +204,14 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable        = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
-        .polygonMode             = vk_polygon_mode(create_infos.polygon_mode),
-        .cullMode                = vk_cull_mode(create_infos.culling),
-        .frontFace               = vk_front_face(create_infos.front_face),
+        .polygonMode             = vk_polygon_mode(create_infos.options.polygon),
+        .cullMode                = vk_cull_mode(create_infos.options.culling),
+        .frontFace               = vk_front_face(create_infos.options.front_face),
         .depthBiasEnable         = VK_FALSE,
         .depthBiasConstantFactor = 0.0f,
         .depthBiasClamp          = 0.0f,
         .depthBiasSlopeFactor    = 0.0f,
-        .lineWidth               = create_infos.line_width,
+        .lineWidth               = create_infos.options.line_width,
     };
 
     constexpr VkPipelineMultisampleStateCreateInfo multisampling{
@@ -226,8 +226,8 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
 
     const VkPipelineDepthStencilStateCreateInfo depth_stencil{
         .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        .depthTestEnable       = create_infos.depth_test,
-        .depthWriteEnable      = create_infos.depth_test,
+        .depthTestEnable       = create_infos.options.depth_test,
+        .depthWriteEnable      = create_infos.options.depth_test,
         .depthCompareOp        = VK_COMPARE_OP_GREATER_OR_EQUAL,
         .depthBoundsTestEnable = VK_FALSE,
         .stencilTestEnable     = VK_FALSE,
@@ -244,11 +244,11 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         else
         {
             color_blend_attachment.emplace_back(VkPipelineColorBlendAttachmentState{
-                .blendEnable         = create_infos.alpha_mode == EAlphaMode::Opaque ? VK_FALSE : VK_TRUE,
-                .srcColorBlendFactor = create_infos.alpha_mode == EAlphaMode::Opaque ? VK_BLEND_FACTOR_ONE : VK_BLEND_FACTOR_SRC_ALPHA,
-                .dstColorBlendFactor = create_infos.alpha_mode == EAlphaMode::Opaque ? VK_BLEND_FACTOR_ZERO : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                .blendEnable         = create_infos.options.alpha == EAlphaMode::Opaque ? VK_FALSE : VK_TRUE,
+                .srcColorBlendFactor = create_infos.options.alpha == EAlphaMode::Opaque ? VK_BLEND_FACTOR_ONE : VK_BLEND_FACTOR_SRC_ALPHA,
+                .dstColorBlendFactor = create_infos.options.alpha == EAlphaMode::Opaque ? VK_BLEND_FACTOR_ZERO : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                 .colorBlendOp        = VK_BLEND_OP_ADD,
-                .srcAlphaBlendFactor = create_infos.alpha_mode == EAlphaMode::Opaque ? VK_BLEND_FACTOR_ONE : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                .srcAlphaBlendFactor = create_infos.options.alpha == EAlphaMode::Opaque ? VK_BLEND_FACTOR_ONE : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                 .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
                 .alphaBlendOp        = VK_BLEND_OP_ADD,
                 .colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
@@ -263,7 +263,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
             .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage  = static_cast<VkShaderStageFlagBits>(stage->infos().stage),
             .module = stage->raw(),
-            .pName  = stage->infos().entry_point.c_str(),
+            .pName  = "main",
         });
     }
 
@@ -274,7 +274,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
     };
 
     std::vector dynamic_states_array = {VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT};
-    if (create_infos.line_width != 1.0f)
+    if (create_infos.options.line_width != 1.0f)
         dynamic_states_array.emplace_back(VK_DYNAMIC_STATE_LINE_WIDTH);
 
     VkPipelineDynamicStateCreateInfo dynamic_states{

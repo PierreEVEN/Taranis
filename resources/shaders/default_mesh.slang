@@ -55,7 +55,6 @@ struct PushConsts
 };
 // PushConsts pc
 
-
 [shader("vertex")]
 [RenderPass("gbuffers")]
 VsToFs vertex_main(VSInput input, uniform PushConsts pc)
@@ -77,8 +76,8 @@ struct FsOutput
     float4 normal_r;
 };
 
-[RenderPass("gbuffers")]
 [shader("fragment")]
+[RenderPass("gbuffers")]
 FsOutput fragment_main(VsToFs input)
 {
     float4 tex_col = albedo.Sample(sSampler, input.Uvs, 1);
