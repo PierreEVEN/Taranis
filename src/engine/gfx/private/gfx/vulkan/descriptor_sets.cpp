@@ -8,6 +8,7 @@
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/sampler.hpp"
+#include "shader_compiler/shader_compiler.hpp"
 
 namespace Eng::Gfx
 {

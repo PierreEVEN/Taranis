@@ -2,6 +2,7 @@
 
 
 #include "gfx/types.hpp"
+#include "gfx_types/format.hpp"
 
 #include <algorithm>
 #include <memory>

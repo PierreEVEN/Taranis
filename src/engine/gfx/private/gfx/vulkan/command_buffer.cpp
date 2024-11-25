@@ -105,8 +105,8 @@ void CommandBuffer::bind_pipeline(const std::shared_ptr<Pipeline>& pipeline)
     if (last_pipeline == pipeline)
         return;
     last_pipeline = pipeline;
-    if (pipeline->infos().line_width != 1.0f)
-        vkCmdSetLineWidth(ptr, pipeline->infos().line_width);
+    if (pipeline->infos().options.line_width != 1.0f)
+        vkCmdSetLineWidth(ptr, pipeline->infos().options.line_width);
     vkCmdBindPipeline(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->raw());
 }
 

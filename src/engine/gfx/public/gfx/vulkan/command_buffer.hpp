@@ -4,8 +4,8 @@
 #include <memory>
 #include <utility>
 
-#include "gfx/shaders/shader_compiler.hpp"
 #include "queue_family.hpp"
+#include "shader_module.hpp"
 
 #include <unordered_set>
 

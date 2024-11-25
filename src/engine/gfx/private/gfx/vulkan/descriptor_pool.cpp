@@ -3,6 +3,7 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/vk_check.hpp"
+#include "shader_compiler/shader_compiler.hpp"
 
 static constexpr uint32_t DESCRIPTOR_PER_POOL = 200;
 
