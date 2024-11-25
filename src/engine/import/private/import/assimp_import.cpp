@@ -3,6 +3,7 @@
 #include "engine.hpp"
 #include "profiler.hpp"
 #include "assets/asset_registry.hpp"
+#include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "gfx/vulkan/buffer.hpp"
 
@@ -29,7 +30,7 @@ AssimpImporter::AssimpImporter() : importer(std::make_shared<Assimp::Importer>()
 {
 }
 
-AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path&       in_file_path, const aiScene* in_scene, Scene& output_scene)
+AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene)
     : scene(in_scene), file_path(in_file_path)
 {
     PROFILER_SCOPE(DecomposeAssimpScene);
@@ -197,7 +198,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
             new_mat->set_texture("mr_map", TextureAsset::get_default_asset());
         break;
     }
-    
+
     return materials.emplace(id, new_mat).first->second;
 }
 
@@ -226,19 +227,17 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(Mat
     case MaterialType::Translucent:
         break;
     }
+    auto mat = Engine::get().asset_registry().create<MaterialAsset>("default_mesh");
+    mat->set_shader_code("default_mesh", std::vector{
+                                             StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                             StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
+                                             StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                             StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                             StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                             StageInputOutputDescription{5, 56, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                                         });
 
-    return materials_base.emplace(type, MaterialImport::from_path("resources/shaders/default_mesh.hlsl",
-                                                                  Gfx::Pipeline::CreateInfos{.vertex_stage_inputs =
-                                                                      std::vector{
-                                                                          Gfx::StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                          Gfx::StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
-                                                                          Gfx::StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                          Gfx::StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                          Gfx::StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                                                          Gfx::StageInputOutputDescription{5, 56, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
-                                                                      }},
-                                                                  {Gfx::EShaderStage::Vertex, Gfx::EShaderStage::Fragment}, render_pass, features))
-                         .first->second;
+    return materials_base.emplace(type, mat).first->second;
 }
 
 std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneLoader::find_or_load_mesh(int id)

@@ -225,6 +225,12 @@ void CommandBuffer::push_constant(EShaderStage stage, const Pipeline& pipeline, 
     vkCmdPushConstants(ptr, pipeline.get_layout(), static_cast<VkShaderStageFlags>(stage), 0, static_cast<uint32_t>(data.get_byte_size()), data.data());
 }
 
+void CommandBuffer::begin_render_pass(const std::string& pass_name, const VkRenderPassBeginInfo& begin_infos, bool parallel_rendering)
+{
+    vkCmdBeginRenderPass(ptr, &begin_infos, parallel_rendering ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
+    render_pass_name = pass_name;
+}
+
 void CommandBuffer::end_render_pass()
 {
     PROFILER_SCOPE(EndRenderPass);
@@ -238,6 +244,7 @@ void CommandBuffer::end_render_pass()
         secondary_command_buffers.clear();
     }
     vkCmdEndRenderPass(ptr);
+    render_pass_name = "";
 }
 
 void CommandBuffer::reset_stats()

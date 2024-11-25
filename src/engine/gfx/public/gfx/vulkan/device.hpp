@@ -41,9 +41,8 @@ public:
     }
 
     static const std::vector<const char*>& get_device_extensions();
-    std::weak_ptr<VkRendererPass>          find_or_create_render_pass(const RenderPassKey& key);
-    std::weak_ptr<VkRendererPass>          declare_render_pass(const RenderPassKey& key, const std::string& name);
-    std::weak_ptr<VkRendererPass>          get_render_pass(const std::string& name);
+    std::weak_ptr<Gfx::VkRendererPass>     declare_render_pass(const RenderPassKey& key, const std::string& name);
+    std::weak_ptr<VkRendererPass>          get_render_pass(const std::string& name) const;
 
     void destroy_resources();
 

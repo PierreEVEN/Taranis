@@ -37,8 +37,14 @@ class VkRendererPass
         return device;
     }
 
+
+    const std::string& get_name() const
+    {
+        return name;
+    }
   private:
     VkRendererPass(const std::string& name, const std::weak_ptr<Device>& device, RenderPassKey key);
+    std::string            name;
     RenderPassKey          key;
     std::weak_ptr<Device>  device;
     VkRenderPass           ptr = VK_NULL_HANDLE;

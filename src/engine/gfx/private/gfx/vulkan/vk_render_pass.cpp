@@ -8,7 +8,7 @@
 namespace Eng::Gfx
 {
 
-VkRendererPass::VkRendererPass(const std::string& name, const std::weak_ptr<Device>& in_device, RenderPassKey in_key) : key(std::move(in_key)), device(in_device)
+VkRendererPass::VkRendererPass(const std::string& in_name, const std::weak_ptr<Device>& in_device, RenderPassKey in_key) : name(in_name), key(std::move(in_key)), device(in_device)
 {
     std::vector<VkAttachmentDescription> attachments;
     std::vector<VkAttachmentReference>   color_attachment_references;

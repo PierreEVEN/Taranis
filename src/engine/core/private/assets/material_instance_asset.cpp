@@ -12,24 +12,34 @@ namespace Eng
 
 MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material, bool b_in_static) : base(base_material), b_static(b_in_static)
 {
-    if (base_material)
+}
+
+const std::shared_ptr<Gfx::Pipeline>& MaterialInstanceAsset::get_base_resource(const std::string& shader_pass) 
+{
+    auto perm = permutation.lock();
+    if (perm)
+        return perm->get_resource(shader_pass);
+
+    permutation = base->get_permutation(permutation_description);
+    if (!permutation.lock())
     {
+        permutation_description = base->get_default_permutation();
+        permutation             = base->get_permutation(permutation_description);
     }
+    perm = permutation.lock();
+    if (!perm)
+        return nullptr;
+    return perm->get_resource(shader_pass);
 }
 
-const std::shared_ptr<Gfx::Pipeline>& MaterialInstanceAsset::get_base_resource(const Gfx::ShaderPermutation& permutation) const
+const std::shared_ptr<Gfx::DescriptorSet>& MaterialInstanceAsset::get_descriptor_resource(const std::string& shader_pass)
 {
-    return base->get_resource(permutation);
-}
-
-const std::shared_ptr<Gfx::DescriptorSet>& MaterialInstanceAsset::get_descriptor_resource(const Gfx::ShaderPermutation& permutation)
-{
-    if (auto found = descriptors.find(permutation); found != descriptors.end())
+    if (auto found = descriptors.find(shader_pass); found != descriptors.end())
         return found->second;
 
-    if (auto base_material = get_base_resource(permutation))
+    if (auto base_material = get_base_resource(shader_pass))
     {
-        auto new_descriptor = descriptors.emplace(permutation, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors", Engine::get().get_device(), base_material, b_static)).first->second;
+        auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors", Engine::get().get_device(), base_material, b_static)).first->second;
 
         for (const auto& sampler : samplers)
             new_descriptor->bind_sampler(sampler.first, sampler.second->get_resource());
@@ -60,7 +70,7 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
 
 void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
-    textures.insert_or_assign(binding, buffer);
+    buffers.insert_or_assign(binding, buffer);
     for (const auto& desc : descriptors)
         desc.second->bind_buffer(binding, buffer.lock());
 }

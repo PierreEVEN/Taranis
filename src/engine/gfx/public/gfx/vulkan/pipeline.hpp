@@ -46,8 +46,11 @@ public:
         std::vector<StageInputOutputDescription> vertex_inputs;
     };
 
-    static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
-                                            CreateInfos        create_infos)
+    static std::shared_ptr<Pipeline> create(const std::string&                                name,
+                                            std::weak_ptr<Device>                             device,
+                                            const std::weak_ptr<VkRendererPass>&              render_pass,
+                                            const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
+                                            CreateInfos                                       create_infos)
     {
         return std::shared_ptr<Pipeline>(new Pipeline(name, std::move(device), render_pass, shader_stage, std::move(create_infos)));
     }

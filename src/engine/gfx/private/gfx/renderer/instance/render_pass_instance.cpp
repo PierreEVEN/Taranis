@@ -21,12 +21,12 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
     for (const auto& dependency : definition.dependencies)
         dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, dependency, false));
 
-    render_pass_resource = device.lock()->find_or_create_render_pass(definition.get_key(b_is_present));
+    render_pass_resource = device.lock()->declare_render_pass(definition.get_key(b_is_present), name);
 
     // Create imgui_context context
     if (definition.b_with_imgui)
     {
-        imgui_context = std::make_unique<ImGuiWrapper>(name, render_pass_resource, device, definition.imgui_input_window);
+        imgui_context = std::make_unique<ImGuiWrapper>(name, render_pass_resource.lock()->get_name(), device, definition.imgui_input_window);
         imgui_context->begin(resolution());
     }
 
@@ -86,7 +86,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
         .pClearValues = clear_values.data(),
     };
-    vkCmdBeginRenderPass(global_cmd.raw(), &begin_infos, enable_parallel_rendering() ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
+    global_cmd.begin_render_pass(render_pass_resource.lock()->get_name(), begin_infos, enable_parallel_rendering());
 
     if (render_pass_interface)
     {

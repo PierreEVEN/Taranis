@@ -138,24 +138,27 @@ const std::vector<const char*>& Device::get_device_extensions()
     return device_extensions;
 }
 
-std::weak_ptr<VkRendererPass> Device::find_or_create_render_pass(const RenderPassKey& key)
+std::weak_ptr<Gfx::VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const std::string& name)
 {
     const auto existing = render_passes.find(key);
 
     if (existing != render_passes.end())
+    {
+        render_passes_named.emplace(name, existing->second);
         return existing->second;
+    }
 
     const auto new_render_pass = VkRendererPass::create(key.name + "_pass", shared_from_this(), key);
     render_passes.emplace(key, new_render_pass);
+    render_passes_named.emplace(name, new_render_pass);
     return new_render_pass;
 }
 
-std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const std::string& name)
+std::weak_ptr<VkRendererPass> Device::get_render_pass(const std::string& name) const
 {
-}
-
-std::weak_ptr<VkRendererPass> Device::get_render_pass(const std::string& name)
-{
+    if (auto found = render_passes_named.find(name); found != render_passes_named.end())
+        return found->second;
+    return {};
 }
 
 void Device::destroy_resources()
@@ -163,6 +166,7 @@ void Device::destroy_resources()
     wait();
     pending_kill_resources.clear();
     render_passes.clear();
+    render_passes_named.clear();
     pending_kill_resources.clear();
     queues = nullptr;
     pending_kill_resources.clear();

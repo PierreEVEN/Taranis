@@ -10,8 +10,11 @@ namespace Eng
 {
 MaterialAsset::MaterialAsset() = default;
 
-void MaterialAsset::set_shader_code(const std::filesystem::path& code)
+void MaterialAsset::set_shader_code(const std::filesystem::path& code, std::optional<std::vector<StageInputOutputDescription>> vertex_input_override)
 {
+    if (vertex_input_override)
+        vertex_inputs = *vertex_input_override;
+    shader_path = code;
     permutations.clear();
     compiler_session    = ShaderCompiler::Compiler::get().create_session(code);
     default_permutation = compiler_session->get_default_permutations_description();
@@ -22,6 +25,12 @@ std::weak_ptr<MaterialPermutation> MaterialAsset::get_permutation(const Gfx::Per
     if (auto found = permutations.find(permutation); found != permutations.end())
         return found->second;
     return permutations.emplace(permutation, std::make_shared<MaterialPermutation>(this, permutation)).first->second;
+}
+
+void MaterialAsset::update_options(const Gfx::PipelineOptions& in_options)
+{
+    options = in_options;
+    set_shader_code(shader_path);
 }
 
 MaterialPermutation::MaterialPermutation(MaterialAsset* in_owner, Gfx::PermutationDescription permutation_desc) : owner(in_owner), permutation_description(std::move(permutation_desc))
@@ -40,7 +49,7 @@ const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const st
         std::string error_message = "Failed to compile shader:";
         for (const auto& error : compilation_result.errors)
             error_message += "\n" + error.message;
-        LOG_ERROR(error_message.c_str());
+        LOG_ERROR("{}", error_message);
 
         PassInfos infos;
         return passes.emplace(render_pass, infos).first->second.pipeline;
@@ -61,7 +70,7 @@ const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const st
         modules.emplace_back(Gfx::ShaderModule::create(device, stage.second));
     }
 
-    auto pipeline  = Gfx::Pipeline::create(owner->get_name(), device, render_pass_object, modules, Gfx::Pipeline::CreateInfos{.options = owner->options});
+    auto pipeline  = Gfx::Pipeline::create(owner->get_name(), device, render_pass_object, modules, Gfx::Pipeline::CreateInfos{.options = owner->options, .vertex_inputs = owner->vertex_inputs});
     infos.pipeline = pipeline;
     return passes.emplace(render_pass, infos).first->second.pipeline;
 };

@@ -44,7 +44,7 @@ class MaterialAsset : public AssetBase
 public:
     MaterialAsset();
 
-    void set_shader_code(const std::filesystem::path& code);
+    void set_shader_code(const std::filesystem::path& code, std::optional<std::vector<StageInputOutputDescription>> vertex_input_override = {});
 
     Gfx::PermutationDescription get_default_permutation() const
     {
@@ -53,13 +53,19 @@ public:
 
     std::weak_ptr<MaterialPermutation> get_permutation(const Gfx::PermutationDescription& permutation);
 
+    void update_options(const Gfx::PipelineOptions& options);
+
 private:
-    friend class MaterialPermutation;
+    friend MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 
     std::unordered_map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
 
     std::shared_ptr<ShaderCompiler::Session> compiler_session;
+
+    std::filesystem::path shader_path;
+
+    std::vector<StageInputOutputDescription> vertex_inputs;
 
     Gfx::PipelineOptions options;
 };
