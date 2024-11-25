@@ -16,43 +16,6 @@
 #include "gfx/vulkan/shader_module.hpp"
 #include "gfx/window.hpp"
 
-static const char* IMGUI_VERTEX = "\
-struct VSInput {\
-    [[vk::location(0)]] float2 aPos : POSITION;\
-    [[vk::location(1)]] float2 aUV : TEXCOORD;\
-    [[vk::location(2)]] float4 aColor : COLOR;\
-};\
-struct VsToFs {\
-    float4 Pos : SV_Position;\
-    float4 Color : COLOR;\
-    float2 UV : TEXCOORD;\
-};\
-struct PushConsts {\
-    float2 uScale;\
-    float2 uTranslate;\
-};\
-[[vk::push_constant]] ConstantBuffer<PushConsts> pc;\
-VsToFs main(VSInput input) {\
-    VsToFs Out;\
-    Out.Color = input.aColor;\
-    Out.UV = input.aUV;\
-    Out.Pos = float4(input.aPos * pc.uScale + pc.uTranslate, 0, 1);\
-    return Out;\
-}";
-
-static const char* IMGUI_FRAGMENT = "\
-struct VsToFs {\
-    float4 Pos : SV_Position;\
-    float4 Color : COLOR;\
-    float2 UV : TEXCOORD;\
-};\
-[[vk::binding(0)]] Texture2D	 sTexture;\
-[[vk::binding(1)]] SamplerState sSampler;\
-\
-float4 main(VsToFs input) : SV_TARGET{\
-    return input.Color * sTexture.Sample(sSampler, input.UV);\
-}";
-
 namespace Eng::Gfx
 {
 ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, std::weak_ptr<Device> in_device, std::weak_ptr<Window> in_target_window)
@@ -219,6 +182,8 @@ ImGuiWrapper::~ImGuiWrapper()
 
 void ImGuiWrapper::begin(glm::uvec2 draw_res)
 {
+    if (!imgui_material)
+        return;
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     // Setup display size (every frame to accommodate for start_window resizing)
@@ -258,6 +223,8 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
 
 void ImGuiWrapper::prepare_all_window()
 {
+    if (!imgui_material)
+        return;
     PROFILER_SCOPE(ImGuiPrepareWindows);
     ImGui::SetCurrentContext(imgui_context);
 
@@ -272,6 +239,8 @@ void ImGuiWrapper::prepare_all_window()
 
 void ImGuiWrapper::end(CommandBuffer& cmd)
 {
+    if (!imgui_material)
+        return;
     ImGui::SetCurrentContext(imgui_context);
 
     ImGui::EndFrame();
@@ -429,6 +398,8 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
 
 ImTextureID ImGuiWrapper::add_image(const std::shared_ptr<ImageView>& image_view)
 {
+    if (!imgui_material)
+        return 0;
     if (!image_view)
         return 0;
     auto found_descriptor = per_image_descriptor.find(image_view);

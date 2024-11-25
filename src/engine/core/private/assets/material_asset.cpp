@@ -69,9 +69,9 @@ const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const st
         infos.per_stage_code.emplace(stage.first, stage.second.compiled_module);
         modules.emplace_back(Gfx::ShaderModule::create(device, stage.second));
     }
+    if (!modules.empty())
+        infos.pipeline = Gfx::Pipeline::create(owner->get_name(), device, render_pass_object, modules, Gfx::Pipeline::CreateInfos{.options = owner->options, .vertex_inputs = owner->vertex_inputs});
 
-    auto pipeline  = Gfx::Pipeline::create(owner->get_name(), device, render_pass_object, modules, Gfx::Pipeline::CreateInfos{.options = owner->options, .vertex_inputs = owner->vertex_inputs});
-    infos.pipeline = pipeline;
     return passes.emplace(render_pass, infos).first->second.pipeline;
 };
 }

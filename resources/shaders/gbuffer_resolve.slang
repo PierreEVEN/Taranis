@@ -1,3 +1,6 @@
+
+import shader_base;
+
 #define PI 3.14159265358979323846
 
 // ----------------------------------------------------------------------------
@@ -55,10 +58,10 @@ float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 struct VsToFsStruct
 {
     float4 Pos : SV_Position;
-    float2 Uv : TEXCOORD;
+    float2 Uv;
 };
 
-[[vk::binding(0)]] SamplerState sSampler;
+SamplerState sSampler;
 Texture2D                       gbuffer_position;
 Texture2D                       gbuffer_albedo_m;
 Texture2D                       gbuffer_normal_r;
@@ -70,8 +73,8 @@ struct PushConsts
     float3 camera;
 };
 
-[[vk::push_constant]] ConstantBuffer<PushConsts> pc;
-
+[shader("vertex")]
+[RenderPass("gbuffers_resolve")]
 VsToFsStruct vs_main(uint vertex_index : SV_VertexID)
 {
     VsToFsStruct output;
@@ -81,7 +84,9 @@ VsToFsStruct vs_main(uint vertex_index : SV_VertexID)
     return output;
 }
 
-float4 fs_main(VsToFsStruct input) : SV_TARGET
+[shader("fragment")]
+[RenderPass("gbuffers_resolve")]
+float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 {
     float3 worldPosition = gbuffer_position.Sample(sSampler, input.Uv).xyz;
     float4 albedo_m      = gbuffer_albedo_m.Sample(sSampler, input.Uv);

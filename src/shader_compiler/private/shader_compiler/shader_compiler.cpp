@@ -2,13 +2,10 @@
 
 #include "slang.h"
 #include "slang-com-ptr.h"
-#include "slang_com_object.hpp"
 #include "slang_helper.hpp"
 
 #include <iostream>
 #include <mutex>
-
-#include <spirv_reflect.h>
 
 namespace ShaderCompiler
 {
@@ -77,12 +74,12 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
 
     std::cout << "TEST ::: " << (int)module->getModuleReflection()->getChildrenCount() << "\n";
 
-    slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
+    /*slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
     if (diagnostics)
     {
         load_errors.emplace_back(static_cast<const char*>(diagnostics->getBufferPointer()));
         return;
-    }
+    }*/
 }
 
 Session::~Session()
@@ -99,7 +96,7 @@ InOutReflection::InOutReflection(slang::TypeReflection* slang_var)
     case slang::TypeReflection::Kind::Struct:
         for (size_t i = 0; i < slang_var->getFieldCount(); ++i)
         {
-            push_variable(slang_var->getFieldByIndex(i));
+            push_variable(slang_var->getFieldByIndex(static_cast<uint32_t>(i)));
         }
         break;
     case slang::TypeReflection::Kind::Vector:
@@ -188,13 +185,13 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
 
         bool b_is_render_pass = false;
         auto global_var       = entry_point->getFunctionReflection();
-        for (size_t at = 0; at < global_var->getUserAttributeCount(); ++at)
+        for (uint32_t at = 0; at < global_var->getUserAttributeCount(); ++at)
         {
             auto user_attribute = global_var->getUserAttributeByIndex(at);
             if (user_attribute->getName() != std::string("RenderPass"))
                 continue;
 
-            for (size_t ar = 0; ar < user_attribute->getArgumentCount(); ++ar)
+            for (uint32_t ar = 0; ar < user_attribute->getArgumentCount(); ++ar)
             {
                 size_t      size;
                 const char* str = user_attribute->getArgumentValueString(ar, &size);
@@ -211,7 +208,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             continue;
 
         std::cout << "\tMAIN = '" << entry_point->getFunctionReflection()->getName() << "':\n";
-        for (SlangUInt j = 0; j < entry_point->getFunctionReflection()->getParameterCount(); j++)
+        for (uint32_t j = 0; j < entry_point->getFunctionReflection()->getParameterCount(); j++)
         {
             auto param = entry_point->getFunctionReflection()->getParameterByIndex(j);
             std::cout << "\t\t- " << param->getType()->getName() << " " << param->getName() << "\n";
@@ -293,7 +290,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             return result.push_error({"Unhandled shader stage type"});
         }
 
-        for (size_t pi = 0; pi < entry_point->getFunctionReflection()->getParameterCount(); ++pi)
+        for (uint32_t pi = 0; pi < entry_point->getFunctionReflection()->getParameterCount(); ++pi)
             data.inputs.push_variable(entry_point->getFunctionReflection()->getParameterByIndex(pi));
 
         if (auto return_type = entry_point->getFunctionReflection()->getReturnType())

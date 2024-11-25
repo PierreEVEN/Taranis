@@ -97,7 +97,7 @@ public:
     void init(const Gfx::RenderPassInstance&) override
     {
         auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat");
-        base_mat->set_shader_code("gbuffer_resolve.hlsl");
+        base_mat->set_shader_code("gbuffer_resolve");
 
         material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat, false);
         sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler");
@@ -202,8 +202,6 @@ class TestApp : public Application
             [Gfx::Attachment::slot("target")];
 
         default_window.lock()->set_renderer(renderer1);
-
-        auto rp = engine.get_device().lock()->find_or_create_render_pass(renderer1.get_node("gbuffers").get_key(false));
 
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
