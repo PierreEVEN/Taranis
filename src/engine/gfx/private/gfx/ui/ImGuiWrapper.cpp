@@ -32,7 +32,10 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
     {
         for (const auto& error : compilation_result.errors)
             LOG_ERROR("Imgui shader compilation failed : {}", error.message);
-        exit(-1);
+        while (true)
+        {
+        }
+        return;
     }
 
     if (compilation_result.stages.empty())

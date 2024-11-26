@@ -44,6 +44,12 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
     // Target
     slang::TargetDesc targetDesc;
     targetDesc.format       = SLANG_SPIRV;
+    targetDesc.profile      = compiler->global_session->findProfile("spirv_1_0");
+    if (targetDesc.profile == SLANG_PROFILE_UNKNOWN)
+    {
+        load_errors.emplace_back("Failed to find slang profile 'spirv_1_0'");
+        return;
+    }
     sessionDesc.targets     = &targetDesc;
     sessionDesc.targetCount = 1;
 
@@ -71,13 +77,6 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
         load_errors.emplace_back(static_cast<const char*>(diagnostics->getBufferPointer()));
         return;
     }
-
-    /*slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
-    if (diagnostics)
-    {
-        load_errors.emplace_back(static_cast<const char*>(diagnostics->getBufferPointer()));
-        return;
-    }*/
 }
 
 Session::~Session()
