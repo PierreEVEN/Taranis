@@ -74,7 +74,7 @@ struct PushConsts
 };
 
 [shader("vertex")]
-[RenderPass("gbuffers_resolve")]
+[RenderPass("gbuffer_resolve")]
 VsToFsStruct vs_main(uint vertex_index : SV_VertexID)
 {
     VsToFsStruct output;
@@ -85,7 +85,7 @@ VsToFsStruct vs_main(uint vertex_index : SV_VertexID)
 }
 
 [shader("fragment")]
-[RenderPass("gbuffers_resolve")]
+[RenderPass("gbuffer_resolve")]
 float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 {
     float3 worldPosition = gbuffer_position.Sample(sSampler, input.Uv).xyz;

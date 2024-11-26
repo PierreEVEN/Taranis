@@ -39,9 +39,11 @@ MaterialPermutation::MaterialPermutation(MaterialAsset* in_owner, Gfx::Permutati
 
 const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const std::string& render_pass)
 {
+    std::lock_guard lk(owner->pipeline_mutex);
     if (auto found = passes.find(render_pass); found != passes.end())
         return found->second.pipeline;
 
+    PROFILER_SCOPE_NAMED(CompileShader, std::string("Compile material '") + owner->get_name() + "' for render pass " + render_pass);
     auto compilation_result = owner->compiler_session->compile(render_pass, permutation_description);
 
     if (!compilation_result.errors.empty())
@@ -59,17 +61,20 @@ const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const st
 
     auto render_pass_object = device.lock()->get_render_pass(render_pass);
     if (!render_pass_object.lock())
+    {
         LOG_ERROR("There is no render pass named {}", render_pass);
+    }
+
+    PassInfos infos;
 
     std::vector<std::shared_ptr<Gfx::ShaderModule>> modules;
 
-    PassInfos infos;
     for (const auto& stage : compilation_result.stages)
     {
         infos.per_stage_code.emplace(stage.first, stage.second.compiled_module);
         modules.emplace_back(Gfx::ShaderModule::create(device, stage.second));
     }
-    if (!modules.empty())
+    if (!modules.empty() && render_pass_object.lock())
         infos.pipeline = Gfx::Pipeline::create(owner->get_name(), device, render_pass_object, modules, Gfx::Pipeline::CreateInfos{.options = owner->options, .vertex_inputs = owner->vertex_inputs});
 
     return passes.emplace(render_pass, infos).first->second.pipeline;

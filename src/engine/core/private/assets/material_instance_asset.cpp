@@ -14,7 +14,7 @@ MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& ba
 {
 }
 
-const std::shared_ptr<Gfx::Pipeline>& MaterialInstanceAsset::get_base_resource(const std::string& shader_pass) 
+std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const std::string& shader_pass) 
 {
     auto perm = permutation.lock();
     if (perm)
@@ -32,7 +32,7 @@ const std::shared_ptr<Gfx::Pipeline>& MaterialInstanceAsset::get_base_resource(c
     return perm->get_resource(shader_pass);
 }
 
-const std::shared_ptr<Gfx::DescriptorSet>& MaterialInstanceAsset::get_descriptor_resource(const std::string& shader_pass)
+std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resource(const std::string& shader_pass)
 {
     if (auto found = descriptors.find(shader_pass); found != descriptors.end())
         return found->second;
@@ -83,5 +83,10 @@ void MaterialInstanceAsset::set_scene_data(const std::weak_ptr<Gfx::Buffer>& buf
 
     set_buffer("scene_data_buffer", in_data);
     scene_buffer_data = buffer_data;
+}
+
+void MaterialInstanceAsset::prepare_for_passes(const std::string& render_pass)
+{
+    get_base_resource(render_pass);
 }
 } // namespace Eng

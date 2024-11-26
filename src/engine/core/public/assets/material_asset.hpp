@@ -5,6 +5,7 @@
 #include "gfx_types/pipeline.hpp"
 
 #include <filesystem>
+#include <mutex>
 
 namespace ShaderCompiler
 {
@@ -66,6 +67,8 @@ private:
     std::filesystem::path shader_path;
 
     std::vector<StageInputOutputDescription> vertex_inputs;
+
+    std::mutex pipeline_mutex;
 
     Gfx::PipelineOptions options;
 };

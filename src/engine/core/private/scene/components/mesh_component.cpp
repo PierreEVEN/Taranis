@@ -1,5 +1,6 @@
 #include "scene/components/mesh_component.hpp"
 
+#include "profiler.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
@@ -23,10 +24,18 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer)
         {
             if (section.material)
             {
+                PROFILER_SCOPE_NAMED(DrawMesh, "Draw mesh component " + std::string(get_name()));
                 section.material->set_scene_data(get_scene().get_scene_buffer());
-                command_buffer.bind_pipeline(section.material->get_base_resource(command_buffer.render_pass()));
-                command_buffer.bind_descriptors(*section.material->get_descriptor_resource(command_buffer.render_pass()), *section.material->get_base_resource(command_buffer.render_pass()));
-                command_buffer.push_constant(Gfx::EShaderStage::Vertex, *section.material->get_base_resource(command_buffer.render_pass()), Gfx::BufferData(Pc{.model = get_transform()}));
+
+                auto pipeline = section.material->get_base_resource(command_buffer.render_pass());
+                if (!pipeline)
+                    return;
+                command_buffer.bind_pipeline(pipeline);
+                command_buffer.push_constant(Gfx::EShaderStage::Vertex, *pipeline, Gfx::BufferData(Pc{.model = get_transform()}));
+
+                auto resources = section.material->get_descriptor_resource(command_buffer.render_pass());
+                assert(resources);
+                command_buffer.bind_descriptors(*resources, *pipeline);
                 command_buffer.draw_mesh(*section.mesh);
             }
         }

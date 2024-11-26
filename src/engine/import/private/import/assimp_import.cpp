@@ -199,6 +199,9 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         break;
     }
 
+    new_mat->prepare_for_passes("gbuffers");
+    new_mat->prepare_for_passes("shadows");
+
     return materials.emplace(id, new_mat).first->second;
 }
 

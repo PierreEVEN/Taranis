@@ -13,6 +13,7 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "gfx/vulkan/vk_render_pass.hpp"
 #include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
 #include "scene/scene.hpp"
@@ -107,10 +108,16 @@ public:
     void on_create_framebuffer(const Gfx::RenderPassInstance& render_pass) override
     {
         auto dep = render_pass.get_dependency("gbuffers").lock();
-        material->get_descriptor_resource("gbuffers")->bind_image("gbuffer_position", dep->get_attachment("position").lock());
-        material->get_descriptor_resource("gbuffers")->bind_image("gbuffer_albedo_m", dep->get_attachment("albedo-m").lock());
-        material->get_descriptor_resource("gbuffers")->bind_image("gbuffer_normal_r", dep->get_attachment("normal-r").lock());
-        material->get_descriptor_resource("gbuffers")->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
+        auto resource = material->get_descriptor_resource("gbuffer_resolve");
+
+        if (!resource)
+            return LOG_ERROR("Cannot get descriptor resource for pass {}", "gbuffer_resolve");
+        
+
+        resource->bind_image("gbuffer_position", dep->get_attachment("position").lock());
+        resource->bind_image("gbuffer_albedo_m", dep->get_attachment("albedo-m").lock());
+        resource->bind_image("gbuffer_normal_r", dep->get_attachment("normal-r").lock());
+        resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
     void draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
@@ -118,11 +125,11 @@ public:
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
             {
-                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *material->get_base_resource(command_buffer.get_name()), Gfx::BufferData{object.get_position()});
+                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *material->get_base_resource(command_buffer.render_pass()), Gfx::BufferData{object.get_position()});
             });
 
-        command_buffer.bind_pipeline(material->get_base_resource(command_buffer.get_name()));
-        command_buffer.bind_descriptors(*material->get_descriptor_resource(command_buffer.get_name()), *material->get_base_resource(command_buffer.get_name()));
+        command_buffer.bind_pipeline(material->get_base_resource(command_buffer.render_pass()));
+        command_buffer.bind_descriptors(*material->get_descriptor_resource(command_buffer.render_pass()), *material->get_base_resource(command_buffer.render_pass()));
         command_buffer.draw_procedural(6, 0, 1, 0);
     }
 
@@ -214,7 +221,7 @@ class TestApp : public Application
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
+                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
             });
         engine.jobs().schedule(
             [&, importer]

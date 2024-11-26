@@ -12,8 +12,10 @@ Viewport::Viewport(const std::string& name, const std::weak_ptr<Eng::Gfx::Render
     b_enable_menu_bar = true;
     draw_res          = render_pass.lock()->resolution();
     render_pass.lock()->set_resize_callback(
-        [&](auto)
+        [&](auto base)
         {
+            if (draw_res.x == 0 || draw_res.y == 0)
+                return base;
             return draw_res;
         });
 }

@@ -274,6 +274,9 @@ void SecondaryCommandBuffer::begin(bool)
 
     pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(raw(), &beginInfo), "failed to begin secondary command buffer");
+
+    render_pass_name = parent.lock()->render_pass_name;
+
     get_device().lock()->debug_set_object_name(get_name(), raw());
     reset_stats();
 }

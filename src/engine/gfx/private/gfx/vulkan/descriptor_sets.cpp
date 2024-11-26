@@ -1,5 +1,7 @@
 #include "gfx/vulkan/descriptor_sets.hpp"
 
+#include "profiler.hpp"
+
 #include <ranges>
 #include <utility>
 
@@ -53,6 +55,7 @@ std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, co
 
 const VkDescriptorSet& DescriptorSet::raw_current() const
 {
+    std::lock_guard lk(update_lock);
     if (b_static)
     {
         resources[0]->update();
@@ -67,7 +70,17 @@ void DescriptorSet::Resource::update()
 {
     if (!outdated)
         return;
-    outdated = false;
+    update_count++;
+    auto test_name = std::format("{:x}", size_t(ptr));
+    if (test_name == "319350000005fed" || test_name == "9f68c90000008e77" || test_name == "9b3b5a0000008e74" || test_name == "d9af760000008e78" || test_name == "cba2760000008e83" || test_name == "c760ac0000008e72")
+    {
+        LOG_DEBUG("GREUGNEUH {:x}", (size_t)ptr);
+    }
+
+    if (update_count > 1)
+        LOG_DEBUG("Reupdate {:x}", (size_t)ptr);
+
+    PROFILER_SCOPE(UpdateDescriptorSets);
     std::vector<VkWriteDescriptorSet> desc_sets;
     auto                              parent_ptr = parent.lock();
     for (const auto& val : parent_ptr->write_descriptors)
@@ -81,10 +94,12 @@ void DescriptorSet::Resource::update()
         }
     }
     vkUpdateDescriptorSets(device().lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
+    outdated = false;
 }
 
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
 {
+    std::lock_guard lk(update_lock);
     if (!in_image)
         LOG_FATAL("Cannot set null image in descriptor {}", binding_name);
     for (const auto& resource : resources)
@@ -94,6 +109,7 @@ void DescriptorSet::bind_image(const std::string& binding_name, const std::share
 
 void DescriptorSet::bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler)
 {
+    std::lock_guard lk(update_lock);
     for (const auto& resource : resources)
         resource->outdated = true;
     write_descriptors.insert_or_assign(binding_name, std::make_shared<SamplerDescriptor>(in_sampler));
@@ -101,6 +117,7 @@ void DescriptorSet::bind_sampler(const std::string& binding_name, const std::sha
 
 void DescriptorSet::bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer)
 {
+    std::lock_guard lk(update_lock);
     for (const auto& resource : resources)
         resource->outdated = true;
     write_descriptors.insert_or_assign(binding_name, std::make_shared<BufferDescriptor>(in_buffer));

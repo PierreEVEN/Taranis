@@ -18,7 +18,7 @@ struct PushConsts {
 };
 
 [shader("vertex")]
-[RenderPass("present_pass")]
+[RenderPass("present")]
 VsToFs vs_main(VSInput input, uniform PushConsts pc) {
     VsToFs Out;
     Out.Color = input.aColor;
@@ -31,7 +31,7 @@ Texture2D sTexture;
 SamplerState sSampler;
 
 [shader("fragment")]
-[RenderPass("present_pass")]
+[RenderPass("present")]
 float4 fs_main(VsToFs input) {
     return input.Color * sTexture.Sample(sSampler, input.UV);
 }

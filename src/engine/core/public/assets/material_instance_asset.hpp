@@ -38,15 +38,18 @@ class MaterialInstanceAsset : public AssetBase
 public:
     MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material, bool b_static = true);
 
-    const std::shared_ptr<Gfx::Pipeline>&      get_base_resource(const std::string& shader_pass);
-    const std::shared_ptr<Gfx::DescriptorSet>& get_descriptor_resource(const std::string& shader_pass);
+    std::shared_ptr<Gfx::Pipeline>      get_base_resource(const std::string& shader_pass);
+    std::shared_ptr<Gfx::DescriptorSet> get_descriptor_resource(const std::string& shader_pass);
 
     void set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
     void set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture);
     void set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
     void set_scene_data(const std::weak_ptr<Gfx::Buffer>& buffer);
 
-private:
+    // Compile shader for given pass if available (avoid lag spike later)
+    void prepare_for_passes(const std::string& render_pass);
+
+  private:
     std::weak_ptr<Gfx::Buffer>                                           scene_buffer_data;
     TObjectRef<MaterialAsset>                                            base;
     bool                                                                 b_static = true;

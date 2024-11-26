@@ -90,7 +90,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
 
     if (render_pass_interface)
     {
-        PROFILER_SCOPE(PreSubmit);
+        PROFILER_SCOPE(PreDraw);
         render_pass_interface->pre_draw(*this);
     }
 

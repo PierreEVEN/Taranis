@@ -55,17 +55,17 @@ struct CompilationError
     size_t      line = 0, column = 0;
 };
 
-struct InOutReflection
+struct TypeReflection
 {
-    InOutReflection() = default;
-    InOutReflection(slang::TypeReflection* slang_var);
+    TypeReflection() = default;
+    TypeReflection(slang::TypeReflection* slang_type);
 
     void push_variable(slang::VariableReflection* variable);
 
     static bool can_reflect(slang::TypeReflection* slang_var);
 
-    std::size_t total_stride = 0;
-    std::unordered_map<std::string, InOutReflection> children;
+    std::size_t                                     total_stride = 0;
+    std::unordered_map<std::string, TypeReflection> children;
 };
 
 struct StageData
@@ -74,8 +74,8 @@ struct StageData
     std::vector<BindingDescription> bindings;
     Eng::Gfx::EShaderStage          stage;
     uint32_t                        push_constant_size = 0;
-    InOutReflection    inputs;
-    InOutReflection    outputs;
+    TypeReflection                  inputs;
+    TypeReflection                  outputs;
 };
 
 struct CompilationResult
@@ -107,6 +107,7 @@ private:
     friend class Compiler;
     Session(Compiler* in_compiler, const std::filesystem::path& path);
 
+    mutable std::mutex            session_lock;
     Compiler*                     compiler = nullptr;
     slang::IModule*               module   = nullptr;
     slang::ISession*              session  = nullptr;

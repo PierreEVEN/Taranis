@@ -151,7 +151,6 @@ void Swapchain::create_or_recreate()
     if (resize_callback)
         LOG_FATAL("Resize callback can't be used with swapchain draw pass");
     create_or_resize(extent, extent, true);
-    LOG_WARNING("RECREATED");
 }
 
 void Swapchain::draw()

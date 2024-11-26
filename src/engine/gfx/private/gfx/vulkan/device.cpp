@@ -148,7 +148,7 @@ std::weak_ptr<Gfx::VkRendererPass> Device::declare_render_pass(const RenderPassK
         return existing->second;
     }
 
-    const auto new_render_pass = VkRendererPass::create(key.name + "_pass", shared_from_this(), key);
+    const auto new_render_pass = VkRendererPass::create(key.name, shared_from_this(), key);
     render_passes.emplace(key, new_render_pass);
     render_passes_named.emplace(name, new_render_pass);
     return new_render_pass;

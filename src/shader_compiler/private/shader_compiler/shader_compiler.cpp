@@ -72,8 +72,6 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
         return;
     }
 
-    std::cout << "TEST ::: " << (int)module->getModuleReflection()->getChildrenCount() << "\n";
-
     /*slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
     if (diagnostics)
     {
@@ -87,21 +85,21 @@ Session::~Session()
     session->release();
 }
 
-InOutReflection::InOutReflection(slang::TypeReflection* slang_var)
+TypeReflection::TypeReflection(slang::TypeReflection* slang_type)
 {
-    if (!can_reflect(slang_var))
+    if (!can_reflect(slang_type))
         return;
-    switch (slang_var->getKind())
+    switch (slang_type->getKind())
     {
     case slang::TypeReflection::Kind::Struct:
-        for (size_t i = 0; i < slang_var->getFieldCount(); ++i)
+        for (size_t i = 0; i < slang_type->getFieldCount(); ++i)
         {
-            push_variable(slang_var->getFieldByIndex(static_cast<uint32_t>(i)));
+            push_variable(slang_type->getFieldByIndex(static_cast<uint32_t>(i)));
         }
         break;
     case slang::TypeReflection::Kind::Vector:
     case slang::TypeReflection::Kind::Matrix:
-        switch (slang_var->getScalarType())
+        switch (slang_type->getScalarType())
         {
         case slang::TypeReflection::None:
         case slang::TypeReflection::Void:
@@ -109,35 +107,35 @@ InOutReflection::InOutReflection(slang::TypeReflection* slang_var)
         case slang::TypeReflection::Bool:
         case slang::TypeReflection::Int8:
         case slang::TypeReflection::UInt8:
-            total_stride += slang_var->getElementCount() * 1;
+            total_stride += slang_type->getElementCount() * 1;
             break;
         case slang::TypeReflection::Float16:
         case slang::TypeReflection::Int16:
         case slang::TypeReflection::UInt16:
-            total_stride += slang_var->getElementCount() * 2;
+            total_stride += slang_type->getElementCount() * 2;
             break;
         case slang::TypeReflection::Float32:
         case slang::TypeReflection::UInt32:
         case slang::TypeReflection::Int32:
-            total_stride += slang_var->getElementCount() * 4;
+            total_stride += slang_type->getElementCount() * 4;
             break;
         case slang::TypeReflection::Int64:
         case slang::TypeReflection::UInt64:
         case slang::TypeReflection::Float64:
-            total_stride += slang_var->getElementCount() * 8;
+            total_stride += slang_type->getElementCount() * 8;
             break;
         }
         break;
     }
 }
 
-void InOutReflection::push_variable(slang::VariableReflection* variable)
+void TypeReflection::push_variable(slang::VariableReflection* variable)
 {
     if (can_reflect(variable->getType()))
-        total_stride += children.emplace(variable->getName(), InOutReflection(variable->getType())).first->second.total_stride;
+        total_stride += children.emplace(variable->getName(), TypeReflection(variable->getType())).first->second.total_stride;
 }
 
-bool InOutReflection::can_reflect(slang::TypeReflection* slang_var)
+bool TypeReflection::can_reflect(slang::TypeReflection* slang_var)
 {
     switch (slang_var->getKind())
     {
@@ -153,6 +151,7 @@ bool InOutReflection::can_reflect(slang::TypeReflection* slang_var)
 
 CompilationResult Session::compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const
 {
+    std::lock_guard   lk(session_lock);
     CompilationResult result;
 
     for (const auto& error : load_errors)
@@ -160,11 +159,10 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
     if (!result.errors.empty())
         return result;
 
-    std::cout << "compile " << module->getDefinedEntryPointCount() << " entry points...\n";
-    for (SlangInt32 i = 0; i < module->getDefinedEntryPointCount(); ++i)
+    for (SlangInt32 ep_i = 0; ep_i < module->getDefinedEntryPointCount(); ++ep_i)
     {
         Slang::ComPtr<slang::IEntryPoint> entry_point;
-        if (SLANG_FAILED(module->getDefinedEntryPoint(i, entry_point.writeRef())))
+        if (SLANG_FAILED(module->getDefinedEntryPoint(ep_i, entry_point.writeRef())))
             return result.push_error({"Failed to get entry point"});
 
         std::vector<slang::IComponentType*> components;
@@ -185,16 +183,16 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
 
         bool b_is_render_pass = false;
         auto global_var       = entry_point->getFunctionReflection();
-        for (uint32_t at = 0; at < global_var->getUserAttributeCount(); ++at)
+        for (uint32_t at_i = 0; at_i < global_var->getUserAttributeCount(); ++at_i)
         {
-            auto user_attribute = global_var->getUserAttributeByIndex(at);
+            auto user_attribute = global_var->getUserAttributeByIndex(at_i);
             if (user_attribute->getName() != std::string("RenderPass"))
                 continue;
 
-            for (uint32_t ar = 0; ar < user_attribute->getArgumentCount(); ++ar)
+            for (uint32_t arg_i = 0; arg_i < user_attribute->getArgumentCount(); ++arg_i)
             {
                 size_t      size;
-                const char* str = user_attribute->getArgumentValueString(ar, &size);
+                const char* str = user_attribute->getArgumentValueString(arg_i, &size);
                 if (std::string(str, size) == '"' + render_pass + '"')
                 {
                     b_is_render_pass = true;
@@ -206,13 +204,6 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         }
         if (!b_is_render_pass)
             continue;
-
-        std::cout << "\tMAIN = '" << entry_point->getFunctionReflection()->getName() << "':\n";
-        for (uint32_t j = 0; j < entry_point->getFunctionReflection()->getParameterCount(); j++)
-        {
-            auto param = entry_point->getFunctionReflection()->getParameterByIndex(j);
-            std::cout << "\t\t- " << param->getType()->getName() << " " << param->getName() << "\n";
-        }
 
         Slang::ComPtr<slang::IComponentType> linkedProgram;
         Slang::ComPtr<slang::IBlob>          diagnostics;
@@ -233,19 +224,25 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
 
         StageData             data;
         slang::ProgramLayout* shaderReflection = linkedProgram->getLayout();
-        for (unsigned pp = 0; pp < shaderReflection->getParameterCount(); pp++)
+        for (unsigned par_i = 0; par_i < shaderReflection->getParameterCount(); par_i++)
         {
-            bool                             b_is_used = false;
-            slang::VariableLayoutReflection* parameter = shaderReflection->getParameterByIndex(pp);
+            bool                             b_is_used = true;
+            slang::VariableLayoutReflection* parameter = shaderReflection->getParameterByIndex(par_i);
             metadata->isParameterLocationUsed(static_cast<SlangParameterCategory>(parameter->getCategory()), 0, parameter->getBindingIndex(), b_is_used);
+
+            if (parameter->getCategory() == slang::PushConstantBuffer && !b_is_used)
+            {
+                if (entry_point->getLayout()->getEntryPointByIndex(0)->getStage() == SLANG_STAGE_VERTEX)
+                {
+                    std::cout << std::format("UNUSED PC !! {} : type={} / kind={} / cat={}\n", parameter->getName(), (int)parameter->getType()->getKind(),
+                                             static_cast<uint32_t>(parameter->getTypeLayout()->getStride(SLANG_PARAMETER_CATEGORY_PUSH_CONSTANT_BUFFER)), static_cast<int>(parameter->getCategory()));
+                    b_is_used = true;
+                }
+            }
+
             if (b_is_used)
             {
-                if (parameter->getCategory() == slang::PushConstantBuffer)
-                {
-                    data.push_constant_size = static_cast<uint32_t>(parameter->getTypeLayout()->getStride(SLANG_PARAMETER_CATEGORY_PUSH_CONSTANT_BUFFER));
-                    std::cout << "pc size : " << data.push_constant_size << std::endl;
-                }
-                else if (parameter->getCategory() == slang::DescriptorTableSlot)
+                if (parameter->getCategory() == slang::DescriptorTableSlot)
                 {
                     Eng::Gfx::EBindingType binding_type;
 
@@ -266,7 +263,6 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                         return result.push_error({"Unhandled descriptor parameter type"});
 
                     data.bindings.emplace_back(parameter->getName(), parameter->getBindingIndex(), binding_type);
-                    std::cout << "\t-" << parameter->getName() << " : " << (int)binding_type << " binding=" << parameter->getBindingIndex() << "\n";
                 }
                 else
                     return result.push_error({"Unhandled parameter category"});
@@ -290,11 +286,20 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             return result.push_error({"Unhandled shader stage type"});
         }
 
+        for (unsigned par_i = 0; par_i < entry_point->getLayout()->getEntryPointByIndex(0)->getParameterCount(); ++par_i)
+        {
+            auto parameter = entry_point->getLayout()->getEntryPointByIndex(0)->getParameterByIndex(par_i);
+
+            // @TODO Should be marked as PushConstant (slang issue)
+            if (parameter->getTypeLayout()->getParameterCategory() == slang::Uniform)
+                data.push_constant_size = static_cast<uint32_t>(parameter->getTypeLayout()->getSize());
+        }
+
         for (uint32_t pi = 0; pi < entry_point->getFunctionReflection()->getParameterCount(); ++pi)
             data.inputs.push_variable(entry_point->getFunctionReflection()->getParameterByIndex(pi));
 
         if (auto return_type = entry_point->getFunctionReflection()->getReturnType())
-            data.outputs     = InOutReflection(return_type);
+            data.outputs     = TypeReflection(return_type);
 
         data.compiled_module = std::vector<uint8_t>(kernel_blob->getBufferSize());
         std::memcpy(data.compiled_module.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());

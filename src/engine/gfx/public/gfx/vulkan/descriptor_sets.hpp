@@ -44,6 +44,8 @@ private:
         void update();
 
     private:
+
+        int                          update_count = 0;
         bool                         outdated   = false;
         size_t                       pool_index = 0;
         std::shared_ptr<Pipeline>    pipeline;
@@ -99,8 +101,8 @@ private:
     std::unordered_map<std::string, uint32_t>                    descriptor_bindings;
 
     std::vector<std::shared_ptr<Resource>> resources;
-
-    std::weak_ptr<Device> device;
-    bool                  b_static;
+    mutable std::mutex                     update_lock;
+    std::weak_ptr<Device>                  device;
+    bool                                   b_static;
 };
 } // namespace Eng::Gfx
