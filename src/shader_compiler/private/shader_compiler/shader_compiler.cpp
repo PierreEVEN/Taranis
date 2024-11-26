@@ -44,10 +44,10 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
     // Target
     slang::TargetDesc targetDesc;
     targetDesc.format       = SLANG_SPIRV;
-    targetDesc.profile      = compiler->global_session->findProfile("spirv_1_0");
+    targetDesc.profile      = compiler->global_session->findProfile("spirv_1_5");
     if (targetDesc.profile == SLANG_PROFILE_UNKNOWN)
     {
-        load_errors.emplace_back("Failed to find slang profile 'spirv_1_0'");
+        load_errors.emplace_back("Failed to find slang profile 'spirv_1_5'");
         return;
     }
     sessionDesc.targets     = &targetDesc;
