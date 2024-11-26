@@ -234,9 +234,9 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             {
                 if (entry_point->getLayout()->getEntryPointByIndex(0)->getStage() == SLANG_STAGE_VERTEX)
                 {
-                    std::cout << std::format("UNUSED PC !! {} : type={} / kind={} / cat={}\n", parameter->getName(), (int)parameter->getType()->getKind(),
+                    std::cout << std::format("UNUSED PC ISSUE !! {} : type={} / kind={} / cat={}\n", parameter->getName(), (int)parameter->getType()->getKind(),
                                              static_cast<uint32_t>(parameter->getTypeLayout()->getStride(SLANG_PARAMETER_CATEGORY_PUSH_CONSTANT_BUFFER)), static_cast<int>(parameter->getCategory()));
-                    b_is_used = true;
+                    exit(-1);
                 }
             }
 
@@ -290,7 +290,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         {
             auto parameter = entry_point->getLayout()->getEntryPointByIndex(0)->getParameterByIndex(par_i);
 
-            // @TODO Should be marked as PushConstant (slang issue)
+            // @TODO Should be marked as PushConstant (slang issue : https://github.com/shader-slang/slang/issues/5676)
             if (parameter->getTypeLayout()->getParameterCategory() == slang::Uniform)
                 data.push_constant_size = static_cast<uint32_t>(parameter->getTypeLayout()->getSize());
         }

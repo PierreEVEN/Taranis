@@ -226,7 +226,7 @@ class TestApp : public Application
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
+                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
             });
     }
 

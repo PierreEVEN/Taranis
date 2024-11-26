@@ -113,7 +113,8 @@ void Scene::draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& cmd_buffer,
 {
     PROFILER_SCOPE(SceneDraw);
     for_each_part<MeshComponent>([&cmd_buffer](MeshComponent& object)
-    {
+        {
+            PROFILER_SCOPE_NAMED(DrawMesh, "Drawmesh " + std::string(object.get_name()));
         object.draw(cmd_buffer);
     }, idx, num_threads);
 }

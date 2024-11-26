@@ -20,11 +20,11 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer)
 {
     if (mesh)
     {
+        PROFILER_SCOPE_NAMED(DrawMesh, "Draw mesh component " + std::string(get_name()) + " : " + std::to_string(mesh->get_sections().size()) + " sections");
         for (const auto& section : mesh->get_sections())
         {
             if (section.material)
             {
-                PROFILER_SCOPE_NAMED(DrawMesh, "Draw mesh component " + std::string(get_name()));
                 section.material->set_scene_data(get_scene().get_scene_buffer());
 
                 auto pipeline = section.material->get_base_resource(command_buffer.render_pass());

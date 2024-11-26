@@ -49,13 +49,15 @@ public:
     // Compile shader for given pass if available (avoid lag spike later)
     void prepare_for_passes(const std::string& render_pass);
 
-  private:
+private:
+    std::mutex descriptor_lock;
+
     std::weak_ptr<Gfx::Buffer>                                           scene_buffer_data;
     TObjectRef<MaterialAsset>                                            base;
     bool                                                                 b_static = true;
     std::unordered_map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
-    Gfx::PermutationDescription permutation_description;
+    Gfx::PermutationDescription        permutation_description;
     std::weak_ptr<MaterialPermutation> permutation;
 
     std::unordered_map<std::string, TObjectRef<SamplerAsset>>   samplers;

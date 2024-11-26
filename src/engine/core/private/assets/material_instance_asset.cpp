@@ -34,6 +34,7 @@ std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const st
 
 std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resource(const std::string& shader_pass)
 {
+    std::lock_guard lk(descriptor_lock);
     if (auto found = descriptors.find(shader_pass); found != descriptors.end())
         return found->second;
 
@@ -56,6 +57,7 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
 
 void MaterialInstanceAsset::set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler)
 {
+    std::lock_guard lk(descriptor_lock);
     samplers.insert_or_assign(binding, sampler);
     for (const auto& desc : descriptors)
         desc.second->bind_sampler(binding, sampler->get_resource());
@@ -63,6 +65,7 @@ void MaterialInstanceAsset::set_sampler(const std::string& binding, const TObjec
 
 void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture)
 {
+    std::lock_guard lk(descriptor_lock);
     textures.insert_or_assign(binding, texture);
     for (const auto& desc : descriptors)
         desc.second->bind_image(binding, texture->get_view());
@@ -77,6 +80,7 @@ void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::we
 
 void MaterialInstanceAsset::set_scene_data(const std::weak_ptr<Gfx::Buffer>& buffer_data)
 {
+    std::lock_guard lk(descriptor_lock);
     auto in_data = buffer_data.lock();
     if (scene_buffer_data.lock() == in_data)
         return;

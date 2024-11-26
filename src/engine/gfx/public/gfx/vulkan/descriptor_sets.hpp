@@ -33,19 +33,24 @@ public:
 private:
     class Resource : public DeviceResource
     {
-        friend class DescriptorSet;
-
     public:
         Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<Pipeline>& in_pipeline);
         Resource(Resource&)  = delete;
         Resource(Resource&&) = delete;
         ~Resource();
 
-        void update();
+        void mark_as_dirty()
+        {
+            outdated = true;
+        }
 
+        void update();
+        const VkDescriptorSet& raw() const
+        {
+            return ptr;
+        }
     private:
 
-        int                          update_count = 0;
         bool                         outdated   = false;
         size_t                       pool_index = 0;
         std::shared_ptr<Pipeline>    pipeline;
