@@ -17,7 +17,7 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
 {
     friend class Resource;
 
-public:
+  public:
     DescriptorSet(DescriptorSet&)  = delete;
     DescriptorSet(DescriptorSet&&) = delete;
     ~DescriptorSet();
@@ -30,10 +30,10 @@ public:
     void       bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer);
     std::mutex test_mtx;
 
-private:
+  private:
     class Resource : public DeviceResource
     {
-    public:
+      public:
         Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<Pipeline>& in_pipeline);
         Resource(Resource&)  = delete;
         Resource(Resource&&) = delete;
@@ -44,13 +44,13 @@ private:
             outdated = true;
         }
 
-        void update();
+        void                   update();
         const VkDescriptorSet& raw() const
         {
             return ptr;
         }
-    private:
 
+      private:
         bool                         outdated   = false;
         size_t                       pool_index = 0;
         std::shared_ptr<Pipeline>    pipeline;
@@ -62,16 +62,16 @@ private:
 
     class Descriptor
     {
-    public:
-        Descriptor()             = default;
-        Descriptor(Descriptor&)  = delete;
-        Descriptor(Descriptor&&) = delete;
+      public:
+        Descriptor()                       = default;
+        Descriptor(Descriptor&)            = delete;
+        Descriptor(Descriptor&&)           = delete;
         virtual VkWriteDescriptorSet get() = 0;
     };
 
     class ImageDescriptor : public Descriptor
     {
-    public:
+      public:
         ImageDescriptor(std::shared_ptr<ImageView> in_image) : image(std::move(in_image))
         {
         }
@@ -82,7 +82,7 @@ private:
 
     class SamplerDescriptor : public Descriptor
     {
-    public:
+      public:
         SamplerDescriptor(std::shared_ptr<Sampler> in_sampler) : sampler(std::move(in_sampler))
         {
         }
@@ -93,7 +93,7 @@ private:
 
     class BufferDescriptor : public Descriptor
     {
-    public:
+      public:
         BufferDescriptor(std::shared_ptr<Buffer> in_buffer) : buffer(std::move(in_buffer))
         {
         }

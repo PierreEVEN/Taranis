@@ -60,10 +60,9 @@ struct TextReader
     void                       skip_blank();
 
   private:
-
-    size_t       current_line_index  = 1;
-    size_t       current_char_offset = 0;
-    int64_t      location            = 0;
+    size_t             current_line_index  = 1;
+    size_t             current_char_offset = 0;
+    int64_t            location            = 0;
     const std::string* data                = nullptr;
 };
 
@@ -71,13 +70,12 @@ class FileReader
 {
 
   public:
-
     FileReader(const std::filesystem::path& path);
 
     std::optional<std::string> next_line();
 
     TextReader read();
-    size_t timestamp() const
+    size_t     timestamp() const
     {
         return last_write_time;
     }

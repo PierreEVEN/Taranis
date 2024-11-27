@@ -1,7 +1,7 @@
 #include "gfx/vulkan/queue_family.hpp"
 
-#include "profiler.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
+#include "profiler.hpp"
 
 #include <ranges>
 #include <unordered_map>
@@ -70,13 +70,13 @@ void Queues::update_specializations()
         if (compute_queue)
             no_graphic_queue_map.erase(compute_queue->index());
         if (auto found_present_queue = find_best_suited_queue_family(no_graphic_queue_map, 0, true, {}))
-            present_queue            = found_present_queue;
+            present_queue = found_present_queue;
         else
         {
             no_graphic_queue_map = queue_map;
             no_graphic_queue_map.erase(graphic_queue->index());
             if (found_present_queue = find_best_suited_queue_family(no_graphic_queue_map, 0, true, {}))
-                present_queue       = found_present_queue;
+                present_queue = found_present_queue;
         }
     }
 
@@ -193,7 +193,7 @@ VkResult QueueFamily::submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos
 }
 
 auto Queues::find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
-                                           const std::vector<VkQueueFlags>&                                  desired_queue_flags) -> std::shared_ptr<QueueFamily>
+                                           const std::vector<VkQueueFlags>& desired_queue_flags) -> std::shared_ptr<QueueFamily>
 {
     uint32_t                     high_score = 0;
     std::shared_ptr<QueueFamily> best_queue;

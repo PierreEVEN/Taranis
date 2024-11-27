@@ -1,28 +1,27 @@
-#include "assets/texture_asset.hpp"
-#include "config.hpp"
-#include "engine.hpp"
-#include "object_allocator.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
 #include "assets/sampler_asset.hpp"
-#include <gfx/window.hpp>
+#include "assets/texture_asset.hpp"
+#include "config.hpp"
+#include "engine.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/device.hpp"
-#include "gfx/vulkan/vk_render_pass.hpp"
 #include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
-#include "scene/scene.hpp"
+#include "object_allocator.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
+#include "scene/scene.hpp"
 #include "widgets/content_browser.hpp"
 #include "widgets/profiler.hpp"
 #include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
+#include <gfx/window.hpp>
 
 using namespace Eng;
 
@@ -60,7 +59,7 @@ class SceneShadowsInterface : public Gfx::IRenderPass
 
 class SceneGBuffers : public Gfx::IRenderPass
 {
-public:
+  public:
     SceneGBuffers(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -90,7 +89,7 @@ public:
 
 class GBufferResolveInterface : public Gfx::IRenderPass
 {
-public:
+  public:
     GBufferResolveInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -107,12 +106,11 @@ public:
 
     void on_create_framebuffer(const Gfx::RenderPassInstance& render_pass) override
     {
-        auto dep = render_pass.get_dependency("gbuffers").lock();
+        auto dep      = render_pass.get_dependency("gbuffers").lock();
         auto resource = material->get_descriptor_resource("gbuffer_resolve");
 
         if (!resource)
             return LOG_ERROR("Cannot get descriptor resource for pass {}", "gbuffer_resolve");
-        
 
         resource->bind_image("gbuffer_position", dep->get_attachment("position").lock());
         resource->bind_image("gbuffer_albedo_m", dep->get_attachment("albedo-m").lock());
@@ -140,24 +138,22 @@ public:
 
 class TestWindow : public UiWindow
 {
-public:
-    explicit TestWindow(const std::string& name)
-        : UiWindow(name)
+  public:
+    explicit TestWindow(const std::string& name) : UiWindow(name)
     {
     }
 
-protected:
+  protected:
     void draw(Gfx::ImGuiWrapper&) override
     {
 
         ImGui::SliderInt("par", &worker_count, 1, 120);
     }
-
 };
 
 class PresentPass : public Gfx::IRenderPass
 {
-public:
+  public:
     PresentPass(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -176,7 +172,6 @@ public:
 class TestApp : public Application
 {
   public:
-
     void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
@@ -184,29 +179,17 @@ class TestApp : public Application
         default_window = in_default_window;
 
         Gfx::Renderer renderer1;
-        
-        renderer1["shadows"]
-            .render_pass<SceneShadowsInterface>(scene)
-            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D16_UNORM).clear_depth({1.0f, 0.0f})];
 
-        renderer1["gbuffers"]
-            .render_pass<SceneGBuffers>(scene)
-            [Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
-            [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
-            [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})]
-            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
+        renderer1["shadows"].render_pass<SceneShadowsInterface>(scene)[Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
 
-        renderer1["gbuffer_resolve"]
-            .require("gbuffers")
-            .require("shadows")
-            .render_pass<GBufferResolveInterface>(scene)
-            [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
+        renderer1["gbuffers"].render_pass<SceneGBuffers>(
+            scene)[Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
+                  [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
+                  [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})][Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
 
-        renderer1["present"]
-            .require("gbuffer_resolve")
-            .with_imgui(true, default_window)
-            .render_pass<PresentPass>(scene)
-            [Gfx::Attachment::slot("target")];
+        renderer1["gbuffer_resolve"].require("gbuffers").require("shadows").render_pass<GBufferResolveInterface>(scene)[Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
+
+        renderer1["present"].require("gbuffer_resolve").with_imgui(true, default_window).render_pass<PresentPass>(scene)[Gfx::Attachment::slot("target")];
 
         default_window.lock()->set_renderer(renderer1);
 
@@ -221,12 +204,12 @@ class TestApp : public Application
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
+                // scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
+                // scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
             });
     }
 

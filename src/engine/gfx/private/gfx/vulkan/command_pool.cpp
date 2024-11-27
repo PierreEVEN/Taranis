@@ -45,28 +45,19 @@ std::pair<VkCommandBuffer, CommandPool::Mutex> CommandPool::allocate(bool b_seco
         std::stringstream ss;
         ss << thread_id;
 
-        VkCommandPoolCreateInfo create_infos{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = queue_family
-        };
+        VkCommandPoolCreateInfo create_infos{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = queue_family};
 
         VkCommandPool ptr;
         VK_CHECK(vkCreateCommandPool(device.lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create command pool")
         device.lock()->debug_set_object_name(name + "-$" + ss.str(), ptr);
-        command_pools.emplace(thread_id, CommandPoolResource{
-                                  .pool = ptr,
-                                  .lock = Mutex(thread_id)
-                              });
+        command_pools.emplace(thread_id, CommandPoolResource{.pool = ptr, .lock = Mutex(thread_id)});
         command_pool = command_pools.find(thread_id);
     }
 
-    VkCommandBufferAllocateInfo infos{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = command_pool->second.pool,
-        .level = b_secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1
-    };
+    VkCommandBufferAllocateInfo infos{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                      .commandPool        = command_pool->second.pool,
+                                      .level              = b_secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                      .commandBufferCount = 1};
 
     VkCommandBuffer out;
 

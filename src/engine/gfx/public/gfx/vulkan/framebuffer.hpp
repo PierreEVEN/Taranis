@@ -18,9 +18,9 @@ class CommandBuffer;
 
 class Framebuffer : public DeviceResource
 {
-public:
+  public:
     static std::shared_ptr<Framebuffer> create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets,
-                                               bool                  require_secondary);
+                                               bool require_secondary);
 
     Framebuffer(Framebuffer&&) = delete;
     Framebuffer(Framebuffer&)  = delete;

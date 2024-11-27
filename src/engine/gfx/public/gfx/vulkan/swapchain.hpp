@@ -1,6 +1,6 @@
 #pragma once
-#include "gfx/types.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
+#include "gfx/types.hpp"
 
 #include <glm/vec2.hpp>
 #include <memory>
@@ -45,8 +45,7 @@ class Swapchain final : public RenderPassInstance
 
     std::vector<const Semaphore*> get_semaphores_to_wait(SwapchainImageId swapchain_image) const override;
 
-    
-    static ColorFormat get_swapchain_format(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface);
+    static ColorFormat        get_swapchain_format(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface);
     static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
     static VkPresentModeKHR   choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes, bool vsync);
     static glm::uvec2         choose_extent(const VkSurfaceCapabilitiesKHR& capabilities, glm::uvec2 base_extent);

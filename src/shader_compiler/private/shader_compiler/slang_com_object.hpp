@@ -36,13 +36,14 @@ namespace Slang
 #endif
 
 #ifdef _DEBUG
-#define SLANG_ASSERT(VALUE)               \
-    do                                    \
-    {                                     \
-        if (!(VALUE)) {                    \
-            std::cerr << "SLANG ERROR : "#VALUE"\n"; \
-            exit(-1);\
-            } \
+#define SLANG_ASSERT(VALUE)                            \
+    do                                                 \
+    {                                                  \
+        if (!(VALUE))                                  \
+        {                                              \
+            std::cerr << "SLANG ERROR : " #VALUE "\n"; \
+            exit(-1);                                  \
+        }                                              \
     } while (0)
 #else
 #define SLANG_ASSERT(VALUE) SLANG_ASSUME(VALUE)
@@ -51,27 +52,30 @@ namespace Slang
 /// and are *NOT* derived from RefObject
 class ComBaseObject
 {
-public:
+  public:
     /// If assigned the the ref count is *NOT* copied
-    ComBaseObject& operator=(const ComBaseObject&) { return *this; }
+    ComBaseObject& operator=(const ComBaseObject&)
+    {
+        return *this;
+    }
 
     /// Copy Ctor, does not copy ref count
-    ComBaseObject(const ComBaseObject&)
-        : m_refCount(0)
+    ComBaseObject(const ComBaseObject&) : m_refCount(0)
     {
     }
 
     /// Default Ctor sets with no refs
-    ComBaseObject()
-        : m_refCount(0)
+    ComBaseObject() : m_refCount(0)
     {
     }
 
     /// Dtor needs to be virtual to avoid needing to
     /// Implement release for all derived types.
-    virtual ~ComBaseObject() {}
+    virtual ~ComBaseObject()
+    {
+    }
 
-protected:
+  protected:
     inline uint32_t _releaseImpl();
 
     std::atomic<uint32_t> m_refCount;
@@ -90,18 +94,17 @@ inline uint32_t ComBaseObject::_releaseImpl()
     return count;
 }
 
-#define SLANG_COM_BASE_IUNKNOWN_QUERY_INTERFACE                                                    \
-    SLANG_NO_THROW SlangResult SLANG_MCALL queryInterface(SlangUUID const& uuid, void** outObject) \
-        SLANG_OVERRIDE                                                                             \
-    {                                                                                              \
-        void* intf = getInterface(uuid);                                                           \
-        if (intf)                                                                                  \
-        {                                                                                          \
-            ++m_refCount;                                                                          \
-            *outObject = intf;                                                                     \
-            return SLANG_OK;                                                                       \
-        }                                                                                          \
-        return SLANG_E_NO_INTERFACE;                                                               \
+#define SLANG_COM_BASE_IUNKNOWN_QUERY_INTERFACE                                                                   \
+    SLANG_NO_THROW SlangResult SLANG_MCALL queryInterface(SlangUUID const& uuid, void** outObject) SLANG_OVERRIDE \
+    {                                                                                                             \
+        void* intf = getInterface(uuid);                                                                          \
+        if (intf)                                                                                                 \
+        {                                                                                                         \
+            ++m_refCount;                                                                                         \
+            *outObject = intf;                                                                                    \
+            return SLANG_OK;                                                                                      \
+        }                                                                                                         \
+        return SLANG_E_NO_INTERFACE;                                                                              \
     }
 #define SLANG_COM_BASE_IUNKNOWN_ADD_REF                         \
     SLANG_NO_THROW uint32_t SLANG_MCALL addRef() SLANG_OVERRIDE \
@@ -177,22 +180,25 @@ class RefObject
 /// COM object that derives from RefObject
 class ComObject : public RefObject
 {
-protected:
+  protected:
     std::atomic<uint32_t> comRefCount;
 
-public:
-    ComObject()
-        : comRefCount(0)
+  public:
+    ComObject() : comRefCount(0)
     {
     }
-    ComObject(const ComObject& rhs)
-        : RefObject(rhs), comRefCount(0)
+    ComObject(const ComObject& rhs) : RefObject(rhs), comRefCount(0)
     {
     }
 
-    ComObject& operator=(const ComObject&) { return *this; }
+    ComObject& operator=(const ComObject&)
+    {
+        return *this;
+    }
 
-    virtual void comFree() {}
+    virtual void comFree()
+    {
+    }
 
     uint32_t addRefImpl()
     {
@@ -214,18 +220,17 @@ public:
     }
 };
 
-#define SLANG_COM_OBJECT_IUNKNOWN_QUERY_INTERFACE                                                  \
-    SLANG_NO_THROW SlangResult SLANG_MCALL queryInterface(SlangUUID const& uuid, void** outObject) \
-        SLANG_OVERRIDE                                                                             \
-    {                                                                                              \
-        void* intf = getInterface(uuid);                                                           \
-        if (intf)                                                                                  \
-        {                                                                                          \
-            addRef();                                                                              \
-            *outObject = intf;                                                                     \
-            return SLANG_OK;                                                                       \
-        }                                                                                          \
-        return SLANG_E_NO_INTERFACE;                                                               \
+#define SLANG_COM_OBJECT_IUNKNOWN_QUERY_INTERFACE                                                                 \
+    SLANG_NO_THROW SlangResult SLANG_MCALL queryInterface(SlangUUID const& uuid, void** outObject) SLANG_OVERRIDE \
+    {                                                                                                             \
+        void* intf = getInterface(uuid);                                                                          \
+        if (intf)                                                                                                 \
+        {                                                                                                         \
+            addRef();                                                                                             \
+            *outObject = intf;                                                                                    \
+            return SLANG_OK;                                                                                      \
+        }                                                                                                         \
+        return SLANG_E_NO_INTERFACE;                                                                              \
     }
 #define SLANG_COM_OBJECT_IUNKNOWN_ADD_REF                       \
     SLANG_NO_THROW uint32_t SLANG_MCALL addRef() SLANG_OVERRIDE \

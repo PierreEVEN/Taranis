@@ -1,7 +1,7 @@
 #pragma once
 #include "macros.hpp"
-#include "scene_component.hpp"
 #include "scene\components\camera_component.gen.hpp"
+#include "scene_component.hpp"
 
 namespace Eng::Gfx
 {
@@ -14,7 +14,7 @@ class CameraComponent : public SceneComponent
 {
     REFLECT_BODY();
 
-public:
+  public:
     CameraComponent();
 
     const glm::mat4& view_matrix()
@@ -29,7 +29,7 @@ public:
         if (in_resolution != resolution)
         {
             resolution = in_resolution;
-            outdated = true;
+            outdated   = true;
         }
 
         if (outdated)
@@ -62,11 +62,11 @@ public:
   private:
     void recompute();
 
-public:
+  public:
     void set_position(glm::vec3 in_position) override;
     void set_rotation(glm::quat in_rotation) override;
 
-private:
+  private:
     bool       outdated = true;
     float      fov      = 90.0f;
     float      z_near   = 0.01f;
@@ -76,15 +76,12 @@ private:
     glm::uvec2 resolution;
 };
 
-
 class FpsCameraComponent : public CameraComponent
 {
     REFLECT_BODY();
 
-public:
-    FpsCameraComponent()
-    {
-    };
+  public:
+    FpsCameraComponent(){};
 
     void set_pitch(float in_pitch);
     void set_yaw(float in_yaw);
@@ -99,11 +96,10 @@ public:
         return yaw;
     }
 
-private:
+  private:
     void update_rotation();
 
     float pitch = 0, yaw = 0;
 };
 
-
-}
+} // namespace Eng

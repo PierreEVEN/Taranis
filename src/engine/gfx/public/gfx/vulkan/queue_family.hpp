@@ -27,7 +27,7 @@ const char* get_queue_specialization_name(QueueSpecialization elem);
 
 class QueueFamily
 {
-public:
+  public:
     QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present, std::shared_ptr<std::shared_mutex> queue_global_lock);
     QueueFamily(QueueFamily&)  = delete;
     QueueFamily(QueueFamily&&) = delete;
@@ -62,22 +62,22 @@ public:
         name = in_name;
     }
 
-private:
+  private:
     std::mutex queue_mutex;
 
-    uint32_t                     queue_index;
-    VkQueueFlags                 queue_flags;
-    bool                         queue_support_present;
-    std::mutex                   queue_lock;
-    VkQueue                      ptr = VK_NULL_HANDLE;
-    std::shared_ptr<CommandPool> command_pool;
-    std::string                  name;
+    uint32_t                           queue_index;
+    VkQueueFlags                       queue_flags;
+    bool                               queue_support_present;
+    std::mutex                         queue_lock;
+    VkQueue                            ptr = VK_NULL_HANDLE;
+    std::shared_ptr<CommandPool>       command_pool;
+    std::string                        name;
     std::shared_ptr<std::shared_mutex> queue_global_lock;
 };
 
 class Queues
 {
-public:
+  public:
     Queues(const PhysicalDevice& physical_device, const Surface& surface);
     Queues(Queues&)  = delete;
     Queues(Queues&&) = delete;
@@ -94,7 +94,7 @@ public:
         return *queue_global_lock;
     }
 
-private:
+  private:
     void update_specializations();
 
     std::unordered_map<uint8_t, std::shared_ptr<QueueFamily>> preferred;
@@ -103,6 +103,6 @@ private:
     std::shared_ptr<std::shared_mutex> queue_global_lock = std::make_shared<std::shared_mutex>();
 
     static std::shared_ptr<QueueFamily> find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
-                                                                      const std::vector<VkQueueFlags>&                                  desired_queue_flags);
+                                                                      const std::vector<VkQueueFlags>& desired_queue_flags);
 };
 } // namespace Eng::Gfx

@@ -3,8 +3,8 @@
 #include <unordered_map>
 
 #include "config.hpp"
-#include "logger.hpp"
 #include "jobsys/job_sys.hpp"
+#include "logger.hpp"
 
 #include <chrono>
 
@@ -22,20 +22,18 @@ class Device;
 class Instance;
 } // namespace Gfx
 
-
 class Application
 {
-public:
+  public:
     virtual ~Application() = default;
 
     virtual void init(Engine& engine, const std::weak_ptr<Gfx::Window>& default_window) = 0;
-    virtual void tick_game(Engine& engine, double delta_second) = 0;
+    virtual void tick_game(Engine& engine, double delta_second)                         = 0;
 };
-
 
 class Engine
 {
-public:
+  public:
     Engine(Config config);
     Engine(Engine&&) = delete;
     Engine(Engine&)  = delete;
@@ -68,7 +66,6 @@ public:
 
     double get_seconds() const;
 
-
     JobSystem& jobs()
     {
         if (!job_system)
@@ -76,7 +73,7 @@ public:
         return *job_system;
     }
 
-private:
+  private:
     void run_internal();
 
     std::chrono::steady_clock::time_point last_time;

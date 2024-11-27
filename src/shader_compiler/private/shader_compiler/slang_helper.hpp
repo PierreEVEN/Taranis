@@ -4,7 +4,6 @@
 #include <slang-com-helper.h>
 #include <slang.h>
 
-
 /** Base class for simple blobs.
  */
 class BlobBase : public ISlangBlob, public Slang::ComBaseObject

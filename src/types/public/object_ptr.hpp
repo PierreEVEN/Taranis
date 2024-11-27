@@ -1,9 +1,9 @@
 #pragma once
 
+#include "class.hpp"
 #include <cassert>
 #include <iostream>
 #include <type_traits>
-#include "class.hpp"
 
 #include <shared_mutex>
 
@@ -19,14 +19,13 @@ class Class;
 
 class IObjectDestructor
 {
-public:
+  public:
     virtual ~IObjectDestructor() = default;
 };
 
-template <typename T>
-class TObjectDestructor final : public IObjectDestructor
+template <typename T> class TObjectDestructor final : public IObjectDestructor
 {
-public:
+  public:
     TObjectDestructor(struct ObjectAllocation* in_allocation) : allocation(in_allocation)
     {
     }
@@ -49,7 +48,6 @@ struct ObjectAllocation final
     {
         delete destructor;
     }
-
 };
 
 template <typename T> TObjectDestructor<T>::~TObjectDestructor()
@@ -63,7 +61,7 @@ class IObject
     template <typename V> friend class TObjectPtr;
     template <typename V> friend class TObjectRef;
 
-public:
+  public:
     operator bool() const
     {
         return allocation && allocation->ptr;
@@ -74,7 +72,7 @@ public:
 
     void destroy();
 
-protected:
+  protected:
     void destructor_ptr()
     {
         if (*this)
@@ -101,7 +99,7 @@ protected:
         }
     }
 
-private:
+  private:
     void free()
     {
         delete allocation;
@@ -116,7 +114,7 @@ template <typename T> class TObjectPtr final : public IObject
     template <typename V> friend class TObjectPtr;
     template <typename V> friend class TObjectRef;
 
-public:
+  public:
     TObjectPtr()
     {
     }
@@ -146,8 +144,7 @@ public:
         }
     }
 
-    template <typename V>
-    TObjectPtr(const TObjectPtr<V>& other)
+    template <typename V> TObjectPtr(const TObjectPtr<V>& other)
     {
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
         if (other)
@@ -192,7 +189,6 @@ public:
         return TObjectRef<V>();
     }
 
-
     ~TObjectPtr() override
     {
         destructor_ptr();
@@ -234,7 +230,7 @@ template <typename T> class TObjectRef final : public IObject
     template <typename V> friend class TObjectPtr;
     template <typename V> friend class TObjectRef;
 
-public:
+  public:
     TObjectRef() = default;
 
     TObjectRef(TObjectRef&& in_object) noexcept

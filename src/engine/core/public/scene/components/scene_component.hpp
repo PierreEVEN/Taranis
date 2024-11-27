@@ -3,8 +3,8 @@
 #include "macros.hpp"
 #include "object_ptr.hpp"
 #include "scene/scene.hpp"
-#include <glm/gtc/quaternion.hpp>
 #include "scene\components\scene_component.gen.hpp"
+#include <glm/gtc/quaternion.hpp>
 
 namespace Eng
 {
@@ -20,7 +20,7 @@ class SceneComponent
 
     void internal_tick(double delta_second);
 
-public:
+  public:
     virtual ~SceneComponent()
     {
         delete[] name;
@@ -37,12 +37,12 @@ public:
         TObjectRef<SceneComponent> this_ref = scene->allocator->get_ref<SceneComponent>(this, get_class());
         if (!this_ref)
             LOG_FATAL("Internal error : failed to get ref to this object");
-        ObjectAllocation* alloc             = this_ref->scene->allocator->allocate(T::static_class());
-        T*                         ptr      = static_cast<T*>(alloc->ptr);
-        ptr->scene                          = this_ref->scene;
-        ptr->name                           = new char[name.size() + 1];
+        ObjectAllocation* alloc = this_ref->scene->allocator->allocate(T::static_class());
+        T*                ptr   = static_cast<T*>(alloc->ptr);
+        ptr->scene              = this_ref->scene;
+        ptr->name               = new char[name.size() + 1];
         memcpy(const_cast<char*>(ptr->name), name.c_str(), name.size() + 1);
-        new(alloc->ptr) T(std::forward<Args>(args)...);
+        new (alloc->ptr) T(std::forward<Args>(args)...);
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
@@ -110,14 +110,14 @@ public:
 
     std::vector<TObjectPtr<SceneComponent>> children{};
 
-protected:
+  protected:
     SceneComponent()
     {
     }
 
-private:
-    const char*  name;
-    Scene* scene;
+  private:
+    const char* name;
+    Scene*      scene;
 
     bool      b_transform_dirty = true;
     glm::mat4 transform{1};
@@ -126,4 +126,4 @@ private:
     glm::quat rotation = glm::identity<glm::quat>();
     glm::vec3 scale{1};
 };
-}
+} // namespace Eng

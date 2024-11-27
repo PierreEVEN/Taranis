@@ -76,12 +76,12 @@ Instance::Instance(GfxConfig& config)
     }
 
     VkApplicationInfo appInfo{
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = config.app_name.c_str(),
+        .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName   = config.app_name.c_str(),
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "Ashwga",
-        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_3,
+        .pEngineName        = "Ashwga",
+        .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion         = VK_API_VERSION_1_3,
     };
 
     uint32_t     glfw_extension_count = 0;
@@ -98,11 +98,11 @@ Instance::Instance(GfxConfig& config)
         debug_messenger_infos = {
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
             .messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
+                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
             .pfnUserCallback = debug_callback,
-            .pUserData = nullptr, // Optional
+            .pUserData       = nullptr, // Optional
         };
         instance_infos.pNext = &debug_messenger_infos;
     }
@@ -155,7 +155,6 @@ void Instance::end_debug_marker(const VkCommandBuffer& cmd) const
         }
     }
 }
-
 
 bool Instance::are_validation_layer_supported()
 {

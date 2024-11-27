@@ -2,7 +2,6 @@
 
 #include "gfx/vulkan/command_buffer.hpp"
 
-#include "profiler.hpp"
 #include "gfx/mesh.hpp"
 #include "gfx/vulkan/buffer.hpp"
 #include "gfx/vulkan/command_pool.hpp"
@@ -13,23 +12,21 @@
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
+#include "profiler.hpp"
 
 namespace Eng::Gfx
 {
 class Fence;
 
 CommandBuffer::CommandBuffer(std::string in_name, std::weak_ptr<Device> in_device, QueueSpecialization in_type, std::thread::id thread_id, bool secondary)
-    : type(in_type), device(std::move(in_device)), thread_id(thread_id), name(
-          std::move(
-              in_name))
+    : type(in_type), device(std::move(in_device)), thread_id(thread_id), name(std::move(in_name))
 {
     auto allocation = device.lock()->get_queues().get_queue(type)->get_command_pool().allocate(secondary, thread_id);
     ptr             = allocation.first;
     pool_mtx        = allocation.second;
 }
 
-SecondaryCommandBuffer::SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& in_parent, const std::weak_ptr<Framebuffer>& in_framebuffer,
-                                               std::thread::id    thread_id)
+SecondaryCommandBuffer::SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& in_parent, const std::weak_ptr<Framebuffer>& in_framebuffer, std::thread::id thread_id)
     : CommandBuffer(name, in_parent.lock()->get_device(), in_parent.lock()->get_specialization(), thread_id, true), framebuffer(in_framebuffer), parent(in_parent)
 {
 }
@@ -51,13 +48,11 @@ void CommandBuffer::begin(bool one_time)
         .flags = one_time ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : static_cast<VkCommandBufferUsageFlags>(0),
     };
 
-
     pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer")
     device.lock()->debug_set_object_name(name, ptr);
     reset_stats();
 }
-
 
 void CommandBuffer::end()
 {
@@ -192,15 +187,15 @@ void CommandBuffer::set_scissor(const Scissor& scissors) const
     assert(std::this_thread::get_id() == thread_id);
     const VkRect2D vk_scissor{
         .offset =
-        VkOffset2D{
-            .x = scissors.offset_x,
-            .y = scissors.offset_y,
-        },
+            VkOffset2D{
+                .x = scissors.offset_x,
+                .y = scissors.offset_y,
+            },
         .extent =
-        VkExtent2D{
-            .width = scissors.width,
-            .height = scissors.height,
-        },
+            VkExtent2D{
+                .width  = scissors.width,
+                .height = scissors.height,
+            },
     };
     vkCmdSetScissor(ptr, 0, 1, &vk_scissor);
 }
@@ -209,8 +204,8 @@ void CommandBuffer::set_viewport(const Viewport& in_viewport) const
 {
     assert(std::this_thread::get_id() == thread_id);
     const VkViewport viewport{
-        .x = in_viewport.x,
-        .y = in_viewport.y,
+        .x        = in_viewport.x,
+        .y        = in_viewport.y,
         .width    = in_viewport.width,
         .height   = in_viewport.height,
         .minDepth = in_viewport.min_depth,
@@ -252,7 +247,6 @@ void CommandBuffer::reset_stats()
     last_pipeline = nullptr;
 }
 
-
 void SecondaryCommandBuffer::begin(bool)
 {
     if (b_wait_submission)
@@ -261,14 +255,14 @@ void SecondaryCommandBuffer::begin(bool)
     b_wait_submission = true;
     is_recording      = true;
     VkCommandBufferInheritanceInfo inheritance{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-        .renderPass = framebuffer.lock()->get_render_pass_resource().lock()->raw(),
+        .sType       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+        .renderPass  = framebuffer.lock()->get_render_pass_resource().lock()->raw(),
         .framebuffer = framebuffer.lock()->raw(),
     };
 
     const VkCommandBufferBeginInfo beginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+        .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags            = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
         .pInheritanceInfo = &inheritance,
     };
 

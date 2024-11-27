@@ -20,17 +20,17 @@ enum class EBufferType
 
 enum class EBufferUsage
 {
-    INDEX_DATA = 0x00000001,             // used as index get
-    VERTEX_DATA = 0x00000002,            // used as vertex get
-    GPU_MEMORY = 0x00000003,             // used as storage get
-    UNIFORM_BUFFER = 0x00000004,         // used as uniform get
+    INDEX_DATA             = 0x00000001, // used as index get
+    VERTEX_DATA            = 0x00000002, // used as vertex get
+    GPU_MEMORY             = 0x00000003, // used as storage get
+    UNIFORM_BUFFER         = 0x00000004, // used as uniform get
     INDIRECT_DRAW_ARGUMENT = 0x00000005, // used for indirect begin commands
-    TRANSFER_MEMORY = 0x00000006,        // host local memory used to transfer data to device memory
+    TRANSFER_MEMORY        = 0x00000006, // host local memory used to transfer data to device memory
 };
 
 class BufferData
 {
-public:
+  public:
     BufferData() : ptr(nullptr), element_count(0), stride(0)
     {
     }
@@ -91,11 +91,11 @@ public:
 
 class Buffer
 {
-public:
+  public:
     struct CreateInfos
     {
-        EBufferUsage  usage;
-        EBufferType   type   = EBufferType::IMMUTABLE;
+        EBufferUsage usage;
+        EBufferType  type = EBufferType::IMMUTABLE;
     };
 
     static std::shared_ptr<Buffer> create(std::string name, std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count)
@@ -137,28 +137,28 @@ public:
 
     class Resource : public DeviceResource
     {
-    public:
+      public:
         Resource(const std::string& name, std::weak_ptr<Device> device, const Buffer::CreateInfos& create_infos, size_t stride, size_t element_count);
         ~Resource();
-        void          set_data_and_wait(size_t start_index, const BufferData& data);
+        void set_data_and_wait(size_t start_index, const BufferData& data);
 
         void set_data(size_t start_index, const BufferData& data);
         void wait_data_upload();
 
-        size_t        stride        = 0;
-        size_t        element_count = 0;
-        bool          outdated      = false;
-        bool          host_visible  = false;
-        VkBuffer      ptr           = VK_NULL_HANDLE;
-        VmaAllocation allocation    = VK_NULL_HANDLE;
-        VkDescriptorBufferInfo descriptor_data;
-        std::string            name;
+        size_t                         stride        = 0;
+        size_t                         element_count = 0;
+        bool                           outdated      = false;
+        bool                           host_visible  = false;
+        VkBuffer                       ptr           = VK_NULL_HANDLE;
+        VmaAllocation                  allocation    = VK_NULL_HANDLE;
+        VkDescriptorBufferInfo         descriptor_data;
+        std::string                    name;
         std::shared_ptr<CommandBuffer> data_update_cmd;
         std::shared_ptr<Fence>         data_update_fence;
         std::shared_ptr<Buffer>        transfer_buffer;
     };
 
-private:
+  private:
     Buffer(std::string name, std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
     size_t                                 stride        = 0;
     size_t                                 element_count = 0;

@@ -27,7 +27,7 @@ struct TokenizerBlock
     struct Reader
     {
 
-        size_t       location = 0;
+        size_t                location = 0;
         const TokenizerBlock* parent;
 
         void operator++()

@@ -54,10 +54,10 @@ std::unique_ptr<CommentToken> CommentToken::consume(Location& in_location, const
 {
     if (in_location.index + 1 < source.size())
     {
-        //comment
+        // comment
         if (source[in_location.index] == '/' && source[in_location.index + 1] == '/')
         {
-            ++++in_location;
+            ++ ++in_location;
             Location start = in_location;
 
             for (; in_location.index < source.length(); ++in_location.index)
@@ -72,14 +72,14 @@ std::unique_ptr<CommentToken> CommentToken::consume(Location& in_location, const
         /*comment*/
         if (source[in_location.index] == '/' && source[in_location.index + 1] == '*')
         {
-            ++++in_location;
+            ++ ++in_location;
             Location start = in_location;
             for (size_t i = start.index; i < source.length() - 1; ++i)
             {
                 if (source[i] == '*' && source[i + 1] == '/')
                 {
                     std::string value = source.substr(start.index, in_location.index - start.index);
-                    ++++in_location;
+                    ++ ++in_location;
                     auto comment       = std::make_unique<CommentToken>(start);
                     comment->value     = value;
                     comment->multiline = true;
@@ -209,7 +209,7 @@ std::unique_ptr<StringLiteralToken> StringLiteralToken::consume(Location& in_loc
         while (in_location.index < source.length() - 1)
         {
             if (source[in_location.index] == '\\' && source[in_location.index + 1] == '\\')
-                ++++in_location.index;
+                ++ ++in_location.index;
             if (source[in_location.index] == '"' && source[in_location.index - 1] != '\\')
             {
                 std::string value  = source.substr(start.index, in_location.index - start.index);
@@ -223,7 +223,6 @@ std::unique_ptr<StringLiteralToken> StringLiteralToken::consume(Location& in_loc
         error = {start, "Missing string literal end. '\"' expected"};
     }
     return nullptr;
-
 }
 
 std::unique_ptr<ArgumentsToken> ArgumentsToken::consume(Location& in_location, const std::string& source, std::optional<ParserError>& error)
@@ -254,8 +253,8 @@ std::unique_ptr<IntegerToken> IntegerToken::consume(Location& in_location, const
     auto start_chr = source[in_location.index];
     if (std::isdigit(start_chr))
     {
-        auto start           = in_location;
-        auto end             = start;
+        auto start = in_location;
+        auto end   = start;
         while (end.index < source.size())
         {
             auto chr = source[end.index];
@@ -283,7 +282,7 @@ std::unique_ptr<FloatingPointToken> FloatingPointToken::consume(Location& in_loc
     auto start_chr = source[in_location.index];
     if (std::isdigit(start_chr) || (in_location.index < source.size() - 1 && start_chr == '.' && std::isdigit(source[in_location.index + 1])))
     {
-        bool b_first_decimal = true;
+        bool     b_first_decimal = true;
         Location start           = in_location;
         Location end             = start;
         while (end.index < source.size())
@@ -308,9 +307,9 @@ std::unique_ptr<FloatingPointToken> FloatingPointToken::consume(Location& in_loc
         }
         if (b_first_decimal)
             return nullptr;
-        auto word = std::make_unique<FloatingPointToken>(start);
+        auto        word    = std::make_unique<FloatingPointToken>(start);
         std::string num_str = "0" + source.substr(start.index, end.index - start.index);
-        char* end_ptr;
+        char*       end_ptr;
         word->number = strtod(&*num_str.begin(), &end_ptr);
         if (end_ptr != &*num_str.begin() + num_str.size())
         {
@@ -329,4 +328,4 @@ std::unique_ptr<SymbolToken> SymbolToken::consume(Location& in_location, const s
     symbol->symbol = source[in_location.index++];
     return symbol;
 }
-}
+} // namespace Llp

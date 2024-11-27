@@ -1,7 +1,7 @@
 #include "shader_compiler/shader_compiler.hpp"
 
-#include "slang.h"
 #include "slang-com-ptr.h"
+#include "slang.h"
 #include "slang_helper.hpp"
 
 #include <iostream>
@@ -43,8 +43,8 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
 
     // Target
     slang::TargetDesc targetDesc;
-    targetDesc.format       = SLANG_SPIRV;
-    targetDesc.profile      = compiler->global_session->findProfile("spirv_1_5");
+    targetDesc.format  = SLANG_SPIRV;
+    targetDesc.profile = compiler->global_session->findProfile("spirv_1_5");
     if (targetDesc.profile == SLANG_PROFILE_UNKNOWN)
     {
         load_errors.emplace_back("Failed to find slang profile 'spirv_1_5'");
@@ -298,7 +298,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             data.inputs.push_variable(entry_point->getFunctionReflection()->getParameterByIndex(pi));
 
         if (auto return_type = entry_point->getFunctionReflection()->getReturnType())
-            data.outputs     = TypeReflection(return_type);
+            data.outputs = TypeReflection(return_type);
 
         data.compiled_module = std::vector<uint8_t>(kernel_blob->getBufferSize());
         std::memcpy(data.compiled_module.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());
@@ -306,4 +306,4 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
     }
     return result;
 }
-} // namespace Eng::Gfx
+} // namespace ShaderCompiler

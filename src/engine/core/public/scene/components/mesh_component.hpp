@@ -1,6 +1,6 @@
 #pragma once
-#include "scene_component.hpp"
 #include "scene\components\mesh_component.gen.hpp"
+#include "scene_component.hpp"
 
 namespace Eng
 {
@@ -24,15 +24,12 @@ class MeshComponent : public SceneComponent
 {
     REFLECT_BODY();
 
-public:
-    MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {})
-        : mesh(in_mesh)
-    {
-    };
+  public:
+    MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {}) : mesh(in_mesh){};
 
     void draw(Gfx::CommandBuffer& command_buffer);
 
-    TObjectRef<MeshAsset>       mesh;
+    TObjectRef<MeshAsset> mesh;
 };
 
-}
+} // namespace Eng

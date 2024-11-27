@@ -1,7 +1,7 @@
 #pragma once
 #include "asset_base.hpp"
-#include "object_ptr.hpp"
 #include "assets\sampler_asset.gen.hpp"
+#include "object_ptr.hpp"
 
 namespace Eng
 {
@@ -21,11 +21,10 @@ class SamplerAsset : public AssetBase
         return sampler;
     }
 
-private:
+  private:
     SamplerAsset();
 
     std::shared_ptr<Gfx::Sampler> sampler;
-
 };
 
-}
+} // namespace Eng

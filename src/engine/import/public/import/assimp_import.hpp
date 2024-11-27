@@ -1,7 +1,7 @@
 #pragma once
-#include "object_ptr.hpp"
 #include "assets/mesh_asset.hpp"
 #include "gfx/vulkan/buffer.hpp"
+#include "object_ptr.hpp"
 
 #include <memory>
 
@@ -36,10 +36,9 @@ namespace Gfx
 class BufferData;
 }
 
-
 class AssimpImporter
 {
-public:
+  public:
     enum class MaterialType
     {
         Opaque_Albedo,
@@ -79,12 +78,9 @@ public:
         std::filesystem::path                                       file_path;
     };
 
-
     Scene load_from_path(const std::filesystem::path& path) const;
 
     std::shared_ptr<Assimp::Importer> importer;
-
 };
 
-
-}
+} // namespace Eng

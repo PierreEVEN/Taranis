@@ -3,9 +3,9 @@
 #include "scene/scene.hpp"
 
 #include "engine.hpp"
+#include "gfx/vulkan/buffer.hpp"
 #include "object_allocator.hpp"
 #include "profiler.hpp"
-#include "gfx/vulkan/buffer.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
@@ -16,7 +16,6 @@ struct Lights
     uint32_t point_lights       = 0;
     uint32_t spot_lights        = 0;
 };
-
 
 struct SceneBufferData
 {
@@ -69,10 +68,11 @@ void Scene::tick(double delta_second)
     for (auto& deleted_node : std::ranges::reverse_view(deleted_nodes))
         root_nodes.erase(deleted_node);
 
-    for_each<SceneComponent>([delta_second](SceneComponent& object)
-    {
-        object.tick(delta_second);
-    });
+    for_each<SceneComponent>(
+        [delta_second](SceneComponent& object)
+        {
+            object.tick(delta_second);
+        });
 }
 
 void Scene::pre_draw(const Gfx::RenderPassInstance& render_pass)
@@ -92,16 +92,13 @@ void Scene::pre_draw(const Gfx::RenderPassInstance& render_pass)
     glm::mat4 inv_perspective      = inverse(active_camera->perspective_matrix(render_pass.resolution()));
     glm::mat4 inv_perspective_view = inv_view * inv_perspective;
 
-    scene_buffer->set_data(0, Gfx::BufferData{
-                               SceneBufferData{
-                                   .view_mat = transpose(active_camera->view_matrix()),
-                                   .perspective_mat = transpose(active_camera->perspective_matrix(render_pass.resolution())),
-                                   .perspective_view_mat = transpose(last_pv),
-                                   .in_view_mat = transpose(inv_view),
-                                   .inv_perspective_mat = transpose(inv_perspective),
-                                   .inv_perspective_view_mat = transpose(inv_perspective_view),
-                                   .lights = {}
-                               }});
+    scene_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.view_mat                 = transpose(active_camera->view_matrix()),
+                                                              .perspective_mat          = transpose(active_camera->perspective_matrix(render_pass.resolution())),
+                                                              .perspective_view_mat     = transpose(last_pv),
+                                                              .in_view_mat              = transpose(inv_view),
+                                                              .inv_perspective_mat      = transpose(inv_perspective),
+                                                              .inv_perspective_view_mat = transpose(inv_perspective_view),
+                                                              .lights                   = {}}});
 }
 
 void Scene::pre_submit(const Gfx::RenderPassInstance&)
@@ -112,10 +109,12 @@ void Scene::pre_submit(const Gfx::RenderPassInstance&)
 void Scene::draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& cmd_buffer, size_t idx, size_t num_threads)
 {
     PROFILER_SCOPE(SceneDraw);
-    for_each_part<MeshComponent>([&cmd_buffer](MeshComponent& object)
+    for_each_part<MeshComponent>(
+        [&cmd_buffer](MeshComponent& object)
         {
             PROFILER_SCOPE_NAMED(DrawMesh, "Drawmesh " + std::string(object.get_name()));
-        object.draw(cmd_buffer);
-    }, idx, num_threads);
+            object.draw(cmd_buffer);
+        },
+        idx, num_threads);
 }
-}
+} // namespace Eng

@@ -4,8 +4,8 @@
 #include "object_allocator.hpp"
 #include "object_ptr.hpp"
 
-#include <vector>
 #include "scene\scene.gen.hpp"
+#include <vector>
 
 #include <glm/ext/matrix_float4x4.hpp>
 
@@ -40,7 +40,7 @@ class Scene final
     REFLECT_BODY();
     friend class SceneComponent;
 
-public:
+  public:
     Scene();
 
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
@@ -51,7 +51,7 @@ public:
         ptr->scene              = this;
         ptr->name               = new char[name.size() + 1];
         memcpy(const_cast<char*>(ptr->name), name.c_str(), name.size() + 1);
-        new(alloc->ptr) T(std::forward<Args>(args)...);
+        new (alloc->ptr) T(std::forward<Args>(args)...);
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
@@ -65,8 +65,7 @@ public:
     void pre_submit(const Gfx::RenderPassInstance& render_pass);
     void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads);
 
-    template <typename T>
-    void for_each(const std::function<void(T&)>& callback) const
+    template <typename T> void for_each(const std::function<void(T&)>& callback) const
     {
         allocator->for_each(callback);
     }
@@ -107,8 +106,7 @@ public:
         return scene_buffer;
     }
 
-
-private:
+  private:
     TObjectRef<CameraComponent> active_camera;
 
     std::shared_ptr<Gfx::Buffer> scene_buffer;

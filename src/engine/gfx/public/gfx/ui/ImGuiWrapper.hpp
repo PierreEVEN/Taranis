@@ -32,7 +32,7 @@ class Pipeline;
 
 class ImGuiWrapper
 {
-public:
+  public:
     ImGuiWrapper(std::string name, const std::string& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
     void begin(glm::uvec2 draw_res);
@@ -41,17 +41,14 @@ public:
 
     ImTextureID add_image(const std::shared_ptr<ImageView>& image_view);
 
-
-    template <typename T, typename... Args> std::weak_ptr<T> new_window(const std::string& window_name, Args&&...args)
+    template <typename T, typename... Args> std::weak_ptr<T> new_window(const std::string& window_name, Args&&... args)
     {
         auto new_window = std::make_shared<T>(window_name, std::forward<Args>(args)...);
         windows.push_back(new_window);
         return new_window;
     }
 
-private:
-
-
+  private:
     std::vector<std::shared_ptr<UiWindow>> windows;
 
     std::chrono::steady_clock::time_point last_time;

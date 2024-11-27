@@ -13,14 +13,14 @@ namespace slang
 {
 struct TypeReflection;
 struct VariableReflection;
-}
+} // namespace slang
 
 namespace slang
 {
 struct ISession;
 struct IModule;
 struct IGlobalSession;
-}
+} // namespace slang
 
 namespace ShaderCompiler
 {
@@ -90,10 +90,9 @@ struct CompilationResult
     std::unordered_map<Eng::Gfx::EShaderStage, StageData> stages;
 };
 
-
 class Session
 {
-public:
+  public:
     CompilationResult compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const;
 
     Eng::Gfx::PermutationDescription get_default_permutations_description() const
@@ -103,7 +102,7 @@ public:
 
     ~Session();
 
-private:
+  private:
     friend class Compiler;
     Session(Compiler* in_compiler, const std::filesystem::path& path);
 
@@ -115,21 +114,20 @@ private:
     std::vector<CompilationError> load_errors;
 };
 
-
 class Compiler
 {
-public:
+  public:
     ~Compiler();
 
     static Compiler& get();
 
     std::shared_ptr<Session> create_session(const std::filesystem::path& path);
 
-private:
+  private:
     friend Session;
 
     slang::IGlobalSession* global_session = nullptr;
 
     Compiler();
 };
-}
+} // namespace ShaderCompiler

@@ -2,9 +2,9 @@
 #include "assets/asset_registry.hpp"
 #include "assets/texture_asset.hpp"
 #include "engine.hpp"
+#include "gfx/vulkan/buffer.hpp"
 #include "object_ptr.hpp"
 #include "profiler.hpp"
-#include "gfx/vulkan/buffer.hpp"
 
 #include <FreeImage.h>
 
@@ -41,11 +41,9 @@ static FreeImageInitializer _initializer;
 TObjectRef<TextureAsset> StbImporter::load_from_path(const std::filesystem::path& path)
 {
     FREE_IMAGE_FORMAT image_format = FreeImage_GetFileType(path.string().c_str(), 0);
-    
-    FIBITMAP*            image_raw = FreeImage_Load(image_format, path.string().c_str(), 0);
 
+    FIBITMAP* image_raw = FreeImage_Load(image_format, path.string().c_str(), 0);
 
-    
     FreeImage_Unload(image_raw);
 
     std::ifstream        input(path, std::ios::binary);
@@ -67,7 +65,7 @@ TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, con
         return {};
     }
 
-    FIBITMAP*         image_raw    = FreeImage_LoadFromMemory(image_format, mem_handle);
+    FIBITMAP* image_raw = FreeImage_LoadFromMemory(image_format, mem_handle);
     if (!image_raw)
     {
         LOG_ERROR("Failed to load image {} (format : {})", file_name, static_cast<int>(image_format));
@@ -81,8 +79,7 @@ TObjectRef<TextureAsset> StbImporter::load_raw(const std::string& file_name, con
     uint32_t x = FreeImage_GetWidth(converted);
     uint32_t y = FreeImage_GetHeight(converted);
 
-    const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4),
-                                                                          TextureAsset::CreateInfos{.width = x, .height = y, .channels = 4});
+    const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4), TextureAsset::CreateInfos{.width = x, .height = y, .channels = 4});
 
     FreeImage_Unload(converted);
     return text;

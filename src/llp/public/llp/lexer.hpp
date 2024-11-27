@@ -7,7 +7,7 @@ namespace Llp
 {
 class Lexer
 {
-public:
+  public:
     Lexer(const std::string& source);
 
     const Block& get_root() const
@@ -20,8 +20,8 @@ public:
         return error;
     }
 
-private:
+  private:
     std::optional<ParserError> error;
     Block                      block;
 };
-}
+} // namespace Llp

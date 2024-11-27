@@ -16,15 +16,14 @@ class Class;
 
 class ObjectAllocator
 {
-public:
-    virtual const ObjectAllocation* allocate(const Reflection::Class* component_class) = 0;
+  public:
+    virtual const ObjectAllocation* allocate(const Reflection::Class* component_class)               = 0;
     virtual void                    free(const Reflection::Class* component_class, void* allocation) = 0;
 };
 
-
 class ContiguousObjectPool
 {
-public:
+  public:
     ContiguousObjectPool(const Reflection::Class* in_object_class) : object_class(in_object_class), stride(object_class->stride())
     {
     }
@@ -63,7 +62,7 @@ public:
         return component_count;
     }
 
-private:
+  private:
     void reserve(size_t desired_count);
     void resize(size_t new_count);
     void move_old_to_new_block(void* old, void* new_block);
@@ -79,7 +78,7 @@ private:
 
 template <typename T> class TObjectIterator
 {
-public:
+  public:
     TObjectIterator(const std::vector<ContiguousObjectPool*>& in_classes) : classes(in_classes)
     {
         if (classes.empty())
@@ -121,7 +120,7 @@ public:
         return index < this_pool_count && current_class_index < classes.size();
     }
 
-private:
+  private:
     size_t                             index               = 0;
     size_t                             this_pool_count     = 0;
     size_t                             current_class_index = 0;
@@ -131,13 +130,13 @@ private:
 
 template <typename T> class TObjectIteratorPart
 {
-public:
+  public:
     TObjectIteratorPart(const std::vector<ContiguousObjectPool*>& in_classes, size_t first_pool_start, size_t last_pool_end) : classes(in_classes), index(first_pool_start), end(last_pool_end)
-  {
-      if (classes.empty())
-          return;
-      current_class   = classes[0];
-      this_pool_count = current_class->size();
+    {
+        if (classes.empty())
+            return;
+        current_class   = classes[0];
+        this_pool_count = current_class->size();
     }
 
     T& operator*() const
@@ -173,18 +172,18 @@ public:
         return index < this_pool_count && (current_class_index != classes.size() - 1 || index < end);
     }
 
-private:
-    size_t                                             index               = 0;
-    size_t                                             end                 = 0;
-    size_t                                             this_pool_count     = 0;
-    size_t                                             current_class_index = 0;
-    ContiguousObjectPool*                              current_class       = nullptr;
-    std::vector<ContiguousObjectPool*>                 classes;
+  private:
+    size_t                             index               = 0;
+    size_t                             end                 = 0;
+    size_t                             this_pool_count     = 0;
+    size_t                             current_class_index = 0;
+    ContiguousObjectPool*              current_class       = nullptr;
+    std::vector<ContiguousObjectPool*> classes;
 };
 
 class ContiguousObjectAllocator : public ObjectAllocator
 {
-public:
+  public:
     ContiguousObjectAllocator();
 
     ObjectAllocation* allocate(const Reflection::Class* component_class) override;
@@ -193,7 +192,7 @@ public:
     template <typename T, typename... Args> TObjectPtr<T> construct(Args&&... args)
     {
         ObjectAllocation* allocation = allocate(T::static_class());
-        new(allocation->ptr) T(std::forward<Args>(args)...);
+        new (allocation->ptr) T(std::forward<Args>(args)...);
         return TObjectPtr<T>(allocation);
     }
 
@@ -226,7 +225,7 @@ public:
 
     void merge_with(ContiguousObjectAllocator& other);
 
-private:
+  private:
     std::vector<ContiguousObjectPool*> find_pools(const Reflection::Class* parent_class) const;
 
     std::unordered_map<const Reflection::Class*, std::unique_ptr<ContiguousObjectPool>> pools;

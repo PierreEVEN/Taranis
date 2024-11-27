@@ -1,7 +1,7 @@
 #include "assets/texture_asset.hpp"
 
-#include "engine.hpp"
 #include "assets/asset_registry.hpp"
+#include "engine.hpp"
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
 
@@ -22,8 +22,7 @@ TObjectRef<TextureAsset> TextureAsset::get_default_asset()
         std::vector<uint8_t> pixels = {
             0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255,
         };
-        default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", Gfx::BufferData(pixels.data(), 1, pixels.size()), CreateInfos{
-                                                                                .width = 2, .height = 2, .channels = 4});
+        default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", Gfx::BufferData(pixels.data(), 1, pixels.size()), CreateInfos{.width = 2, .height = 2, .channels = 4});
     }
     return default_asset;
 }
@@ -65,12 +64,7 @@ TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos
     }
 
     if (!image)
-        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{
-                                       .format = format,
-                                       .mip_level = Gfx::MipMaps::all(),
-                                       .width = infos.width,
-                                       .height = infos.height
-                                   }, data);
+        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = format, .mip_level = Gfx::MipMaps::all(), .width = infos.width, .height = infos.height}, data);
     view = Gfx::ImageView::create(get_name(), image);
 }
 } // namespace Eng

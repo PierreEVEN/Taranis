@@ -54,8 +54,8 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
 
     imgui_material = Pipeline::create(name + "_pipeline", device, rp, modules,
                                       Pipeline::CreateInfos{.options{
-                                                                .culling = ECulling::None,
-                                                                .alpha = EAlphaMode::Translucent,
+                                                                .culling    = ECulling::None,
+                                                                .alpha      = EAlphaMode::Translucent,
                                                                 .depth_test = false,
                                                             },
                                                             .vertex_inputs = std::vector{
@@ -162,14 +162,14 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
         io.Fonts->AddFontFromFileTTF("resources/fonts/Roboto-Medium.ttf", 16.f);
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    font_texture = Image::create(name + "_font_image", device,
-                                 ImageParameter{
-                                     .format = ColorFormat::R8G8B8A8_UNORM,
-                                     .buffer_type = EBufferType::IMMUTABLE,
-                                     .width = static_cast<uint32_t>(width),
-                                     .height = static_cast<uint32_t>(height),
+    font_texture          = Image::create(name + "_font_image", device,
+                                          ImageParameter{
+                                              .format      = ColorFormat::R8G8B8A8_UNORM,
+                                              .buffer_type = EBufferType::IMMUTABLE,
+                                              .width       = static_cast<uint32_t>(width),
+                                              .height      = static_cast<uint32_t>(height),
                                  },
-                                 BufferData(pixels, 4, width * height));
+                                          BufferData(pixels, 4, width * height));
     font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
     imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
@@ -294,11 +294,11 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
         float translate_x;
         float translate_y;
     } constant_data = {
-            .scale_x = scale_x,
-            .scale_y = scale_y,
-            .translate_x = -1.0f - draw_data->DisplayPos.x * scale_x,
-            .translate_y = 1.0f - draw_data->DisplayPos.y * scale_y,
-        };
+        .scale_x     = scale_x,
+        .scale_y     = scale_y,
+        .translate_x = -1.0f - draw_data->DisplayPos.x * scale_x,
+        .translate_y = 1.0f - draw_data->DisplayPos.y * scale_y,
+    };
     cmd.push_constant(EShaderStage::Vertex, *imgui_material, constant_data);
 
     /**
@@ -355,8 +355,8 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
                     cmd.set_scissor(Scissor{
                         .offset_x = static_cast<int32_t>(clip_rect.x),
                         .offset_y = static_cast<int32_t>(clip_rect.y),
-                        .width = static_cast<uint32_t>(clip_rect.z - clip_rect.x),
-                        .height = static_cast<uint32_t>(clip_rect.w - clip_rect.y),
+                        .width    = static_cast<uint32_t>(clip_rect.z - clip_rect.x),
+                        .height   = static_cast<uint32_t>(clip_rect.w - clip_rect.y),
                     });
 
                     // Bind descriptor set with font or user texture

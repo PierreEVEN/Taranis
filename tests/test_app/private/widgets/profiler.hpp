@@ -1,20 +1,19 @@
 #pragma once
 #include "gfx/ui/ui_window.hpp"
 
+#include <glm/vec2.hpp>
 #include <imgui.h>
 #include <profiler.hpp>
 #include <unordered_set>
-#include <glm/vec2.hpp>
-
 
 namespace Eng
 {
 class ProfilerWindow : public UiWindow
 {
-public:
+  public:
     explicit ProfilerWindow(const std::string& name);
 
-protected:
+  protected:
     struct DisplayData
     {
         struct Box
@@ -33,8 +32,8 @@ protected:
         struct ThreadGroup
         {
             int              num_stages = 0;
-            double           min = DBL_MAX;
-            double           max = DBL_MIN;
+            double           min        = DBL_MAX;
+            double           max        = DBL_MIN;
             std::vector<Box> boxes;
         };
 
@@ -58,12 +57,11 @@ protected:
         void  draw(DisplayData& display_data);
     };
 
-
     struct Selection
     {
-        float last_scroll = 0;
+        float last_scroll   = 0;
         float last_scroll_y = 0;
-        float scale    = 10;
+        float scale         = 10;
         void  draw(DisplayData& display_data);
     };
 
@@ -73,9 +71,8 @@ protected:
     bool b_record              = true;
     bool b_always_display_last = false;
 
-
     DisplayData display_data;
 
     void draw(Gfx::ImGuiWrapper& ctx) override;
 };
-}
+} // namespace Eng

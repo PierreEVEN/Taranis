@@ -1,9 +1,9 @@
 #include "assets/material_asset.hpp"
 
 #include "engine.hpp"
-#include "profiler.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/shader_module.hpp"
+#include "profiler.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace Eng
@@ -79,4 +79,4 @@ const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const st
 
     return passes.emplace(render_pass, infos).first->second.pipeline;
 };
-}
+} // namespace Eng

@@ -64,7 +64,6 @@ inline const char* token_type_to_string(ELexerToken type)
     default:
         return "Unknown";
     }
-
 }
 
 struct Location
@@ -109,18 +108,18 @@ struct ParserError
 
 struct ILexerToken
 {
-public:
+  public:
     ILexerToken(const Location& in_location) : location(in_location)
     {
     }
 
-    virtual  ~ILexerToken() = default;
+    virtual ~ILexerToken() = default;
     Location location;
 
-    virtual ELexerToken get_type() const = 0;
+    virtual ELexerToken get_type() const              = 0;
     virtual std::string to_string(bool b_debug) const = 0;
 
-protected:
+  protected:
     static bool consume_string(Location& loc, const std::string& str, const std::string& test)
     {
         size_t i = 0;
@@ -150,12 +149,11 @@ protected:
         }
         return loc.index != str.size();
     }
-
 };
 
 class Block
 {
-public:
+  public:
     void consume_next(const std::string& source, Location& location, std::optional<ParserError>& error);
 
     const std::vector<std::unique_ptr<ILexerToken>>& get_tokens() const
@@ -165,7 +163,7 @@ public:
 
     std::string to_string(bool) const;
 
-private:
+  private:
     std::vector<std::unique_ptr<ILexerToken>> tokens;
 };
 

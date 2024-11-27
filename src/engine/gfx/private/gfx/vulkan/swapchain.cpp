@@ -1,23 +1,21 @@
 #include "gfx/vulkan/swapchain.hpp"
 
-#include "profiler.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
+#include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
+#include "gfx/vulkan/framebuffer.hpp"
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
-#include "gfx/ui/ImGuiWrapper.hpp"
-#include "gfx/vulkan/framebuffer.hpp"
+#include "profiler.hpp"
 
 namespace Eng::Gfx
 {
 Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer, bool in_vsync)
-    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface)), *renderer.root_node(), true),
-      vsync(in_vsync),
-      surface(in_surface)
+    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface)), *renderer.root_node(), true), vsync(in_vsync), surface(in_surface)
 {
     create_or_recreate();
 }
@@ -90,7 +88,7 @@ void Swapchain::create_or_recreate()
     SwapChainSupportDetails swapchain_support = device_ptr->get_physical_device().query_swapchain_support(*surface.lock());
 
     const auto window_extent = surface.lock()->get_window().lock()->internal_extent();
-    auto new_extent = choose_extent(swapchain_support.capabilities, window_extent);
+    auto       new_extent    = choose_extent(swapchain_support.capabilities, window_extent);
     if (new_extent.x <= 0 || new_extent.y <= 0)
         return;
     destroy();
@@ -99,8 +97,8 @@ void Swapchain::create_or_recreate()
     VkPresentModeKHR   presentMode   = choose_present_mode(swapchain_support.presentModes, vsync);
     VkSurfaceFormatKHR surfaceFormat = choose_surface_format(swapchain_support.formats);
     swapchain_format                 = static_cast<ColorFormat>(surfaceFormat.format);
-    extent = new_extent;
-    uint32_t imageCount = get_framebuffer_count();
+    extent                           = new_extent;
+    uint32_t imageCount              = get_framebuffer_count();
 
     if (swapchain_support.capabilities.maxImageCount > 0 && imageCount > swapchain_support.capabilities.maxImageCount)
     {
@@ -108,19 +106,19 @@ void Swapchain::create_or_recreate()
     }
 
     VkSwapchainCreateInfoKHR createInfo{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = surface.lock()->raw(),
-        .minImageCount = imageCount,
-        .imageFormat = surfaceFormat.format,
-        .imageColorSpace = surfaceFormat.colorSpace,
-        .imageExtent = VkExtent2D{(extent.x), (extent.y)},
+        .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface          = surface.lock()->raw(),
+        .minImageCount    = imageCount,
+        .imageFormat      = surfaceFormat.format,
+        .imageColorSpace  = surfaceFormat.colorSpace,
+        .imageExtent      = VkExtent2D{(extent.x), (extent.y)},
         .imageArrayLayers = 1,
-        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .preTransform = swapchain_support.capabilities.currentTransform,
-        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = presentMode,
-        .clipped = VK_TRUE,
-        .oldSwapchain = VK_NULL_HANDLE,
+        .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform     = swapchain_support.capabilities.currentTransform,
+        .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode      = presentMode,
+        .clipped          = VK_TRUE,
+        .oldSwapchain     = VK_NULL_HANDLE,
     };
 
     const uint32_t graphic              = device_ptr->get_queues().get_queue(QueueSpecialization::Graphic)->index();
@@ -205,13 +203,13 @@ bool Swapchain::render_internal()
     // Submit to present queue
     const auto             render_finished_semaphore = framebuffers[image_index]->render_finished_semaphore().raw();
     const VkPresentInfoKHR present_infos{
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &render_finished_semaphore,
-        .swapchainCount = 1,
-        .pSwapchains = &ptr,
-        .pImageIndices = &image_index,
-        .pResults = nullptr,
+        .pWaitSemaphores    = &render_finished_semaphore,
+        .swapchainCount     = 1,
+        .pSwapchains        = &ptr,
+        .pImageIndices      = &image_index,
+        .pResults           = nullptr,
     };
 
     const VkResult submit_result = device_ref->get_queues().get_queue(QueueSpecialization::Present)->present(present_infos);

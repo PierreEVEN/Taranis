@@ -35,7 +35,7 @@ class ShaderModule
   private:
     ShaderModule(const std::weak_ptr<Device>& device, ShaderCompiler::StageData properties);
     ShaderCompiler::StageData properties;
-    VkShaderModule        ptr = VK_NULL_HANDLE;
-    std::weak_ptr<Device> device;
+    VkShaderModule            ptr = VK_NULL_HANDLE;
+    std::weak_ptr<Device>     device;
 };
 } // namespace Eng::Gfx

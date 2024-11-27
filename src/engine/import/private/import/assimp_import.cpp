@@ -1,42 +1,38 @@
 #include "import/assimp_import.hpp"
 
-#include "engine.hpp"
-#include "profiler.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
+#include "engine.hpp"
 #include "gfx/vulkan/buffer.hpp"
+#include "profiler.hpp"
 
-#include <filesystem>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
+#include <filesystem>
 
 #include "assets/mesh_asset.hpp"
+#include "assets/sampler_asset.hpp"
 #include "assets/texture_asset.hpp"
+#include "import/material_import.hpp"
 #include "import/stb_import.hpp"
 #include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
-#include "assets/sampler_asset.hpp"
-#include "import/material_import.hpp"
 
 #include <numbers>
 
-
 namespace Eng
 {
-
 
 AssimpImporter::AssimpImporter() : importer(std::make_shared<Assimp::Importer>())
 {
 }
 
-AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene)
-    : scene(in_scene), file_path(in_file_path)
+AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path& in_file_path, const aiScene* in_scene, Scene& output_scene) : scene(in_scene), file_path(in_file_path)
 {
     PROFILER_SCOPE(DecomposeAssimpScene);
     decompose_node(scene->mRootNode, {}, output_scene);
     scene->mRootNode;
-
 }
 
 Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
@@ -124,7 +120,8 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
     else
     {
         std::filesystem::path fs_path(path);
-        if (exists(fs_path));
+        if (exists(fs_path))
+            ;
         else if (exists(file_path.parent_path() / fs_path))
         {
             fs_path = file_path.parent_path() / fs_path;
@@ -317,4 +314,4 @@ TObjectRef<SamplerAsset> AssimpImporter::SceneLoader::get_sampler()
         sampler = Engine::get().asset_registry().create<SamplerAsset>("Sampler");
     return sampler;
 }
-}
+} // namespace Eng

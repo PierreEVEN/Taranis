@@ -1,8 +1,8 @@
 #pragma once
 #include "gfx/ui/ui_window.hpp"
 
-#include <memory>
 #include <glm/vec2.hpp>
+#include <memory>
 
 namespace Eng
 {
@@ -16,10 +16,10 @@ class RenderPassInstance;
 
 class Viewport : public Eng::UiWindow
 {
-public:
+  public:
     Viewport(const std::string& name, const std::weak_ptr<Eng::Gfx::RenderPassInstance>& in_render_pass, const std::shared_ptr<Eng::Scene> in_scene);
 
-protected:
+  protected:
     void draw(Eng::Gfx::ImGuiWrapper& ctx) override;
 
     std::weak_ptr<Eng::Gfx::RenderPassInstance> render_pass;

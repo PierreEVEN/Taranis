@@ -1,18 +1,17 @@
 #pragma once
 
-
 #include "gfx/types.hpp"
 #include "gfx_types/format.hpp"
 
 #include <algorithm>
-#include <memory>
-#include <ranges>
-#include <string>
-#include <optional>
-#include <unordered_map>
-#include <unordered_set>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
+#include <memory>
+#include <optional>
+#include <ranges>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace Eng::Gfx
 {
@@ -23,7 +22,7 @@ class Device;
 
 class Attachment
 {
-public:
+  public:
     static Attachment slot(const std::string& in_name)
     {
         return Attachment{in_name};
@@ -57,7 +56,7 @@ public:
     std::optional<glm::vec4> clear_color_value = {};
     std::optional<glm::vec2> clear_depth_value = {};
 
-private:
+  private:
     Attachment(std::string in_name) : name(std::move(in_name))
     {
     }
@@ -65,7 +64,7 @@ private:
 
 class IRenderPass
 {
-public:
+  public:
     virtual void init(const RenderPassInstance&)
     {
     }
@@ -138,13 +137,13 @@ class RenderNode
 
     class IRenderPassInitializer
     {
-    public:
+      public:
         virtual std::shared_ptr<IRenderPass> construct() = 0;
     };
 
     template <typename T, typename... Args> class TRenderPassInitializer : public IRenderPassInitializer
     {
-    public:
+      public:
         TRenderPassInitializer(Args&&... in_args) : tuple_value(std::tuple<Args...>(std::forward<Args>(in_args)...))
         {
         }
@@ -154,7 +153,7 @@ class RenderNode
             return construct_with_tuple(tuple_value, std::index_sequence_for<Args...>());
         }
 
-    private:
+      private:
         std::shared_ptr<T> construct_internal(Args... in_args)
         {
             return std::make_shared<T>(in_args...);
@@ -170,7 +169,7 @@ class RenderNode
 
     RenderNode() = default;
 
-public:
+  public:
     RenderPassKey get_key(bool b_present) const
     {
         RenderPassKey key;
@@ -223,7 +222,7 @@ public:
 
 class Renderer
 {
-public:
+  public:
     Renderer() = default;
 
     RenderNode& operator[](const std::string& node)
@@ -243,10 +242,9 @@ public:
         return b_compiled;
     }
 
-private:
+  private:
     bool                                        b_compiled = false;
     std::unordered_map<std::string, RenderNode> nodes;
 };
-
 
 } // namespace Eng::Gfx

@@ -70,7 +70,7 @@ Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instan
     }
 
     float queuePriority = 1.0f;
-    
+
     std::vector<VkDeviceQueueCreateInfo> queues_info;
     for (const auto& queue : queues->all_families())
     {

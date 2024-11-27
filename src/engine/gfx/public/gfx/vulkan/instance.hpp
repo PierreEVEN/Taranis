@@ -1,8 +1,8 @@
 #pragma once
+#include <glm/vec4.hpp>
 #include <memory>
 #include <string>
 #include <vector>
-#include <glm/vec4.hpp>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx

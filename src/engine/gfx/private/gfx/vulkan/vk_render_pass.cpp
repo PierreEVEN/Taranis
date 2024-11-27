@@ -30,7 +30,7 @@ VkRendererPass::VkRendererPass(const std::string& in_name, const std::weak_ptr<D
         attachments.emplace_back(VkAttachmentDescription{
             .format         = static_cast<VkFormat>(attachment.color_format),
             .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = attachment.has_clear() ? VK_ATTACHMENT_LOAD_OP_CLEAR: VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .loadOp         = attachment.has_clear() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
             .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,

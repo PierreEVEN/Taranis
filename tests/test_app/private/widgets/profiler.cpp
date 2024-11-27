@@ -79,11 +79,11 @@ void ProfilerWindow::DisplayData::build()
                 if (ms_x < thread.min)
                     thread.min = ms_x;
                 thread.boxes.emplace_back(Box{
-                    .min_max = {ms_x, ms_x},
-                    .stage = 0,
-                    .color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
-                    .name = format_name(markers.name),
-                    .start = markers.time,
+                    .min_max  = {ms_x, ms_x},
+                    .stage    = 0,
+                    .color    = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
+                    .name     = format_name(markers.name),
+                    .start    = markers.time,
                     .duration = std::chrono::steady_clock::duration(0),
                 });
             }
@@ -117,7 +117,8 @@ void ProfilerWindow::DisplayData::build()
         };
         std::vector<StageData> stage_data;
 
-        auto get_stage_data = [&stage_data](size_t stage) -> StageData& {
+        auto get_stage_data = [&stage_data](size_t stage) -> StageData&
+        {
             if (stage >= stage_data.size())
                 stage_data.resize(stage + 1);
             return stage_data[stage];
@@ -149,11 +150,11 @@ void ProfilerWindow::DisplayData::build()
             found_stage_data.flip   = !found_stage_data.flip;
             found_stage_data.ending = ms_x_end;
             thread.boxes.emplace_back(Box{
-                .min_max = {ms_x, ms_x_end},
-                .stage = stage_index,
-                .color = ImGui::ColorConvertFloat4ToU32({r, g, b, 1}),
-                .name = format_name(event.name),
-                .start = event.start,
+                .min_max  = {ms_x, ms_x_end},
+                .stage    = stage_index,
+                .color    = ImGui::ColorConvertFloat4ToU32({r, g, b, 1}),
+                .name     = format_name(event.name),
+                .start    = event.start,
                 .duration = event.end - event.start,
             });
         }
@@ -346,7 +347,7 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
         display_data.displayed_frames.clear();
         display_data.build();
         Profiler::get().stop_recording();
-        //Profiler::get().start_recording();
+        // Profiler::get().start_recording();
     }
     ImGui::SameLine();
     ImGui::Checkbox("Record", &b_record);

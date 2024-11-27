@@ -15,10 +15,9 @@ class Block;
 
 class Parser
 {
-public:
+  public:
     Parser(const Block& in_block, const std::vector<ELexerToken>& skip_tokens = {}) : block(&in_block), skipped_tokens(skip_tokens)
     {
-
     }
 
     Parser& operator++()
@@ -34,7 +33,7 @@ public:
 
     template <typename T> T* get(size_t offset = 0)
     {
-        const auto& tokens    = block->get_tokens();
+        const auto& tokens = block->get_tokens();
 
         size_t new_token = get_with_offset(offset);
         if (new_token < tokens.size())
@@ -94,10 +93,10 @@ public:
         return ELexerToken::Null;
     }
 
-private:
+  private:
     size_t get_with_offset(size_t offset) const
     {
-        const auto& tokens = block->get_tokens();
+        const auto& tokens     = block->get_tokens();
         size_t      out_offset = idx;
         for (size_t j = 0; out_offset < tokens.size() && (j < offset || is_skipped_token(out_offset)); ++out_offset)
         {
@@ -121,4 +120,4 @@ private:
     const Block*             block;
     std::vector<ELexerToken> skipped_tokens;
 };
-}
+} // namespace Llp

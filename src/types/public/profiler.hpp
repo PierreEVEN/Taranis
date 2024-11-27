@@ -10,8 +10,8 @@
 #include <vector>
 
 #ifdef ENABLE_PROFILER
-#define PROFILER_MARKER(name) Profiler::get().add_marker({#name})
-#define PROFILER_SCOPE(name)  Profiler::EventRecorder __profiler_event__##name(#name)
+#define PROFILER_MARKER(name)                   Profiler::get().add_marker({#name})
+#define PROFILER_SCOPE(name)                    Profiler::EventRecorder __profiler_event__##name(#name)
 #define PROFILER_SCOPE_NAMED(name, string_name) Profiler::EventRecorder __profiler_event__##name(string_name)
 #else
 #define PROFILER_MARKER(name)
@@ -20,10 +20,10 @@
 
 class Profiler
 {
-public:
+  public:
     class ProfilerMarker
     {
-    public:
+      public:
         ProfilerMarker(std::string in_name) : time(std::chrono::steady_clock::now()), name(std::move(in_name))
         {
         }
@@ -34,7 +34,7 @@ public:
 
     class ProfilerEvent
     {
-    public:
+      public:
         ProfilerEvent(std::string in_name, std::chrono::steady_clock::time_point in_start, std::chrono::steady_clock::time_point in_end) : start(in_start), end(in_end), name(std::move(in_name))
         {
         }
@@ -46,14 +46,14 @@ public:
 
     class ProfilerThreadData
     {
-    public:
+      public:
         std::vector<ProfilerEvent>  events;
         std::vector<ProfilerMarker> markers;
     };
 
     class ProfilerFrameData
     {
-    public:
+      public:
         ProfilerFrameData() : threads_lock(std::make_unique<std::shared_mutex>())
         {
             min   = std::chrono::steady_clock::now();
@@ -93,7 +93,7 @@ public:
 
     class EventRecorder
     {
-    public:
+      public:
         EventRecorder(std::string in_name) : name(std::move(in_name)), start(std::chrono::steady_clock::now())
         {
         }
@@ -114,7 +114,7 @@ public:
     std::vector<std::shared_ptr<ProfilerFrameData>> all_frames();
     void                                            stop_recording();
 
-private:
+  private:
     ProfilerThreadData& get_thread_data() const
     {
         auto thread_id = std::this_thread::get_id();

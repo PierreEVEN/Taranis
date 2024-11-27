@@ -1,9 +1,7 @@
 #include "content_browser.hpp"
 
 #include <imgui.h>
-#include <imgui.h>
 #include <ranges>
-
 
 void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
 {
@@ -131,7 +129,6 @@ void ContentBrowser::draw_asset_thumbnail(const TObjectPtr<Eng::AssetBase>& asse
     }
     ImGui::TextWrapped(asset->get_name());
     ImGui::EndGroup();
-
 }
 
 void ContentBrowser::draw_asset_button(const TObjectPtr<Eng::AssetBase>& asset)
@@ -139,7 +136,7 @@ void ContentBrowser::draw_asset_button(const TObjectPtr<Eng::AssetBase>& asset)
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 0.2f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 4});
 
-    //if (thumbnail == null)
+    // if (thumbnail == null)
     {
         ImGui::Dummy({0, 4});
         if (ImGui::Button(("#" + std::string(asset->get_name())).c_str(), {64, 64}))

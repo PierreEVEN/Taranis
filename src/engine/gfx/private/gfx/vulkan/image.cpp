@@ -140,12 +140,13 @@ void Image::set_data(glm::uvec2 new_size, const BufferData& data)
     }
 }
 
-Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> in_device, ImageParameter params) : DeviceResource(std::move(in_device)), format(static_cast<VkFormat>(params.format)), name(std::move(in_name))
+Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> in_device, ImageParameter params)
+    : DeviceResource(std::move(in_device)), format(static_cast<VkFormat>(params.format)), name(std::move(in_name))
 {
     layer_cout = params.image_type == EImageType::Cubemap ? 6u : 1u;
     is_depth   = is_depth_format(params.format);
     depth      = params.depth;
-    res        = {params.width, params.height};    
+    res        = {params.width, params.height};
     mip_levels = params.mip_level.get() ? *params.mip_level.get() : static_cast<uint32_t>(std::floor(log2(std::max(res.x, res.y)))) + 1;
 
     VkImageCreateInfo image_create_infos{
@@ -252,7 +253,7 @@ void Image::ImageResource::set_data(const BufferData& data)
         .imageOffset = {0, 0, 0},
         .imageExtent = {res.x, res.y, depth},
     };
-    
+
     vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer->raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     command_buffer->end();
 

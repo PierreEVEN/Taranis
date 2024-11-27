@@ -34,6 +34,6 @@ class PhysicalDevice
   private:
     bool check_extension_support();
 
-    VkPhysicalDevice ptr                     = VK_NULL_HANDLE;
+    VkPhysicalDevice ptr = VK_NULL_HANDLE;
 };
 } // namespace Eng::Gfx

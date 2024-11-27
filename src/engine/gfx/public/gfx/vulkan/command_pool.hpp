@@ -13,12 +13,12 @@ class Device;
 
 class CommandPool
 {
-public:
+  public:
     class Mutex
     {
         friend class PoolLockGuard;
 
-    public:
+      public:
         Mutex()
         {
         }
@@ -27,7 +27,7 @@ public:
         {
         }
 
-    private:
+      private:
         std::thread::id                    pool_thread_id;
         std::shared_ptr<std::shared_mutex> pool_mtx;
     };
@@ -43,7 +43,7 @@ public:
     std::pair<VkCommandBuffer, Mutex> allocate(bool b_secondary, std::thread::id thread_id);
     void                              free(VkCommandBuffer command_buffer, std::thread::id thread);
 
-private:
+  private:
     struct CommandPoolResource
     {
         VkCommandPool pool;
@@ -60,7 +60,7 @@ private:
 
 class PoolLockGuard
 {
-public:
+  public:
     PoolLockGuard(CommandPool::Mutex& in_mtx);
 
     ~PoolLockGuard()
@@ -71,10 +71,9 @@ public:
             mtx->pool_mtx->unlock();
     }
 
-private:
+  private:
     CommandPool::Mutex* mtx;
     std::thread::id     lock_thread;
 };
-
 
 } // namespace Eng::Gfx

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "logger.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "jobsys/job_sys.hpp"
+#include "logger.hpp"
 
 #include <functional>
 #include <memory>
@@ -27,7 +27,7 @@ using DeviceImageId    = uint8_t;
 
 class RenderPassInstance
 {
-public:
+  public:
     RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const std::string& name, bool b_is_present);
 
     // Should be called before each frame to reset all draw flags
@@ -86,7 +86,7 @@ public:
         return framebuffers[current_framebuffer_index];
     }
 
-protected:
+  protected:
     bool enable_parallel_rendering() const
     {
         return render_pass_interface && render_pass_interface->record_threads() > 1;
@@ -116,8 +116,7 @@ protected:
 
     std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 
-private:
-
+  private:
     void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
 
     glm::uvec2                    current_resolution{0, 0};
@@ -126,6 +125,5 @@ private:
     std::shared_ptr<IRenderPass>  render_pass_interface;
     std::unique_ptr<ImGuiWrapper> imgui_context;
     uint32_t                      current_framebuffer_index = 0;
-
 };
-}
+} // namespace Eng::Gfx

@@ -63,7 +63,7 @@ void Profiler::stop_recording()
 {
     if (!b_record)
         return;
-    std::unique_lock                                global_lk(global_lock);
+    std::unique_lock global_lk(global_lock);
     if (current_frame)
         current_frame->end = std::chrono::steady_clock::now();
     recorded_frames.clear();

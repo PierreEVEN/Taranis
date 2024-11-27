@@ -1,11 +1,11 @@
 #include "widgets/viewport.hpp"
 
-#include "scene_outliner.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
+#include "scene_outliner.hpp"
 
-#include <imgui.h>
 #include <glm/vec2.hpp>
+#include <imgui.h>
 
 Viewport::Viewport(const std::string& name, const std::weak_ptr<Eng::Gfx::RenderPassInstance>& in_render_pass, const std::shared_ptr<Eng::Scene> in_scene) : UiWindow(name), render_pass(in_render_pass), scene(in_scene)
 {

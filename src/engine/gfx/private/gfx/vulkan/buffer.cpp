@@ -2,9 +2,9 @@
 
 #include "gfx/vulkan/buffer.hpp"
 
-#include "profiler.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/fence.hpp"
+#include "profiler.hpp"
 
 namespace Eng::Gfx
 {
@@ -13,7 +13,6 @@ void BufferData::copy_to(uint8_t* destination) const
     assert(ptr);
     memcpy(destination, ptr, stride * element_count);
 }
-
 
 Buffer::Buffer(std::string in_name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
     : stride(in_stride), element_count(in_element_count), params(create_infos), device(std::move(in_device)), name(std::move(in_name))
@@ -221,7 +220,7 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
         vk_usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         break;
     case EBufferUsage::TRANSFER_MEMORY:
-        vk_usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        vk_usage     = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         host_visible = true;
         flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
@@ -235,15 +234,15 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
     }
 
     const VkBufferCreateInfo buffer_create_info = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = element_count * stride,
-        .usage = vk_usage,
+        .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size        = element_count * stride,
+        .usage       = vk_usage,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
     const VmaAllocationCreateInfo allocInfo = {
-        .flags = flags,
-        .usage = VMA_MEMORY_USAGE_AUTO,
+        .flags         = flags,
+        .usage         = VMA_MEMORY_USAGE_AUTO,
         .requiredFlags = required_flags,
     };
 
@@ -251,7 +250,7 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
     descriptor_data = VkDescriptorBufferInfo{
         .buffer = ptr,
         .offset = 0,
-        .range = element_count * stride,
+        .range  = element_count * stride,
     };
     device().lock()->debug_set_object_name(name, ptr);
 }
@@ -290,7 +289,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
         else
             data_update_fence = Fence::create("fence", device());
         Profiler::EventRecorder* transfer_profiler_event = new Profiler::EventRecorder("Create transfer buffer");
-        transfer_buffer         = create("transfer_buffer", device(), CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+        transfer_buffer                                  = create("transfer_buffer", device(), CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
         delete transfer_profiler_event;
 
         Profiler::EventRecorder* transfer_profiler_event2 = new Profiler::EventRecorder("Create command buffer");
@@ -302,7 +301,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
         const VkBufferCopy region = {
             .srcOffset = 0,
             .dstOffset = start_index,
-            .size = data.get_byte_size(),
+            .size      = data.get_byte_size(),
         };
 
         vkCmdCopyBuffer(data_update_cmd->raw(), transfer_buffer->raw_current(), ptr, 1, &region);

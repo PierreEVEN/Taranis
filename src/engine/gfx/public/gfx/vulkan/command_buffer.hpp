@@ -20,7 +20,7 @@ class SecondaryCommandBuffer;
 class VkRendererPass;
 class Framebuffer;
 class RenderPassInstance;
-}
+} // namespace Eng::Gfx
 
 namespace Eng
 {
@@ -56,7 +56,7 @@ struct Viewport
 
 class CommandBuffer
 {
-public:
+  public:
     static std::shared_ptr<CommandBuffer> create(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type)
     {
         return std::shared_ptr<CommandBuffer>(new CommandBuffer(name, std::move(device), type, std::this_thread::get_id()));
@@ -93,7 +93,6 @@ public:
     {
         return device;
     }
-
 
     QueueSpecialization get_specialization() const
     {
@@ -133,9 +132,8 @@ public:
 
 class SecondaryCommandBuffer : public CommandBuffer, public std::enable_shared_from_this<SecondaryCommandBuffer>
 {
-public:
-    static std::shared_ptr<SecondaryCommandBuffer> create(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer,
-                                                          std::thread::id    thread_id)
+  public:
+    static std::shared_ptr<SecondaryCommandBuffer> create(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer, std::thread::id thread_id)
     {
         return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(name, parent, framebuffer, thread_id));
     }
@@ -143,7 +141,7 @@ public:
     void begin(bool one_time) override;
     void end() override;
 
-private:
+  private:
     SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer, std::thread::id thread_id);
     std::weak_ptr<Framebuffer>   framebuffer;
     std::weak_ptr<CommandBuffer> parent;

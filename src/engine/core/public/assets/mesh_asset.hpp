@@ -31,7 +31,7 @@ class MeshAsset : public AssetBase
 {
     REFLECT_BODY()
 
-public:
+  public:
     struct Section
     {
         std::shared_ptr<Gfx::Mesh>        mesh;
@@ -59,7 +59,7 @@ public:
         return mesh_sections;
     }
 
-private:
+  private:
     std::vector<Section> mesh_sections;
 };
 } // namespace Eng

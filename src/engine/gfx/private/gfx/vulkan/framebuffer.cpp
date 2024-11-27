@@ -15,8 +15,7 @@ const Fence* Framebuffer::get_render_finished_fence() const
     return render_finished_fence.get();
 }
 
-Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets)
-    : DeviceResource(std::move(in_device))
+Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets) : DeviceResource(std::move(in_device))
 {
     auto& name                 = render_pass.get_definition().name;
     render_finished_fence      = Fence::create(name + "_cmd", device(), true);
@@ -30,13 +29,13 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     assert(!render_targets.empty());
 
     VkFramebufferCreateInfo create_infos = {
-        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .renderPass = render_pass.get_render_pass_resource().lock()->raw(),
+        .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass      = render_pass.get_render_pass_resource().lock()->raw(),
         .attachmentCount = static_cast<uint32_t>(views.size()),
-        .pAttachments = views.data(),
-        .width = render_pass.resolution().x,
-        .height = render_pass.resolution().y,
-        .layers = 1,
+        .pAttachments    = views.data(),
+        .width           = render_pass.resolution().x,
+        .height          = render_pass.resolution().y,
+        .layers          = 1,
     };
 
     render_pass_resource = render_pass.get_render_pass_resource();
@@ -45,11 +44,8 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     device().lock()->debug_set_object_name(name + "_fb", ptr);
 }
 
-std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device>                          device,
-                                                 const RenderPassInstance&                      render_pass,
-                                                 size_t                                         image_index,
-                                                 const std::vector<std::shared_ptr<ImageView>>& render_targets,
-                                                 bool                                           require_secondary)
+std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets,
+                                                 bool require_secondary)
 {
     auto fb = std::shared_ptr<Framebuffer>(new Framebuffer(std::move(device), render_pass, image_index, render_targets));
     if (require_secondary)

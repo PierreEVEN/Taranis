@@ -1,11 +1,11 @@
 #include "assets/material_instance_asset.hpp"
 
-#include "engine.hpp"
-#include "object_ptr.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/sampler_asset.hpp"
 #include "assets/texture_asset.hpp"
+#include "engine.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
+#include "object_ptr.hpp"
 
 namespace Eng
 {
@@ -14,7 +14,7 @@ MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& ba
 {
 }
 
-std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const std::string& shader_pass) 
+std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const std::string& shader_pass)
 {
     auto perm = permutation.lock();
     if (perm)
@@ -81,7 +81,7 @@ void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::we
 void MaterialInstanceAsset::set_scene_data(const std::weak_ptr<Gfx::Buffer>& buffer_data)
 {
     std::lock_guard lk(descriptor_lock);
-    auto in_data = buffer_data.lock();
+    auto            in_data = buffer_data.lock();
     if (scene_buffer_data.lock() == in_data)
         return;
 

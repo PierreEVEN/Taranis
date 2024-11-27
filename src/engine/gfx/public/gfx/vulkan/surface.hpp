@@ -14,7 +14,7 @@ class Instance;
 
 class Surface : public std::enable_shared_from_this<Surface>
 {
-public:
+  public:
     static std::shared_ptr<Surface> create(const std::string& name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& window)
     {
         return std::shared_ptr<Surface>(new Surface(name, instance, window));
@@ -43,7 +43,7 @@ public:
         return swapchain;
     }
 
-private:
+  private:
     Surface(const std::string& name, const std::weak_ptr<Instance>& instance, const std::weak_ptr<Window>& window);
     std::weak_ptr<Device>      device;
     std::weak_ptr<Window>      window;

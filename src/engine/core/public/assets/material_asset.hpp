@@ -26,7 +26,7 @@ struct MaterialPermutation
 
     const std::shared_ptr<Eng::Gfx::Pipeline>& get_resource(const std::string& render_pass);
 
-private:
+  private:
     struct PassInfos
     {
         std::unordered_map<Gfx::EShaderStage, std::vector<uint8_t>> per_stage_code;
@@ -42,7 +42,7 @@ class MaterialAsset : public AssetBase
 {
     REFLECT_BODY()
 
-public:
+  public:
     MaterialAsset();
 
     void set_shader_code(const std::filesystem::path& code, std::optional<std::vector<StageInputOutputDescription>> vertex_input_override = {});
@@ -56,7 +56,7 @@ public:
 
     void update_options(const Gfx::PipelineOptions& options);
 
-private:
+  private:
     friend MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 

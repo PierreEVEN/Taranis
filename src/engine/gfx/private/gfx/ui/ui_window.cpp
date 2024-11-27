@@ -5,7 +5,6 @@
 #include <imgui.h>
 #include <unordered_map>
 
-
 std::unordered_map<std::string, size_t> named_windows;
 
 namespace Eng
@@ -36,4 +35,4 @@ void UiWindow::draw_internal(Gfx::ImGuiWrapper& ctx)
         ImGui::End();
     }
 }
-}
+} // namespace Eng

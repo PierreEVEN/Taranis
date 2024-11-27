@@ -11,14 +11,13 @@ class AssetRegistry;
 
 class ContentBrowser : public Eng::UiWindow
 {
-public:
+  public:
     ContentBrowser(const std::string& name, Eng::AssetRegistry& asset_registry) : UiWindow(name), registry(&asset_registry)
     {
     }
 
-protected:
+  protected:
     void draw(Eng::Gfx::ImGuiWrapper& ctx) override;
-
 
     void drawHierarchy();
     void drawHierarchy(const std::filesystem::path& f);

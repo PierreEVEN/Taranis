@@ -25,7 +25,7 @@ void CameraComponent::tick(double x)
 
 void CameraComponent::recompute()
 {
-    //outdated = false;
+    // outdated = false;
 
     view = translate(mat4_cast(inverse(get_rotation())), -get_position());
 
@@ -35,11 +35,7 @@ void CameraComponent::recompute()
     assert(std::abs(aspect - std::numeric_limits<float>::epsilon()) > static_cast<float>(0));
     float h     = 1.f / std::tan(glm::radians(fov) * 0.5f);
     float w     = h / aspect;
-    perspective = {
-        {0, 0, 0, 1},
-        {-w, 0, 0, 0},
-        {0, h, 0, 0},
-        {0, 0, z_near, 0}};
+    perspective = {{0, 0, 0, 1}, {-w, 0, 0, 0}, {0, h, 0, 0}, {0, 0, z_near, 0}};
 
     perspective_view = perspective * view;
 }

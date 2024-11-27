@@ -17,7 +17,7 @@ class Device : public std::enable_shared_from_this<Device>
 {
     friend class Engine;
 
-public:
+  public:
     static std::shared_ptr<Device> create(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
     Device(Device&)  = delete;
     Device(Device&&) = delete;
@@ -149,11 +149,11 @@ public:
             std::lock_guard               lk(object_name_mutex);
             const auto                    pfn_vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance.lock()->raw(), "vkSetDebugUtilsObjectNameEXT"));
             VkDebugUtilsObjectNameInfoEXT object_name_info                 = {
-                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-                .pNext = nullptr,
-                .objectType = object_type,
-                .objectHandle = reinterpret_cast<uint64_t>(object),
-                .pObjectName = object_name.c_str(),
+                                .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+                                .pNext        = nullptr,
+                                .objectType   = object_type,
+                                .objectHandle = reinterpret_cast<uint64_t>(object),
+                                .pObjectName  = object_name.c_str(),
             };
             pfn_vkSetDebugUtilsObjectNameEXT(ptr, &object_name_info);
         }
@@ -164,7 +164,7 @@ public:
         return instance;
     }
 
-private:
+  private:
     std::mutex object_name_mutex;
     bool       b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
@@ -184,7 +184,7 @@ private:
 
 class DeviceResource : public std::enable_shared_from_this<DeviceResource>
 {
-public:
+  public:
     DeviceResource(std::weak_ptr<Device> in_device) : device_ref(std::move(in_device))
     {
     }
@@ -196,7 +196,7 @@ public:
         return device_ref;
     }
 
-private:
+  private:
     std::weak_ptr<Device> device_ref;
 };
 } // namespace Eng::Gfx

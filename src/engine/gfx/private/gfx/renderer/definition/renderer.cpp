@@ -1,7 +1,7 @@
 #include "gfx/renderer/definition/renderer.hpp"
 
-#include "logger.hpp"
 #include "gfx/vulkan/swapchain.hpp"
+#include "logger.hpp"
 
 #include <ranges>
 

@@ -16,7 +16,7 @@ template <typename RClass> struct StaticClassInfos
 class Class
 {
 
-public:
+  public:
     static Class* get(const std::string& type_name);
 
     template <typename C> static const Class* get()
@@ -63,10 +63,11 @@ public:
         if constexpr (StaticClassInfos<ParentClass>::value)
         {
             cast_functions.insert_or_assign(Class::make_type_id<ParentClass>(), CastFunc(
-                                      [](const Class* desired_class, void* from_ptr) -> void* {
-                                          return ParentClass::static_class()->cast_to(desired_class,
-                                                                                      reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
-                                      }));
+                                                                                    [](const Class* desired_class, void* from_ptr) -> void*
+                                                                                    {
+                                                                                        return ParentClass::static_class()->cast_to(desired_class,
+                                                                                                                                    reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
+                                                                                    }));
         }
     }
 
@@ -90,7 +91,7 @@ public:
 
     void add_parent(const std::string& parent);
 
-    template<typename Base, typename T> static bool is_base_of()
+    template <typename Base, typename T> static bool is_base_of()
     {
         return Class::is_base_of(Base::static_class(), T::static_class());
     }
@@ -101,7 +102,6 @@ public:
     }
 
   private:
-
     static bool is_base_of(const Class* base, const Class* t);
 
     void on_register_parent_class(Class* new_class);
@@ -116,7 +116,7 @@ public:
     std::vector<Class*>                  parents = {};
     std::unordered_map<size_t, CastFunc> cast_functions;
 
-    size_t      type_size = 0;
-    size_t      type_id = 0;
+    size_t type_size = 0;
+    size_t type_id   = 0;
 };
 } // namespace Reflection

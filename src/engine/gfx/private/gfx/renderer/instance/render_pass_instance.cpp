@@ -1,6 +1,5 @@
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 
-#include "profiler.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
@@ -9,11 +8,11 @@
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
+#include "profiler.hpp"
 
 namespace Eng::Gfx
 {
-RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const std::string& name, bool b_is_present)
-    : device(std::move(in_device)), definition(renderer.get_node(name))
+RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const std::string& name, bool b_is_present) : device(std::move(in_device)), definition(renderer.get_node(name))
 {
     assert(renderer.compiled());
 
@@ -75,16 +74,16 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     }
 
     const VkRenderPassBeginInfo begin_infos = {
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = render_pass_resource.lock()->raw(),
+        .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass  = render_pass_resource.lock()->raw(),
         .framebuffer = framebuffer->raw(),
         .renderArea =
-        {
-            .offset = {0, 0},
-            .extent = {resolution().x, resolution().y},
-        },
+            {
+                .offset = {0, 0},
+                .extent = {resolution().x, resolution().y},
+            },
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-        .pClearValues = clear_values.data(),
+        .pClearValues    = clear_values.data(),
     };
     global_cmd.begin_render_pass(render_pass_resource.lock()->get_name(), begin_infos, enable_parallel_rendering());
 
@@ -98,7 +97,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     {
         PROFILER_SCOPE(BuildCommandBufferAsync);
         std::vector<JobHandle<CommandBuffer*>> handles;
-         // Jobs for other threads
+        // Jobs for other threads
         for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
         {
             handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
@@ -183,15 +182,14 @@ std::shared_ptr<ImageView> RenderPassInstance::create_view_for_attachment(const 
     auto attachment = definition.attachments.find(attachment_name);
     if (attachment == definition.attachments.end())
         LOG_FATAL("Attachment {} not found", attachment_name);
-    return ImageView::create(attachment_name,
-                             Image::create(attachment_name, device,
-                                           ImageParameter{
-                                               .format = attachment->second.color_format,
-                                               .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
-                                               .buffer_type = EBufferType::IMMEDIATE,
-                                               .width = resolution().x,
-                                               .height = resolution().y,
-                                           }));
+    return ImageView::create(attachment_name, Image::create(attachment_name, device,
+                                                            ImageParameter{
+                                                                .format                 = attachment->second.color_format,
+                                                                .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
+                                                                .buffer_type            = EBufferType::IMMEDIATE,
+                                                                .width                  = resolution().x,
+                                                                .height                 = resolution().y,
+                                                            }));
 }
 
 uint8_t RenderPassInstance::get_framebuffer_count() const
@@ -225,7 +223,7 @@ void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_in
 
 void RenderPassInstance::reset_for_next_frame()
 {
-    prepared  = false;
+    prepared = false;
     for (const auto& dependency : dependencies | std::views::values)
         dependency->reset_for_next_frame();
 
@@ -279,6 +277,5 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
 
     for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
         next_frame_framebuffers.push_back(Framebuffer::create(device, *this, i, ordered_attachments, enable_parallel_rendering()));
-
 }
-} // namespace Eng
+} // namespace Eng::Gfx

@@ -26,9 +26,9 @@ enum class EBindingType
 
 enum class EShaderStage
 {
-    Vertex = 0x00000001,
+    Vertex   = 0x00000001,
     Fragment = 0x00000010,
-    Compute = 0x00000020,
+    Compute  = 0x00000020,
 };
 
 enum class ECulling
@@ -79,13 +79,13 @@ struct PipelineOptions
 
 class PermutationGroup
 {
-public:
+  public:
     std::unordered_map<std::string, bool> permutation_group;
 };
 
 class PermutationDescription
 {
-public:
+  public:
     PermutationDescription() = default;
 
     PermutationDescription(const PermutationGroup& group)
@@ -137,7 +137,7 @@ public:
         return bit_mask;
     }
 
-private:
+  private:
     std::vector<std::string> switch_names;
     uint64_t                 bit_mask = 0;
 };

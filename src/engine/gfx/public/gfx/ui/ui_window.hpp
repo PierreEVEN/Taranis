@@ -10,10 +10,10 @@ class ImGuiWrapper;
 
 class UiWindow
 {
-public:
+  public:
     virtual ~UiWindow();
 
-private:
+  private:
     friend class Gfx::ImGuiWrapper;
 
     void close()
@@ -21,16 +21,16 @@ private:
         b_open = false;
     }
 
-protected:
+  protected:
     UiWindow(std::string name);
 
     virtual void draw(Gfx::ImGuiWrapper& ctx) = 0;
     bool         b_enable_menu_bar            = false;
 
-private:
+  private:
     virtual void draw_internal(Gfx::ImGuiWrapper& ctx);
     bool         b_open = true;
-    size_t       index = 0;
+    size_t       index  = 0;
     std::string  name;
 };
-}
+} // namespace Eng

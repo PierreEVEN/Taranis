@@ -4,13 +4,13 @@
 
 #include "assets/asset_registry.hpp"
 #include "config.hpp"
-#include "profiler.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/physical_device.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
+#include "profiler.hpp"
 
 #if _WIN32
 #include <Windows.h>

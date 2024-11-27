@@ -8,7 +8,7 @@ class AssetBase
 {
     REFLECT_BODY()
 
-public:
+  public:
     AssetBase(AssetBase&)  = delete;
     AssetBase(AssetBase&&) = delete;
 
@@ -19,10 +19,10 @@ public:
         return name;
     }
 
-protected:
+  protected:
     AssetBase() = default;
 
-private:
+  private:
     friend class AssetRegistry;
     char*          name;
     AssetRegistry* registry;

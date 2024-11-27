@@ -21,7 +21,7 @@ class TextureAsset : public AssetBase
 {
     REFLECT_BODY()
 
-public:
+  public:
     struct CreateInfos
     {
         uint32_t width    = 0;
@@ -39,7 +39,6 @@ public:
     static TObjectRef<TextureAsset> get_default_asset();
 
   private:
-
     friend class AssetRegistry;
     TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos);
 

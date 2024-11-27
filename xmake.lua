@@ -129,7 +129,7 @@ end
 target("data", function(target)
     set_kind("object")
     for _, file in pairs(os.files("resources/**")) do
-        add_headerfiles(file)
+        add_extrafiles(file)
     end
 end)
 

@@ -1,9 +1,8 @@
 #pragma once
-#include "object_ptr.hpp"
 #include "gfx/ui/ui_window.hpp"
+#include "object_ptr.hpp"
 
 #include <memory>
-
 
 namespace Eng
 {
@@ -17,17 +16,16 @@ class Scene;
 
 class SceneOutliner : public Eng::UiWindow
 {
-public:
-    SceneOutliner(const std::string& name, const std::shared_ptr<Eng::Scene>& in_scene)
-        : UiWindow(name)
+  public:
+    SceneOutliner(const std::string& name, const std::shared_ptr<Eng::Scene>& in_scene) : UiWindow(name)
     {
         scene = in_scene;
     }
 
-protected:
+  protected:
     void draw(Eng::Gfx::ImGuiWrapper& ctx) override;
 
-private:
+  private:
     void                            display_node(const TObjectPtr<Eng::SceneComponent>& component);
     TObjectRef<Eng::SceneComponent> selected_component;
     size_t                          node_index = 0;

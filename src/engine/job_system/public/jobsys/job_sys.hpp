@@ -1,20 +1,20 @@
 #pragma once
 
+#include <concurrentqueue/moodycamel/blockingconcurrentqueue.h>
 #include <iostream>
 #include <shared_mutex>
-#include <concurrentqueue/moodycamel/blockingconcurrentqueue.h>
 
 class Worker;
 
 class IJob
 {
-public:
+  public:
     virtual void run() = 0;
 };
 
 template <typename Ret> class TJobRet : public IJob
 {
-public:
+  public:
     bool finished() const
     {
         return ready;
@@ -40,17 +40,16 @@ public:
         delete ret;
     }
 
-protected:
+  protected:
     std::mutex              wait_mutex;
     std::condition_variable wait_cond;
     bool                    ready = false;
     Ret*                    ret   = nullptr;
 };
 
-template <typename Lambda, typename Ret>
-class TJob : public TJobRet<Ret>
+template <typename Lambda, typename Ret> class TJob : public TJobRet<Ret>
 {
-public:
+  public:
     TJob(Lambda callback) : cb(callback)
     {
     }
@@ -71,13 +70,13 @@ public:
         TJobRet<Ret>::wait_cond.notify_all();
     }
 
-private:
+  private:
     Lambda cb;
 };
 
 template <typename Ret> class JobHandle
 {
-public:
+  public:
     JobHandle(std::shared_ptr<TJobRet<Ret>> in_job) : job(std::move(in_job))
     {
     }
@@ -102,13 +101,13 @@ public:
         return job->finished();
     }
 
-private:
+  private:
     std::shared_ptr<TJobRet<Ret>> job;
 };
 
 class JobSystem final
 {
-public:
+  public:
     JobSystem(size_t num_tasks);
     ~JobSystem();
 
@@ -127,7 +126,7 @@ public:
         return workers;
     }
 
-private:
+  private:
     friend class Worker;
     std::vector<std::unique_ptr<Worker>>                       workers;
     moodycamel::BlockingConcurrentQueue<std::shared_ptr<IJob>> jobs;
@@ -137,7 +136,7 @@ private:
 
 class Worker
 {
-public:
+  public:
     Worker(JobSystem* job_system);
     ~Worker();
     void stop();
@@ -147,7 +146,7 @@ public:
         return thread.get_id();
     }
 
-private:
+  private:
     friend class JobSystem;
     JobSystem*       js          = nullptr;
     std::atomic_bool b_need_stop = false;
