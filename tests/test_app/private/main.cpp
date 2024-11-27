@@ -29,7 +29,7 @@ int worker_count = 5;
 
 class SceneShadowsInterface : public Gfx::IRenderPass
 {
-  public:
+public:
     SceneShadowsInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -59,7 +59,7 @@ class SceneShadowsInterface : public Gfx::IRenderPass
 
 class SceneGBuffers : public Gfx::IRenderPass
 {
-  public:
+public:
     SceneGBuffers(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -89,7 +89,7 @@ class SceneGBuffers : public Gfx::IRenderPass
 
 class GBufferResolveInterface : public Gfx::IRenderPass
 {
-  public:
+public:
     GBufferResolveInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -138,12 +138,12 @@ class GBufferResolveInterface : public Gfx::IRenderPass
 
 class TestWindow : public UiWindow
 {
-  public:
+public:
     explicit TestWindow(const std::string& name) : UiWindow(name)
     {
     }
 
-  protected:
+protected:
     void draw(Gfx::ImGuiWrapper&) override
     {
 
@@ -153,7 +153,7 @@ class TestWindow : public UiWindow
 
 class PresentPass : public Gfx::IRenderPass
 {
-  public:
+public:
     PresentPass(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
     }
@@ -171,7 +171,7 @@ class PresentPass : public Gfx::IRenderPass
 
 class TestApp : public Application
 {
-  public:
+public:
     void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
@@ -180,16 +180,27 @@ class TestApp : public Application
 
         Gfx::Renderer renderer1;
 
-        renderer1["shadows"].render_pass<SceneShadowsInterface>(scene)[Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
+        renderer1["shadows"]
+            .render_pass<SceneShadowsInterface>(scene)
+            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
 
-        renderer1["gbuffers"].render_pass<SceneGBuffers>(
-            scene)[Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
-                  [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
-                  [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})][Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
+        renderer1["gbuffers"]
+            .render_pass<SceneGBuffers>(scene)
+            [Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
+            [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
+            [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})][Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
 
-        renderer1["gbuffer_resolve"].require("gbuffers").require("shadows").render_pass<GBufferResolveInterface>(scene)[Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
+        renderer1["gbuffer_resolve"]
+            .require("gbuffers")
+            .require("shadows")
+            .render_pass<GBufferResolveInterface>(scene)
+            [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
-        renderer1["present"].require("gbuffer_resolve").with_imgui(true, default_window).render_pass<PresentPass>(scene)[Gfx::Attachment::slot("target")];
+        renderer1["present"]
+            .require("gbuffer_resolve")
+            .with_imgui(true, default_window)
+            .render_pass<PresentPass>(scene)
+            [Gfx::Attachment::slot("target")];
 
         default_window.lock()->set_renderer(renderer1);
 
@@ -204,12 +215,12 @@ class TestApp : public Application
         engine.jobs().schedule(
             [&, importer]
             {
-                // scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
+                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                // scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
+                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
             });
     }
 
@@ -289,7 +300,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {};
+    Config config = {.gfx = {.enable_validation_layers = true}};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

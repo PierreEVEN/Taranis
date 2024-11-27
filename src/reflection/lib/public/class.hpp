@@ -2,7 +2,7 @@
 #include <functional>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vector>
 
 namespace Reflection
@@ -114,7 +114,7 @@ class Class
 
     std::string                          type_name;
     std::vector<Class*>                  parents = {};
-    std::unordered_map<size_t, CastFunc> cast_functions;
+    ankerl::unordered_dense::map<size_t, CastFunc> cast_functions;
 
     size_t type_size = 0;
     size_t type_id   = 0;

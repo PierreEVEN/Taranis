@@ -3,7 +3,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx
@@ -54,7 +54,7 @@ class CommandPool
     std::weak_ptr<Device>                                    device;
     std::mutex                                               pool_mutex;
     uint32_t                                                 queue_family;
-    std::unordered_map<std::thread::id, CommandPoolResource> command_pools;
+    ankerl::unordered_dense::map<std::thread::id, CommandPoolResource> command_pools;
     std::string                                              name;
 };
 

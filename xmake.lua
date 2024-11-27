@@ -29,7 +29,7 @@ end
 add_defines("ENABLE_VALIDATION_LAYER")
 add_defines("ENABLE_PROFILER")
 
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "assimp", "concurrentqueue")
+add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "assimp", "concurrentqueue", "unordered_dense")
 add_requires("freeimage", {configs = {rgb = true}})
 add_requires("slang v2024.14.5", {verify = false})
 

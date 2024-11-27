@@ -1,6 +1,6 @@
 #pragma once
 #include "instance.hpp"
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 #include "physical_device.hpp"
 
@@ -168,8 +168,8 @@ class Device : public std::enable_shared_from_this<Device>
     std::mutex object_name_mutex;
     bool       b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
-    std::unordered_map<RenderPassKey, std::shared_ptr<VkRendererPass>> render_passes;
-    std::unordered_map<std::string, std::weak_ptr<VkRendererPass>>     render_passes_named;
+    ankerl::unordered_dense::map<RenderPassKey, std::shared_ptr<VkRendererPass>> render_passes;
+    ankerl::unordered_dense::map<std::string, std::weak_ptr<VkRendererPass>>     render_passes_named;
     std::unique_ptr<Queues>                                            queues;
     PhysicalDevice                                                     physical_device;
     VkDevice                                                           ptr = VK_NULL_HANDLE;

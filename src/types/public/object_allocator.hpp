@@ -4,7 +4,7 @@
 
 #include <memory>
 #include <ranges>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 struct ObjectAllocation;
 class IObjectPtr;
@@ -73,7 +73,7 @@ class ContiguousObjectPool
     size_t                   component_count = 0;
     const size_t             stride;
 
-    std::unordered_map<void*, ObjectAllocation*> allocation_map;
+    ankerl::unordered_dense::map<void*, ObjectAllocation*> allocation_map;
 };
 
 template <typename T> class TObjectIterator
@@ -228,5 +228,5 @@ class ContiguousObjectAllocator : public ObjectAllocator
   private:
     std::vector<ContiguousObjectPool*> find_pools(const Reflection::Class* parent_class) const;
 
-    std::unordered_map<const Reflection::Class*, std::unique_ptr<ContiguousObjectPool>> pools;
+    ankerl::unordered_dense::map<const Reflection::Class*, std::unique_ptr<ContiguousObjectPool>> pools;
 };

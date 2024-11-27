@@ -30,11 +30,11 @@ struct MaterialPermutation
   private:
     struct PassInfos
     {
-        std::unordered_map<Gfx::EShaderStage, std::vector<uint8_t>> per_stage_code;
+        ankerl::unordered_dense::map<Gfx::EShaderStage, std::vector<uint8_t>> per_stage_code;
         std::shared_ptr<Gfx::Pipeline>                              pipeline;
     };
 
-    std::unordered_map<std::string, PassInfos> passes;
+    ankerl::unordered_dense::map<std::string, PassInfos> passes;
     MaterialAsset*                             owner = nullptr;
     Gfx::PermutationDescription                permutation_description;
 };
@@ -61,7 +61,7 @@ class MaterialAsset : public AssetBase
     friend MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 
-    std::unordered_map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
+    ankerl::unordered_dense::map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
 
     std::shared_ptr<ShaderCompiler::Session> compiler_session;
 

@@ -10,7 +10,7 @@
 #include <optional>
 #include <ranges>
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <unordered_set>
 
 namespace Eng::Gfx
@@ -213,8 +213,8 @@ class RenderNode
     }
 
     std::shared_ptr<IRenderPassInitializer>     render_pass_initializer;
-    std::unordered_map<std::string, Attachment> attachments;
-    std::unordered_set<std::string>             dependencies;
+    ankerl::unordered_dense::map<std::string, Attachment> attachments;
+    ankerl::unordered_dense::set<std::string>             dependencies;
     bool                                        b_with_imgui = false;
     std::weak_ptr<Window>                       imgui_input_window;
     std::string                                 name;
@@ -244,7 +244,7 @@ class Renderer
 
   private:
     bool                                        b_compiled = false;
-    std::unordered_map<std::string, RenderNode> nodes;
+    ankerl::unordered_dense::map<std::string, RenderNode> nodes;
 };
 
 } // namespace Eng::Gfx

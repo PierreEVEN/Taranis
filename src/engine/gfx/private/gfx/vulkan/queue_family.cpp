@@ -4,7 +4,7 @@
 #include "profiler.hpp"
 
 #include <ranges>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 #include "gfx/vulkan/command_pool.hpp"
 #include "gfx/vulkan/device.hpp"
@@ -44,7 +44,7 @@ std::shared_ptr<QueueFamily> Queues::get_queue(QueueSpecialization specializatio
 
 void Queues::update_specializations()
 {
-    std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>> queue_map;
+    ankerl::unordered_dense::map<uint32_t, std::shared_ptr<QueueFamily>> queue_map;
     for (size_t i = 0; i < all_queues.size(); ++i)
     {
         all_queues[i]->set_name("queue-#" + std::to_string(i));
@@ -65,7 +65,7 @@ void Queues::update_specializations()
 
     if (graphic_queue)
     {
-        std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>> no_graphic_queue_map = queue_map;
+        ankerl::unordered_dense::map<uint32_t, std::shared_ptr<QueueFamily>> no_graphic_queue_map = queue_map;
         no_graphic_queue_map.erase(graphic_queue->index());
         if (compute_queue)
             no_graphic_queue_map.erase(compute_queue->index());
@@ -192,7 +192,7 @@ VkResult QueueFamily::submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos
     return result;
 }
 
-auto Queues::find_best_suited_queue_family(const std::unordered_map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
+auto Queues::find_best_suited_queue_family(const ankerl::unordered_dense::map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
                                            const std::vector<VkQueueFlags>& desired_queue_flags) -> std::shared_ptr<QueueFamily>
 {
     uint32_t                     high_score = 0;

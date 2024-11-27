@@ -69,19 +69,23 @@ namespace Eng::Gfx
 Instance::Instance(GfxConfig& config)
 {
     glfwInit();
-    if (config.enable_validation_layers && !are_validation_layer_supported())
+    if (config.enable_validation_layers)
     {
-        config.enable_validation_layers = false;
-        LOG_ERROR("Validation layers are enabled but not available");
+        LOG_INFO("Enable validation layers");
+        if (!are_validation_layer_supported())
+        {
+            config.enable_validation_layers = false;
+            LOG_ERROR("Validation layers are enabled but not available");
+        }
     }
 
     VkApplicationInfo appInfo{
-        .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName   = config.app_name.c_str(),
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName = config.app_name.c_str(),
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName        = "Ashwga",
-        .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion         = VK_API_VERSION_1_3,
+        .pEngineName = "Ashwga",
+        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_3,
     };
 
     uint32_t     glfw_extension_count = 0;
@@ -98,11 +102,11 @@ Instance::Instance(GfxConfig& config)
         debug_messenger_infos = {
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity =
-                VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
             .messageType =
-                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
             .pfnUserCallback = debug_callback,
-            .pUserData       = nullptr, // Optional
+            .pUserData = nullptr, // Optional
         };
         instance_infos.pNext = &debug_messenger_infos;
     }
@@ -113,7 +117,8 @@ Instance::Instance(GfxConfig& config)
 
     VK_CHECK(vkCreateInstance(&instance_infos, nullptr, &ptr), "Failed to create instance")
 
-    VK_CHECK(create_debug_utils_messenger_ext(ptr, &debug_messenger_infos, nullptr, &debug_messenger), "Failed to setup debug messenger")
+    if (config.enable_validation_layers)
+        VK_CHECK(create_debug_utils_messenger_ext(ptr, &debug_messenger_infos, nullptr, &debug_messenger), "Failed to setup debug messenger")
 }
 
 Instance::~Instance()

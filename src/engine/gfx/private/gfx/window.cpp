@@ -4,13 +4,13 @@
 
 #include "gfx/vulkan/surface.hpp"
 
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 namespace Eng::Gfx
 {
 static size_t WINDOW_ID = 0;
 
-static std::unordered_map<GLFWwindow*, Window*> windows;
+static ankerl::unordered_dense::map<GLFWwindow*, Window*> windows;
 
 std::shared_ptr<Window> Window::create(const std::weak_ptr<Instance>& instance, const WindowConfig& config)
 {

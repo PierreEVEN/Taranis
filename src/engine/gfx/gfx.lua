@@ -7,7 +7,8 @@ declare_module(
         {name = "glm", public = true},
         "glfw",
         "imgui",
-        "imgui docking"
+        "imgui docking",
+        {name = "unordered_dense", public = true}
     }, 
     false, 
     false

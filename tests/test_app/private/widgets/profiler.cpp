@@ -52,7 +52,7 @@ void ProfilerWindow::DisplayData::build()
     bool                                  b_set_start = false;
     std::chrono::steady_clock::time_point start;
 
-    std::unordered_map<std::thread::id, std::vector<Profiler::ProfilerEvent>> all_events;
+    ankerl::unordered_dense::map<std::thread::id, std::vector<Profiler::ProfilerEvent>> all_events;
 
     size_t i = 0;
     for (const auto& frame : displayed_frames)

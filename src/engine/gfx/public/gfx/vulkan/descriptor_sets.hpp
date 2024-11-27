@@ -2,7 +2,7 @@
 #include "device.hpp"
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx
@@ -102,8 +102,8 @@ class DescriptorSet : public std::enable_shared_from_this<DescriptorSet>
         std::shared_ptr<Buffer> buffer;
     };
 
-    std::unordered_map<std::string, std::shared_ptr<Descriptor>> write_descriptors;
-    std::unordered_map<std::string, uint32_t>                    descriptor_bindings;
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<Descriptor>> write_descriptors;
+    ankerl::unordered_dense::map<std::string, uint32_t>                    descriptor_bindings;
 
     std::vector<std::shared_ptr<Resource>> resources;
     mutable std::mutex                     update_lock;

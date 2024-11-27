@@ -4,7 +4,6 @@
 
 #include <filesystem>
 #include <iostream>
-#include <unordered_set>
 
 int main(int argc, char** argv)
 {
@@ -18,7 +17,7 @@ int main(int argc, char** argv)
     std::filesystem::path output_dir(argv[2]);
 
     // Track outdated files
-    std::unordered_set<std::filesystem::path> outdated_files;
+    ankerl::unordered_dense::set<std::filesystem::path> outdated_files;
     for (auto const& dir_entry : std::filesystem::recursive_directory_iterator{output_dir})
         if (dir_entry.is_regular_file())
             outdated_files.emplace(dir_entry.path());

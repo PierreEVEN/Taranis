@@ -3,7 +3,8 @@ declare_module(
     {"core"}, 
     {
         "freeimage",
-        "assimp"
+        "assimp",
+        {name = "unordered_dense", public = true}
     }, 
     false, 
     false

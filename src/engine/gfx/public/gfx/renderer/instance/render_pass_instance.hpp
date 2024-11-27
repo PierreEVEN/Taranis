@@ -105,16 +105,16 @@ class RenderPassInstance
     std::vector<std::shared_ptr<Framebuffer>> framebuffers;
 
     // One view per attachment
-    std::unordered_map<std::string, std::shared_ptr<ImageView>> attachments_view;
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> attachments_view;
 
     // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new one to be sure
     // we are always submitting valid images
     std::vector<std::shared_ptr<Framebuffer>>                   next_frame_framebuffers;
-    std::unordered_map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
 
     virtual uint8_t get_framebuffer_count() const;
 
-    std::unordered_map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 
   private:
     void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;

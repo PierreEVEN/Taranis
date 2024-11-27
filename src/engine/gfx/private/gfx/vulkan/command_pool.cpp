@@ -54,14 +54,14 @@ std::pair<VkCommandBuffer, CommandPool::Mutex> CommandPool::allocate(bool b_seco
         command_pool = command_pools.find(thread_id);
     }
 
-    VkCommandBufferAllocateInfo infos{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                      .commandPool        = command_pool->second.pool,
-                                      .level              = b_secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    VkCommandBufferAllocateInfo infos{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                      .commandPool = command_pool->second.pool,
+                                      .level = b_secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                                       .commandBufferCount = 1};
 
     VkCommandBuffer out;
 
-    PROFILER_SCOPE(FreeCommandBuffer);
+    PROFILER_SCOPE_NAMED(AllocateCommandBuffer, std::format("Allocate command buffer {}", name));
     PoolLockGuard lk(command_pool->second.lock);
     VK_CHECK(vkAllocateCommandBuffers(device.lock()->raw(), &infos, &out), "failed to allocate command buffer")
     return {out, command_pool->second.lock};
@@ -73,7 +73,7 @@ void CommandPool::free(VkCommandBuffer command_buffer, std::thread::id thread)
     auto            command_pool = command_pools.find(thread);
     if (command_pool != command_pools.end())
     {
-        PROFILER_SCOPE(FreeCommandBuffer);
+        PROFILER_SCOPE_NAMED(FreeCommandBuffer, std::format("Free command buffer {}", name));
         PoolLockGuard lk(command_pool->second.lock);
         vkFreeCommandBuffers(device.lock()->raw(), command_pool->second.pool, 1, &command_buffer);
     }

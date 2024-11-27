@@ -3,9 +3,9 @@
 #include "logger.hpp"
 
 #include <imgui.h>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
-std::unordered_map<std::string, size_t> named_windows;
+ankerl::unordered_dense::map<std::string, size_t> named_windows;
 
 namespace Eng
 {

@@ -110,7 +110,7 @@ void ContiguousObjectPool::move_old_to_new_block(void* old, void* new_block)
     if (!old)
         return;
 
-    std::unordered_map<void*, ObjectAllocation*> new_alloc_map;
+    ankerl::unordered_dense::map<void*, ObjectAllocation*> new_alloc_map;
 
     for (size_t i = 0; i < component_count; ++i)
     {

@@ -319,7 +319,7 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
 
     bool used_other_image = true;
 
-    std::unordered_set<ImTextureID> unused_image;
+    ankerl::unordered_dense::set<ImTextureID> unused_image;
     std::ranges::transform(per_image_ids, std::inserter(unused_image, unused_image.end()),
                            [](auto pair)
                            {

@@ -1,24 +1,24 @@
 #include "class.hpp"
 
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 namespace Reflection
 {
-static std::unordered_map<size_t, Class*>* classes = nullptr;
+static ankerl::unordered_dense::map<size_t, Class*>* classes = nullptr;
 
-static std::unordered_map<std::string, std::vector<Class*>>* class_waiting_type_registration = nullptr;
+static ankerl::unordered_dense::map<std::string, std::vector<Class*>>* class_waiting_type_registration = nullptr;
 
-std::unordered_map<std::string, std::vector<Class*>>& get_classes_wait_registration()
+ankerl::unordered_dense::map<std::string, std::vector<Class*>>& get_classes_wait_registration()
 {
     if (!class_waiting_type_registration)
-        class_waiting_type_registration = new std::unordered_map<std::string, std::vector<Class*>>();
+        class_waiting_type_registration = new ankerl::unordered_dense::map<std::string, std::vector<Class*>>();
     return *class_waiting_type_registration;
 }
 
-std::unordered_map<size_t, Class*>& get_classes()
+ankerl::unordered_dense::map<size_t, Class*>& get_classes()
 {
     if (!classes)
-        classes = new std::unordered_map<size_t, Class*>();
+        classes = new ankerl::unordered_dense::map<size_t, Class*>();
     return *classes;
 }
 

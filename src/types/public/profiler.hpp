@@ -6,7 +6,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vector>
 
 #ifdef ENABLE_PROFILER
@@ -64,7 +64,7 @@ class Profiler
         std::chrono::steady_clock::time_point                   end;
         std::chrono::steady_clock::time_point                   min;
         std::unique_ptr<std::shared_mutex>                      threads_lock;
-        std::unordered_map<std::thread::id, ProfilerThreadData> thread_data;
+        ankerl::unordered_dense::map<std::thread::id, ProfilerThreadData> thread_data;
     };
 
     static Profiler& get();

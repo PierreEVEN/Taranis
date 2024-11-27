@@ -69,12 +69,12 @@ class AssimpImporter
         std::shared_ptr<MeshSection>      find_or_load_mesh(int id);
         TObjectRef<SamplerAsset>          get_sampler();
 
-        std::unordered_map<std::string, TObjectRef<TextureAsset>>   textures;
-        std::unordered_map<int, TObjectRef<MaterialInstanceAsset>>  materials;
-        std::unordered_map<int, std::shared_ptr<MeshSection>>       meshes;
+        ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
+        ankerl::unordered_dense::map<int, TObjectRef<MaterialInstanceAsset>>  materials;
+        ankerl::unordered_dense::map<int, std::shared_ptr<MeshSection>>       meshes;
         TObjectRef<SamplerAsset>                                    sampler;
         const aiScene*                                              scene;
-        std::unordered_map<MaterialType, TObjectRef<MaterialAsset>> materials_base;
+        ankerl::unordered_dense::map<MaterialType, TObjectRef<MaterialAsset>> materials_base;
         std::filesystem::path                                       file_path;
     };
 

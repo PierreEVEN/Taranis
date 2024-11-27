@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vector>
 
 namespace Eng
@@ -65,8 +65,8 @@ class ImGuiWrapper
     std::vector<GLFWcursor*>       cursor_map    = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 
     ImTextureID                                                                                            max_texture_id = 0;
-    std::unordered_map<std::shared_ptr<ImageView>, std::pair<ImTextureID, std::shared_ptr<DescriptorSet>>> per_image_descriptor;
-    std::unordered_map<ImTextureID, std::shared_ptr<ImageView>>                                            per_image_ids;
+    ankerl::unordered_dense::map<std::shared_ptr<ImageView>, std::pair<ImTextureID, std::shared_ptr<DescriptorSet>>> per_image_descriptor;
+    ankerl::unordered_dense::map<ImTextureID, std::shared_ptr<ImageView>>                                            per_image_ids;
     std::string                                                                                            name;
 };
 } // namespace Eng::Gfx

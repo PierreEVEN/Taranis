@@ -73,20 +73,23 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
 
 void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
+    std::lock_guard lk(descriptor_lock);
     buffers.insert_or_assign(binding, buffer);
     for (const auto& desc : descriptors)
         desc.second->bind_buffer(binding, buffer.lock());
 }
 
-void MaterialInstanceAsset::set_scene_data(const std::weak_ptr<Gfx::Buffer>& buffer_data)
+void MaterialInstanceAsset::set_buffer(const std::string& render_pass, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
     std::lock_guard lk(descriptor_lock);
-    auto            in_data = buffer_data.lock();
-    if (scene_buffer_data.lock() == in_data)
-        return;
+    buffers.insert_or_assign(binding, buffer);
+    if (auto found = descriptors.find(render_pass); found != descriptors.end())
+        found->second->bind_buffer(binding, buffer.lock());
+}
 
-    set_buffer("scene_data_buffer", in_data);
-    scene_buffer_data = buffer_data;
+void MaterialInstanceAsset::set_scene_data(const std::string& render_pass, const std::weak_ptr<Gfx::Buffer>& buffer_data)
+{
+    set_buffer(render_pass, "scene_data_buffer", buffer_data);
 }
 
 void MaterialInstanceAsset::prepare_for_passes(const std::string& render_pass)

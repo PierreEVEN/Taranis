@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 #include "config.hpp"
 #include "jobsys/job_sys.hpp"
@@ -79,7 +79,7 @@ class Engine
     std::chrono::steady_clock::time_point last_time;
     std::chrono::steady_clock::time_point start_time;
 
-    std::unordered_map<size_t, std::shared_ptr<Gfx::Window>> windows;
+    ankerl::unordered_dense::map<size_t, std::shared_ptr<Gfx::Window>> windows;
 
     std::shared_ptr<Gfx::Instance> gfx_instance;
     std::shared_ptr<Gfx::Device>   gfx_device;

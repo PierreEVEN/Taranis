@@ -45,24 +45,23 @@ class MaterialInstanceAsset : public AssetBase
     void set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
     void set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture);
     void set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
-    void set_scene_data(const std::weak_ptr<Gfx::Buffer>& buffer);
+    void set_buffer(const std::string& render_pass, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
+    void set_scene_data(const std::string& render_pass, const std::weak_ptr<Gfx::Buffer>& buffer);
 
     // Compile shader for given pass if available (avoid lag spike later)
     void prepare_for_passes(const std::string& render_pass);
 
   private:
     std::mutex descriptor_lock;
-
-    std::weak_ptr<Gfx::Buffer>                                           scene_buffer_data;
     TObjectRef<MaterialAsset>                                            base;
     bool                                                                 b_static = true;
-    std::unordered_map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
     Gfx::PermutationDescription        permutation_description;
     std::weak_ptr<MaterialPermutation> permutation;
 
-    std::unordered_map<std::string, TObjectRef<SamplerAsset>>   samplers;
-    std::unordered_map<std::string, TObjectRef<TextureAsset>>   textures;
-    std::unordered_map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
+    ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>   samplers;
+    ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
+    ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
 };
 } // namespace Eng

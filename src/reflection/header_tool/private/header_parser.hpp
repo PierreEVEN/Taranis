@@ -4,7 +4,7 @@
 
 #include <filesystem>
 #include <memory>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vector>
 
 namespace std::filesystem
@@ -62,7 +62,7 @@ class HeaderParser
         return b_found_include ? std::optional<size_t>{} : line_after_last_include;
     }
 
-    const std::unordered_map<std::string, ReflectedClass>& get_classes() const
+    const ankerl::unordered_dense::map<std::string, ReflectedClass>& get_classes() const
     {
         return reflected_classes;
     }
@@ -77,7 +77,7 @@ class HeaderParser
 
     std::filesystem::path                           generated_header_include_path;
     std::filesystem::path                           header_path;
-    std::unordered_map<std::string, ReflectedClass> reflected_classes;
+    ankerl::unordered_dense::map<std::string, ReflectedClass> reflected_classes;
     size_t                                          line_after_last_include = 0;
     bool                                            b_found_include         = false;
 };

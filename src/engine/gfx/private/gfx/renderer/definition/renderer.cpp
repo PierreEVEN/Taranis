@@ -16,7 +16,7 @@ const RenderNode& Renderer::get_node(const std::string& pass_name) const
 
 std::optional<std::string> Renderer::root_node() const
 {
-    std::unordered_set<std::string> roots;
+    ankerl::unordered_dense::set<std::string> roots;
     for (const auto& node_name : nodes | std::views::keys)
         roots.insert(node_name);
 

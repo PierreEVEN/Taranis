@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <ranges>
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vector>
 
 namespace Eng::Gfx
@@ -80,7 +80,7 @@ struct PipelineOptions
 class PermutationGroup
 {
   public:
-    std::unordered_map<std::string, bool> permutation_group;
+    ankerl::unordered_dense::map<std::string, bool> permutation_group;
 };
 
 class PermutationDescription

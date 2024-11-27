@@ -3,7 +3,7 @@
 #include "llp/lexer.hpp"
 
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 namespace ShaderCompiler
 {
@@ -31,7 +31,7 @@ class ShaderParser
         return error;
     }
 
-    const std::unordered_map<std::string, std::vector<std::shared_ptr<ShaderBlock>>>& get_passes() const
+    const ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<ShaderBlock>>>& get_passes() const
     {
         return passes;
     }
@@ -41,7 +41,7 @@ class ShaderParser
         return pipeline_options;
     }
 
-    const std::unordered_map<std::string, bool>& get_default_options() const
+    const ankerl::unordered_dense::map<std::string, bool>& get_default_options() const
     {
         return options;
     }
@@ -53,8 +53,8 @@ class ShaderParser
 
     static std::optional<Llp::ParserError> parse_block(const Llp::BlockToken& args, ShaderBlock& block);
 
-    std::unordered_map<std::string, std::vector<std::shared_ptr<ShaderBlock>>> passes;
-    std::unordered_map<std::string, bool>                                      options;
+    ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<ShaderBlock>>> passes;
+    ankerl::unordered_dense::map<std::string, bool>                                      options;
     Llp::Lexer                                                                 lexer;
     std::optional<Llp::ParserError>                                            error;
     Eng::Gfx::PipelineOptions                                                  pipeline_options;

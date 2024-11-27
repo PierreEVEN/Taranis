@@ -88,6 +88,6 @@ class DescriptorPool
     std::mutex pool_lock;
 
     std::weak_ptr<Device>                                                                      device;
-    std::unordered_map<PoolDescription, std::pair<size_t, std::vector<std::shared_ptr<Pool>>>> pools;
+    ankerl::unordered_dense::map<PoolDescription, std::pair<size_t, std::vector<std::shared_ptr<Pool>>>> pools;
 };
 } // namespace Eng::Gfx

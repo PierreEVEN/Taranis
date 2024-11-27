@@ -4,7 +4,7 @@
 #include <glm/vec2.hpp>
 #include <imgui.h>
 #include <profiler.hpp>
-#include <unordered_set>
+#include <ankerl/unordered_dense.h>
 
 namespace Eng
 {
@@ -26,7 +26,7 @@ class ProfilerWindow : public UiWindow
             std::chrono::steady_clock::duration   duration;
         };
 
-        std::unordered_set<size_t>                                selected_frames;
+        ankerl::unordered_dense::set<size_t>                                selected_frames;
         std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> displayed_frames;
 
         struct ThreadGroup
@@ -39,7 +39,7 @@ class ProfilerWindow : public UiWindow
 
         double                                           global_min = DBL_MAX;
         double                                           global_max = DBL_MIN;
-        std::unordered_map<std::thread::id, ThreadGroup> threads;
+        ankerl::unordered_dense::map<std::thread::id, ThreadGroup> threads;
 
         std::optional<double> target_width;
         std::optional<double> target_start;

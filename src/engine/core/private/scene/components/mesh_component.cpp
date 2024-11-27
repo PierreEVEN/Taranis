@@ -25,7 +25,7 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer)
         {
             if (section.material)
             {
-                section.material->set_scene_data(get_scene().get_scene_buffer());
+                section.material->set_scene_data(command_buffer.render_pass(), get_scene().get_scene_buffer());
 
                 auto pipeline = section.material->get_base_resource(command_buffer.render_pass());
                 if (!pipeline)

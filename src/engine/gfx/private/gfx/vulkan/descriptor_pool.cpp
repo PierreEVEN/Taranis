@@ -15,7 +15,7 @@ DescriptorPool::DescriptorPool(std::weak_ptr<Device> in_device) : device(std::mo
 
 PoolDescription::PoolDescription(const Pipeline& pipeline)
 {
-    std::unordered_map<VkDescriptorType, uint32_t> sizes;
+    ankerl::unordered_dense::map<VkDescriptorType, uint32_t> sizes;
 
     for (const auto& binding : pipeline.get_bindings())
     {

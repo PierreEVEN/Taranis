@@ -53,7 +53,7 @@ class Framebuffer : public DeviceResource
     VkFramebuffer                                                                ptr = VK_NULL_HANDLE;
     std::shared_ptr<CommandBuffer>                                               command_buffer;
     std::weak_ptr<VkRendererPass>                                                render_pass_resource;
-    std::unordered_map<std::thread::id, std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
+    ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
     std::shared_ptr<Fence>                                                       render_finished_fence;
 };
 } // namespace Eng::Gfx

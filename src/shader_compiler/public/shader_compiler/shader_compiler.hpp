@@ -6,7 +6,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 #include <vector>
 
 namespace slang
@@ -65,7 +65,7 @@ struct TypeReflection
     static bool can_reflect(slang::TypeReflection* slang_var);
 
     std::size_t                                     total_stride = 0;
-    std::unordered_map<std::string, TypeReflection> children;
+    ankerl::unordered_dense::map<std::string, TypeReflection> children;
 };
 
 struct StageData
@@ -87,7 +87,7 @@ struct CompilationResult
     }
 
     std::vector<CompilationError>                         errors;
-    std::unordered_map<Eng::Gfx::EShaderStage, StageData> stages;
+    ankerl::unordered_dense::map<Eng::Gfx::EShaderStage, StageData> stages;
 };
 
 class Session

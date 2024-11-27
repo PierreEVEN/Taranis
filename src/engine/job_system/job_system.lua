@@ -1,7 +1,10 @@
 declare_module(
     "job-sys", 
     {"types"}, 
-    {{name = "concurrentqueue", public = true}},
+    {
+        {name = "unordered_dense", public = true},
+        {name = "concurrentqueue", public = true}
+    },
     false, 
     false
 )

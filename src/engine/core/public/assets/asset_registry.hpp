@@ -5,7 +5,7 @@
 
 #include <ranges>
 #include <string>
-#include <unordered_set>
+#include <ankerl/unordered_dense.h>
 
 namespace Eng
 {
@@ -15,7 +15,7 @@ class AssetRegistry
 {
     friend class AssetBase;
 
-  public:
+public:
     AssetRegistry() = default;
     ~AssetRegistry();
 
@@ -27,7 +27,7 @@ class AssetRegistry
         data->name = new char[name.size() + 1];
         memcpy(data->name, name.c_str(), name.size() + 1);
         data->registry = this;
-        new (data) T(std::forward<Args>(args)...);
+        new(data) T(std::forward<Args>(args)...);
         if (!data->name)
             LOG_FATAL("Asset {} does not contains any constructor", typeid(T).name())
         ObjectAllocation* allocation = new ObjectAllocation();
@@ -46,8 +46,8 @@ class AssetRegistry
             callback(asset);
     }
 
-  private:
-    std::mutex                                       asset_lock;
-    std::unordered_map<void*, TObjectPtr<AssetBase>> assets;
+private:
+    std::mutex                                                 asset_lock;
+    ankerl::unordered_dense::map<void*, TObjectPtr<AssetBase>> assets;
 };
 } // namespace Eng

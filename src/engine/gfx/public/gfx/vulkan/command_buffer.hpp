@@ -7,7 +7,7 @@
 #include "queue_family.hpp"
 #include "shader_module.hpp"
 
-#include <unordered_set>
+#include <ankerl/unordered_dense.h>
 
 namespace std
 {
@@ -114,7 +114,7 @@ class CommandBuffer
     friend class SecondaryCommandBuffer;
     void                                                        reset_stats();
     std::mutex                                                  secondary_vector_mtx;
-    std::unordered_set<std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
+    ankerl::unordered_dense::set<std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
     std::unique_ptr<PoolLockGuard>                              pool_lock;
 
   private:

@@ -1,7 +1,7 @@
 declare_module(
     "core", 
     {"types", "gfx", "job-sys"}, 
-    {}, 
+    {{name = "unordered_dense", public = true}}, 
     false, 
     true
 )
