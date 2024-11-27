@@ -4,10 +4,10 @@
 #include "object_allocator.hpp"
 #include "object_ptr.hpp"
 
-#include "scene\scene.gen.hpp"
 #include <vector>
-
 #include <glm/ext/matrix_float4x4.hpp>
+
+#include "scene\scene.gen.hpp"
 
 namespace Eng::Gfx
 {

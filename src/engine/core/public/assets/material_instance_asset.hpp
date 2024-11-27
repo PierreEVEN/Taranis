@@ -1,8 +1,9 @@
 #pragma once
 #include "asset_base.hpp"
-#include "assets\material_instance_asset.gen.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "object_ptr.hpp"
+
+#include "assets\material_instance_asset.gen.hpp"
 
 namespace Eng
 {

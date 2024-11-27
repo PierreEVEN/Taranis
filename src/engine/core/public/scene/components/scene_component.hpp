@@ -3,8 +3,9 @@
 #include "macros.hpp"
 #include "object_ptr.hpp"
 #include "scene/scene.hpp"
-#include "scene\components\scene_component.gen.hpp"
 #include <glm/gtc/quaternion.hpp>
+
+#include "scene\components\scene_component.gen.hpp"
 
 namespace Eng
 {

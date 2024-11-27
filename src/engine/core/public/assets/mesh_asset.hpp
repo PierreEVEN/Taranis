@@ -2,12 +2,13 @@
 #include "asset_base.hpp"
 #include "object_ptr.hpp"
 
-#include "assets/mesh_asset.gen.hpp"
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <memory>
 #include <vector>
+
+#include "assets/mesh_asset.gen.hpp"
 
 namespace Eng
 {

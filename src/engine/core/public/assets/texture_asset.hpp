@@ -2,11 +2,12 @@
 #include "asset_base.hpp"
 #include "object_ptr.hpp"
 
-#include "assets/texture_asset.gen.hpp"
 #include "gfx/vulkan/image.hpp"
 
 #include <cstdint>
 #include <memory>
+
+#include "assets/texture_asset.gen.hpp"
 
 namespace Eng
 {
