@@ -40,7 +40,7 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
 
     if (auto base_material = get_base_resource(shader_pass))
     {
-        auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors", Engine::get().get_device(), base_material, b_static)).first->second;
+        auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + shader_pass, Engine::get().get_device(), base_material, b_static)).first->second;
 
         for (const auto& sampler : samplers)
             new_descriptor->bind_sampler(sampler.first, sampler.second->get_resource());

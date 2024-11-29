@@ -70,6 +70,11 @@ void DescriptorSet::Resource::update()
 {
     if (!outdated)
         return;
+
+    update_count++;
+    if (update_count > 1)
+        LOG_WARNING("Updaaaate twice");
+
     PROFILER_SCOPE(UpdateDescriptorSets);
     std::vector<VkWriteDescriptorSet> desc_sets;
     auto                              parent_ptr = parent.lock();
@@ -90,27 +95,49 @@ void DescriptorSet::Resource::update()
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
 {
     std::lock_guard lk(update_lock);
-    if (!in_image)
-        LOG_FATAL("Cannot set null image in descriptor {}", binding_name);
+    auto            new_descriptor = std::make_shared<ImageDescriptor>(in_image);
+    if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())
+    {
+        if (*new_descriptor == *existing->second)
+            return;
+        existing->second = new_descriptor;
+    }
+    else
+        write_descriptors.emplace(binding_name, new_descriptor);
     for (const auto& resource : resources)
         resource->mark_as_dirty();
-    write_descriptors.insert_or_assign(binding_name, std::make_shared<ImageDescriptor>(in_image));
 }
 
 void DescriptorSet::bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler)
 {
     std::lock_guard lk(update_lock);
+    auto            new_descriptor = std::make_shared<SamplerDescriptor>(in_sampler);
+    if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())
+    {
+        if (*new_descriptor == *existing->second)
+            return;
+        existing->second = new_descriptor;
+    }
+    else
+        write_descriptors.emplace(binding_name, new_descriptor);
     for (const auto& resource : resources)
         resource->mark_as_dirty();
-    write_descriptors.insert_or_assign(binding_name, std::make_shared<SamplerDescriptor>(in_sampler));
 }
 
 void DescriptorSet::bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer)
 {
     std::lock_guard lk(update_lock);
+    auto            new_descriptor = std::make_shared<BufferDescriptor>(in_buffer);
+    if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())
+    {
+        if (*new_descriptor == *existing->second)
+            return;
+        existing->second = new_descriptor;
+    }
+    else
+        write_descriptors.emplace(binding_name, new_descriptor);
     for (const auto& resource : resources)
         resource->mark_as_dirty();
-    write_descriptors.insert_or_assign(binding_name, std::make_shared<BufferDescriptor>(in_buffer));
 }
 
 VkWriteDescriptorSet DescriptorSet::ImageDescriptor::get()
@@ -118,11 +145,16 @@ VkWriteDescriptorSet DescriptorSet::ImageDescriptor::get()
     if (!image)
         LOG_FATAL("Invalid image descriptor");
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        .pImageInfo      = &image->get_descriptor_infos_current(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .pImageInfo = &image->get_descriptor_infos_current(),
     };
+}
+
+void* DescriptorSet::ImageDescriptor::raw_ptr() const
+{
+    return image.get();
 }
 
 VkWriteDescriptorSet DescriptorSet::SamplerDescriptor::get()
@@ -130,11 +162,16 @@ VkWriteDescriptorSet DescriptorSet::SamplerDescriptor::get()
     if (!sampler)
         LOG_FATAL("Invalid sampler descriptor");
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
-        .pImageInfo      = &sampler->get_descriptor_infos(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+        .pImageInfo = &sampler->get_descriptor_infos(),
     };
+}
+
+void* DescriptorSet::SamplerDescriptor::raw_ptr() const
+{
+    return sampler.get();
 }
 
 VkWriteDescriptorSet DescriptorSet::BufferDescriptor::get()
@@ -142,10 +179,15 @@ VkWriteDescriptorSet DescriptorSet::BufferDescriptor::get()
     if (!buffer)
         LOG_FATAL("Invalid buffer descriptor");
     return VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorCount = 1,
-        .descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .pBufferInfo     = &buffer->get_descriptor_infos_current(),
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .pBufferInfo = &buffer->get_descriptor_infos_current(),
     };
+}
+
+void* DescriptorSet::BufferDescriptor::raw_ptr() const
+{
+    return buffer.get();
 }
 } // namespace Eng::Gfx

@@ -163,7 +163,7 @@ public:
         rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency("gbuffer_resolve"), scene);
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
         rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
-        rp.imgui()->new_window<ProfilerWindow>("Profiler");
+        //rp.imgui()->new_window<ProfilerWindow>("Profiler");
     }
 
     std::shared_ptr<Scene> scene;
