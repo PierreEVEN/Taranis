@@ -10,7 +10,6 @@
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
-#include "gfx/vulkan/device.hpp"
 #include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
 #include "object_allocator.hpp"

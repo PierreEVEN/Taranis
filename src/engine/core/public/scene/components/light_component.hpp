@@ -1,0 +1,38 @@
+#pragma once
+#include "macros.hpp"
+#include "scene_component.hpp"
+
+#include <glm/vec3.hpp>
+
+#include "scene\components\light_component.gen.hpp"
+
+
+namespace Eng
+{
+
+enum class ELightType
+{
+    Movable,
+    Stationary,
+    Static,
+};
+
+class LightComponent : public SceneComponent
+{
+    REFLECT_BODY()
+
+    LightComponent();
+
+    void enable_shadow(ELightType light_type = ELightType::Stationary, bool enabled = true);
+
+protected:
+    virtual void create_shadow_texture()
+    {
+        
+    }
+
+    glm::vec3  color      = glm::vec3(1, 1, 1);
+    bool       shadows    = false;
+    ELightType light_type = ELightType::Stationary;
+};
+}

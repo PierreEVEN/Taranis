@@ -71,10 +71,6 @@ void DescriptorSet::Resource::update()
     if (!outdated)
         return;
 
-    update_count++;
-    if (update_count > 1)
-        LOG_WARNING("Updaaaate twice");
-
     PROFILER_SCOPE(UpdateDescriptorSets);
     std::vector<VkWriteDescriptorSet> desc_sets;
     auto                              parent_ptr = parent.lock();
@@ -94,6 +90,7 @@ void DescriptorSet::Resource::update()
 
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
 {
+    //@TODO : improve this check by recreating new descriptors when needed
     std::lock_guard lk(update_lock);
     auto            new_descriptor = std::make_shared<ImageDescriptor>(in_image);
     if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())

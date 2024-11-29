@@ -52,8 +52,6 @@ private:
         }
 
     private:
-        int update_count = 0;
-
         bool                         outdated   = false;
         size_t                       pool_index = 0;
         std::shared_ptr<Pipeline>    pipeline;
