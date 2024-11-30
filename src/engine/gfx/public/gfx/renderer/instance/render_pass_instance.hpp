@@ -86,6 +86,8 @@ class RenderPassInstance
         return framebuffers[current_framebuffer_index];
     }
 
+    void add_temporary_dependency(const RenderNode& node);
+
   protected:
     bool enable_parallel_rendering() const
     {
@@ -126,4 +128,18 @@ class RenderPassInstance
     std::unique_ptr<ImGuiWrapper> imgui_context;
     uint32_t                      current_framebuffer_index = 0;
 };
+
+class CustomPassList
+{
+public:
+
+    void add_custom_pass();
+
+private:
+
+
+
+
+};
+
 } // namespace Eng::Gfx

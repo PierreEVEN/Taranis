@@ -212,6 +212,13 @@ class RenderNode
         return *this;
     }
 
+    static RenderNode create(const std::string& node_name)
+    {
+        auto node = RenderNode {};
+        node.name = node_name;
+        return node;
+    }
+
     std::shared_ptr<IRenderPassInitializer>     render_pass_initializer;
     ankerl::unordered_dense::map<std::string, Attachment> attachments;
     ankerl::unordered_dense::set<std::string>             dependencies;

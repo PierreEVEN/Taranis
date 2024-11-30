@@ -177,31 +177,29 @@ public:
 
         default_window = in_default_window;
 
-        Gfx::Renderer renderer1;
+        Gfx::Renderer renderer;
 
-        renderer1["shadows"]
-            .render_pass<SceneShadowsInterface>(scene)
-            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
-
-        renderer1["gbuffers"]
+        renderer["gbuffers"]
             .render_pass<SceneGBuffers>(scene)
             [Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
             [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
-            [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})][Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
+            [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})]
+            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
 
-        renderer1["gbuffer_resolve"]
+        renderer["gbuffer_resolve"]
             .require("gbuffers")
-            .require("shadows")
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
-        renderer1["present"]
+        renderer["present"]
             .require("gbuffer_resolve")
             .with_imgui(true, default_window)
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
 
-        default_window.lock()->set_renderer(renderer1);
+        default_window.lock()->set_renderer(renderer);
+
+
 
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
