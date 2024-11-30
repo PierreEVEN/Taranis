@@ -155,7 +155,7 @@ public:
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        directional_light->enable_shadow(ELightType::Movable);
+        //directional_light->enable_shadow(ELightType::Movable);
 
 
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
