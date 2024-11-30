@@ -16,7 +16,7 @@ class Surface;
 
 struct WindowConfig
 {
-    std::string name       = "no name";
+    std::string name       = "Taranis engine";
     glm::uvec2  resolution = {1920, 1080};
 };
 
