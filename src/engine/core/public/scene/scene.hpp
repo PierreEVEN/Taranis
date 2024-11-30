@@ -3,7 +3,6 @@
 #include "macros.hpp"
 #include "object_allocator.hpp"
 #include "object_ptr.hpp"
-#include "gfx/renderer/instance/render_pass_instance.hpp"
 
 #include <vector>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -12,6 +11,8 @@
 
 namespace Eng::Gfx
 {
+class Renderer;
+class TemporaryRenderPassInstance;
 class CustomPassList;
 class RenderNode;
 class RenderPassInstance;
@@ -45,6 +46,12 @@ class Scene final
 
 public:
     Scene();
+    Scene(Scene&& other) = default;
+
+    ~Scene()
+    {
+        root_nodes.clear();
+    }
 
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {
@@ -84,11 +91,7 @@ public:
         return root_nodes;
     }
 
-    void merge(Scene&& other_scene)
-    {
-        std::lock_guard lk(*merge_queue_mtx);
-        scenes_to_merge.push_back(std::move(other_scene));
-    }
+    void merge(Scene&& other_scene);
 
     void set_active_camera(const TObjectRef<CameraComponent>& camera)
     {
@@ -100,29 +103,23 @@ public:
         return active_camera;
     }
 
-    std::shared_ptr<Gfx::TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const
-    {
-        return custom_passes->add_custom_pass(targets, node);
-    }
+    void set_pass_list(const std::weak_ptr<Gfx::CustomPassList>& pass_list);
 
-    void remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass) const
-    {
-        return custom_passes->remove_custom_pass(pass);
-    }
+    std::shared_ptr<Gfx::TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const;
+
+    void remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass) const;
 
 private:
-
-    std::shared_ptr<Gfx::CustomPassList> custom_passes;
+    std::weak_ptr<Gfx::CustomPassList> custom_passes;
 
     TObjectRef<CameraComponent> active_camera;
 
-    glm::mat4                    last_pv;
+    glm::mat4 last_pv;
 
     std::unique_ptr<std::mutex> merge_queue_mtx;
     std::vector<Scene>          scenes_to_merge;
 
+    std::vector<TObjectPtr<SceneComponent>>    root_nodes;
     std::unique_ptr<ContiguousObjectAllocator> allocator;
-
-    std::vector<TObjectPtr<SceneComponent>> root_nodes;
 };
 } // namespace Eng

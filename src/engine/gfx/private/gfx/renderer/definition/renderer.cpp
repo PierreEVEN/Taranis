@@ -43,19 +43,20 @@ std::optional<std::string> Renderer::root_node() const
     return *roots.begin();
 }
 
-Renderer Renderer::compile(ColorFormat target_format) const
+Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device>& device) const
 {
     Renderer copy = *this;
-
-    if (target_format == ColorFormat::UNDEFINED)
-        return copy;
+    copy.custom_passes = std::make_shared<CustomPassList>(device);
 
     assert(!copy.b_compiled);
     copy.b_compiled = true;
 
     auto root = copy.root_node();
     if (!root)
-        LOG_FATAL("Failed to compile renderer");
+        LOG_FATAL("Failed to compile renderer, no root");
+
+    if (target_format == ColorFormat::UNDEFINED)
+        return copy;
 
     auto& attachment = copy[*root].attachments;
 

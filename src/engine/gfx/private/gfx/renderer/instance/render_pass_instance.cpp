@@ -15,7 +15,7 @@ namespace Eng::Gfx
 RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const std::string& name, bool b_is_present) : device(std::move(in_device)), definition(renderer.get_node(name))
 {
     assert(renderer.compiled());
-
+    custom_passes = renderer.get_custom_passes();
     // Init draw pass tree
     for (const auto& dependency : definition.dependencies)
         dependencies.emplace(dependency, std::make_shared<RenderPassInstance>(device, renderer, dependency, false));
@@ -47,15 +47,22 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.name));
 
     if (framebuffers.empty())
-        LOG_FATAL("Framebuffers have not been created using RenderPassInstance::create_or_resize()")
+        LOG_FATAL("Framebuffers for '{}' have not been created using RenderPassInstance::create_or_resize()", definition.name)
     const auto&    framebuffer = framebuffers[current_framebuffer_index];
     CommandBuffer& global_cmd  = framebuffer->begin();
     global_cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
 
-    for (const auto& child : dependencies | std::views::values)
-        child->render(device_image, device_image);
+    /*
+    auto task = JobSystem::get().schedule(
+        [&]
+        {*/
     for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
         temp_child->render(device_image, device_image);
+    // });
+
+    for (const auto& child : dependencies | std::views::values)
+        child->render(device_image, device_image);
+    //task.await();
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
@@ -76,16 +83,16 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     }
 
     const VkRenderPassBeginInfo begin_infos = {
-        .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass  = render_pass_resource.lock()->raw(),
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = render_pass_resource.lock()->raw(),
         .framebuffer = framebuffer->raw(),
         .renderArea =
-            {
-                .offset = {0, 0},
-                .extent = {resolution().x, resolution().y},
-            },
+        {
+            .offset = {0, 0},
+            .extent = {resolution().x, resolution().y},
+        },
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-        .pClearValues    = clear_values.data(),
+        .pClearValues = clear_values.data(),
     };
     global_cmd.begin_render_pass(render_pass_resource.lock()->get_name(), begin_infos, enable_parallel_rendering());
 
@@ -146,14 +153,14 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         const auto                        command_buffer_ptr            = global_cmd.raw();
         const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
         const VkSubmitInfo                submit_infos{
-                           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                           .waitSemaphoreCount   = static_cast<uint32_t>(children_semaphores.size()),
-                           .pWaitSemaphores      = children_semaphores.data(),
-                           .pWaitDstStageMask    = wait_stage.data(),
-                           .commandBufferCount   = 1,
-                           .pCommandBuffers      = &command_buffer_ptr,
-                           .signalSemaphoreCount = 1,
-                           .pSignalSemaphores    = &render_finished_semaphore_ptr,
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .waitSemaphoreCount = static_cast<uint32_t>(children_semaphores.size()),
+            .pWaitSemaphores = children_semaphores.data(),
+            .pWaitDstStageMask = wait_stage.data(),
+            .commandBufferCount = 1,
+            .pCommandBuffers = &command_buffer_ptr,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &render_finished_semaphore_ptr,
         };
         global_cmd.submit(submit_infos, framebuffer->get_render_finished_fence());
     }
@@ -164,6 +171,8 @@ std::vector<const Semaphore*> RenderPassInstance::get_semaphores_to_wait(DeviceI
     std::vector<const Semaphore*> semaphores;
     for (const auto& child : dependencies)
         semaphores.emplace_back(&child.second->framebuffers[device_image]->render_finished_semaphore());
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+        semaphores.emplace_back(&temp_child->framebuffers[device_image]->render_finished_semaphore());
     return semaphores;
 }
 
@@ -176,6 +185,9 @@ std::weak_ptr<RenderPassInstance> RenderPassInstance::get_dependency(const std::
 {
     if (auto found = dependencies.find(name); found != dependencies.end())
         return found->second;
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+        if (temp_child->get_definition().name == name)
+            return temp_child;
     return {};
 }
 
@@ -186,11 +198,11 @@ std::shared_ptr<ImageView> RenderPassInstance::create_view_for_attachment(const 
         LOG_FATAL("Attachment {} not found", attachment_name);
     return ImageView::create(attachment_name, Image::create(attachment_name, device,
                                                             ImageParameter{
-                                                                .format                 = attachment->second.color_format,
+                                                                .format = attachment->second.color_format,
                                                                 .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
-                                                                .buffer_type            = EBufferType::IMMEDIATE,
-                                                                .width                  = resolution().x,
-                                                                .height                 = resolution().y,
+                                                                .buffer_type = EBufferType::IMMEDIATE,
+                                                                .width = resolution().x,
+                                                                .height = resolution().y,
                                                             }));
 }
 
@@ -202,8 +214,8 @@ uint8_t RenderPassInstance::get_framebuffer_count() const
 void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_index) const
 {
     cmd.set_viewport({
-        .y      = static_cast<float>(resolution().y),
-        .width  = static_cast<float>(resolution().x),
+        .y = static_cast<float>(resolution().y),
+        .width = static_cast<float>(resolution().x),
         .height = -static_cast<float>(resolution().y),
     });
     cmd.set_scissor({0, 0, resolution().x, resolution().y});
@@ -228,7 +240,18 @@ std::shared_ptr<TemporaryRenderPassInstance> TemporaryRenderPassInstance::create
     return std::shared_ptr<TemporaryRenderPassInstance>(new TemporaryRenderPassInstance(device, renderer));
 }
 
-TemporaryRenderPassInstance::TemporaryRenderPassInstance(const std::weak_ptr<Device>& device, const Renderer& renderer) : RenderPassInstance(device, renderer.compile(ColorFormat::UNDEFINED), *renderer.root_node(), false)
+void TemporaryRenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId device_image)
+{
+    if (first_render)
+    {
+        create_or_resize(viewport_resolution(), resolution());
+        first_render = false;
+    }
+    RenderPassInstance::render(swapchain_image, device_image);
+}
+
+TemporaryRenderPassInstance::TemporaryRenderPassInstance(const std::weak_ptr<Device>& device, const Renderer& renderer) : RenderPassInstance(
+    device, renderer.compile(ColorFormat::UNDEFINED, device), *renderer.root_node(), false)
 {
 }
 
@@ -237,6 +260,12 @@ void RenderPassInstance::reset_for_next_frame()
     prepared = false;
     for (const auto& dependency : dependencies | std::views::values)
         dependency->reset_for_next_frame();
+    for (const auto& temp_dep : custom_passes->get_dependencies(definition.name))
+    {
+        if (temp_dep->viewport_resolution().x == 0 || temp_dep->viewport_resolution().y == 0)
+            temp_dep->create_or_resize(viewport_resolution(), resolution());
+        temp_dep->reset_for_next_frame();
+    }
 
     if (!next_frame_framebuffers.empty())
     {
@@ -258,8 +287,12 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
 {
     glm::uvec2 desired_resolution = resize_callback ? resize_callback(viewport) : parent;
 
+    viewport_res = viewport;
+
     for (const auto& dep : dependencies)
         dep.second->create_or_resize(viewport, desired_resolution, b_force);
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+        temp_child->create_or_resize(viewport, desired_resolution, b_force);
 
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize draw pass {}", definition.name));
     if (!b_force && desired_resolution == current_resolution && !framebuffers.empty())
@@ -267,7 +300,7 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
 
     if (desired_resolution.x == 0 || desired_resolution.y == 0)
     {
-        LOG_ERROR("Invalid framebuffer resolution : {}x{}", desired_resolution.x, desired_resolution.y);
+        LOG_ERROR("Invalid framebuffer resolution for '{}' : {}x{}", definition.name, desired_resolution.x, desired_resolution.y);
         if (desired_resolution.x == 0)
             desired_resolution.x = 1;
         if (desired_resolution.y == 0)

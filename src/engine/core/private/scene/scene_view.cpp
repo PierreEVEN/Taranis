@@ -46,7 +46,7 @@ void SceneView::pre_submit() const
     view_buffer->wait_data_upload();
 }
 
-void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads)
+void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads)
 {
     PROFILER_SCOPE(SceneDraw);
     scene.for_each_part<MeshComponent>(

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "class.hpp"
+#include "logger.hpp"
+
 #include <cassert>
 #include <iostream>
 #include <type_traits>
@@ -90,7 +92,7 @@ class IObject
     {
         if (*this)
         {
-            assert(allocation->ptr_count > 0);
+            assert(allocation->ref_count > 0);
             allocation->ref_count--;
             if (allocation->ref_count == 0 && allocation->ptr_count == 0)
                 free();
@@ -180,10 +182,7 @@ template <typename T> class TObjectPtr final : public IObject
 
         if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
         {
-            TObjectRef<V> other;
-            other.allocation = allocation;
-            ++allocation->ptr_count;
-            return other;
+            return TObjectRef<V>(allocation);
         }
 
         return TObjectRef<V>();
@@ -239,6 +238,8 @@ template <typename T> class TObjectRef final : public IObject
         {
             allocation           = std::move(in_object.allocation);
             in_object.allocation = nullptr;
+            if (*this)
+                assert(allocation->ref_count > 0);
         }
     }
 
@@ -249,13 +250,15 @@ template <typename T> class TObjectRef final : public IObject
         allocation->ref_count++;
     }
 
-    template <typename V> TObjectRef(TObjectPtr<V>&& in_object) noexcept
+    template <typename V> TObjectRef(TObjectRef<V>&& in_object) noexcept
     {
         static_assert(std::is_base_of_v<T, V>, "Implicit cast of object ptr are only allowed with parent classes");
         if (in_object)
         {
             allocation           = std::move(in_object.allocation);
             in_object.allocation = nullptr;
+            if (*this)
+                assert(allocation->ref_count > 0);
         }
     }
 
@@ -288,7 +291,7 @@ template <typename T> class TObjectRef final : public IObject
         if (other)
         {
             allocation = other.allocation;
-            allocation->ref_count++;
+            ++allocation->ref_count;
         }
         return *this;
     }
@@ -298,7 +301,7 @@ template <typename T> class TObjectRef final : public IObject
         if (other)
         {
             allocation = other.allocation;
-            allocation->ref_count++;
+            ++allocation->ref_count;
         }
         return *this;
     }
@@ -323,7 +326,7 @@ template <typename T> class TObjectRef final : public IObject
         if (other)
         {
             allocation = other.allocation;
-            allocation->ref_count++;
+            ++allocation->ref_count;
         }
         return *this;
     }
@@ -334,7 +337,7 @@ template <typename T> class TObjectRef final : public IObject
         if (other)
         {
             allocation = other.allocation;
-            allocation->ref_count++;
+            ++allocation->ref_count;
         }
         return *this;
     }
@@ -348,7 +351,7 @@ template <typename T> class TObjectRef final : public IObject
         {
             TObjectRef<V> other;
             other.allocation = allocation;
-            ++allocation->ptr_count;
+            ++allocation->ref_count;
             return other;
         }
 

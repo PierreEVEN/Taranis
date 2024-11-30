@@ -11,7 +11,7 @@
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
-#include "object_allocator.hpp"
+#include "widgets/profiler.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
 #include "scene/scene.hpp"
@@ -46,7 +46,7 @@ public:
         return std::thread::hardware_concurrency() * 3;
     }
 
-    void pre_submit(const Gfx::RenderPassInstance& rp) override
+    void pre_submit(const Gfx::RenderPassInstance&) override
     {
         scene->get_active_camera()->get_view().pre_submit();
     }
@@ -124,6 +124,7 @@ public:
 class TestApp : public Application
 {
 public:
+
     void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
@@ -150,14 +151,13 @@ public:
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
 
-        std::weak_ptr<Gfx::CustomPassList> custom_passes = default_window.lock()->set_renderer(renderer);
-
+        scene->set_pass_list(default_window.lock()->set_renderer(renderer));
         camera = scene->add_component<FpsCameraComponent>("test_cam");
+        camera->activate();
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
 
 
-        camera->activate();
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]

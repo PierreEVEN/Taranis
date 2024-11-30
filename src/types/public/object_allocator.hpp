@@ -6,6 +6,7 @@
 #include <ranges>
 #include <ankerl/unordered_dense.h>
 
+class ContiguousObjectAllocator;
 struct ObjectAllocation;
 class IObjectPtr;
 
@@ -24,7 +25,7 @@ class ObjectAllocator
 class ContiguousObjectPool
 {
   public:
-    ContiguousObjectPool(const Reflection::Class* in_object_class) : object_class(in_object_class), stride(object_class->stride())
+    ContiguousObjectPool(ContiguousObjectAllocator* in_parent, const Reflection::Class* in_object_class) : object_class(in_object_class), stride(object_class->stride()), parent(in_parent)
     {
     }
 
@@ -71,7 +72,8 @@ class ContiguousObjectPool
     void*                    memory          = nullptr;
     size_t                   allocated_count = 0;
     size_t                   component_count = 0;
-    const size_t             stride;
+    const size_t               stride;
+    ContiguousObjectAllocator* parent;
 
     ankerl::unordered_dense::map<void*, ObjectAllocation*> allocation_map;
 };

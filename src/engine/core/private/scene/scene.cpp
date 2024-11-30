@@ -57,4 +57,35 @@ void Scene::tick(double delta_second)
         });
 }
 
+void Scene::merge(Scene&& other_scene)
+{
+    std::lock_guard lk(*merge_queue_mtx);
+    scenes_to_merge.push_back(std::move(other_scene));
+}
+
+void Scene::set_pass_list(const std::weak_ptr<Gfx::CustomPassList>& pass_list)
+{
+    custom_passes = pass_list;
+}
+
+std::shared_ptr<Gfx::TemporaryRenderPassInstance> Scene::add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const
+{
+    if (!custom_passes.lock())
+    {
+        LOG_ERROR("Scene is not attached to a renderer");
+        return nullptr;
+    }
+    return custom_passes.lock()->add_custom_pass(targets, node);
+}
+
+void Scene::remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass) const
+{
+    if (!custom_passes.lock())
+    {
+        LOG_ERROR("Scene is not attached to a renderer");
+        return;
+    }
+    return custom_passes.lock()->remove_custom_pass(pass);
+}
+
 } // namespace Eng

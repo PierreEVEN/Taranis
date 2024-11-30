@@ -14,6 +14,11 @@
 
 namespace Eng::Gfx
 {
+class CustomPassList;
+}
+
+namespace Eng::Gfx
+{
 class Window;
 class RenderPassInstance;
 class CommandBuffer;
@@ -234,14 +239,22 @@ public:
     const RenderNode&          get_node(const std::string& pass_name) const;
     std::optional<std::string> root_node() const;
 
-    Renderer compile(ColorFormat target_format) const;
+    Renderer compile(ColorFormat target_format, const std::weak_ptr<Device>& device) const;
 
     bool compiled() const
     {
         return b_compiled;
     }
 
-private:
+    const std::shared_ptr<CustomPassList>& get_custom_passes() const
+    {
+        return custom_passes;
+    }
+
+  private:
+
+    std::shared_ptr<CustomPassList> custom_passes;
+
     bool                                                  b_compiled = false;
     ankerl::unordered_dense::map<std::string, RenderNode> nodes;
 };

@@ -39,6 +39,7 @@ SceneView& CameraComponent::get_view()
 
 void CameraComponent::set_position(glm::vec3 in_position)
 {
+    get_view().set_position(in_position);
     SceneComponent::set_position(in_position);
 }
 

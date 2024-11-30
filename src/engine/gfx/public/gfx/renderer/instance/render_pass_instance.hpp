@@ -47,6 +47,11 @@ public:
         return current_resolution;
     }
 
+    const glm::uvec2& viewport_resolution() const
+    {
+        return viewport_res;
+    }
+
     // Get draw pass definition
     const RenderNode& get_definition() const
     {
@@ -87,6 +92,11 @@ public:
         return framebuffers[current_framebuffer_index];
     }
 
+    std::weak_ptr<CustomPassList> get_custom_passes()
+    {
+        return custom_passes;
+    }
+
 protected:
     bool enable_parallel_rendering() const
     {
@@ -121,6 +131,7 @@ private:
     std::shared_ptr<CustomPassList> custom_passes;
     void                            fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
 
+    glm::uvec2                    viewport_res{0, 0};
     glm::uvec2                    current_resolution{0, 0};
     RenderNode                    definition;
     std::weak_ptr<VkRendererPass> render_pass_resource;
@@ -134,7 +145,23 @@ class TemporaryRenderPassInstance : public RenderPassInstance
 public:
     static std::shared_ptr<TemporaryRenderPassInstance> create(const std::weak_ptr<Device>& device, const Renderer& renderer);
 
+    bool is_enabled() const
+    {
+        return enabled;
+    }
+
+    void enable(bool in_enabled)
+    {
+        enabled = in_enabled;
+        if (!first_render)
+            first_render = true;
+    }
+
+    void render(SwapchainImageId swapchain_image, DeviceImageId device_image) override;
+
 private:
+    bool first_render = true;
+    bool enabled      = true;
     TemporaryRenderPassInstance(const std::weak_ptr<Device>& device, const Renderer& renderer);
 };
 
@@ -145,7 +172,6 @@ public:
     CustomPassList(const std::weak_ptr<Device>& in_device) : device(in_device)
     {
     }
-
 
     std::shared_ptr<TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Renderer& renderer)
     {
@@ -175,8 +201,6 @@ public:
 private:
     std::weak_ptr<Device>                                                                                device;
     ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<TemporaryRenderPassInstance>>> temporary_dependencies;
-
-
 };
 
 } // namespace Eng::Gfx

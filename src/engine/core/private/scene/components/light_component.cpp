@@ -27,7 +27,7 @@ public:
         return std::thread::hardware_concurrency() * 3;
     }
 
-    void pre_submit(const Gfx::RenderPassInstance& rp) override
+    void pre_submit(const Gfx::RenderPassInstance&) override
     {
         scene_view->pre_submit();
     }

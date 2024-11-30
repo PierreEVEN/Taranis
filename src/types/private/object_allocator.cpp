@@ -59,6 +59,7 @@ void ContiguousObjectPool::merge(ContiguousObjectPool& other)
     {
         ObjectAllocation* allocation = old_alloc.second;
         allocation->ptr              = nth(other.nth_ptr(old_alloc.first) + component_count);
+        allocation->allocator        = parent;
         allocation_map.emplace(allocation->ptr, allocation);
     }
     component_count = component_count + other.component_count;
@@ -133,7 +134,7 @@ ContiguousObjectAllocator::ContiguousObjectAllocator()
 ObjectAllocation* ContiguousObjectAllocator::allocate(const Reflection::Class* component_class)
 {
     assert(component_class);
-    ObjectAllocation* allocation = pools.emplace(component_class, std::make_unique<ContiguousObjectPool>(component_class)).first->second->allocate();
+    ObjectAllocation* allocation = pools.emplace(component_class, std::make_unique<ContiguousObjectPool>(this, component_class)).first->second->allocate();
     allocation->allocator        = this;
     return allocation;
 }
@@ -149,7 +150,7 @@ void ContiguousObjectAllocator::free(const Reflection::Class* component_class, v
 void ContiguousObjectAllocator::merge_with(ContiguousObjectAllocator& other)
 {
     for (const auto& pool : other.pools)
-        pools.emplace(pool.first, std::make_unique<ContiguousObjectPool>(pool.second->get_class())).first->second->merge(*pool.second);
+        pools.emplace(pool.first, std::make_unique<ContiguousObjectPool>(this, pool.second->get_class())).first->second->merge(*pool.second);
 }
 
 std::vector<ContiguousObjectPool*> ContiguousObjectAllocator::find_pools(const Reflection::Class* parent_class) const

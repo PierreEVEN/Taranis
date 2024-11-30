@@ -15,7 +15,7 @@
 namespace Eng::Gfx
 {
 Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer, bool in_vsync)
-    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface)), *renderer.root_node(), true), vsync(in_vsync), surface(in_surface)
+    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface), in_device), *renderer.root_node(), true), vsync(in_vsync), surface(in_surface)
 {
     create_or_recreate();
 }

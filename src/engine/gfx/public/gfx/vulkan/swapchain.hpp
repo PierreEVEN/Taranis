@@ -76,14 +76,7 @@ class Swapchain final : public RenderPassInstance
         return device;
     }
 
-    std::weak_ptr<CustomPassList> get_custom_passes()
-    {
-        return custom_passes;
-    }
-
   private:
-    std::shared_ptr<CustomPassList> custom_passes;
-
     Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync);
     bool vsync = true;
 
