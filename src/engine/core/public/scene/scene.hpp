@@ -64,10 +64,6 @@ public:
 
     void tick(double delta_second);
 
-    void pre_draw(const Gfx::RenderPassInstance& render_pass);
-    void pre_submit(const Gfx::RenderPassInstance& render_pass);
-    void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads);
-
     template <typename T> void for_each(const std::function<void(T&)>& callback) const
     {
         allocator->for_each(callback);
@@ -104,14 +100,14 @@ public:
         return active_camera;
     }
 
-    std::weak_ptr<Gfx::Buffer> get_scene_buffer() const
+    std::shared_ptr<Gfx::TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const
     {
-        return scene_buffer;
+        return custom_passes->add_custom_pass(targets, node);
     }
 
-    std::shared_ptr<Gfx::RenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Gfx::RenderNode& node)
+    void remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass) const
     {
-        custom_passes->add_custom_pass(targets, node);
+        return custom_passes->remove_custom_pass(pass);
     }
 
 private:
@@ -120,7 +116,6 @@ private:
 
     TObjectRef<CameraComponent> active_camera;
 
-    std::shared_ptr<Gfx::Buffer> scene_buffer;
     glm::mat4                    last_pv;
 
     std::unique_ptr<std::mutex> merge_queue_mtx;

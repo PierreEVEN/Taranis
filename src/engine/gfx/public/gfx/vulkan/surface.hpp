@@ -5,6 +5,7 @@
 
 namespace Eng::Gfx
 {
+class CustomPassList;
 class SwapchainRenderer;
 class Renderer;
 class Swapchain;
@@ -35,7 +36,7 @@ class Surface : public std::enable_shared_from_this<Surface>
     }
 
     void set_device(const std::weak_ptr<Device>& device);
-    void set_renderer(const Renderer& renderer);
+    std::weak_ptr<CustomPassList> set_renderer(const Renderer& renderer);
     void render() const;
 
     const std::shared_ptr<Swapchain>& get_swapchain() const

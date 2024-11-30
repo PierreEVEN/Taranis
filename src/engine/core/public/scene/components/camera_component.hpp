@@ -11,6 +11,9 @@ class RenderPassInstanceBase;
 
 namespace Eng
 {
+class SceneView;
+
+
 class CameraComponent : public SceneComponent
 {
     REFLECT_BODY();
@@ -18,63 +21,19 @@ class CameraComponent : public SceneComponent
   public:
     CameraComponent();
 
-    const glm::mat4& view_matrix()
-    {
-        if (outdated)
-            recompute();
-        return view;
-    }
-
-    const glm::mat4& perspective_matrix(const glm::uvec2& in_resolution)
-    {
-        if (in_resolution != resolution)
-        {
-            resolution = in_resolution;
-            outdated   = true;
-        }
-
-        if (outdated)
-            recompute();
-        return perspective;
-    }
-
-    const glm::mat4& perspective_view_matrix(const glm::uvec2& in_resolution)
-    {
-        if (in_resolution != resolution)
-        {
-            resolution = in_resolution;
-            outdated   = true;
-        }
-
-        if (outdated)
-            recompute();
-        return perspective_view;
-    }
-
     void activate();
 
     void tick(double) override;
 
-    const glm::uvec2& get_resolution() const
-    {
-        return resolution;
-    }
+    SceneView& get_view();
 
   private:
-    void recompute();
-
   public:
     void set_position(glm::vec3 in_position) override;
     void set_rotation(glm::quat in_rotation) override;
 
   private:
-    bool       outdated = true;
-    float      fov      = 90.0f;
-    float      z_near   = 0.01f;
-    glm::mat4  view;
-    glm::mat4  perspective;
-    glm::mat4  perspective_view;
-    glm::uvec2 resolution;
+    std::shared_ptr<SceneView> scene_view;
 };
 
 class FpsCameraComponent : public CameraComponent

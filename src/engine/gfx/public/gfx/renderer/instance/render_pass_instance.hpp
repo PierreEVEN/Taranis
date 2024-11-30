@@ -10,6 +10,7 @@
 
 namespace Eng::Gfx
 {
+class CustomPassList;
 class ImageView;
 }
 
@@ -27,7 +28,7 @@ using DeviceImageId    = uint8_t;
 
 class RenderPassInstance
 {
-  public:
+public:
     RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const std::string& name, bool b_is_present);
 
     // Should be called before each frame to reset all draw flags
@@ -86,9 +87,7 @@ class RenderPassInstance
         return framebuffers[current_framebuffer_index];
     }
 
-    void add_temporary_dependency(const RenderNode& node);
-
-  protected:
+protected:
     bool enable_parallel_rendering() const
     {
         return render_pass_interface && render_pass_interface->record_threads() > 1;
@@ -111,15 +110,16 @@ class RenderPassInstance
 
     // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new one to be sure
     // we are always submitting valid images
-    std::vector<std::shared_ptr<Framebuffer>>                   next_frame_framebuffers;
+    std::vector<std::shared_ptr<Framebuffer>>                             next_frame_framebuffers;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
 
     virtual uint8_t get_framebuffer_count() const;
 
     ankerl::unordered_dense::map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
 
-  private:
-    void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
+private:
+    std::shared_ptr<CustomPassList> custom_passes;
+    void                            fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
 
     glm::uvec2                    current_resolution{0, 0};
     RenderNode                    definition;
@@ -129,15 +129,52 @@ class RenderPassInstance
     uint32_t                      current_framebuffer_index = 0;
 };
 
+class TemporaryRenderPassInstance : public RenderPassInstance
+{
+public:
+    static std::shared_ptr<TemporaryRenderPassInstance> create(const std::weak_ptr<Device>& device, const Renderer& renderer);
+
+private:
+    TemporaryRenderPassInstance(const std::weak_ptr<Device>& device, const Renderer& renderer);
+};
+
+
 class CustomPassList
 {
 public:
+    CustomPassList(const std::weak_ptr<Device>& in_device) : device(in_device)
+    {
+    }
 
-    void add_custom_pass();
+
+    std::shared_ptr<TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Renderer& renderer)
+    {
+        const auto new_rp = TemporaryRenderPassInstance::create(device, renderer);
+        for (const auto& target : targets)
+            temporary_dependencies.emplace(target, std::vector<std::shared_ptr<TemporaryRenderPassInstance>>{}).first->second.emplace_back(new_rp);
+        return new_rp;
+    }
+
+    void remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass)
+    {
+        for (auto& dep : temporary_dependencies | std::views::values)
+        {
+            for (int64_t i = dep.size() - 1; i >= 0; --i)
+                if (dep[i] == pass)
+                    dep.erase(dep.begin() + i);
+        }
+    }
+
+    std::vector<std::shared_ptr<TemporaryRenderPassInstance>> get_dependencies(const std::string& pass_name) const
+    {
+        if (auto found = temporary_dependencies.find(pass_name); found != temporary_dependencies.end())
+            return found->second;
+        return {};
+    }
 
 private:
-
-
+    std::weak_ptr<Device>                                                                                device;
+    ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<TemporaryRenderPassInstance>>> temporary_dependencies;
 
 
 };

@@ -6,6 +6,7 @@
 #include "gfx/vulkan/buffer.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "profiler.hpp"
+#include "scene/scene_view.hpp"
 #include "scene/components/camera_component.hpp"
 
 struct Pc
@@ -16,7 +17,7 @@ struct Pc
 namespace Eng
 {
 
-void MeshComponent::draw(Gfx::CommandBuffer& command_buffer)
+void MeshComponent::draw(Gfx::CommandBuffer& command_buffer, SceneView& view)
 {
     if (mesh)
     {
@@ -25,7 +26,7 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer)
         {
             if (section.material)
             {
-                section.material->set_scene_data(command_buffer.render_pass(), get_scene().get_scene_buffer());
+                section.material->set_scene_data(command_buffer.render_pass(), view.get_view_buffer());
 
                 auto pipeline = section.material->get_base_resource(command_buffer.render_pass());
                 if (!pipeline)

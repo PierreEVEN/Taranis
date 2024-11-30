@@ -10,24 +10,6 @@
 #include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
 
-struct Lights
-{
-    uint32_t directional_lights = 0;
-    uint32_t point_lights       = 0;
-    uint32_t spot_lights        = 0;
-};
-
-struct SceneBufferData
-{
-    glm::mat4 view_mat;
-    glm::mat4 perspective_mat;
-    glm::mat4 perspective_view_mat;
-    glm::mat4 in_view_mat;
-    glm::mat4 inv_perspective_mat;
-    glm::mat4 inv_perspective_view_mat;
-    Lights    lights;
-};
-
 namespace Eng
 {
 Scene::Scene()
@@ -75,44 +57,4 @@ void Scene::tick(double delta_second)
         });
 }
 
-void Scene::pre_draw(const Gfx::RenderPassInstance& render_pass)
-{
-    PROFILER_SCOPE(ScenePreDraw);
-    if (!active_camera)
-        return;
-
-    if (!scene_buffer)
-        scene_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
-
-    const glm::mat4& new_pv = active_camera->perspective_view_matrix(render_pass.resolution());
-    last_pv                        = new_pv;
-    glm::mat4 inv_view             = inverse(active_camera->view_matrix());
-    glm::mat4 inv_perspective      = inverse(active_camera->perspective_matrix(render_pass.resolution()));
-    glm::mat4 inv_perspective_view = inv_view * inv_perspective;
-
-    scene_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.view_mat                 = transpose(active_camera->view_matrix()),
-                                                              .perspective_mat          = transpose(active_camera->perspective_matrix(render_pass.resolution())),
-                                                              .perspective_view_mat     = transpose(last_pv),
-                                                              .in_view_mat              = transpose(inv_view),
-                                                              .inv_perspective_mat      = transpose(inv_perspective),
-                                                              .inv_perspective_view_mat = transpose(inv_perspective_view),
-                                                              .lights                   = {}}});
-}
-
-void Scene::pre_submit(const Gfx::RenderPassInstance&)
-{
-    scene_buffer->wait_data_upload();
-}
-
-void Scene::draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& cmd_buffer, size_t idx, size_t num_threads)
-{
-    PROFILER_SCOPE(SceneDraw);
-    for_each_part<MeshComponent>(
-        [&cmd_buffer](MeshComponent& object)
-        {
-            PROFILER_SCOPE_NAMED(DrawMesh, "Draw mesh " + std::string(object.get_name()));
-            object.draw(cmd_buffer);
-        },
-        idx, num_threads);
-}
 } // namespace Eng

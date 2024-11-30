@@ -54,6 +54,8 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
 
     for (const auto& child : dependencies | std::views::values)
         child->render(device_image, device_image);
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+        temp_child->render(device_image, device_image);
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
@@ -219,6 +221,15 @@ void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_in
         imgui_context->end(cmd);
         imgui_context->begin(resolution());
     }
+}
+
+std::shared_ptr<TemporaryRenderPassInstance> TemporaryRenderPassInstance::create(const std::weak_ptr<Device>& device, const Renderer& renderer)
+{
+    return std::shared_ptr<TemporaryRenderPassInstance>(new TemporaryRenderPassInstance(device, renderer));
+}
+
+TemporaryRenderPassInstance::TemporaryRenderPassInstance(const std::weak_ptr<Device>& device, const Renderer& renderer) : RenderPassInstance(device, renderer.compile(ColorFormat::UNDEFINED), *renderer.root_node(), false)
+{
 }
 
 void RenderPassInstance::reset_for_next_frame()

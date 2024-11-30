@@ -65,8 +65,8 @@ glm::uvec2 Window::internal_extent() const
     return {width, height};
 }
 
-void Window::set_renderer(const Renderer& renderer) const
+std::weak_ptr<CustomPassList> Window::set_renderer(const Renderer& renderer) const
 {
-    surface->set_renderer(renderer);
+    return surface->set_renderer(renderer);
 }
 } // namespace Eng::Gfx

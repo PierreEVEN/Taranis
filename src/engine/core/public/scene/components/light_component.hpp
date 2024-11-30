@@ -26,7 +26,7 @@ class LightComponent : public SceneComponent
     void enable_shadow(ELightType light_type = ELightType::Stationary, bool enabled = true);
 
 protected:
-    virtual void create_shadow_texture()
+    virtual void void_create_shadow_resources()
     {
         
     }
@@ -34,5 +34,6 @@ protected:
     glm::vec3  color      = glm::vec3(1, 1, 1);
     bool       shadows    = false;
     ELightType light_type = ELightType::Stationary;
+    std::shared_ptr<Gfx::TemporaryRenderPassInstance> shadow_update_pass;
 };
 }

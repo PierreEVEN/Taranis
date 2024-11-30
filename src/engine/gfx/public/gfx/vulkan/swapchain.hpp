@@ -29,9 +29,9 @@ struct SwapChainSupportDetails
 class Swapchain final : public RenderPassInstance
 {
   public:
-    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false)
+    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false)
     {
-        return std::shared_ptr<Swapchain>(new Swapchain(device, surface, renderer, vsync));
+        return std::shared_ptr<Swapchain>(new Swapchain(in_device, surface, renderer, vsync));
     }
 
     Swapchain(Swapchain&)  = delete;
@@ -76,8 +76,15 @@ class Swapchain final : public RenderPassInstance
         return device;
     }
 
+    std::weak_ptr<CustomPassList> get_custom_passes()
+    {
+        return custom_passes;
+    }
+
   private:
-    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false);
+    std::shared_ptr<CustomPassList> custom_passes;
+
+    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync);
     bool vsync = true;
 
     std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;

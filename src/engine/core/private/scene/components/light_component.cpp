@@ -1,24 +1,25 @@
 #include "scene/components/light_component.hpp"
 
 #include "gfx/renderer/definition/renderer.hpp"
+#include "scene/scene_view.hpp"
 
 namespace Eng
 {
 class SceneShadowsInterface : public Gfx::IRenderPass
 {
 public:
-    SceneShadowsInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
+    SceneShadowsInterface(Scene& in_scene) : scene_view(SceneView::create()), scene(&in_scene)
     {
     }
 
     void pre_draw(const Gfx::RenderPassInstance& rp) override
     {
-        scene->pre_draw(rp);
+        scene_view->pre_draw(rp);
     }
 
     void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
     {
-        scene->draw(rp, command_buffer, thread_index, record_threads());
+        scene_view->draw(*scene, rp, command_buffer, thread_index, record_threads());
     }
 
     size_t record_threads() override
@@ -28,10 +29,11 @@ public:
 
     void pre_submit(const Gfx::RenderPassInstance& rp) override
     {
-        scene->pre_submit(rp);
+        scene_view->pre_submit();
     }
 
-    std::shared_ptr<Scene> scene;
+    std::shared_ptr<SceneView> scene_view;
+    Scene*                     scene = nullptr;
 };
 
 
@@ -46,9 +48,13 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
 
     if (in_enabled)
     {
-        std::shared_ptr<Gfx::RenderPassInstance> shadow_update_pass = get_scene().add_custom_pass({"gbuffer_resolve"}, Gfx::RenderNode::create("depth_buffer")
-                                                                                                  .render_pass<SceneShadowsInterface>(get_scene())
-                                                                                                  [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})]);
+        Gfx::Renderer renderer;
+
+        renderer["shadows"]
+            .render_pass<SceneShadowsInterface>(get_scene())
+            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
+
+        shadow_update_pass = get_scene().add_custom_pass({"gbuffer_resolve"}, renderer);
     }
     else
     {

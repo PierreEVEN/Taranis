@@ -5,6 +5,7 @@
 
 namespace Eng
 {
+class SceneView;
 class CameraComponent;
 }
 
@@ -28,7 +29,7 @@ class MeshComponent : public SceneComponent
   public:
     MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {}) : mesh(in_mesh){};
 
-    void draw(Gfx::CommandBuffer& command_buffer);
+    void draw(Gfx::CommandBuffer& command_buffer, SceneView& view);
 
     TObjectRef<MeshAsset> mesh;
 };

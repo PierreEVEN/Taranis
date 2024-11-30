@@ -7,6 +7,7 @@ struct GLFWwindow;
 
 namespace Eng::Gfx
 {
+class CustomPassList;
 class SwapchainRenderer;
 class Renderer;
 class Device;
@@ -46,7 +47,7 @@ class Window : public std::enable_shared_from_this<Window>
         should_close = true;
     }
 
-    void set_renderer(const Renderer& renderer) const;
+    std::weak_ptr<Gfx::CustomPassList> set_renderer(const Renderer& renderer) const;
 
     std::shared_ptr<Surface> get_surface() const
     {

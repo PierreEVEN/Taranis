@@ -47,6 +47,9 @@ Renderer Renderer::compile(ColorFormat target_format) const
 {
     Renderer copy = *this;
 
+    if (target_format == ColorFormat::UNDEFINED)
+        return copy;
+
     assert(!copy.b_compiled);
     copy.b_compiled = true;
 

@@ -14,22 +14,14 @@ struct VSInput
     float4 color;
 };
 
-struct Lights
-{
-    uint32_t directional_lights;
-    uint32_t point_lights;
-    uint32_t spot_lights;
-};
-
 struct SceneBufferData
 {
+    float4x4 perspective_view_mat;
     float4x4 view_mat;
     float4x4 perspective_mat;
-    float4x4 perspective_view_mat;
+    float4x4 inv_perspective_view_mat;
     float4x4 in_view_mat;
     float4x4 inv_perspective_mat;
-    float4x4 inv_perspective_view_mat;
-    Lights   lights;
 };
 
 struct VsToFs

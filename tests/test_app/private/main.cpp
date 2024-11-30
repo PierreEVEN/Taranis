@@ -2,7 +2,6 @@
 #include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
 #include "assets/sampler_asset.hpp"
-#include "assets/texture_asset.hpp"
 #include "config.hpp"
 #include "engine.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
@@ -16,45 +15,14 @@
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
 #include "scene/scene.hpp"
+#include "scene/scene_view.hpp"
+#include "scene/components/directional_light_component.hpp"
 #include "widgets/content_browser.hpp"
-#include "widgets/profiler.hpp"
 #include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
 #include <gfx/window.hpp>
 
 using namespace Eng;
-
-int worker_count = 5;
-
-class SceneShadowsInterface : public Gfx::IRenderPass
-{
-public:
-    SceneShadowsInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
-    {
-    }
-
-    void pre_draw(const Gfx::RenderPassInstance& rp) override
-    {
-        scene->pre_draw(rp);
-    }
-
-    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
-    {
-        scene->draw(rp, command_buffer, thread_index, record_threads());
-    }
-
-    size_t record_threads() override
-    {
-        return std::thread::hardware_concurrency() * 3;
-    }
-
-    void pre_submit(const Gfx::RenderPassInstance& rp) override
-    {
-        scene->pre_submit(rp);
-    }
-
-    std::shared_ptr<Scene> scene;
-};
 
 class SceneGBuffers : public Gfx::IRenderPass
 {
@@ -65,12 +33,12 @@ public:
 
     void pre_draw(const Gfx::RenderPassInstance& rp) override
     {
-        scene->pre_draw(rp);
+        scene->get_active_camera()->get_view().pre_draw(rp);
     }
 
     void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
     {
-        scene->draw(rp, command_buffer, thread_index, record_threads());
+        scene->get_active_camera()->get_view().draw(*scene, rp, command_buffer, thread_index, record_threads());
     }
 
     size_t record_threads() override
@@ -80,7 +48,7 @@ public:
 
     void pre_submit(const Gfx::RenderPassInstance& rp) override
     {
-        scene->pre_submit(rp);
+        scene->get_active_camera()->get_view().pre_submit();
     }
 
     std::shared_ptr<Scene> scene;
@@ -98,8 +66,8 @@ public:
         auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat");
         base_mat->set_shader_code("gbuffer_resolve");
 
-        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat, false);
         sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler");
+        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat, false);
         material->set_sampler("sSampler", sampler);
     }
 
@@ -133,21 +101,6 @@ public:
     TObjectRef<MaterialInstanceAsset> material;
     TObjectRef<SamplerAsset>          sampler;
     std::shared_ptr<Scene>            scene;
-};
-
-class TestWindow : public UiWindow
-{
-public:
-    explicit TestWindow(const std::string& name) : UiWindow(name)
-    {
-    }
-
-protected:
-    void draw(Gfx::ImGuiWrapper&) override
-    {
-
-        ImGui::SliderInt("par", &worker_count, 1, 120);
-    }
 };
 
 class PresentPass : public Gfx::IRenderPass
@@ -197,11 +150,13 @@ public:
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
 
-        default_window.lock()->set_renderer(renderer);
-
-
+        std::weak_ptr<Gfx::CustomPassList> custom_passes = default_window.lock()->set_renderer(renderer);
 
         camera = scene->add_component<FpsCameraComponent>("test_cam");
+        auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
+        directional_light->enable_shadow(ELightType::Movable);
+
+
         camera->activate();
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
