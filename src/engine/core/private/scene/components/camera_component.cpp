@@ -63,6 +63,6 @@ void FpsCameraComponent::set_yaw(float in_yaw)
 
 void FpsCameraComponent::update_rotation()
 {
-    set_rotation(glm::quat(glm::vec3{0, 0, 0}) * glm::quat(glm::vec3{0, pitch, yaw}));
+    set_rotation(glm::quat(glm::vec3{0, pitch, yaw}));
 }
 } // namespace Eng

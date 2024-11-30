@@ -52,6 +52,7 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
     }
     sessionDesc.targets     = &targetDesc;
     sessionDesc.targetCount = 1;
+    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
 
     // Search paths
     const char* searchPaths[]   = {"resources/shaders"};

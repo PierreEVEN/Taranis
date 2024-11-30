@@ -6,8 +6,17 @@
 namespace Eng
 {
 
-void MeshAsset::add_section(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material)
+void MeshAsset::add_section(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material, const Bounds& in_bounds)
 {
-    mesh_sections.emplace_back(Gfx::Mesh::create(get_name(), Engine::get().get_device(), Gfx::EBufferType::IMMUTABLE, Gfx::BufferData(vertices.data(), sizeof(Vertex), vertices.size()), &indices), material);
+    Bounds section_bounds = in_bounds;
+    if (!section_bounds)
+    {
+        for (const auto& vertex : vertices)
+            section_bounds.add_point(vertex.pos);
+    }
+    bounds += section_bounds;
+
+    mesh_sections.emplace_back(section_bounds, Gfx::Mesh::create(get_name(), Engine::get().get_device(), Gfx::EBufferType::IMMUTABLE, Gfx::BufferData(vertices.data(), sizeof(Vertex), vertices.size()), &indices),
+                               material);
 }
 } // namespace Eng

@@ -155,7 +155,7 @@ public:
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        //directional_light->enable_shadow(ELightType::Movable);
+        directional_light->enable_shadow(ELightType::Movable);
 
 
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
@@ -167,12 +167,12 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
+                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
+                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
             });
     }
 

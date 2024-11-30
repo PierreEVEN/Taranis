@@ -15,6 +15,22 @@ void SceneOutliner::draw(Eng::Gfx::ImGuiWrapper&)
 
         display_node(node);
     }
+
+    if (selected_component)
+    {
+        glm::vec3 out_pos = selected_component->get_position();
+        ImGui::DragFloat3("position", &out_pos.x, 10);
+        if (out_pos != selected_component->get_position())
+            selected_component->set_position(out_pos);
+
+
+        glm::vec3 base_rot = eulerAngles(selected_component->get_rotation());
+        glm::vec3 out_rot  = base_rot;
+        ImGui::DragFloat3("rotation", &out_rot.x, 0.02f);
+        if (out_rot != base_rot)
+            selected_component->set_rotation(out_rot);
+
+    }
 }
 
 void SceneOutliner::display_node(const TObjectPtr<Eng::SceneComponent>& component)

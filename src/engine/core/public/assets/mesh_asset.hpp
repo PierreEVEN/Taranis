@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_base.hpp"
+#include "bounds.hpp"
 #include "object_ptr.hpp"
 
 #include <glm/vec2.hpp>
@@ -32,9 +33,10 @@ class MeshAsset : public AssetBase
 {
     REFLECT_BODY()
 
-  public:
+public:
     struct Section
     {
+        Bounds                            bounds;
         std::shared_ptr<Gfx::Mesh>        mesh;
         TObjectRef<MaterialInstanceAsset> material;
     };
@@ -53,14 +55,20 @@ class MeshAsset : public AssetBase
     {
     }
 
-    void add_section(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material);
+    void add_section(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material, const Bounds& in_bounds = {});
 
     const std::vector<Section>& get_sections() const
     {
         return mesh_sections;
     }
 
-  private:
+    const Bounds& get_bounds() const
+    {
+        return bounds;
+    }
+
+private:
+    Bounds               bounds;
     std::vector<Section> mesh_sections;
 };
 } // namespace Eng

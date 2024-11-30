@@ -71,7 +71,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         else
         {
             this_component = output_scene.add_component<MeshComponent>(node->mName.C_Str(), new_mesh);
-            this_component->set_rotation(glm::quat({-pi / 2, 0, 0}));
+            this_component->set_rotation(glm::quat({pi / 2, 0, 0}));
         }
     }
     else
@@ -83,7 +83,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         else
         {
             this_component = output_scene.add_component<SceneComponent>(node->mName.C_Str());
-            this_component->set_rotation(glm::quat({-pi / 2, 0, 0}));
+            this_component->set_rotation(glm::quat({pi / 2, 0, 0}));
         }
     }
 
@@ -197,7 +197,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     }
 
     new_mat->prepare_for_passes("gbuffers");
-    //new_mat->prepare_for_passes("shadows");
+    new_mat->prepare_for_passes("shadows");
 
     return materials.emplace(id, new_mat).first->second;
 }

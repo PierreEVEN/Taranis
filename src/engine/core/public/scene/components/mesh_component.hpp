@@ -29,7 +29,7 @@ class MeshComponent : public SceneComponent
   public:
     MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {}) : mesh(in_mesh){};
 
-    void draw(Gfx::CommandBuffer& command_buffer, SceneView& view);
+    void draw(Gfx::CommandBuffer& command_buffer, const SceneView& view);
 
     TObjectRef<MeshAsset> mesh;
 };

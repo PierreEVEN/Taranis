@@ -27,18 +27,18 @@ void SceneView::pre_draw(const Gfx::RenderPassInstance& render_pass)
     if (!view_buffer)
         view_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
 
-    update_buffer(render_pass.resolution());
+    update_matrices(render_pass.resolution());
 
     glm::mat4 inv_view             = inverse(view);
     glm::mat4 inv_perspective      = inverse(perspective_view);
     glm::mat4 inv_perspective_view = inv_view * inv_perspective;
 
-    view_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.perspective_view_mat = transpose(perspective_view),
-                                                             .view_mat = transpose(view),
-                                                             .perspective_mat = transpose(perspective_view),
-                                                             .inv_perspective_view_mat = transpose(inv_perspective_view),
-                                                             .inv_view_mat = transpose(inv_view),
-                                                             .inv_perspective_mat = transpose(inv_perspective)}});
+    view_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.perspective_view_mat = perspective_view,
+                                                             .view_mat = view,
+                                                             .perspective_mat = perspective_view,
+                                                             .inv_perspective_view_mat = inv_perspective_view,
+                                                             .inv_view_mat = inv_view,
+                                                             .inv_perspective_mat = inv_perspective}});
 }
 
 void SceneView::pre_submit() const
@@ -46,13 +46,12 @@ void SceneView::pre_submit() const
     view_buffer->wait_data_upload();
 }
 
-void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads)
+void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads) const
 {
     PROFILER_SCOPE(SceneDraw);
     scene.for_each_part<MeshComponent>(
         [&command_buffer, this](MeshComponent& object)
         {
-            PROFILER_SCOPE_NAMED(DrawMesh, "Draw mesh " + std::string(object.get_name()));
             object.draw(command_buffer, *this);
         },
         idx, num_threads);
@@ -74,7 +73,7 @@ void SceneView::set_rotation(const glm::quat& in_rotation)
     outdated = true;
 }
 
-void SceneView::update_buffer(const glm::uvec2& in_resolution)
+void SceneView::update_matrices(const glm::uvec2& in_resolution)
 {
     if (!outdated && resolution == in_resolution)
         return;
@@ -90,6 +89,8 @@ void SceneView::update_buffer(const glm::uvec2& in_resolution)
     float w     = h / aspect;
     perspective = {{0, 0, 0, 1}, {-w, 0, 0, 0}, {0, h, 0, 0}, {0, 0, z_near, 0}};
     perspective_view = perspective * view;
+
+    frustum = Frustum(perspective_view);
 }
 
 } // namespace Eng
