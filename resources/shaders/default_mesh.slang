@@ -62,10 +62,10 @@ VsToFs vertex_main(VSInput input, uniform PushConsts pc)
 }
 [shader("vertex")]
 [RenderPass("shadows")]
-float3 vertex_main_shadows(VSInput input, uniform PushConsts pc) : SV_Position
+float4 vertex_main_shadows(VSInput input, uniform PushConsts pc) : SV_Position
 {
     float3 WorldPosition = mul(pc.model, float4(input.pos, 1)).xyz;
-    return mul(scene_data_buffer.Load(0).perspective_view_mat, float4(WorldPosition, 1)).xyz;
+    return mul(scene_data_buffer.Load(0).perspective_view_mat, float4(WorldPosition, 1));
 }
 
 struct FsOutput

@@ -252,7 +252,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {.gfx = {.enable_validation_layers = true}};
+    Config config = {.gfx = {.enable_validation_layers = false}};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

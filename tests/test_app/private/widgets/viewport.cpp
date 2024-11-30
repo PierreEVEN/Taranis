@@ -1,5 +1,6 @@
 #include "widgets/viewport.hpp"
 
+#include "profiler.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "scene_outliner.hpp"
@@ -28,6 +29,11 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
         {
             if (ImGui::MenuItem("Outliner"))
                 ctx.new_window<SceneOutliner>("Scene outliner", scene);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Profiler (wip)"))
+        {
+            ctx.new_window<Eng::ProfilerWindow>("Profiler");
             ImGui::EndMenu();
         }
 
