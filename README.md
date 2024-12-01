@@ -1,5 +1,9 @@
 # ⚡Taranis engine 💫
 
+
+
+[![Build Status](https://github.com/PierreEVEN/Taranis/actions/workflows/build.yml/badge.svg)](https://github.com/PierreEVEN/Taranis/actions/workflows/build.yml)
+
 Taranis is a custom game engine focused on the rendering of multi-planetary worlds.
 
 This engine is built around vulkan. Other backends may be implemented later if necessary. The main goal for now is to handle all the features required to build a openworld game, solar system sized.
