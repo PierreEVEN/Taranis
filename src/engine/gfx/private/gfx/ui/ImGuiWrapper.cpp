@@ -263,36 +263,40 @@ static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int keycode, int scancode)
     }
 }
 
-void ImGuiWrapper::MouseButtonCallback(int button, int action, int mods)
+void ImGuiWrapper::mouse_button_callback(int button, int action, int)
 {
-    UpdateKeyModifiers();
-
+    ImGui::SetCurrentContext(imgui_context);
+    update_key_modifiers();
     ImGuiIO& io = ImGui::GetIO();
     if (button >= 0 && button < ImGuiMouseButton_COUNT)
         io.AddMouseButtonEvent(button, action == GLFW_PRESS);
 }
 
-void ImGuiWrapper::ScrollCallback(double xoffset, double yoffset)
+void ImGuiWrapper::scroll_callback(double xoffset, double yoffset)
 {
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
-    io.AddMouseWheelEvent((float)xoffset, (float)yoffset);
+    io.AddMouseWheelEvent(static_cast<float>(xoffset), static_cast<float>(yoffset));
 }
 
-void ImGuiWrapper::WindowFocusCallback(int focused)
+void ImGuiWrapper::windows_focus_callback(int focused) const
 {
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     io.AddFocusEvent(focused != 0);
 }
 
-void ImGuiWrapper::CursorPosCallback(double x, double y)
+void ImGuiWrapper::cursor_pos_callback(double x, double y)
 {
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
-    io.AddMousePosEvent((float)x, (float)y);
-    LastValidMousePos = ImVec2((float)x, (float)y);
+    io.AddMousePosEvent(static_cast<float>(x), static_cast<float>(y));
+    LastValidMousePos = ImVec2(static_cast<float>(x), static_cast<float>(y));
 }
 
-void ImGuiWrapper::UpdateKeyModifiers()
+void ImGuiWrapper::update_key_modifiers() const
 {
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     if (auto win = target_window.lock())
     {
@@ -303,8 +307,9 @@ void ImGuiWrapper::UpdateKeyModifiers()
     }
 }
 
-void ImGuiWrapper::CursorEnterCallback(int entered)
+void ImGuiWrapper::cursor_enter_callback(int entered)
 {
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     if (entered)
     {
@@ -317,18 +322,19 @@ void ImGuiWrapper::CursorEnterCallback(int entered)
     }
 }
 
-void ImGuiWrapper::CharCallback(unsigned int c)
+void ImGuiWrapper::char_callback(unsigned int c)
 {
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     io.AddInputCharacter(c);
 }
 
-void ImGuiWrapper::KeyCallback(int keycode, int scancode, int action, int mods)
+void ImGuiWrapper::key_callback(int keycode, int scancode, int action, int)
 {
     if (action != GLFW_PRESS && action != GLFW_RELEASE)
         return;
 
-    UpdateKeyModifiers();
+    update_key_modifiers();
 
     ImGuiIO& io        = ImGui::GetIO();
     ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(keycode, scancode);
@@ -336,7 +342,7 @@ void ImGuiWrapper::KeyCallback(int keycode, int scancode, int action, int mods)
     io.SetKeyEventNativeData(imgui_key, keycode, scancode); // To support legacy indexing (<1.87 user code)
 }
 
-void ImGuiWrapper::UpdateMouseCursor()
+void ImGuiWrapper::update_mouse_cursor() const
 {
     ImGuiIO& io = ImGui::GetIO();
     if (auto window = target_window.lock())
@@ -363,7 +369,7 @@ void ImGuiWrapper::UpdateMouseCursor()
     }
 }
 
-void ImGuiWrapper::UpdateMouseData()
+void ImGuiWrapper::update_mouse_data() const
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -384,7 +390,7 @@ static inline float Saturate(float v)
 {
     return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
 }
-void ImGuiWrapper::UpdateGamepads()
+void ImGuiWrapper::update_gamepads()
 {
     ImGuiIO& io = ImGui::GetIO();
     if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0) // FIXME: Technically feeding gamepad shouldn't depend on this now that they are regular inputs.
@@ -461,11 +467,11 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
 {
     last_time = std::chrono::steady_clock::now();
 
-    target_window.lock()->on_input_char.add_object(this, &ImGuiWrapper::CharCallback);
-    target_window.lock()->on_scroll.add_object(this, &ImGuiWrapper::ScrollCallback);
-    target_window.lock()->on_change_cursor_pos.add_object(this, &ImGuiWrapper::CursorPosCallback);
-    target_window.lock()->on_input_key.add_object(this, &ImGuiWrapper::KeyCallback);
-    target_window.lock()->on_mouse_button.add_object(this, &ImGuiWrapper::MouseButtonCallback);
+    target_window.lock()->on_input_char.add_object(this, &ImGuiWrapper::char_callback);
+    target_window.lock()->on_scroll.add_object(this, &ImGuiWrapper::scroll_callback);
+    target_window.lock()->on_change_cursor_pos.add_object(this, &ImGuiWrapper::cursor_pos_callback);
+    target_window.lock()->on_input_key.add_object(this, &ImGuiWrapper::key_callback);
+    target_window.lock()->on_mouse_button.add_object(this, &ImGuiWrapper::mouse_button_callback);
 
     //bd->PrevUserCallbackWindowFocus = glfwSetWindowFocusCallback(window, ImGui_ImplGlfw_WindowFocusCallback);
     //bd->PrevUserCallbackCursorEnter = glfwSetCursorEnterCallback(window, ImGui_ImplGlfw_CursorEnterCallback);
@@ -622,9 +628,9 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
     io.DeltaTime               = static_cast<float>(std::chrono::duration_cast<std::chrono::nanoseconds>(new_time - last_time).count()) / 1000000000.0f;
     last_time                  = new_time;
 
-    UpdateMouseData();
-    UpdateMouseCursor();
-    UpdateGamepads();
+    update_mouse_data();
+    update_mouse_cursor();
+    update_gamepads();
 
     const ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
     if (imgui_cursor != ImGuiMouseCursor_None)

@@ -10,7 +10,7 @@ namespace Eng
 {
 ProfilerWindow::ProfilerWindow(const std::string& name) : UiWindow(name)
 {
-    Profiler::get().start_recording();
+    Profiler::get().set_record(true);
 }
 
 std::string format_name(const std::string& base_name)
@@ -41,12 +41,13 @@ std::string format_name(const std::string& base_name)
     return out_name;
 }
 
-void ProfilerWindow::DisplayData::build()
+void ProfilerWindow::DisplayData::build(const Profiler::FrameWrapper& profiler_frames)
 {
     threads.clear();
     global_min = DBL_MAX;
     global_max = DBL_MIN;
-    if (displayed_frames.empty())
+
+    if (profiler_frames->empty())
         return;
 
     bool                                  b_set_start = false;
@@ -55,8 +56,9 @@ void ProfilerWindow::DisplayData::build()
     ankerl::unordered_dense::map<std::thread::id, std::vector<Profiler::ProfilerEvent>> all_events;
 
     size_t i = 0;
-    for (const auto& frame : displayed_frames)
+    for (auto it = profiler_frames->begin(); it != profiler_frames->end(); ++it)
     {
+        const auto& frame = *it;
         if (!selected_frames.contains(i++))
             continue;
 
@@ -70,7 +72,7 @@ void ProfilerWindow::DisplayData::build()
         {
             auto& thread = threads.emplace(data.first, ThreadGroup{}).first->second;
 
-            for (const auto& markers : data.second.markers)
+            for (const auto& markers : data.second->markers)
             {
                 auto ms_x = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(markers.time - start).count()) / 1000000.0;
                 if (ms_x > thread.max)
@@ -79,15 +81,15 @@ void ProfilerWindow::DisplayData::build()
                 if (ms_x < thread.min)
                     thread.min = ms_x;
                 thread.boxes.emplace_back(Box{
-                    .min_max  = {ms_x, ms_x},
-                    .stage    = 0,
-                    .color    = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
-                    .name     = format_name(markers.name),
-                    .start    = markers.time,
+                    .min_max = {ms_x, ms_x},
+                    .stage = 0,
+                    .color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}),
+                    .name = format_name(markers.name),
+                    .start = markers.time,
                     .duration = std::chrono::steady_clock::duration(0),
                 });
             }
-            for (const auto& events : data.second.events)
+            for (const auto& events : data.second->events)
             {
                 all_events.emplace(data.first, std::vector<Profiler::ProfilerEvent>{}).first->second.emplace_back(events);
             }
@@ -117,8 +119,7 @@ void ProfilerWindow::DisplayData::build()
         };
         std::vector<StageData> stage_data;
 
-        auto get_stage_data = [&stage_data](size_t stage) -> StageData&
-        {
+        auto get_stage_data = [&stage_data](size_t stage) -> StageData& {
             if (stage >= stage_data.size())
                 stage_data.resize(stage + 1);
             return stage_data[stage];
@@ -150,11 +151,11 @@ void ProfilerWindow::DisplayData::build()
             found_stage_data.flip   = !found_stage_data.flip;
             found_stage_data.ending = ms_x_end;
             thread.boxes.emplace_back(Box{
-                .min_max  = {ms_x, ms_x_end},
-                .stage    = stage_index,
-                .color    = ImGui::ColorConvertFloat4ToU32({r, g, b, 1}),
-                .name     = format_name(event.name),
-                .start    = event.start,
+                .min_max = {ms_x, ms_x_end},
+                .stage = stage_index,
+                .color = ImGui::ColorConvertFloat4ToU32({r, g, b, 1}),
+                .name = format_name(event.name),
+                .start = event.start,
                 .duration = event.end - event.start,
             });
         }
@@ -179,30 +180,33 @@ void ProfilerWindow::Frames::draw(DisplayData& display_data)
     ImGui::SameLine();
     if (ImGui::Button("Select all"))
     {
-        for (size_t i = 0; i < display_data.displayed_frames.size(); ++i)
+        auto profiler_frames = Profiler::get().frames();
+        for (size_t i = 0; i < profiler_frames->size(); ++i)
             display_data.selected_frames.insert(i);
-        display_data.build();
+        display_data.build(profiler_frames);
     }
     ImGui::SameLine();
     if (ImGui::Button("Clear selection"))
     {
         display_data.selected_frames.clear();
-        display_data.build();
+        display_data.build(Profiler::get().frames());
     }
     if (ImGui::BeginChild("FrameContainer", {0, 200}, 0, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        if (ImGui::BeginChild("frames", {std::max(static_cast<float>(display_data.displayed_frames.size()) * 2, ImGui::GetContentRegionAvail().x), 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
+        auto profiler_frames = Profiler::get().frames();
+        if (ImGui::BeginChild("frames", {std::max(static_cast<float>(profiler_frames->size()) * 2, ImGui::GetContentRegionAvail().x), 0}, 0, ImGuiWindowFlags_HorizontalScrollbar))
         {
             auto   dl    = ImGui::GetWindowDrawList();
             ImVec2 base  = ImGui::GetCursorPos() + ImGui::GetWindowPos();
             ImVec2 avail = ImGui::GetContentRegionAvail();
 
             size_t i = 0;
-            for (const auto& frame : display_data.displayed_frames)
+            for (auto it = profiler_frames->begin(); it != profiler_frames->end(); ++it)
             {
-                auto  duration_ms = static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(frame->end - frame->start).count()) / 1000.f;
-                float duration    = duration_ms * frames_zoom;
-                float r, g, b;
+                const auto& frame       = *it;
+                auto        duration_ms = static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(frame->end - frame->start).count()) / 1000.f;
+                float       duration    = duration_ms * frames_zoom;
+                float       r, g, b;
                 ImGui::ColorConvertHSVtoRGB(0.33f - std::min(duration / 120 * 0.5f, 1.f), 1, 1, r, g, b);
                 auto min_top = base + ImVec2{i * 2.f, 0};
                 auto min     = base + ImVec2{i * 2.f, avail.y - duration};
@@ -235,7 +239,7 @@ void ProfilerWindow::Frames::draw(DisplayData& display_data)
                     else
                     {
                         if (select_frame)
-                            display_data.build();
+                            display_data.build(profiler_frames);
                         select_frame = false;
                     }
                 }
@@ -344,10 +348,10 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
     if (ImGui::Button("clear"))
     {
         display_data.selected_frames.clear();
-        display_data.displayed_frames.clear();
-        display_data.build();
-        Profiler::get().stop_recording();
-        // Profiler::get().start_recording();
+        Profiler::get().clear();
+        display_data.build(Profiler::get().frames());
+        Profiler::get().set_record(false);
+        // Profiler::current_thread().start_recording();
     }
     ImGui::SameLine();
     ImGui::Checkbox("Record", &b_record);
@@ -357,20 +361,18 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
 
     if (b_record)
     {
-        Profiler::get().start_recording();
+        Profiler::get().set_record(true);
 
-        if (auto frame = Profiler::get().last_frame())
-            display_data.displayed_frames.emplace_back(frame);
-
-        if (b_always_display_last && !display_data.displayed_frames.empty())
+        auto frames = Profiler::get().frames();
+        if (b_always_display_last && !frames->empty())
         {
-            display_data.selected_frames = {display_data.displayed_frames.size() - 1};
-            display_data.build();
+            display_data.selected_frames = {frames->size() - 1};
+            display_data.build(frames);
         }
     }
     else
     {
-        Profiler::get().stop_recording();
+        Profiler::get().set_record(false);
     }
 
     ImGui::Separator();

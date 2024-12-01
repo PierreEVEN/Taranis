@@ -77,7 +77,7 @@ public:
         auto resource = material->get_descriptor_resource("gbuffer_resolve");
 
         if (!resource)
-            return LOG_ERROR("Cannot get descriptor resource for pass {}", "gbuffer_resolve");
+            return LOG_ERROR("Cannot current_thread descriptor resource for pass {}", "gbuffer_resolve");
 
         resource->bind_image("gbuffer_position", dep->get_attachment("position").lock());
         resource->bind_image("gbuffer_albedo_m", dep->get_attachment("albedo-m").lock());
@@ -115,7 +115,7 @@ public:
         rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency("gbuffer_resolve"), scene);
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
         rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
-        //rp.imgui()->new_window<ProfilerWindow>("Profiler");
+        rp.imgui()->new_window<ProfilerWindow>("Profiler");
     }
 
     std::shared_ptr<Scene> scene;
@@ -162,17 +162,17 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf")));
+                scene->merge(importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf"));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx")));
+                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx"));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(std::move(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx")));
+                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx"));
             });
     }
 

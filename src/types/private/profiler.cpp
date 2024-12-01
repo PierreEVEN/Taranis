@@ -1,72 +1,86 @@
 #include "profiler.hpp"
 
-#include <ranges>
+#include <iostream>
 
-static Profiler* profiler = nullptr;
-
-Profiler& Profiler::get()
+struct LocalDataContainer
 {
-    if (!profiler)
-        profiler = new Profiler();
-    return *profiler;
+    LocalDataContainer() : thread_data(std::make_shared<Profiler::ThreadData>()), this_thread(std::this_thread::get_id())
+    {
+    }
+
+    std::mutex                            data_mutex;
+    std::shared_ptr<Profiler::ThreadData> thread_data;
+    std::thread::id                       this_thread;
+};
+
+static Profiler                                         profiler;
+static std::mutex                                       all_threads_lock;
+static std::vector<std::shared_ptr<LocalDataContainer>> all_threads;
+static thread_local std::shared_ptr<LocalDataContainer> local_thread_data;
+
+
+void Profiler::set_record(bool enabled)
+{
+    std::lock_guard lk(global_lock);
+    if (enabled == b_record)
+        return;
+    b_record = enabled;
+    if (b_record)
+        record_start = std::chrono::steady_clock::now();
 }
+
+void Profiler::clear()
+{
+    std::lock_guard lk(global_lock);
+    recorded_frames.clear();
+}
+
 
 void Profiler::next_frame()
 {
+    std::lock_guard lk(global_lock);
     if (!b_record)
         return;
-    std::unique_lock                   global_lk(global_lock);
-    std::shared_ptr<ProfilerFrameData> last = recorded_frames.empty() ? nullptr : recorded_frames.back();
-    current_frame->end                      = std::chrono::steady_clock::now();
-    recorded_frames.emplace_back(std::move(current_frame));
-    current_frame = std::make_shared<ProfilerFrameData>();
-    if (last)
+
+    auto recorded_frame = std::make_shared<ProfilerFrameData>();
+
+    std::lock_guard lk_all(all_threads_lock);
+
+    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+    for (auto& thread : all_threads)
     {
-        for (const auto& [k, v] : last->thread_data)
+        std::lock_guard             lk_thread(thread->data_mutex);
+        std::shared_ptr<ThreadData> new_thread_data = nullptr;
+
+        if (!thread->thread_data->markers.empty() || !thread->thread_data->events.empty())
         {
-            ProfilerThreadData data;
-            data.markers.reserve(v.markers.size());
-            data.events.reserve(v.events.size());
-            current_frame->thread_data.emplace(k, std::move(data));
+            new_thread_data = std::make_shared<ThreadData>();
+            new_thread_data->markers.reserve(thread->thread_data->markers.size());
+            new_thread_data->events.reserve(thread->thread_data->events.size());
         }
+
+        recorded_frame->thread_data.emplace(thread->this_thread, thread->thread_data);
+        recorded_frame->start = record_start;
+        recorded_frame->end   = end_time;
+        thread->thread_data   = new_thread_data ? new_thread_data : std::make_shared<ThreadData>();
     }
+
+    recorded_frames.emplace_back(recorded_frame);
+    record_start = end_time;
 }
 
-void Profiler::start_recording()
+Profiler& Profiler::get()
 {
-    if (b_record)
-        return;
-    std::unique_lock global_lk(global_lock);
-    recorded_frames.clear();
-    b_record = true;
-
-    current_frame = std::make_shared<ProfilerFrameData>();
+    return profiler;
 }
 
-std::shared_ptr<Profiler::ProfilerFrameData> Profiler::last_frame()
+Profiler::ThreadData& Profiler::get_thread_data()
 {
-    std::shared_lock global_lk(global_lock);
-    if (recorded_frames.empty())
-        return current_frame;
-    return recorded_frames.back();
-}
-
-std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> Profiler::all_frames()
-{
-    std::shared_lock global_lk(global_lock);
-    if (!b_record)
-        return {};
-    return recorded_frames;
-}
-
-void Profiler::stop_recording()
-{
-    if (!b_record)
-        return;
-    std::unique_lock global_lk(global_lock);
-    if (current_frame)
-        current_frame->end = std::chrono::steady_clock::now();
-    recorded_frames.clear();
-    current_frame = nullptr;
-    b_record      = false;
+    if (!local_thread_data)
+    {
+        local_thread_data = std::make_shared<LocalDataContainer>();
+        std::lock_guard lk(all_threads_lock);
+        all_threads.emplace_back(local_thread_data);
+    }
+    return *local_thread_data->thread_data;
 }

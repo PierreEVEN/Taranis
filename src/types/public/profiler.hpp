@@ -1,8 +1,6 @@
 #pragma once
 
 #include "logger.hpp"
-
-#include <cassert>
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
@@ -10,7 +8,7 @@
 #include <vector>
 
 #ifdef ENABLE_PROFILER
-#define PROFILER_MARKER(name)                   Profiler::get().add_marker({#name})
+#define PROFILER_MARKER(name)                   Profiler::current_thread().add_marker({#name})
 #define PROFILER_SCOPE(name)                    Profiler::EventRecorder __profiler_event__##name(#name)
 #define PROFILER_SCOPE_NAMED(name, string_name) Profiler::EventRecorder __profiler_event__##name(string_name)
 #else
@@ -18,12 +16,13 @@
 #define PROFILER_SCOPE(name)
 #endif
 
-class Profiler
+
+class Profiler final
 {
-  public:
+public:
     class ProfilerMarker
     {
-      public:
+    public:
         ProfilerMarker(std::string in_name) : time(std::chrono::steady_clock::now()), name(std::move(in_name))
         {
         }
@@ -34,7 +33,7 @@ class Profiler
 
     class ProfilerEvent
     {
-      public:
+    public:
         ProfilerEvent(std::string in_name, std::chrono::steady_clock::time_point in_start, std::chrono::steady_clock::time_point in_end) : start(in_start), end(in_end), name(std::move(in_name))
         {
         }
@@ -44,56 +43,9 @@ class Profiler
         std::string                           name;
     };
 
-    class ProfilerThreadData
-    {
-      public:
-        std::vector<ProfilerEvent>  events;
-        std::vector<ProfilerMarker> markers;
-    };
-
-    class ProfilerFrameData
-    {
-      public:
-        ProfilerFrameData() : threads_lock(std::make_unique<std::shared_mutex>())
-        {
-            min   = std::chrono::steady_clock::now();
-            start = std::chrono::steady_clock::now();
-        }
-
-        std::chrono::steady_clock::time_point                   start;
-        std::chrono::steady_clock::time_point                   end;
-        std::chrono::steady_clock::time_point                   min;
-        std::unique_ptr<std::shared_mutex>                      threads_lock;
-        ankerl::unordered_dense::map<std::thread::id, ProfilerThreadData> thread_data;
-    };
-
-    static Profiler& get();
-
-    void next_frame();
-
-    void add_marker(const ProfilerMarker& marker) const
-    {
-        std::shared_lock lk1(global_lock);
-        if (!b_record || !current_frame)
-            return;
-        auto&            data = get_thread_data();
-        std::shared_lock lk(*current_frame->threads_lock);
-        data.markers.push_back(marker);
-    }
-
-    void add_event(const ProfilerEvent& event) const
-    {
-        std::shared_lock lk1(global_lock);
-        if (!b_record || !current_frame)
-            return;
-        auto&            data = get_thread_data();
-        std::shared_lock lk(*current_frame->threads_lock);
-        data.events.push_back(event);
-    }
-
     class EventRecorder
     {
-      public:
+    public:
         EventRecorder(std::string in_name) : name(std::move(in_name)), start(std::chrono::steady_clock::now())
         {
         }
@@ -101,7 +53,7 @@ class Profiler
         ~EventRecorder()
         {
             end = std::chrono::steady_clock::now();
-            get().add_event({name, start, end});
+            get_thread_data().events.emplace_back(name, start, end);
         }
 
         std::string                           name;
@@ -109,26 +61,77 @@ class Profiler
         std::chrono::steady_clock::time_point end;
     };
 
-    void                                            start_recording();
-    std::shared_ptr<ProfilerFrameData>              last_frame();
-    std::vector<std::shared_ptr<ProfilerFrameData>> all_frames();
-    void                                            stop_recording();
-
-  private:
-    ProfilerThreadData& get_thread_data() const
+    struct ThreadData final
     {
-        auto thread_id = std::this_thread::get_id();
+        std::vector<ProfilerEvent>  events;
+        std::vector<ProfilerMarker> markers;
+    };
+
+    class ProfilerFrameData
+    {
+    public:
+        ProfilerFrameData() : threads_lock(std::make_unique<std::shared_mutex>())
         {
-            std::shared_lock lk(*current_frame->threads_lock);
-            if (auto found = current_frame->thread_data.find(thread_id); found != current_frame->thread_data.end())
-                return found->second;
+            min   = std::chrono::steady_clock::now();
+            start = std::chrono::steady_clock::now();
         }
-        std::unique_lock lk(*current_frame->threads_lock);
-        return current_frame->thread_data.emplace(thread_id, ProfilerThreadData{}).first->second;
+
+        std::chrono::steady_clock::time_point                                      start;
+        std::chrono::steady_clock::time_point                                      end;
+        std::chrono::steady_clock::time_point                                      min;
+        std::unique_ptr<std::shared_mutex>                                         threads_lock;
+        ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<ThreadData>> thread_data;
+    };
+
+    void add_marker(const ProfilerMarker& marker) const
+    {
+        if (!b_record)
+            return;
+        get_thread_data().markers.push_back(marker);
     }
 
-    mutable std::shared_mutex                       global_lock;
+    void add_event(const ProfilerEvent& event) const
+    {
+        if (!b_record)
+            return;
+        get_thread_data().events.push_back(event);
+    }
+
+    struct FrameWrapper
+    {
+        FrameWrapper(Profiler* in_profiler) : profiler(in_profiler)
+        {
+            profiler->global_lock.lock();
+        }
+
+        ~FrameWrapper()
+        {
+            profiler->global_lock.unlock();
+        }
+
+        const std::vector<std::shared_ptr<ProfilerFrameData>>* operator->() const
+        {
+            return &profiler->recorded_frames;
+        }
+
+        Profiler* profiler;
+    };
+
+    void         set_record(bool enabled);
+    void         clear();
+    FrameWrapper frames()
+    {
+        return {this};
+    }
+    void         next_frame();
+
+    static Profiler& get();
+
+private:
+    static ThreadData& get_thread_data();
+
+    std::chrono::steady_clock::time_point           record_start;
+    std::mutex                                      global_lock;
     bool                                            b_record = false;
-    std::shared_ptr<ProfilerFrameData>              current_frame;
     std::vector<std::shared_ptr<ProfilerFrameData>> recorded_frames;
 };

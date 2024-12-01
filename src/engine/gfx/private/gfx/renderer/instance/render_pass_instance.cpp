@@ -53,7 +53,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     global_cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
 
     /*
-    auto task = JobSystem::get().schedule(
+    auto task = JobSystem::current_thread().schedule(
         [&]
         {*/
     for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
@@ -131,7 +131,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         fill_command_buffer(global_cmd, 0);
     }
 
-    // End command get
+    // End command current_thread
     global_cmd.end_render_pass();
     global_cmd.end_debug_marker();
     global_cmd.end();
@@ -144,7 +144,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     {
         PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", definition.name));
 
-        // Submit get (wait children completion using children_semaphores)
+        // Submit current_thread (wait children completion using children_semaphores)
         std::vector<VkSemaphore> children_semaphores;
         for (const auto& semaphore : get_semaphores_to_wait(device_image))
             children_semaphores.emplace_back(semaphore->raw());

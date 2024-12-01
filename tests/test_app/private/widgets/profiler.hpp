@@ -10,10 +10,10 @@ namespace Eng
 {
 class ProfilerWindow : public UiWindow
 {
-  public:
+public:
     explicit ProfilerWindow(const std::string& name);
 
-  protected:
+protected:
     struct DisplayData
     {
         struct Box
@@ -26,8 +26,7 @@ class ProfilerWindow : public UiWindow
             std::chrono::steady_clock::duration   duration;
         };
 
-        ankerl::unordered_dense::set<size_t>                                selected_frames;
-        std::vector<std::shared_ptr<Profiler::ProfilerFrameData>> displayed_frames;
+        ankerl::unordered_dense::set<size_t>                      selected_frames;
 
         struct ThreadGroup
         {
@@ -37,14 +36,14 @@ class ProfilerWindow : public UiWindow
             std::vector<Box> boxes;
         };
 
-        double                                           global_min = DBL_MAX;
-        double                                           global_max = DBL_MIN;
+        double                                                     global_min = DBL_MAX;
+        double                                                     global_max = DBL_MIN;
         ankerl::unordered_dense::map<std::thread::id, ThreadGroup> threads;
 
         std::optional<double> target_width;
         std::optional<double> target_start;
 
-        void build();
+        void build(const Profiler::FrameWrapper& profiler_frames);
     };
 
     void draw_selection();

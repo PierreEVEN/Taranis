@@ -14,16 +14,16 @@ enum class EBufferType
     IMMUTABLE, // No updates allowed
     STATIC,    // Pretty never updated. Updating ptr would cause some freezes (low memory footprint)
     DYNAMIC,
-    // Data is stored internally, then automatically submitted. Can lead to a memory overhead depending on the get size.
+    // Data is stored internally, then automatically submitted. Can lead to a memory overhead depending on the current_thread size.
     IMMEDIATE, // Data need to be submitted every frames
 };
 
 enum class EBufferUsage
 {
-    INDEX_DATA             = 0x00000001, // used as index get
-    VERTEX_DATA            = 0x00000002, // used as vertex get
-    GPU_MEMORY             = 0x00000003, // used as storage get
-    UNIFORM_BUFFER         = 0x00000004, // used as uniform get
+    INDEX_DATA             = 0x00000001, // used as index current_thread
+    VERTEX_DATA            = 0x00000002, // used as vertex current_thread
+    GPU_MEMORY             = 0x00000003, // used as storage current_thread
+    UNIFORM_BUFFER         = 0x00000004, // used as uniform current_thread
     INDIRECT_DRAW_ARGUMENT = 0x00000005, // used for indirect begin commands
     TRANSFER_MEMORY        = 0x00000006, // host local memory used to transfer data to device memory
 };

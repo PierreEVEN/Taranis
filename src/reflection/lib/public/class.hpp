@@ -21,7 +21,7 @@ class Class
 
     template <typename C> static const Class* get()
     {
-        static_assert(StaticClassInfos<C>::value, "Failed to get class : not a reflected class. Please declare this class as a reflected class.");
+        static_assert(StaticClassInfos<C>::value, "Failed to current_thread class : not a reflected class. Please declare this class as a reflected class.");
         return get(StaticClassInfos<C>::name);
     }
 

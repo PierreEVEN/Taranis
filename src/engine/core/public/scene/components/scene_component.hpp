@@ -37,7 +37,7 @@ class SceneComponent
         // this component could be moved during the next allocation. The TObjectRef will handle this move
         TObjectRef<SceneComponent> this_ref = scene->allocator->get_ref<SceneComponent>(this, get_class());
         if (!this_ref)
-            LOG_FATAL("Internal error : failed to get ref to this object");
+            LOG_FATAL("Internal error : failed to current_thread ref to this object");
         ObjectAllocation* alloc = this_ref->scene->allocator->allocate(T::static_class());
         T*                ptr   = static_cast<T*>(alloc->ptr);
         ptr->scene              = this_ref->scene;

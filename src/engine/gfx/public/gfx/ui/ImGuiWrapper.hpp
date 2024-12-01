@@ -33,17 +33,17 @@ class Pipeline;
 class ImGuiWrapper
 {
 public:
-    void MouseButtonCallback(int button, int action, int mods);
-    void ScrollCallback(double xoffset, double yoffset);
-    void KeyCallback(int keycode, int scancode, int action, int mods);
-    void UpdateMouseCursor();
-    void UpdateMouseData();
-    void UpdateGamepads();
-    void WindowFocusCallback(int focused);
-    void CursorPosCallback(double x, double y);
-    void UpdateKeyModifiers();
-    void CursorEnterCallback(int entered);
-    void CharCallback(unsigned int c);
+    void mouse_button_callback(int button, int action, int mods);
+    void scroll_callback(double xoffset, double yoffset);
+    void key_callback(int keycode, int scancode, int action, int mods);
+    void update_mouse_cursor() const;
+    void update_mouse_data() const;
+    void update_gamepads();
+    void windows_focus_callback(int focused) const;
+    void cursor_pos_callback(double x, double y);
+    void update_key_modifiers() const;
+    void cursor_enter_callback(int entered);
+    void char_callback(unsigned int c);
 
     ImGuiWrapper(std::string name, const std::string& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
@@ -76,7 +76,7 @@ private:
     ImGuiContext*                  imgui_context = nullptr;
     std::vector<GLFWcursor*>       cursor_map    = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 
-    ImVec2        LastValidMousePos = {0, 0};
+    ImVec2 LastValidMousePos = {0, 0};
 
     ImTextureID                                                                                                      max_texture_id = 0;
     ankerl::unordered_dense::map<std::shared_ptr<ImageView>, std::pair<ImTextureID, std::shared_ptr<DescriptorSet>>> per_image_descriptor;
