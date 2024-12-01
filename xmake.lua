@@ -33,72 +33,101 @@ add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-all
 add_requires("freeimage", {configs = {rgb = true}})
 add_requires("slang v2024.14.5", {verify = false})
 
+local function getParentPath(_path)
+    pattern1 = "^(.+)//"
+    pattern2 = "^(.+)\\"
+
+    if (string.match(_path,pattern1) == nil) then
+        return string.match(_path,pattern2)
+    else
+        return string.match(_path,pattern1)
+    end
+end
+
+rule("generated_cpp", function (rule)
+    set_extensions(".hpp")
+    before_buildcmd_file(function (target, batchcmds, source_header, opt)
+
+        -- Guess generated source file path
+        local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
+        -- replace .hpp extension with .gen.cpp
+        local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
+
+        -- generated classes are always private
+        generated_source = generated_source:gsub("public", "private", 1)
+        
+        if (os.exists(generated_source)) then
+            print("[generate] "..generated_source)
+            local test_str = tostring(generated_source)
+            local objectfile = target:objectfile(generated_source)
+            batchcmds:compile(generated_source, objectfile)
+            batchcmds:add_depfiles(source_header)
+            batchcmds:set_depmtime(os.mtime(objectfile))
+            batchcmds:set_depcache(target:dependfile(objectfile))
+        end
+    end)
+end)
+
 function declare_module(module_name, deps, packages, is_executable, enable_reflection)
     if DEBUG then
         print("### "..module_name.." ###")
     end
     target(module_name, function (target)
-    
-        on_config(function (target)
-            os.mkdir("$(buildir)/shaders/")
-            target:add("defines", "SHADER_INTERMEDIATE_DIR=\"$(buildir)/shaders\"")
-        end)
-
-
-        if is_executable then
-            set_kind("binary")
-        elseif BUILD_MONOLITHIC then
-            set_kind("static")
-        else
-            set_kind("shared")
-        end
-
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
-        
+
+        -- enable and generate reflection
         if enable_reflection then
             add_deps('header_tool')
             add_deps('reflection') 
+            set_policy('build.fence', true)
+            add_rules("generated_cpp")
+
+            -- add headers to check
+            for _, file in pairs(os.files("**.hpp")) do
+                add_files(file)
+            end
+
+            on_config(function (target)
+                target:add("includedirs", target:autogendir().."/public/", { public = true })
+            end)
 
             before_build(function (target)
-                os.mkdir("$(buildir)/reflection/"..module_name.."/private/")
-                os.mkdir("$(buildir)/reflection/"..module_name.."/public/")
                 if (DEBUG) then
                     print("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
                 end
-                os.exec("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
-            end)
-            on_config(function (target) 
-                for _, file in pairs(os.files(os.projectdir().."/$(buildir)/reflection/"..module_name.."/private/**.cpp")) do
+                os.mkdir(target:autogendir().."/private/")
+                os.mkdir(target:autogendir().."/public/")
+                os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..target:scriptdir().." "..target:autogendir().."/")
+                -- will register the generated files in the link process, so we still needs to generate the .obj in a custom rule
+                for _, file in pairs(os.files(target:autogendir().."/private/**.cpp")) do
                     target:add("files", file)
                 end
             end)
-
-            add_includedirs("$(buildir)/reflection/"..module_name.."/public/", { public = true })
         end
 
+        -- search for files
+        for _, file in pairs(os.files("private/**.cpp")) do
+            add_files(file)
+        end
+        for _, file in pairs(os.files("**.hpp")) do
+            add_headerfiles(file)
+        end
+        
+        -- set include dirs
         add_includedirs("private", { public = false })
         if not is_executable then
             add_includedirs("public", { public = true })
         end
 
-        for _, file in pairs(os.files("private/**.cpp")) do
-            add_files(file)
-        end
-
-        for _, file in pairs(os.files("private/**.hpp")) do
-            add_headerfiles(file)
-        end
-        
-        for _, file in pairs(os.files("public/**.hpp")) do
-            add_headerfiles(file)
-        end
-
+        -- add deps
         if deps then
             if DEBUG then
                 print(table.unpack({ "\t-- dependencies :", table.unpack(deps) }))
             end
             add_deps(table.unpack(deps))
         end
+
+        -- add packages
         if packages then
             packages_name = "";
             for _, package in ipairs(packages) do
@@ -121,6 +150,15 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
             if DEBUG then
                 print(table.unpack({ "\t-- packages :", packages_name}))
             end
+        end
+        
+        -- set kind
+        if is_executable then
+            set_kind("binary")
+        elseif BUILD_MONOLITHIC then
+            set_kind("static")
+        else
+            set_kind("shared")
         end
     end)
 end
