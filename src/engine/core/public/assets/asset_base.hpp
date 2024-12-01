@@ -1,6 +1,6 @@
 #pragma once
 
-#include "assets\asset_base.gen.hpp"
+#include "assets/asset_base.gen.hpp"
 
 namespace Eng
 {

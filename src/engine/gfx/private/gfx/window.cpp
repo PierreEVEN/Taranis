@@ -31,14 +31,40 @@ Window::Window(const WindowConfig& config) : id(++WINDOW_ID)
     windows.emplace(ptr, this);
 
     glfwSetWindowSizeCallback(ptr,
-                              [](GLFWwindow* window, int, int)
+                              [](GLFWwindow* window, int x, int y)
                               {
+                                  windows[window]->on_resize.execute(x, y);
                                   windows[window]->render();
                               });
+
+    glfwSetCharCallback(ptr,
+                        [](GLFWwindow* window, uint32_t chr)
+                        {
+                            windows[window]->on_input_char.execute(chr);
+                        });
+
+    glfwSetCursorPosCallback(ptr,
+                             [](GLFWwindow* window, double x, double y)
+                             {
+                                 windows[window]->on_change_cursor_pos.execute(x, y);
+                             });
+
+    glfwSetMouseButtonCallback(ptr,
+                               [](GLFWwindow* window, int button, int action, int mods)
+                               {
+                                   windows[window]->on_mouse_button.execute(button, action, mods);
+                               });
+
+    glfwSetKeyCallback(ptr,
+                       [](GLFWwindow* window, int key, int scancode, int action, int mods)
+                       {
+                           windows[window]->on_input_key.execute(key, scancode, action, mods);
+                       });
 
     glfwSetScrollCallback(ptr,
                           [](GLFWwindow* window, double x, double y)
                           {
+                              windows[window]->on_scroll.execute(x, y);
                               windows[window]->scroll_delta = {x, y};
                           });
     glfwShowWindow(ptr);

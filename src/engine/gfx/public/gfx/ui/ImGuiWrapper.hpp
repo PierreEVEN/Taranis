@@ -32,7 +32,19 @@ class Pipeline;
 
 class ImGuiWrapper
 {
-  public:
+public:
+    void MouseButtonCallback(int button, int action, int mods);
+    void ScrollCallback(double xoffset, double yoffset);
+    void KeyCallback(int keycode, int scancode, int action, int mods);
+    void UpdateMouseCursor();
+    void UpdateMouseData();
+    void UpdateGamepads();
+    void WindowFocusCallback(int focused);
+    void CursorPosCallback(double x, double y);
+    void UpdateKeyModifiers();
+    void CursorEnterCallback(int entered);
+    void CharCallback(unsigned int c);
+
     ImGuiWrapper(std::string name, const std::string& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
     void begin(glm::uvec2 draw_res);
@@ -48,7 +60,7 @@ class ImGuiWrapper
         return new_window;
     }
 
-  private:
+private:
     std::vector<std::shared_ptr<UiWindow>> windows;
 
     std::chrono::steady_clock::time_point last_time;
@@ -64,9 +76,11 @@ class ImGuiWrapper
     ImGuiContext*                  imgui_context = nullptr;
     std::vector<GLFWcursor*>       cursor_map    = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 
-    ImTextureID                                                                                            max_texture_id = 0;
+    ImVec2        LastValidMousePos = {0, 0};
+
+    ImTextureID                                                                                                      max_texture_id = 0;
     ankerl::unordered_dense::map<std::shared_ptr<ImageView>, std::pair<ImTextureID, std::shared_ptr<DescriptorSet>>> per_image_descriptor;
     ankerl::unordered_dense::map<ImTextureID, std::shared_ptr<ImageView>>                                            per_image_ids;
-    std::string                                                                                            name;
+    std::string                                                                                                      name;
 };
 } // namespace Eng::Gfx

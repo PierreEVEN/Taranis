@@ -2,6 +2,7 @@
 #include <glm/vec2.hpp>
 #include <memory>
 #include <string>
+#include <eventmanager.hpp>
 
 struct GLFWwindow;
 
@@ -14,6 +15,15 @@ class Device;
 class Instance;
 class Surface;
 
+
+DECLARE_DELEGATE_MULTICAST(FOnResize, int32_t, int32_t);
+DECLARE_DELEGATE_MULTICAST(FOnScroll, double, double);
+DECLARE_DELEGATE_MULTICAST(FOnInputChar, uint32_t);
+DECLARE_DELEGATE_MULTICAST(FOnChangeCursorPos, double, double);
+DECLARE_DELEGATE_MULTICAST(FOnInputMouseButton, int, int, int);
+DECLARE_DELEGATE_MULTICAST(FOnInputKey, int, int, int, int);
+
+
 struct WindowConfig
 {
     std::string name       = "Taranis engine";
@@ -23,6 +33,13 @@ struct WindowConfig
 class Window : public std::enable_shared_from_this<Window>
 {
   public:
+    FOnResize           on_resize;
+    FOnScroll           on_scroll;
+    FOnInputChar        on_input_char;
+    FOnChangeCursorPos  on_change_cursor_pos;
+    FOnInputMouseButton on_mouse_button;
+    FOnInputKey         on_input_key;
+
     static std::shared_ptr<Window> create(const std::weak_ptr<Instance>& instance, const WindowConfig& config);
     Window(Window&&) = delete;
     Window(Window&)  = delete;
