@@ -75,6 +75,8 @@ public:
         return render_pass_resource;
     }
 
+    std::vector<std::weak_ptr<RenderPassInstance>> all_childs() const;
+
     using ResizeCallback = std::function<glm::uvec2(glm::uvec2)>;
 
     void set_resize_callback(const ResizeCallback& in_callback)

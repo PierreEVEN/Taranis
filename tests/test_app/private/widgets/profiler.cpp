@@ -169,7 +169,7 @@ void ProfilerWindow::DisplayData::build(const Profiler::FrameWrapper& profiler_f
     target_width = global_max - global_min;
 }
 
-ImVec2 operator+(const ImVec2& a, const ImVec2& b)
+static ImVec2 operator+(const ImVec2& a, const ImVec2& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
@@ -261,10 +261,10 @@ void ProfilerWindow::Frames::draw(DisplayData& display_data)
 
 void ProfilerWindow::Selection::draw(DisplayData& display_data)
 {
-    float min_scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(display_data.global_max - display_data.global_min)) * 0.99;
+    float min_scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(display_data.global_max - display_data.global_min)) * 0.99f;
 
     if (display_data.target_width)
-        scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(*display_data.target_width)) * 0.99;
+        scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(*display_data.target_width)) * 0.99f;
 
     if (!display_data.target_start && ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + ImGui::GetCursorPos(), ImGui::GetWindowPos() + ImGui::GetCursorPos() + ImGui::GetContentRegionAvail()))
     {

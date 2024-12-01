@@ -67,7 +67,7 @@ protected:
     Frames    frames;
     Selection selection;
 
-    bool b_record              = true;
+    bool b_record              = false;
     bool b_always_display_last = false;
 
     DisplayData display_data;

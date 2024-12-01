@@ -19,6 +19,7 @@ struct ImGuiContext;
 
 namespace Eng::Gfx
 {
+class RenderPassInstance;
 class Window;
 class DescriptorSet;
 class Sampler;
@@ -48,7 +49,7 @@ public:
     ImGuiWrapper(std::string name, const std::string& render_pass, std::weak_ptr<Device> device, std::weak_ptr<Window> target_window);
     ~ImGuiWrapper();
     void begin(glm::uvec2 draw_res);
-    void prepare_all_window();
+    void prepare_all_window(const RenderPassInstance* rp);
     void end(CommandBuffer& cmd);
 
     ImTextureID add_image(const std::shared_ptr<ImageView>& image_view);
@@ -58,6 +59,11 @@ public:
         auto new_window = std::make_shared<T>(window_name, std::forward<Args>(args)...);
         windows.push_back(new_window);
         return new_window;
+    }
+
+    const RenderPassInstance* get_current_render_pass() const
+    {
+        return current_render_pass;
     }
 
 private:
@@ -77,6 +83,8 @@ private:
     std::vector<GLFWcursor*>       cursor_map    = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 
     ImVec2 LastValidMousePos = {0, 0};
+
+    const RenderPassInstance* current_render_pass = nullptr;
 
     ImTextureID                                                                                                      max_texture_id = 0;
     ankerl::unordered_dense::map<std::shared_ptr<ImageView>, std::pair<ImTextureID, std::shared_ptr<DescriptorSet>>> per_image_descriptor;

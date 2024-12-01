@@ -18,6 +18,7 @@
 #include "scene/scene_view.hpp"
 #include "scene/components/directional_light_component.hpp"
 #include "widgets/content_browser.hpp"
+#include "widgets/render_graph_view.hpp"
 #include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
 #include <gfx/window.hpp>
@@ -116,6 +117,7 @@ public:
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
         rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
         rp.imgui()->new_window<ProfilerWindow>("Profiler");
+        rp.imgui()->new_window<RenderGraphView>("Render graph");
     }
 
     std::shared_ptr<Scene> scene;

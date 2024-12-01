@@ -191,6 +191,16 @@ std::weak_ptr<RenderPassInstance> RenderPassInstance::get_dependency(const std::
     return {};
 }
 
+std::vector<std::weak_ptr<RenderPassInstance>> RenderPassInstance::all_childs() const
+{
+    std::vector<std::weak_ptr<RenderPassInstance>> childs;
+    for (const auto& temp_child : dependencies)
+        childs.emplace_back(temp_child.second);
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+        childs.emplace_back(temp_child);
+    return childs;
+}
+
 std::shared_ptr<ImageView> RenderPassInstance::create_view_for_attachment(const std::string& attachment_name)
 {
     auto attachment = definition.attachments.find(attachment_name);
@@ -229,7 +239,7 @@ void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_in
     if (imgui_context && group_index == 0)
     {
         PROFILER_SCOPE(RenderPass_DrawUI);
-        imgui_context->prepare_all_window();
+        imgui_context->prepare_all_window(this);
         imgui_context->end(cmd);
         imgui_context->begin(resolution());
     }

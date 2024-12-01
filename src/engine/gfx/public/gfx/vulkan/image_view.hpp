@@ -45,6 +45,11 @@ class ImageView
         return name;
     }
 
+    std::shared_ptr<Image> get_base_image() const
+    {
+        return image;
+    }
+
   private:
     class Resource : public DeviceResource
     {

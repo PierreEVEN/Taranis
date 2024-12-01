@@ -646,10 +646,11 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
     ImGui::End();
 }
 
-void ImGuiWrapper::prepare_all_window()
+void ImGuiWrapper::prepare_all_window(const RenderPassInstance* rp)
 {
     if (!imgui_material)
         return;
+    current_render_pass = rp; 
     PROFILER_SCOPE(ImGuiPrepareWindows);
     ImGui::SetCurrentContext(imgui_context);
 
@@ -660,6 +661,7 @@ void ImGuiWrapper::prepare_all_window()
         else
             windows.erase(windows.begin() + i);
     }
+    current_render_pass = nullptr;
 }
 
 void ImGuiWrapper::end(CommandBuffer& cmd)
