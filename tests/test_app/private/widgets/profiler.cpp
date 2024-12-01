@@ -261,14 +261,14 @@ void ProfilerWindow::Frames::draw(DisplayData& display_data)
 
 void ProfilerWindow::Selection::draw(DisplayData& display_data)
 {
-    float min_scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(display_data.global_max - display_data.global_min));
+    float min_scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(display_data.global_max - display_data.global_min)) * 0.99;
 
     if (display_data.target_width)
-        scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(*display_data.target_width));
+        scale = ImGui::GetContentRegionAvail().x * (1 / static_cast<float>(*display_data.target_width)) * 0.99;
 
-    if (!display_data.target_start && ImGui::IsMouseHoveringRect(ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetContentRegionAvail()))
+    if (!display_data.target_start && ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + ImGui::GetCursorPos(), ImGui::GetWindowPos() + ImGui::GetCursorPos() + ImGui::GetContentRegionAvail()))
     {
-        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || true)
+        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
         {
             auto& io        = ImGui::GetIO();
             float old_scale = scale;
@@ -351,7 +351,6 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
         Profiler::get().clear();
         display_data.build(Profiler::get().frames());
         Profiler::get().set_record(false);
-        // Profiler::current_thread().start_recording();
     }
     ImGui::SameLine();
     ImGui::Checkbox("Record", &b_record);
