@@ -30,7 +30,7 @@ protected:
     struct Object
     {
         std::string                        name;
-        ImVec2                             pos = {0, 0};
+        float                              offset_y;
         ImVec2                             res = {0, 0};
         std::weak_ptr<Eng::Gfx::ImageView> image;
 
@@ -38,7 +38,8 @@ protected:
 
     struct Group
     {
-        std::string              name;
+        std::string name;
+        // This group total size (should be smaller than the total stage size
         ImVec2                   size = {0, 0};
         std::vector<std::string> dependencies;
         std::vector<Object>      attachments;
@@ -47,6 +48,7 @@ protected:
 
     struct Content
     {
+        // This is the total size of each stage (one stage contains multiple groups)
         ankerl::unordered_dense::map<int, ImVec2>        stage_sizes;
         ImVec2                                           size        = {0, 0};
         ImVec2                                           current_pos = {0, 0};

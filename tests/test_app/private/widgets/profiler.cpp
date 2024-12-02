@@ -362,11 +362,11 @@ void ProfilerWindow::draw(Gfx::ImGuiWrapper&)
     {
         Profiler::get().set_record(true);
 
-        auto frames = Profiler::get().frames();
-        if (b_always_display_last && !frames->empty())
+        auto profiler_frames = Profiler::get().frames();
+        if (b_always_display_last && !profiler_frames->empty())
         {
-            display_data.selected_frames = {frames->size() - 1};
-            display_data.build(frames);
+            display_data.selected_frames = {profiler_frames->size() - 1};
+            display_data.build(profiler_frames);
         }
     }
     else
