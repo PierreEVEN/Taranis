@@ -43,6 +43,7 @@ protected:
         ImVec2                   size = {0, 0};
         std::vector<std::string> dependencies;
         std::vector<Object>      attachments;
+        float                    y_offset = 0;
         int                      stage = 0;
     };
 
@@ -55,8 +56,7 @@ protected:
         ankerl::unordered_dense::map<std::string, Group> passes;
     };
 
-    ImVec2 canvas_pos;
-    float  zoom;
+    float zoom = 0.5;
 
     static void add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstance>& pass, Content& content, int current_stage);
 };
