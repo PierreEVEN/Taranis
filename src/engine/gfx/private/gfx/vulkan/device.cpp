@@ -10,6 +10,7 @@
 #include "gfx/vulkan/instance.hpp"
 #include "gfx/vulkan/queue_family.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
+#include "gfx/vulkan/vk_wrap.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -108,7 +109,9 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
         .device = ptr,
         .instance = instance.lock()->raw(),
     };
-    VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator), "failed to create vma allocator")
+    VmaAllocator vma_alloc;
+    VK_CHECK(vmaCreateAllocator(&allocatorInfo, &vma_alloc), "failed to create vma allocator")
+    allocator = std::make_unique<VmaAllocatorWrap>(vma_alloc);
 }
 
 std::shared_ptr<Device> Device::create(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface)
@@ -131,6 +134,11 @@ Device::~Device()
 const Queues& Device::get_queues() const
 {
     return *queues;
+}
+
+const VmaAllocatorWrap& Device::get_allocator() const
+{
+    return *allocator;
 }
 
 const std::vector<const char*>& Device::get_device_extensions()
@@ -173,11 +181,11 @@ void Device::destroy_resources()
     descriptor_pool = nullptr;
 
     VmaTotalStatistics stats;
-    vmaCalculateStatistics(allocator, &stats);
+    vmaCalculateStatistics(allocator->allocator, &stats);
     if (stats.total.statistics.allocationCount > 0)
         LOG_ERROR("{} allocation were not destroyed", stats.total.statistics.allocationCount);
 
-    vmaDestroyAllocator(allocator);
+    vmaDestroyAllocator(allocator->allocator);
     pending_kill_resources.clear();
 }
 } // namespace Eng::Gfx

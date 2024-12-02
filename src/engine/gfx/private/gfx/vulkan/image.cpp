@@ -4,6 +4,9 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
 #include "gfx/vulkan/vk_check.hpp"
+#include "gfx/vulkan/vk_wrap.hpp"
+
+#include <vk_mem_alloc.h>
 
 namespace Eng::Gfx
 {
@@ -220,14 +223,16 @@ Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> i
         .usage = VMA_MEMORY_USAGE_GPU_ONLY,
     };
     VmaAllocationInfo infos;
-    VK_CHECK(vmaCreateImage(device().lock()->get_allocator(), &image_create_infos, &vma_allocation, &ptr, &allocation, &infos), "failed to create image")
+    VmaAllocation     vma_alloc;
+    VK_CHECK(vmaCreateImage(device().lock()->get_allocator().allocator, &image_create_infos, &vma_allocation, &ptr, &vma_alloc, &infos), "failed to create image")
+    allocation = std::make_unique<VmaAllocationWrap>(vma_alloc);
     device().lock()->debug_set_object_name(name, ptr);
     device().lock()->debug_set_object_name(name + "_memory", infos.deviceMemory);
 }
 
 Image::ImageResource::~ImageResource()
 {
-    vmaDestroyImage(device().lock()->get_allocator(), ptr, allocation);
+    vmaDestroyImage(device().lock()->get_allocator().allocator, ptr, allocation->allocation);
 }
 
 void Image::ImageResource::set_data(const BufferData& data)

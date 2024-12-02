@@ -1,5 +1,6 @@
 #include "class.hpp"
 
+#include <iostream>
 #include <ankerl/unordered_dense.h>
 
 namespace Reflection

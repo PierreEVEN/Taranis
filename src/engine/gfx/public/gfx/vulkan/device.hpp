@@ -5,7 +5,7 @@
 #include "physical_device.hpp"
 #include "gfx/gfx.hpp"
 
-#include <vk_mem_alloc.h>
+struct VmaAllocatorWrap;
 
 namespace Eng::Gfx
 {
@@ -31,10 +31,7 @@ public:
 
     const Queues& get_queues() const;
 
-    const VmaAllocator& get_allocator() const
-    {
-        return allocator;
-    }
+    const VmaAllocatorWrap& get_allocator() const;
 
     const PhysicalDevice& get_physical_device() const
     {
@@ -42,7 +39,7 @@ public:
     }
 
     static const std::vector<const char*>& get_device_extensions();
-    std::weak_ptr<Gfx::VkRendererPass>     declare_render_pass(const RenderPassKey& key, const std::string& name);
+    std::weak_ptr<VkRendererPass>          declare_render_pass(const RenderPassKey& key, const std::string& name);
     std::weak_ptr<VkRendererPass>          get_render_pass(const std::string& name) const;
 
     void destroy_resources();
@@ -179,7 +176,7 @@ private:
     std::unique_ptr<Queues>                                                      queues;
     PhysicalDevice                                                               physical_device;
     VkDevice                                                                     ptr = VK_NULL_HANDLE;
-    VmaAllocator                                                                 allocator;
+    std::unique_ptr<VmaAllocatorWrap>                                            allocator;
     uint8_t                                                                      image_count   = 2;
     uint8_t                                                                      current_image = 0;
     std::mutex                                                                   resource_mutex;

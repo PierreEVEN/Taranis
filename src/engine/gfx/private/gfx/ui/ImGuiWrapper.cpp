@@ -16,8 +16,12 @@
 #include "gfx/vulkan/shader_module.hpp"
 #include "gfx/window.hpp"
 
+#include <GLFW/glfw3.h>
+
 namespace Eng::Gfx
 {
+
+static std::vector<GLFWcursor*> cursor_map = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 
 static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int keycode, int scancode)
 {
@@ -390,6 +394,7 @@ static inline float Saturate(float v)
 {
     return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
 }
+
 void ImGuiWrapper::update_gamepads()
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -577,15 +582,24 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
     ImGuiViewport* main_viewport  = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = nullptr;
 
-    cursor_map[ImGuiMouseCursor_Arrow]      = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-    cursor_map[ImGuiMouseCursor_TextInput]  = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-    cursor_map[ImGuiMouseCursor_ResizeAll]  = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
-    cursor_map[ImGuiMouseCursor_ResizeNS]   = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
-    cursor_map[ImGuiMouseCursor_ResizeEW]   = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
-    cursor_map[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
-    cursor_map[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
-    cursor_map[ImGuiMouseCursor_Hand]       = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-    cursor_map[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_Arrow])
+        cursor_map[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_TextInput])
+        cursor_map[ImGuiMouseCursor_TextInput] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_ResizeAll])
+        cursor_map[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_ResizeNS])
+        cursor_map[ImGuiMouseCursor_ResizeNS] = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_ResizeEW])
+        cursor_map[ImGuiMouseCursor_ResizeEW] = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_ResizeNESW])
+        cursor_map[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_ResizeNWSE])
+        cursor_map[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_Hand])
+        cursor_map[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+    if (!cursor_map[ImGuiMouseCursor_NotAllowed])
+        cursor_map[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
 
     // Create font texture
     uint8_t* pixels;
@@ -610,9 +624,6 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
 
 ImGuiWrapper::~ImGuiWrapper()
 {
-    for (size_t i = 0; i < ImGuiMouseCursor_COUNT; ++i)
-        if (cursor_map[i])
-            glfwDestroyCursor(cursor_map[i]);
 }
 
 void ImGuiWrapper::begin(glm::uvec2 draw_res)
@@ -650,7 +661,7 @@ void ImGuiWrapper::prepare_all_window(const RenderPassInstance* rp)
 {
     if (!imgui_material)
         return;
-    current_render_pass = rp; 
+    current_render_pass = rp;
     PROFILER_SCOPE(ImGuiPrepareWindows);
     ImGui::SetCurrentContext(imgui_context);
 

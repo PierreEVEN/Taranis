@@ -1,7 +1,6 @@
 #pragma once
 #include "ui_window.hpp"
 
-#include <GLFW/glfw3.h>
 #include <chrono>
 #include <glm/vec2.hpp>
 #include <imgui.h>
@@ -80,7 +79,6 @@ private:
     std::weak_ptr<Device>          device;
     std::weak_ptr<Window>          target_window;
     ImGuiContext*                  imgui_context = nullptr;
-    std::vector<GLFWcursor*>       cursor_map    = std::vector<GLFWcursor*>(ImGuiMouseCursor_COUNT, nullptr);
 
     ImVec2 LastValidMousePos = {0, 0};
 

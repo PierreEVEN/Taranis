@@ -5,6 +5,7 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/fence.hpp"
 #include "profiler.hpp"
+#include "gfx/vulkan/vk_wrap.hpp"
 
 namespace Eng::Gfx
 {
@@ -246,7 +247,9 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
         .requiredFlags = required_flags,
     };
 
-    VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator(), &buffer_create_info, &allocInfo, &ptr, &allocation, nullptr), "failed to create buffer")
+    VmaAllocation vma_alloc;
+    VK_CHECK(vmaCreateBuffer(device().lock()->get_allocator().allocator, &buffer_create_info, &allocInfo, &ptr, &vma_alloc, nullptr), "failed to create buffer")
+    allocation      = std::make_unique<VmaAllocationWrap>(vma_alloc);
     descriptor_data = VkDescriptorBufferInfo{
         .buffer = ptr,
         .offset = 0,
@@ -257,7 +260,7 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
 
 Buffer::Resource::~Resource()
 {
-    vmaDestroyBuffer(device().lock()->get_allocator(), ptr, allocation);
+    vmaDestroyBuffer(device().lock()->get_allocator().allocator, ptr, allocation->allocation);
 }
 
 void Buffer::Resource::set_data_and_wait(size_t start_index, const BufferData& data)
@@ -273,12 +276,12 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
         PROFILER_SCOPE_NAMED(CopyBufferDirect, std::format("Copy buffer direct : {}", name));
         outdated      = false;
         void* dst_ptr = nullptr;
-        VK_CHECK(vmaMapMemory(device().lock()->get_allocator(), allocation, &dst_ptr), "failed to map memory")
+        VK_CHECK(vmaMapMemory(device().lock()->get_allocator().allocator, allocation->allocation, &dst_ptr), "failed to map memory")
         if (!dst_ptr)
             LOG_FATAL("Failed to map memory");
         data.copy_to(static_cast<uint8_t*>(dst_ptr) + start_index * data.get_stride());
 
-        vmaUnmapMemory(device().lock()->get_allocator(), allocation);
+        vmaUnmapMemory(device().lock()->get_allocator().allocator, allocation->allocation);
     }
     else
     {

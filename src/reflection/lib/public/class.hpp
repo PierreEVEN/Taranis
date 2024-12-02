@@ -1,6 +1,4 @@
 #pragma once
-#include <functional>
-#include <iostream>
 #include <string>
 #include <ankerl/unordered_dense.h>
 #include <vector>
@@ -16,7 +14,7 @@ template <typename RClass> struct StaticClassInfos
 class Class
 {
 
-  public:
+public:
     static Class* get(const std::string& type_name);
 
     template <typename C> static const Class* get()
@@ -53,7 +51,12 @@ class Class
         return std::hash<std::string>{}(StaticClassInfos<Type>::name);
     }
 
-    using CastFunc = std::function<void*(const Class*, void*)>;
+    using CastFunc = void*(const Class*, void*);
+
+    struct CastFuncWrapper
+    {
+        CastFunc fn;
+    };
 
     /**
      * Add function that FromPtr from ThisClass to ParentClass
@@ -62,12 +65,10 @@ class Class
     {
         if constexpr (StaticClassInfos<ParentClass>::value)
         {
-            cast_functions.insert_or_assign(Class::make_type_id<ParentClass>(), CastFunc(
-                                                                                    [](const Class* desired_class, void* from_ptr) -> void*
-                                                                                    {
-                                                                                        return ParentClass::static_class()->cast_to(desired_class,
-                                                                                                                                    reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
-                                                                                    }));
+            cast_functions.insert_or_assign(Class::make_type_id<ParentClass>(),
+                                            CastFuncWrapper{[](const Class* desired_class, void* from_ptr) -> void* {
+                                                return ParentClass::static_class()->cast_to(desired_class, reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
+                                            }});
         }
     }
 
@@ -75,15 +76,15 @@ class Class
      * Cast Ptr to To Object
      * if ThisClass == To, return Ptr, else try to cast to one of the parent class
      */
-    void* cast_to(const Class* To, void* Ptr) const
+    void* cast_to(const Class* To, void* Ptr)
     {
         if (To == this)
             return Ptr;
 
         for (const auto& parent : parents)
         {
-            if (const auto cast_fn = cast_functions.find(parent->get_id()); cast_fn != cast_functions.end())
-                if (void* ToPtr = cast_fn->second(To, Ptr))
+            if (auto cast_fn = cast_functions.find(parent->get_id()); cast_fn != cast_functions.end())
+                if (void* ToPtr = cast_fn->second.fn(To, Ptr))
                     return ToPtr;
         }
         return nullptr;
@@ -101,20 +102,20 @@ class Class
         return is_base_of(this, other);
     }
 
-  private:
+private:
     static bool is_base_of(const Class* base, const Class* t);
 
     void on_register_parent_class(Class* new_class);
 
-    Class(std::string in_type_name, size_t in_type_size) : type_size(in_type_size), type_name(std::move(in_type_name)), type_id(std::hash<std::string>{}(type_name))
+    Class(std::string in_type_name, size_t in_type_size) : type_name(std::move(in_type_name)), type_size(in_type_size), type_id(std::hash<std::string>{}(type_name))
     {
     }
 
     static void register_class_internal(Class* inClass);
 
-    std::string                          type_name;
-    std::vector<Class*>                  parents = {};
-    ankerl::unordered_dense::map<size_t, CastFunc> cast_functions;
+    std::string                                           type_name;
+    std::vector<Class*>                                   parents = {};
+    ankerl::unordered_dense::map<size_t, CastFuncWrapper> cast_functions;
 
     size_t type_size = 0;
     size_t type_id   = 0;

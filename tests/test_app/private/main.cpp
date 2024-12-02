@@ -21,6 +21,8 @@
 #include "widgets/render_graph_view.hpp"
 #include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
+
+#include <GLFW/glfw3.h>
 #include <gfx/window.hpp>
 
 using namespace Eng;
