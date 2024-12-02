@@ -37,8 +37,8 @@ void Device::flush_resources()
     pending_kill_resources[current_image].clear();
 }
 
-Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)
-    : queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device), instance(in_instance)
+Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)
+    : queues(std::make_unique<Queues>(physical_device, surface)), physical_device(physical_device), instance(in_instance), config(in_config)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physical_device.raw(), &memProperties);
@@ -78,16 +78,16 @@ Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instan
     }
 
     VkPhysicalDeviceFeatures deviceFeatures{
-        .fillModeNonSolid  = true,
+        .fillModeNonSolid = true,
         .samplerAnisotropy = true,
     };
     VkDeviceCreateInfo createInfo{
-        .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .queueCreateInfoCount    = static_cast<uint32_t>(queues_info.size()),
-        .pQueueCreateInfos       = queues_info.data(),
-        .enabledExtensionCount   = static_cast<uint32_t>(device_extensions.size()),
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),
+        .pQueueCreateInfos = queues_info.data(),
+        .enabledExtensionCount = static_cast<uint32_t>(device_extensions.size()),
         .ppEnabledExtensionNames = device_extensions.data(),
-        .pEnabledFeatures        = &deviceFeatures,
+        .pEnabledFeatures = &deviceFeatures,
     };
 
     b_enable_validation_layers = config.enable_validation_layers;
@@ -105,8 +105,8 @@ Device::Device(const GfxConfig& config, const std::weak_ptr<Instance>& in_instan
 
     VmaAllocatorCreateInfo allocatorInfo = {
         .physicalDevice = physical_device.raw(),
-        .device         = ptr,
-        .instance       = instance.lock()->raw(),
+        .device = ptr,
+        .instance = instance.lock()->raw(),
     };
     VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator), "failed to create vma allocator")
 }

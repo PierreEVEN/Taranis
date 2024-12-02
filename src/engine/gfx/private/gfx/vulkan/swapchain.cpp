@@ -14,8 +14,8 @@
 
 namespace Eng::Gfx
 {
-Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer, bool in_vsync)
-    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface), in_device), *renderer.root_node(), true), vsync(in_vsync), surface(in_surface)
+Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer)
+    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface), in_device), *renderer.root_node(), true), surface(in_surface)
 {
     create_or_recreate();
 }
@@ -54,11 +54,11 @@ VkSurfaceFormatKHR Swapchain::choose_surface_format(const std::vector<VkSurfaceF
     return available_formats[0];
 }
 
-VkPresentModeKHR Swapchain::choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes, bool vsync)
+VkPresentModeKHR Swapchain::choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes)
 {
     for (const auto& availablePresentMode : available_present_modes)
     {
-        if (vsync)
+        if (device.lock()->get_gfx_config().v_sync)
         {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
                 return availablePresentMode;
@@ -94,7 +94,7 @@ void Swapchain::create_or_recreate()
     destroy();
 
     PROFILER_SCOPE(RecreateSwapchain);
-    VkPresentModeKHR   presentMode   = choose_present_mode(swapchain_support.presentModes, vsync);
+    VkPresentModeKHR   presentMode   = choose_present_mode(swapchain_support.presentModes);
     VkSurfaceFormatKHR surfaceFormat = choose_surface_format(swapchain_support.formats);
     swapchain_format                 = static_cast<ColorFormat>(surfaceFormat.format);
     extent                           = new_extent;

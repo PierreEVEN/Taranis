@@ -169,12 +169,12 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx"));
+                scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx"));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx"));
+                scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx"));
             });
     }
 
@@ -254,7 +254,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {.gfx = {.enable_validation_layers = false}};
+    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = true}};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

@@ -1,7 +1,5 @@
 #include "profiler.hpp"
 
-#include <iostream>
-
 struct LocalDataContainer
 {
     LocalDataContainer() : thread_data(std::make_shared<Profiler::ThreadData>()), this_thread(std::this_thread::get_id())

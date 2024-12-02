@@ -56,7 +56,11 @@ protected:
         ankerl::unordered_dense::map<std::string, Group> passes;
     };
 
-    float zoom = 0.5;
+    std::optional<ImVec2> desired_pos;
+    std::optional<float>  desired_zoom;
+    float                 last_scroll   = 0;
+    float                 last_scroll_y = 0;
+    float                 zoom          = 0;
 
     static void add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstance>& pass, Content& content, int current_stage);
 };

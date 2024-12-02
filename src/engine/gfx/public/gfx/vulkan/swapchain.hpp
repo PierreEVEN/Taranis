@@ -28,10 +28,10 @@ struct SwapChainSupportDetails
 
 class Swapchain final : public RenderPassInstance
 {
-  public:
-    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync = false)
+public:
+    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, const Renderer& renderer)
     {
-        return std::shared_ptr<Swapchain>(new Swapchain(in_device, surface, renderer, vsync));
+        return std::shared_ptr<Swapchain>(new Swapchain(in_device, surface, renderer));
     }
 
     Swapchain(Swapchain&)  = delete;
@@ -47,7 +47,7 @@ class Swapchain final : public RenderPassInstance
 
     static ColorFormat        get_swapchain_format(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface);
     static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
-    static VkPresentModeKHR   choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes, bool vsync);
+    VkPresentModeKHR          choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes);
     static glm::uvec2         choose_extent(const VkSurfaceCapabilitiesKHR& capabilities, glm::uvec2 base_extent);
 
     void create_or_recreate();
@@ -76,9 +76,8 @@ class Swapchain final : public RenderPassInstance
         return device;
     }
 
-  private:
-    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer, bool vsync);
-    bool vsync = true;
+private:
+    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer);
 
     std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;
     uint8_t                    get_framebuffer_count() const override;

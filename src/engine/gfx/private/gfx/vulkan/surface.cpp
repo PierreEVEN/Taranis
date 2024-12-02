@@ -29,11 +29,11 @@ void Surface::set_device(const std::weak_ptr<Device>& in_device)
     device = in_device;
 }
 
-std::weak_ptr<Gfx::CustomPassList> Surface::set_renderer(const Renderer& renderer)
+std::weak_ptr<CustomPassList> Surface::set_renderer(const Renderer& renderer)
 {
     if (!device.lock())
         LOG_FATAL("Surface::set_device have not been called !");
-    swapchain = Swapchain::create(device, weak_from_this(), renderer, false);
+    swapchain = Swapchain::create(device, weak_from_this(), renderer);
     return swapchain->get_custom_passes();
 }
 

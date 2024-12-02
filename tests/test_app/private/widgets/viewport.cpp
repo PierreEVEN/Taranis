@@ -31,7 +31,7 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 ctx.new_window<SceneOutliner>("Scene outliner", scene);
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Profiler (wip)"))
+        if (ImGui::BeginMenu("Profiler"))
         {
             ctx.new_window<Eng::ProfilerWindow>("Profiler");
             ImGui::EndMenu();
