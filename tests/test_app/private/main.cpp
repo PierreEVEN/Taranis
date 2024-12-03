@@ -172,12 +172,18 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx"));
+                auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_position({1000, 0, 0});
+                scene->merge(std::move(new_scene));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx"));
+                auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_position({1000, 0, 0});
+                scene->merge(std::move(new_scene));
             });
     }
 

@@ -20,7 +20,7 @@ TObjectRef<TextureAsset> TextureAsset::get_default_asset()
     if (!default_asset)
     {
         std::vector<uint8_t> pixels = {
-            0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255,
+            0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
         default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", Gfx::BufferData(pixels.data(), 1, pixels.size()), CreateInfos{.width = 2, .height = 2, .channels = 4});
     }

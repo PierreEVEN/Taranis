@@ -36,9 +36,11 @@ void ContiguousObjectPool::free(void* ptr)
         if (component_count > 0)
         {
             memcpy(removed_element, nth(component_count), stride);
-            auto moved_elem         = allocation_map.find(nth(component_count));
+            auto moved_elem = allocation_map.find(nth(component_count));
             if (moved_elem == allocation_map.end())
-                LOG_FATAL("Failed to move last allocated element ! Not found")
+            {
+                LOG_ERROR("Failed to move last allocated element ! Not found");
+            }
             moved_elem->second->ptr = removed_element;
             allocation_map.emplace(removed_element, moved_elem->second);
             allocation_map.erase(nth(component_count));

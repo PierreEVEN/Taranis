@@ -120,8 +120,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
     else
     {
         std::filesystem::path fs_path(path);
-        if (exists(fs_path))
-            ;
+        if (exists(fs_path));
         else if (exists(file_path.parent_path() / fs_path))
         {
             fs_path = file_path.parent_path() / fs_path;
@@ -136,6 +135,11 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
         return new_tex;
     }
 }
+
+
+TObjectRef<TextureAsset> default_normal;
+TObjectRef<TextureAsset> default_mrao;
+
 
 TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_material_instance(int id)
 {
@@ -156,16 +160,32 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     }
     else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
         type = MaterialType::Opaque_MR;
-    
+
     auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>(std::string("MaterialInstance_") + mat->GetName().C_Str() + "_" + std::to_string(id), find_or_load_material(type));
+
+    if (!default_normal)
+    {
+        std::vector<uint8_t> pixels = {
+            0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
+        };
+        default_normal = Engine::get().asset_registry().create<TextureAsset>("DefaultNormal", Gfx::BufferData(pixels.data(), 1, pixels.size()), TextureAsset::CreateInfos{.width = 2, .height = 2, .channels = 4});
+
+    }
+    if (!default_mrao)
+    {
+        std::vector<uint8_t> pixels = {
+            0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0,
+        };
+        default_mrao = Engine::get().asset_registry().create<TextureAsset>("DefaultMrao", Gfx::BufferData(pixels.data(), 1, pixels.size()), TextureAsset::CreateInfos{.width = 2, .height = 2, .channels = 4});
+    }
 
     new_mat->set_sampler("sSampler", get_sampler());
     if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_texture("albedo", TextureAsset::get_default_asset());
     if (mat->GetTextureCount(aiTextureType_NORMALS) == 0)
-        new_mat->set_texture("normal_map", TextureAsset::get_default_asset());
+        new_mat->set_texture("normal_map", default_normal);
     if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) == 0)
-        new_mat->set_texture("mr_map", TextureAsset::get_default_asset());
+        new_mat->set_texture("mr_map", default_mrao);
 
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {
@@ -233,13 +253,13 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(Mat
     }
     auto mat = Engine::get().asset_registry().create<MaterialAsset>("default_mesh");
     mat->set_shader_code("default_mesh", std::vector{
-                                             StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                             StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
-                                             StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                             StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                             StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32_SFLOAT},
-                                             StageInputOutputDescription{5, 56, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
-                                         });
+                             StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                             StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},
+                             StageInputOutputDescription{2, 20, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                             StageInputOutputDescription{3, 32, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                             StageInputOutputDescription{4, 44, Gfx::ColorFormat::R32G32B32_SFLOAT},
+                             StageInputOutputDescription{5, 56, Gfx::ColorFormat::R32G32B32A32_SFLOAT},
+                         });
 
     return materials_base.emplace(type, mat).first->second;
 }
