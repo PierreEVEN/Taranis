@@ -36,7 +36,7 @@ class MaterialInstanceAsset : public AssetBase
 {
     REFLECT_BODY()
 
-  public:
+public:
     MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material, bool b_static = true);
 
     std::shared_ptr<Gfx::Pipeline>      get_base_resource(const std::string& shader_pass);
@@ -51,10 +51,10 @@ class MaterialInstanceAsset : public AssetBase
     // Compile shader for given pass if available (avoid lag spike later)
     void prepare_for_passes(const std::string& render_pass);
 
-  private:
-    std::mutex descriptor_lock;
-    TObjectRef<MaterialAsset>                                            base;
-    bool                                                                 b_static = true;
+private:
+    TObjectRef<MaterialAsset>                                                      base;
+    std::shared_mutex                                                              descriptor_lock;
+    bool                                                                           b_static = true;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
     Gfx::PermutationDescription        permutation_description;

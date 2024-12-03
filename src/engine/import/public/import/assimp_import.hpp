@@ -58,6 +58,7 @@ class AssimpImporter
 
         struct MeshSection
         {
+            std::string                       name;
             TObjectRef<MaterialInstanceAsset> mat;
             std::vector<MeshAsset::Vertex>    vertices;
             std::shared_ptr<Gfx::BufferData>  indices;

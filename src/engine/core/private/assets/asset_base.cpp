@@ -8,7 +8,8 @@ namespace Eng
 AssetBase::~AssetBase()
 {
     free(name);
-    registry->assets.erase(this);
+    if (auto cl = registry->assets.find(get_class()); cl != registry->assets.end())
+        cl->second.erase(this);
 }
 
 } // namespace Eng

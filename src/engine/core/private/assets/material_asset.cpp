@@ -10,38 +10,69 @@ namespace Eng
 {
 MaterialAsset::MaterialAsset() = default;
 
-void MaterialAsset::set_shader_code(const std::filesystem::path& code, std::optional<std::vector<StageInputOutputDescription>> vertex_input_override)
+void MaterialAsset::set_shader_code(const std::filesystem::path& code, const std::optional<std::vector<StageInputOutputDescription>>& vertex_input_override)
 {
+    std::unique_lock lk(pipeline_mutex);
+    PROFILER_SCOPE_NAMED(LoadMat, "Load material from path " + code.string());
     if (vertex_input_override)
         vertex_inputs = *vertex_input_override;
-    shader_path = code;
+    shader_virtual_path = code;
+
     permutations.clear();
-    compiler_session    = ShaderCompiler::Compiler::get().create_session(code);
+    compiler_session = ShaderCompiler::Compiler::get().create_session(code);
+
+    if (auto path = compiler_session->get_filesystem_path())
+    {
+        shader_real_path = *path;
+        if (!exists(shader_real_path))
+            LOG_ERROR("The file {} does not exists", shader_real_path.string());
+        last_update = last_write_time(shader_real_path);
+    }
+
     default_permutation = compiler_session->get_default_permutations_description();
 }
 
 std::weak_ptr<MaterialPermutation> MaterialAsset::get_permutation(const Gfx::PermutationDescription& permutation)
 {
-    if (auto found = permutations.find(permutation); found != permutations.end())
-        return found->second;
+    {
+        std::shared_lock lk(pipeline_mutex);
+        if (auto found = permutations.find(permutation); found != permutations.end())
+            return found->second;
+    }
+    std::unique_lock lk(pipeline_mutex);
     return permutations.emplace(permutation, std::make_shared<MaterialPermutation>(this, permutation)).first->second;
 }
 
 void MaterialAsset::update_options(const Gfx::PipelineOptions& in_options)
 {
     options = in_options;
-    set_shader_code(shader_path);
+    set_shader_code(shader_virtual_path);
+}
+
+void MaterialAsset::check_for_updates()
+{
+    if (scan_source_updates && exists(shader_real_path))
+    {
+        if (last_update < last_write_time(shader_real_path))
+            set_shader_code(shader_virtual_path);
+    }
 }
 
 MaterialPermutation::MaterialPermutation(MaterialAsset* in_owner, Gfx::PermutationDescription permutation_desc) : owner(in_owner), permutation_description(std::move(permutation_desc))
 {
 }
 
-const std::shared_ptr<Gfx::Pipeline>& MaterialPermutation::get_resource(const std::string& render_pass)
+std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const std::string& render_pass)
 {
-    std::lock_guard lk(owner->pipeline_mutex);
-    if (auto found = passes.find(render_pass); found != passes.end())
-        return found->second.pipeline;
+    {
+        std::shared_lock lk(owner->pipeline_mutex);
+        if (auto found = passes.find(render_pass); found != passes.end())
+            return found->second.pipeline;
+    }
+
+    std::unique_lock lk(owner->pipeline_mutex);
+    if (!owner->compiler_session)
+        return nullptr;
 
     PROFILER_SCOPE_NAMED(CompileShader, std::string("Compile material '") + owner->get_name() + "' for render pass " + render_pass);
     auto compilation_result = owner->compiler_session->compile(render_pass, permutation_description);

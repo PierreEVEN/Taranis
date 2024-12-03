@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_base.hpp"
+#include "object_ptr.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx_types/pipeline.hpp"
 
@@ -7,6 +8,8 @@
 #include <mutex>
 
 #include "assets\material_asset.gen.hpp"
+
+#include <shared_mutex>
 
 namespace ShaderCompiler
 {
@@ -25,28 +28,28 @@ struct MaterialPermutation
 {
     MaterialPermutation(MaterialAsset* owner, Gfx::PermutationDescription permutation_desc);
 
-    const std::shared_ptr<Eng::Gfx::Pipeline>& get_resource(const std::string& render_pass);
+    std::shared_ptr<Gfx::Pipeline> get_resource(const std::string& render_pass);
 
-  private:
+private:
     struct PassInfos
     {
         ankerl::unordered_dense::map<Gfx::EShaderStage, std::vector<uint8_t>> per_stage_code;
-        std::shared_ptr<Gfx::Pipeline>                              pipeline;
+        std::shared_ptr<Gfx::Pipeline>                                        pipeline;
     };
 
     ankerl::unordered_dense::map<std::string, PassInfos> passes;
-    MaterialAsset*                             owner = nullptr;
-    Gfx::PermutationDescription                permutation_description;
+    MaterialAsset*                                       owner = nullptr;
+    Gfx::PermutationDescription                          permutation_description;
 };
 
 class MaterialAsset : public AssetBase
 {
     REFLECT_BODY()
 
-  public:
+public:
     MaterialAsset();
 
-    void set_shader_code(const std::filesystem::path& code, std::optional<std::vector<StageInputOutputDescription>> vertex_input_override = {});
+    void set_shader_code(const std::filesystem::path& code, const std::optional<std::vector<StageInputOutputDescription>>& vertex_input_override = {});
 
     Gfx::PermutationDescription get_default_permutation() const
     {
@@ -57,20 +60,23 @@ class MaterialAsset : public AssetBase
 
     void update_options(const Gfx::PipelineOptions& options);
 
-  private:
+    void check_for_updates();
+
+private:
     friend MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 
     ankerl::unordered_dense::map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
 
+    bool                            scan_source_updates = true;
+    std::filesystem::path           shader_real_path;
+
+    std::filesystem::file_time_type last_update;
+
     std::shared_ptr<ShaderCompiler::Session> compiler_session;
-
-    std::filesystem::path shader_path;
-
+    std::filesystem::path                    shader_virtual_path;
     std::vector<StageInputOutputDescription> vertex_inputs;
-
-    std::mutex pipeline_mutex;
-
-    Gfx::PipelineOptions options;
+    std::shared_mutex                        pipeline_mutex;
+    Gfx::PipelineOptions                     options;
 };
 } // namespace Eng

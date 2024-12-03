@@ -34,10 +34,12 @@ std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const st
 
 std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resource(const std::string& shader_pass)
 {
-    std::lock_guard lk(descriptor_lock);
-    if (auto found = descriptors.find(shader_pass); found != descriptors.end())
-        return found->second;
-
+    {
+        std::shared_lock lk(descriptor_lock);
+        if (auto found = descriptors.find(shader_pass); found != descriptors.end())
+            return found->second;
+    }
+    std::unique_lock lk(descriptor_lock);
     if (auto base_material = get_base_resource(shader_pass))
     {
         auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + shader_pass, Engine::get().get_device(), base_material, b_static)).first->second;
@@ -50,6 +52,7 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
 
         for (const auto& buffer : buffers)
             new_descriptor->bind_buffer(buffer.first, buffer.second.lock());
+
         return new_descriptor;
     }
     return {};
@@ -57,7 +60,7 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
 
 void MaterialInstanceAsset::set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler)
 {
-    std::lock_guard lk(descriptor_lock);
+    std::unique_lock lk(descriptor_lock);
     samplers.insert_or_assign(binding, sampler);
     for (const auto& desc : descriptors)
         desc.second->bind_sampler(binding, sampler->get_resource());
@@ -65,7 +68,7 @@ void MaterialInstanceAsset::set_sampler(const std::string& binding, const TObjec
 
 void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture)
 {
-    std::lock_guard lk(descriptor_lock);
+    std::unique_lock lk(descriptor_lock);
     textures.insert_or_assign(binding, texture);
     for (const auto& desc : descriptors)
         desc.second->bind_image(binding, texture->get_view());
@@ -73,7 +76,7 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
 
 void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
-    std::lock_guard lk(descriptor_lock);
+    std::unique_lock lk(descriptor_lock);
     buffers.insert_or_assign(binding, buffer);
     for (const auto& desc : descriptors)
         desc.second->bind_buffer(binding, buffer.lock());
@@ -81,8 +84,16 @@ void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::we
 
 void MaterialInstanceAsset::set_buffer(const std::string& render_pass, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
-    std::lock_guard lk(descriptor_lock);
-    buffers.insert_or_assign(binding, buffer);
+    std::unique_lock lk(descriptor_lock);
+
+    if (auto existing = buffers.find(binding); existing != buffers.end())
+    {
+        if (existing->second.lock() == buffer.lock())
+            return;
+        existing->second = buffer;
+    }
+    else
+        buffers.emplace(binding, buffer);
     if (auto found = descriptors.find(render_pass); found != descriptors.end())
         found->second->bind_buffer(binding, buffer.lock());
 }

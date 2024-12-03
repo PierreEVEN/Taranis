@@ -1,5 +1,6 @@
 #pragma once
 
+#include "object_ptr.hpp"
 #include "assets/asset_base.gen.hpp"
 
 namespace Eng
@@ -8,7 +9,7 @@ class AssetBase
 {
     REFLECT_BODY()
 
-  public:
+public:
     AssetBase(AssetBase&)  = delete;
     AssetBase(AssetBase&&) = delete;
 
@@ -19,10 +20,16 @@ class AssetBase
         return name;
     }
 
-  protected:
+    const TObjectRef<AssetBase>& this_ref() const
+    {
+        return this_ref_obj;
+    }
+
+protected:
     AssetBase() = default;
 
-  private:
+private:
+    TObjectRef<AssetBase> this_ref_obj;
     friend class AssetRegistry;
     char*          name;
     AssetRegistry* registry;

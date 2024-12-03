@@ -50,8 +50,8 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
         load_errors.emplace_back("Failed to find slang profile 'spirv_1_5'");
         return;
     }
-    sessionDesc.targets     = &targetDesc;
-    sessionDesc.targetCount = 1;
+    sessionDesc.targets                 = &targetDesc;
+    sessionDesc.targetCount             = 1;
     sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
 
     // Search paths
@@ -83,6 +83,11 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
 Session::~Session()
 {
     session->release();
+}
+
+std::optional<std::filesystem::path> Session::get_filesystem_path() const
+{
+    return module->getFilePath() ? module->getFilePath() : std::optional<std::filesystem::path>{};
 }
 
 TypeReflection::TypeReflection(slang::TypeReflection* slang_type)
@@ -299,7 +304,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             data.inputs.push_variable(entry_point->getFunctionReflection()->getParameterByIndex(pi));
 
         if (auto return_type = entry_point->getFunctionReflection()->getReturnType())
-            data.outputs = TypeReflection(return_type);
+            data.outputs     = TypeReflection(return_type);
 
         data.compiled_module = std::vector<uint8_t>(kernel_blob->getBufferSize());
         std::memcpy(data.compiled_module.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());

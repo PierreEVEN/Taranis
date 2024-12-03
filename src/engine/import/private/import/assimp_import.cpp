@@ -62,7 +62,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
             auto section = find_or_load_mesh(node->mMeshes[i]);
             if (!section)
                 continue;
-            new_mesh->add_section(section->vertices, *section->indices, section->mat);
+            new_mesh->add_section(section->name, section->vertices, *section->indices, section->mat);
         }
         if (parent)
         {
@@ -156,12 +156,16 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     }
     else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
         type = MaterialType::Opaque_MR;
-
-    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>("mat instance", find_or_load_material(type));
+    
+    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>(std::string("MaterialInstance_") + mat->GetName().C_Str() + "_" + std::to_string(id), find_or_load_material(type));
 
     new_mat->set_sampler("sSampler", get_sampler());
     if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_texture("albedo", TextureAsset::get_default_asset());
+    if (mat->GetTextureCount(aiTextureType_NORMALS) == 0)
+        new_mat->set_texture("normal_map", TextureAsset::get_default_asset());
+    if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) == 0)
+        new_mat->set_texture("mr_map", TextureAsset::get_default_asset());
 
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {
@@ -286,7 +290,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
         }
 
         auto base_buffer = Gfx::BufferData(triangles.data(), 2, triangles.size());
-        auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, base_buffer.copy());
+        auto new_section = std::make_shared<MeshSection>(std::string(mesh->mName.C_Str()) + "_" + std::to_string(id), find_or_load_material_instance(mesh->mMaterialIndex), vertices, base_buffer.copy());
         meshes.emplace(id, new_section);
         return new_section;
     }
@@ -302,7 +306,8 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
             triangles[i * 3 + 1] = face.mIndices[1];
             triangles[i * 3 + 2] = face.mIndices[2];
         }
-        auto new_section = std::make_shared<MeshSection>(find_or_load_material_instance(mesh->mMaterialIndex), vertices, Gfx::BufferData(triangles.data(), 4, triangles.size()).copy());
+        auto new_section = std::make_shared<MeshSection>(std::string(mesh->mName.C_Str()) + "_" + std::to_string(id), find_or_load_material_instance(mesh->mMaterialIndex), vertices,
+                                                         Gfx::BufferData(triangles.data(), 4, triangles.size()).copy());
         meshes.emplace(id, new_section);
         return new_section;
     }

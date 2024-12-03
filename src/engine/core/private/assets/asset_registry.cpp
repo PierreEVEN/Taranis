@@ -1,11 +1,19 @@
 #include "assets/asset_registry.hpp"
 
+#include "object_allocator.hpp"
+
 namespace Eng
 {
+AssetRegistry::AssetRegistry()
+{
+}
+
 AssetRegistry::~AssetRegistry()
 {
-    ankerl::unordered_dense::map<void*, TObjectPtr<AssetBase>> map_copy = assets;
-    for (auto& asset : map_copy)
-        asset.second.destroy();
+    std::unique_lock lock(asset_lock);
+    auto             assets_copy = assets;
+    for (auto& cl : assets_copy | std::views::values)
+        for (auto& asset : cl | std::views::values)
+            asset.destroy();
 }
 } // namespace Eng

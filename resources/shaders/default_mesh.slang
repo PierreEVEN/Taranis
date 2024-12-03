@@ -1,8 +1,8 @@
 
 import shader_base;
 
-extern static const bool PARAM_NORMAL_TEXTURE = false;
-extern static const bool PARAM_METAL_ROUGHNESS_TEXTURE = false;
+extern static const bool PARAM_NORMAL_TEXTURE = true;
+extern static const bool PARAM_METAL_ROUGHNESS_TEXTURE = true;
 
 struct VSInput
 {
@@ -31,7 +31,7 @@ struct VsToFs
     float2 Uvs;
     float3 WorldNormals;
     float3 WorldTangents;
-    float3 WorldBitangents;
+    float3 WorldBiTangents;
 };
 
 StructuredBuffer<SceneBufferData> scene_data_buffer;
@@ -55,9 +55,9 @@ VsToFs vertex_main(VSInput input, uniform PushConsts pc)
     Out.WorldPosition   = mul(pc.model, float4(input.pos, 1)).xyz;
     Out.Pos             = mul(scene_data_buffer.Load(0).perspective_view_mat, float4(Out.WorldPosition, 1));
     Out.Uvs             = input.uv;
-    Out.WorldNormals    = normalize(mul((float3x3)pc.model, input.normal));
-    Out.WorldTangents   = input.tangent;
-    Out.WorldBitangents = input.bitangents;
+    Out.WorldNormals = mul((float3x3)pc.model, input.normal);
+    Out.WorldTangents = mul((float3x3)pc.model, input.tangent);
+    Out.WorldBiTangents = mul((float3x3)pc.model, input.bitangents);
     return Out;
 }
 [shader("vertex")]
@@ -70,7 +70,7 @@ float4 vertex_main_shadows(VSInput input, uniform PushConsts pc) : SV_Position
 
 struct FsOutput
 {
-    float3 position;
+    float4 position;
     float4 albedo_m;
     float4 normal_r;
 };
@@ -95,13 +95,11 @@ FsOutput fragment_main(VsToFs input)
     float3 world_normal = normalize(input.WorldNormals);
     if (length(input.WorldTangents) > 0.001)
     {
-        float3   N   = normalize(world_normal);
-        float3   T   = normalize(abs(input.WorldTangents));
-        float3x3 TBN = float3x3(T, -normalize(cross(N, T)), N);
-        world_normal = normalize(mul(TBN, local_normal));
+        float3x3 TBN = float3x3(normalize(input.WorldTangents), normalize(input.WorldBiTangents), normalize(input.WorldNormals));
+        world_normal = normalize(mul(local_normal, TBN));
     }
 
-    output.position = input.WorldPosition;
+    output.position = float4(input.WorldPosition, 1);
     output.albedo_m = float4(tex_col.rgb, mr.r);
     output.normal_r = float4(world_normal / 2 + 0.5, mr.g);
     if (tex_col.a < 0.25)

@@ -80,7 +80,7 @@ public:
         auto resource = material->get_descriptor_resource("gbuffer_resolve");
 
         if (!resource)
-            return LOG_ERROR("Cannot current_thread descriptor resource for pass {}", "gbuffer_resolve");
+            return LOG_ERROR("Cannot find descriptor resource for pass {}", "gbuffer_resolve");
 
         resource->bind_image("gbuffer_position", dep->get_attachment("position").lock());
         resource->bind_image("gbuffer_albedo_m", dep->get_attachment("albedo-m").lock());
@@ -90,14 +90,17 @@ public:
 
     void draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
     {
+        auto resource = material->get_base_resource(command_buffer.render_pass());
+        if (!resource)
+            return;
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
             {
-                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *material->get_base_resource(command_buffer.render_pass()), Gfx::BufferData{object.get_position()});
+                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData{object.get_position()});
             });
 
-        command_buffer.bind_pipeline(material->get_base_resource(command_buffer.render_pass()));
-        command_buffer.bind_descriptors(*material->get_descriptor_resource(command_buffer.render_pass()), *material->get_base_resource(command_buffer.render_pass()));
+        command_buffer.bind_pipeline(resource);
+        command_buffer.bind_descriptors(*material->get_descriptor_resource(command_buffer.render_pass()), *resource);
         command_buffer.draw_procedural(6, 0, 1, 0);
     }
 
@@ -128,7 +131,6 @@ public:
 class TestApp : public Application
 {
 public:
-
     void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
@@ -161,7 +163,6 @@ public:
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
 
-
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]
@@ -171,12 +172,12 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx"));
+                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx"));
             });
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx"));
+                //scene->merge(importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx"));
             });
     }
 
@@ -256,7 +257,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = true}};
+    Config config = {.gfx = {.enable_validation_layers = true, .v_sync = true}, .auto_update_materials = true};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
 }

@@ -11,6 +11,7 @@
 #include "gfx/vulkan/surface.hpp"
 #include "gfx/window.hpp"
 #include "profiler.hpp"
+#include "assets/material_asset.hpp"
 
 #if _WIN32
 #include <Windows.h>
@@ -77,6 +78,16 @@ void Engine::run_internal()
         auto new_time = std::chrono::steady_clock::now();
         delta_second  = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(new_time - last_time).count()) / 1000000000.0;
         last_time     = new_time;
+
+        if (app_config.auto_update_materials)
+        {
+            PROFILER_SCOPE(CheckForMaterialUpdates);
+            asset_registry().for_each<MaterialAsset>(
+                [](MaterialAsset& material)
+                {
+                    material.check_for_updates();
+                });
+        }
 
         app->tick_game(*this, delta_second);
         std::vector<size_t> windows_to_remove;

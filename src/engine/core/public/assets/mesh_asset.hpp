@@ -55,7 +55,7 @@ public:
     {
     }
 
-    void add_section(const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material, const Bounds& in_bounds = {});
+    void add_section(const std::string& section_name, const std::vector<Vertex>& vertices, const Gfx::BufferData& indices, const TObjectRef<MaterialInstanceAsset>& material, const Bounds& in_bounds = {});
 
     const std::vector<Section>& get_sections() const
     {

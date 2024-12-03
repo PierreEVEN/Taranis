@@ -102,7 +102,10 @@ class Session
 
     ~Session();
 
+    std::optional<std::filesystem::path> get_filesystem_path() const;
+
   private:
+
     friend class Compiler;
     Session(Compiler* in_compiler, const std::filesystem::path& path);
 

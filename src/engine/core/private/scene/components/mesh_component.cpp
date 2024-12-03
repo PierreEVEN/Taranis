@@ -6,6 +6,7 @@
 #include "gfx/vulkan/buffer.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "profiler.hpp"
+#include "gfx/mesh.hpp"
 #include "scene/scene_view.hpp"
 #include "scene/components/camera_component.hpp"
 

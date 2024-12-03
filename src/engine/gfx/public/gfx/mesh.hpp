@@ -51,6 +51,11 @@ public:
         return index_type;
     }
 
+    const std::string& get_name() const
+    {
+        return name;
+    }
+
 private:
     Mesh(std::string name, const std::weak_ptr<Device>& device, size_t vertex_structure_size, EBufferType buffer_type, const BufferData* vertices = nullptr, const BufferData* indices = nullptr);
     EBufferType             buffer_type;

@@ -51,7 +51,7 @@ public:
         return std::hash<std::string>{}(StaticClassInfos<Type>::name);
     }
 
-    using CastFunc = void*(const Class*, void*);
+    using CastFunc = void*(*)(const Class*, void*);
 
     struct CastFuncWrapper
     {
@@ -76,7 +76,7 @@ public:
      * Cast Ptr to To Object
      * if ThisClass == To, return Ptr, else try to cast to one of the parent class
      */
-    void* cast_to(const Class* To, void* Ptr)
+    void* cast_to(const Class* To, void* Ptr) const
     {
         if (To == this)
             return Ptr;
