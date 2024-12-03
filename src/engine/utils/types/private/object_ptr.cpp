@@ -5,16 +5,12 @@ void IObject::destroy()
 {
     if (*this)
     {
-        delete allocation->destructor;
-        allocation->destructor = nullptr;
+        // Will implicitly call ptr destructor
+        allocation->destructor->destroy();
         if (allocation->allocator && allocation->object_class)
-        {
             allocation->allocator->free(allocation->object_class, allocation->ptr);
-        }
         else
-        {
             std::free(allocation->ptr);
-        }
         allocation->ptr          = nullptr;
         allocation->allocator    = nullptr;
         allocation->object_class = nullptr;

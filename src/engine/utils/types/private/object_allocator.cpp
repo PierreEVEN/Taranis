@@ -28,24 +28,28 @@ void ContiguousObjectPool::free(void* ptr)
 {
     if (auto obj_ptr = allocation_map.find(ptr); obj_ptr != allocation_map.end())
     {
-        void* removed_element = obj_ptr->second->ptr;
+        // Invalidate allocation
         obj_ptr->second->ptr  = nullptr;
+
+        // Unregister allocation (note : the allocation will be deleted once no object will reference it)
         allocation_map.erase(obj_ptr);
         component_count--;
 
-        if (component_count > 0)
+        // if there are elements remaining, move the last one to the removed one (swap-remove)
+        if (nth_ptr(ptr) != component_count)
         {
-            memcpy(removed_element, nth(component_count), stride);
+            // The removed component ptr will be the residency of the last component
+            memcpy(ptr, nth(component_count), stride);
+
+            // Update allocation for the moved element
             auto moved_elem = allocation_map.find(nth(component_count));
-            if (moved_elem == allocation_map.end())
-            {
-                LOG_ERROR("Failed to move last allocated element ! Not found");
-            }
-            moved_elem->second->ptr = removed_element;
-            allocation_map.emplace(removed_element, moved_elem->second);
+            moved_elem->second->ptr = ptr;
+            // Update the registry
+            allocation_map.emplace(ptr, moved_elem->second);
             allocation_map.erase(nth(component_count));
         }
 
+        // Update allocated memory (we removed one element)
         reserve(component_count);
     }
     else

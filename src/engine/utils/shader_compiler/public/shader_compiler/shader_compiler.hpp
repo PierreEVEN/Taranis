@@ -128,7 +128,7 @@ class Compiler
 
   private:
     friend Session;
-
+    std::mutex             global_session_lock;
     slang::IGlobalSession* global_session = nullptr;
 
     Compiler();

@@ -40,6 +40,8 @@ Compiler::Compiler()
 
 Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : compiler(in_compiler)
 {
+    std::lock_guard    lk(session_lock);
+    std::lock_guard    lk2(in_compiler->global_session_lock);
     slang::SessionDesc sessionDesc;
 
     // Target
@@ -73,9 +75,7 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
     }
 
     Slang::ComPtr<slang::IBlob> diagnostics;
-    LOG_DEBUG("A");
     module = session->loadModule(path.string().c_str(), diagnostics.writeRef());
-    LOG_DEBUG("B");
     if (diagnostics)
     {
         load_errors.emplace_back(static_cast<const char*>(diagnostics->getBufferPointer()));

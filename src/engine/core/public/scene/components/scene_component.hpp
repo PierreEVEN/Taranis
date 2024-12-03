@@ -24,7 +24,9 @@ class SceneComponent
 public:
     virtual ~SceneComponent()
     {
+        assert(name);
         delete[] name;
+        name = nullptr;
     }
 
     virtual void tick(double)
@@ -89,9 +91,9 @@ public:
     {
         if (b_transform_dirty)
         {
-            world_transform   = translate(mat4_cast(rotation) * glm::scale({1}, scale), position);
+            world_transform = translate(mat4_cast(rotation) * glm::scale({1}, scale), position);
             if (parent)
-                world_transform = parent->get_world_transform() * world_transform;  
+                world_transform = parent->get_world_transform() * world_transform;
             b_transform_dirty = false;
         }
         return world_transform;
@@ -112,8 +114,6 @@ public:
         return *scene;
     }
 
-    std::vector<TObjectPtr<SceneComponent>> children{};
-
 protected:
     SceneComponent()
     {
@@ -127,9 +127,11 @@ private:
             child->mark_transform_dirty();
     }
 
-    const char*                name;
-    Scene*                     scene;
-    TObjectRef<SceneComponent> parent = {};
+    const char*                             name;
+    Scene*                                  scene;
+    TObjectRef<SceneComponent>              parent = {};
+    std::vector<TObjectPtr<SceneComponent>> children{};
+
 
     bool      b_transform_dirty = true;
     glm::mat4 world_transform{1};

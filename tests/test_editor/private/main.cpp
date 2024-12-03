@@ -4,6 +4,7 @@
 #include "assets/sampler_asset.hpp"
 #include "config.hpp"
 #include "engine.hpp"
+#include "test_reflected_header.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
@@ -164,6 +165,20 @@ public:
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
 
+        for (int i = 0; i < 1; ++i)
+        {
+            auto a = scene->add_component<SceneComponent>(std::format("__{}", i));
+            for (int j = 0; j < 1; ++j)
+            {
+                auto b = a->add_component<SceneComponent>(std::format("__{}__{}", i, j));
+                for (int k = 0; k < 1; ++k)
+                {
+                    b->add_component<SceneComponent>(std::format("__{}__{}__{}", i, j, k));
+                }
+            }
+        }
+
+
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]
@@ -194,7 +209,7 @@ public:
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
             {
-                speed *= atan(static_cast<float>(y) * -0.25f) * 0.5f + 1;
+                speed *= atan(static_cast<float>(y) * 0.25f) * 0.5f + 1;
             });
     }
 
@@ -274,7 +289,6 @@ public:
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
-
     Config config = {.gfx = {.enable_validation_layers = true, .v_sync = true}, .auto_update_materials = true};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
