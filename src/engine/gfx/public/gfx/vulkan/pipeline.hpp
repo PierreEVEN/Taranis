@@ -1,4 +1,5 @@
 #pragma once
+#include "device.hpp"
 #include "gfx_types/pipeline.hpp"
 
 #include <memory>
@@ -36,7 +37,7 @@ class Device;
 class VkRendererPass;
 enum class ColorFormat;
 
-class Pipeline
+class Pipeline : public DeviceResource
 {
   public:
     struct CreateInfos
@@ -87,6 +88,5 @@ class Pipeline
     VkPipelineLayout                                layout                = VK_NULL_HANDLE;
     VkDescriptorSetLayout                           descriptor_set_layout = VK_NULL_HANDLE;
     VkPipeline                                      ptr                   = VK_NULL_HANDLE;
-    std::weak_ptr<Device>                           device;
 };
 } // namespace Eng::Gfx

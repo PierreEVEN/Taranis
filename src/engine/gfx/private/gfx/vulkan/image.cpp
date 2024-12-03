@@ -13,7 +13,7 @@ namespace Eng::Gfx
 VkImageUsageFlags vk_usage(const ImageParameter& texture_parameters)
 {
     VkImageUsageFlags usage_flags = 0;
-    if (static_cast<int>(texture_parameters.transfer_capabilities) & static_cast<int>(ETextureTransferCapabilities::CopySource) || !texture_parameters.mip_level.get() || *texture_parameters.mip_level.get() > 1)
+    if (static_cast<int>(texture_parameters.transfer_capabilities) & static_cast<int>(ETextureTransferCapabilities::CopySource) || texture_parameters.generate_mips.does_generates())
         usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     if (static_cast<int>(texture_parameters.transfer_capabilities) & static_cast<int>(ETextureTransferCapabilities::CopyDestination))
         usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -29,21 +29,22 @@ VkImageUsageFlags vk_usage(const ImageParameter& texture_parameters)
 
 uint32_t Image::get_mips_count() const
 {
-    return params.mip_level.get() ? *params.mip_level.get() : static_cast<uint32_t>(std::floor(log2(std::max(params.width, params.height)))) + 1;
+    return params.generate_mips.does_generates() ? params.generate_mips.desired_mip_count() == 0 ? static_cast<uint32_t>(std::floor(log2(std::max(params.width, params.height)))) + 1 : 0 : provided_mips;
 }
 
-Image::Image(std::string in_name, std::weak_ptr<Device> in_device, const ImageParameter& in_params) : params(in_params), device(std::move(in_device)), name(std::move(in_name))
+Image::Image(std::string in_name, std::weak_ptr<Device> in_device, const ImageParameter& in_params, uint32_t base_mips) : params(in_params), device(std::move(in_device)), name(std::move(in_name))
 {
+    provided_mips = base_mips;
     switch (params.buffer_type)
     {
     case EBufferType::STATIC:
     case EBufferType::IMMUTABLE:
-        images = {std::make_shared<ImageResource>(name, device, params)};
+        images = {std::make_shared<ImageResource>(name, device, params, get_mips_count())};
         break;
     case EBufferType::DYNAMIC:
     case EBufferType::IMMEDIATE:
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
-            images.emplace_back(std::make_shared<ImageResource>(name + "_#" + std::to_string(i), device, params));
+            images.emplace_back(std::make_shared<ImageResource>(name + "_#" + std::to_string(i), device, params, get_mips_count()));
         break;
     }
 }
@@ -64,22 +65,23 @@ std::vector<VkImage> Image::raw() const
 
 VkImage Image::raw_current()
 {
-    bool all_ready = true;
     switch (params.buffer_type)
     {
     case EBufferType::IMMUTABLE:
     case EBufferType::STATIC:
         return images[0]->ptr;
     case EBufferType::DYNAMIC:
+    {
         if (images[device.lock()->get_current_image()]->outdated)
-        {
             images[device.lock()->get_current_image()]->set_data(temp_buffer_data);
-        }
+        bool all_ready = true;
         for (const auto& image : images)
             if (!image->outdated)
                 all_ready = false;
         if (all_ready)
-            temp_buffer_data = BufferData();
+            temp_buffer_data.clear();
+        break;
+    }
     case EBufferType::IMMEDIATE:
         return images[device.lock()->get_current_image()]->ptr;
     }
@@ -113,112 +115,70 @@ bool Image::resize(glm::uvec2 new_size)
     return true;
 }
 
-void Image::set_data(glm::uvec2 new_size, const BufferData& data)
+void Image::set_data(glm::uvec2 new_size, const std::vector<BufferData>& mips)
 {
     resize(new_size);
-
+    assert(mips.size() == provided_mips || params.generate_mips.does_generates());
     switch (params.buffer_type)
     {
     case EBufferType::IMMUTABLE:
         LOG_FATAL("Cannot update immutable image !!")
     case EBufferType::STATIC:
         device.lock()->wait();
-        images[0]->set_data(data);
+        images[0]->set_data(mips);
         images = {nullptr};
         break;
     case EBufferType::DYNAMIC:
         for (size_t i = 0; i < device.lock()->get_image_count(); ++i)
         {
             if (i == device.lock()->get_current_image())
-                images[i]->set_data(data);
+                images[i]->set_data(mips);
             else
                 images[i]->outdated = true;
         }
         if (images.size() > 1)
-            temp_buffer_data = data.copy();
+        {
+            temp_buffer_data.clear();
+            for (const auto& buffer : temp_buffer_data)
+                temp_buffer_data.emplace_back(buffer.copy());
+        }
         break;
     case EBufferType::IMMEDIATE:
-        images[device.lock()->get_current_image()]->set_data(data);
+        images[device.lock()->get_current_image()]->set_data(mips);
         break;
     }
 }
 
-Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> in_device, ImageParameter params)
+Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> in_device, ImageParameter params, uint32_t in_mip_count)
     : DeviceResource(std::move(in_device)), format(static_cast<VkFormat>(params.format)), name(std::move(in_name))
 {
     layer_cout = params.image_type == EImageType::Cubemap ? 6u : 1u;
     is_depth   = is_depth_format(params.format);
     depth      = params.depth;
     res        = {params.width, params.height};
-    mip_levels = params.mip_level.get() ? *params.mip_level.get() : static_cast<uint32_t>(std::floor(log2(std::max(res.x, res.y)))) + 1;
+
+    mip_count = in_mip_count;
+
+    VkImageType image_type = VK_IMAGE_TYPE_2D;
+    if (params.height > 1)
+        image_type = VK_IMAGE_TYPE_2D;
+    if (params.depth > 1)
+        image_type = VK_IMAGE_TYPE_3D;
 
     VkImageCreateInfo image_create_infos{
-        .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .format        = format,
-        .mipLevels     = mip_levels,
-        .samples       = VK_SAMPLE_COUNT_1_BIT,
-        .tiling        = VK_IMAGE_TILING_OPTIMAL,
-        .usage         = vk_usage(params),
-        .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = image_type,
+        .format = format,
+        .extent = VkExtent3D{params.width, params.height, params.depth},
+        .mipLevels = mip_count,
+        .arrayLayers = params.array_size,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = vk_usage(params),
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
-    switch (params.image_type)
-    {
-    case EImageType::Texture_1D:
-        image_create_infos.imageType = VK_IMAGE_TYPE_1D;
-        image_create_infos.extent    = {
-               .width  = params.width,
-               .height = 1,
-               .depth  = 1,
-        };
-        image_create_infos.arrayLayers = 1;
-        break;
-    case EImageType::Texture_1D_Array:
-        image_create_infos.imageType = VK_IMAGE_TYPE_1D;
-        image_create_infos.extent    = {
-               .width  = params.width,
-               .height = 1,
-               .depth  = 1,
-        };
-        image_create_infos.arrayLayers = params.depth;
-        break;
-    case EImageType::Texture_2D:
-        image_create_infos.imageType = VK_IMAGE_TYPE_2D;
-        image_create_infos.extent    = {
-               .width  = params.width,
-               .height = params.height,
-               .depth  = 1,
-        };
-        image_create_infos.arrayLayers = 1;
-        break;
-    case EImageType::Texture_2D_Array:
-        image_create_infos.imageType = VK_IMAGE_TYPE_2D;
-        image_create_infos.extent    = {
-               .width  = params.width,
-               .height = params.height,
-               .depth  = 1,
-        };
-        image_create_infos.arrayLayers = params.depth;
-        break;
-    case EImageType::Texture_3D:
-        image_create_infos.imageType = VK_IMAGE_TYPE_3D;
-        image_create_infos.extent    = {
-               .width  = params.width,
-               .height = params.height,
-               .depth  = params.depth,
-        };
-        image_create_infos.arrayLayers = 1;
-        break;
-    case EImageType::Cubemap:
-        image_create_infos.imageType = VK_IMAGE_TYPE_2D;
-        image_create_infos.extent    = {
-               .width  = params.width,
-               .height = params.height,
-               .depth  = 1,
-        };
-        image_create_infos.arrayLayers = 6;
-        break;
-    }
+
     constexpr VmaAllocationCreateInfo vma_allocation{
         .usage = VMA_MEMORY_USAGE_GPU_ONLY,
     };
@@ -235,31 +195,47 @@ Image::ImageResource::~ImageResource()
     vmaDestroyImage(device().lock()->get_allocator().allocator, ptr, allocation->allocation);
 }
 
-void Image::ImageResource::set_data(const BufferData& data)
+void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
 {
-    auto transfer_buffer = Buffer::create(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, data);
+    std::vector<std::shared_ptr<Buffer>> transfer_buffers;
+
+    assert(mip_count == mips.size() || generate_mips.does_generates());
+
+    for (const auto& mip : mips)
+    {
+        transfer_buffers.emplace_back(Buffer::create(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, mip));
+    }
 
     auto command_buffer = CommandBuffer::create(name + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
 
     command_buffer->begin(true);
 
     set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    const VkBufferImageCopy region = {
-        .bufferOffset      = 0,
-        .bufferRowLength   = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource =
+    uint32_t mipWidth  = res.x;
+    uint32_t mipHeight = res.y;
+    for (uint32_t mip = 0; mip < transfer_buffers.size(); ++mip)
+    {
+        const VkBufferImageCopy region = {
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource =
             {
-                .aspectMask     = is_depth ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT) : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_COLOR_BIT),
-                .mipLevel       = 0,
+                .aspectMask = is_depth ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT) : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_COLOR_BIT),
+                .mipLevel = mip,
                 .baseArrayLayer = 0,
-                .layerCount     = 1,
+                .layerCount = 1,
             },
-        .imageOffset = {0, 0, 0},
-        .imageExtent = {res.x, res.y, depth},
-    };
+            .imageOffset = {0, 0, 0},
+            .imageExtent = {mipWidth, mipHeight, depth},
+        };
 
-    vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffer->raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        vkCmdCopyBufferToImage(command_buffer->raw(), transfer_buffers[mip]->raw_current(), ptr, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        if (mipWidth > 1)
+            mipWidth /= 2;
+        if (mipHeight > 1)
+            mipHeight /= 2;
+    }
     command_buffer->end();
 
     const auto fence = Fence::create(name + "_fence", device());
@@ -269,8 +245,8 @@ void Image::ImageResource::set_data(const BufferData& data)
     command_buffer = nullptr;
     command_buffer = CommandBuffer::create(name + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
     command_buffer->begin(true);
-    if (mip_levels > 1)
-        generate_mipmaps(mip_levels, *command_buffer);
+    if (generate_mips.does_generates())
+        generate_mipmaps(mip_count, *command_buffer);
     set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     command_buffer->end();
     command_buffer->submit({}, &*fence);
@@ -280,20 +256,20 @@ void Image::ImageResource::set_data(const BufferData& data)
 void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout)
 {
     VkImageMemoryBarrier barrier = VkImageMemoryBarrier{
-        .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        .oldLayout           = image_layout,
-        .newLayout           = new_layout,
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .oldLayout = image_layout,
+        .newLayout = new_layout,
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image               = ptr,
+        .image = ptr,
         .subresourceRange =
-            VkImageSubresourceRange{
-                .aspectMask     = is_depth ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT) : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_COLOR_BIT),
-                .baseMipLevel   = 0,
-                .levelCount     = mip_levels,
-                .baseArrayLayer = 0,
-                .layerCount     = layer_cout,
-            },
+        VkImageSubresourceRange{
+            .aspectMask = is_depth ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT) : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_COLOR_BIT),
+            .baseMipLevel = 0,
+            .levelCount = mip_count,
+            .baseArrayLayer = 0,
+            .layerCount = layer_cout,
+        },
     };
     VkPipelineStageFlags source_stage;
     VkPipelineStageFlags destination_stage;

@@ -39,7 +39,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
 
 void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId device_image)
 {
-    // Call reset_for_next_frame() to reset all the draw graph
+    // Call reset_for_next_frame() to reset max the draw graph
     if (prepared)
         return;
     prepared                  = true;

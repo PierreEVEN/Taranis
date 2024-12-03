@@ -19,7 +19,7 @@ class BufferData;
 
 class TextureAsset;
 
-class StbImporter
+class ImageImport
 {
   public:
     static TObjectRef<TextureAsset> load_from_path(const std::filesystem::path& path);

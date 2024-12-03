@@ -97,7 +97,7 @@ void Buffer::set_data(size_t start_index, const BufferData& data)
                 buffers[i]->outdated = true;
         }
         if (buffers.size() > 1)
-            temp_buffer_data = data.copy();
+            temp_buffer_data = std::move(data.copy());
         break;
     case EBufferType::IMMEDIATE:
         buffers[device.lock()->get_current_image()]->set_data(start_index, data);

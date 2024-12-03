@@ -103,7 +103,7 @@ static VkCullModeFlags vk_cull_mode(ECulling culling)
 }
 
 Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos in_create_infos)
-    : create_infos(std::move(in_create_infos)), device(std::move(in_device))
+    : DeviceResource(std::move(in_device)), create_infos(std::move(in_create_infos))
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
     for (const auto& stage : shader_stage)
@@ -130,8 +130,8 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .pBindings    = bindings.data(),
     };
 
-    VK_CHECK(vkCreateDescriptorSetLayout(device.lock()->raw(), &layout_infos, nullptr, &descriptor_set_layout), "Failed to create descriptor set layout")
-    device.lock()->debug_set_object_name(name + "_set_layout", descriptor_set_layout);
+    VK_CHECK(vkCreateDescriptorSetLayout(device().lock()->raw(), &layout_infos, nullptr, &descriptor_set_layout), "Failed to create descriptor set layout")
+    device().lock()->debug_set_object_name(name + "_set_layout", descriptor_set_layout);
 
     std::vector<VkPushConstantRange> push_constants = {};
     for (const auto& stage : shader_stage)
@@ -149,8 +149,8 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .pushConstantRangeCount = static_cast<uint32_t>(push_constants.size()),
         .pPushConstantRanges    = push_constants.data(),
     };
-    VK_CHECK(vkCreatePipelineLayout(device.lock()->raw(), &pipeline_layout_infos, nullptr, &layout), "Failed to create pipeline layout")
-    device.lock()->debug_set_object_name(name + "_layout", layout);
+    VK_CHECK(vkCreatePipelineLayout(device().lock()->raw(), &pipeline_layout_infos, nullptr, &layout), "Failed to create pipeline layout")
+    device().lock()->debug_set_object_name(name + "_layout", layout);
 
     std::vector<VkVertexInputAttributeDescription> vertex_attribute_description;
 
@@ -302,14 +302,14 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .basePipelineIndex   = -1,
     };
 
-    VK_CHECK(vkCreateGraphicsPipelines(device.lock()->raw(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &ptr), "Failed to create material graphic pipeline")
-    device.lock()->debug_set_object_name(name, ptr);
+    VK_CHECK(vkCreateGraphicsPipelines(device().lock()->raw(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &ptr), "Failed to create material graphic pipeline")
+    device().lock()->debug_set_object_name(name, ptr);
 }
 
 Pipeline::~Pipeline()
 {
-    vkDestroyDescriptorSetLayout(device.lock()->raw(), descriptor_set_layout, nullptr);
-    vkDestroyPipeline(device.lock()->raw(), ptr, nullptr);
-    vkDestroyPipelineLayout(device.lock()->raw(), layout, nullptr);
+    vkDestroyDescriptorSetLayout(device().lock()->raw(), descriptor_set_layout, nullptr);
+    vkDestroyPipeline(device().lock()->raw(), ptr, nullptr);
+    vkDestroyPipelineLayout(device().lock()->raw(), layout, nullptr);
 }
 } // namespace Eng::Gfx

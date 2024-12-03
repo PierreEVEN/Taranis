@@ -49,7 +49,7 @@ protected:
 
     struct Content
     {
-        // This is the total size of each stage (one stage contains multiple groups)
+        // This is the total size of each stage (none stage contains multiple groups)
         ankerl::unordered_dense::map<int, ImVec2>        stage_sizes;
         ImVec2                                           size        = {0, 0};
         ImVec2                                           current_pos = {0, 0};

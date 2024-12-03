@@ -27,7 +27,7 @@ namespace Eng
 struct MaterialPermutation
 {
     MaterialPermutation(MaterialAsset* owner, Gfx::PermutationDescription permutation_desc);
-
+    ~MaterialPermutation();
     std::shared_ptr<Gfx::Pipeline> get_resource(const std::string& render_pass);
 
 private:

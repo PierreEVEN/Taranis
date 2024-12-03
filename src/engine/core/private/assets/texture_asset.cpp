@@ -22,49 +22,61 @@ TObjectRef<TextureAsset> TextureAsset::get_default_asset()
         std::vector<uint8_t> pixels = {
             0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
-        default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", Gfx::BufferData(pixels.data(), 1, pixels.size()), CreateInfos{.width = 2, .height = 2, .channels = 4});
+        default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+                                                                CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM});
     }
     return default_asset;
 }
 
-TextureAsset::TextureAsset(const Gfx::BufferData& data, CreateInfos create_infos) : infos(create_infos)
+TextureAsset::TextureAsset(const std::vector<Gfx::BufferData>& mips, const CreateInfos& create_infos) : infos(create_infos)
 {
-    Gfx::ColorFormat     format;
-    std::vector<uint8_t> rgba_data;
-    const uint8_t*       base_data;
-    switch (infos.channels)
+    switch (infos.format)
     {
-    case 1:
-        format = Gfx::ColorFormat::R8_UNORM;
-        break;
-    case 2:
-        format = Gfx::ColorFormat::R8G8_UNORM;
-        break;
-    case 3:
-        format = Gfx::ColorFormat::R8G8B8_UNORM;
+    // rgb are not supported, add an alpha channel
+    case Gfx::ColorFormat::R8G8B8_UNORM:
+    {
+        std::vector<Gfx::BufferData>      rgba_mips;
+        std::vector<std::vector<uint8_t>> rgba_data_mips;
 
-        base_data = static_cast<const uint8_t*>(data.data());
-
-        rgba_data.resize(static_cast<size_t>(create_infos.width) * static_cast<size_t>(create_infos.height) * 4);
-        for (size_t i = 0; i < static_cast<size_t>(create_infos.width) * static_cast<size_t>(create_infos.height); ++i)
+        for (const auto& data : mips)
         {
-            rgba_data[i * 4]     = base_data[i * 3];
-            rgba_data[i * 4 + 1] = base_data[i * 3 + 1];
-            rgba_data[i * 4 + 2] = base_data[i * 3 + 2];
-            rgba_data[i * 4 + 3] = 255;
+            const uint8_t* base_data = static_cast<const uint8_t*>(data.data());
+
+            rgba_data_mips.emplace_back();
+            auto& rgba_data = rgba_data_mips.back();
+
+            rgba_data.resize(static_cast<size_t>(create_infos.width) * static_cast<size_t>(create_infos.height) * 4);
+            for (size_t i = 0; i < static_cast<size_t>(create_infos.width) * static_cast<size_t>(create_infos.height); ++i)
+            {
+                rgba_data[i * 4]     = base_data[i * 3];
+                rgba_data[i * 4 + 1] = base_data[i * 3 + 1];
+                rgba_data[i * 4 + 2] = base_data[i * 3 + 2];
+                rgba_data[i * 4 + 3] = 255;
+            }
+            rgba_mips.emplace_back(rgba_data.data(), 1, rgba_data.size());
         }
-        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = Gfx::ColorFormat::R8G8B8A8_UNORM, .width = infos.width, .height = infos.height},
-                                   Gfx::BufferData(rgba_data.data(), 1, rgba_data.size()));
+        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{
+                                       .format = create_infos.format,
+                                       .generate_mips = create_infos.generate_mips,
+                                       .width = infos.width,
+                                       .height = infos.height,
+                                       .depth = infos.depth,
+                                       .array_size = infos.array_size
+                                   },
+                                   rgba_mips);
         break;
-    case 4:
-        format = Gfx::ColorFormat::R8G8B8A8_UNORM;
-        break;
-    default:
-        LOG_FATAL("unsupported channel count : {}", infos.channels);
+    }
     }
 
     if (!image)
-        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{.format = format, .mip_level = Gfx::MipMaps::all(), .width = infos.width, .height = infos.height}, data);
+        image = Gfx::Image::create(get_name(), Engine::get().get_device(), Gfx::ImageParameter{
+                                       .format = infos.format,
+                                       .generate_mips = create_infos.generate_mips,
+                                       .width = infos.width,
+                                       .height = infos.height,
+                                       .depth = infos.depth,
+                                       .array_size = infos.array_size
+                                   }, mips);
     view = Gfx::ImageView::create(get_name(), image);
 }
 } // namespace Eng

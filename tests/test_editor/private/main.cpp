@@ -22,6 +22,7 @@
 #include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
 
+#include <numbers>
 #include <GLFW/glfw3.h>
 #include <gfx/window.hpp>
 
@@ -96,7 +97,7 @@ public:
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
             {
-                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData{object.get_position()});
+                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData{object.get_relative_position()});
             });
 
         command_buffer.bind_pipeline(resource);
@@ -167,14 +168,18 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                scene->merge(importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf"));
+                auto  new_scene = importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
+                float pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
             });
         engine.jobs().schedule(
             [&, importer]
             {
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
                 for (const auto& root : new_scene.get_nodes())
-                    root->set_position({1000, 0, 0});
+                    root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
             });
         engine.jobs().schedule(
@@ -182,8 +187,14 @@ public:
             {
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
                 for (const auto& root : new_scene.get_nodes())
-                    root->set_position({1000, 0, 0});
+                    root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
+            });
+
+        default_window.lock()->on_scroll.add_lambda(
+            [&](double, double y)
+            {
+                speed *= atan(static_cast<float>(y) * -0.25f) * 0.5f + 1;
             });
     }
 
@@ -241,17 +252,18 @@ public:
 
         last_cursor_pos = {pos_x, pos_y};
 
-        glm::vec3 forward = camera->get_rotation() * glm::vec3(1, 0, 0);
-        glm::vec3 right   = camera->get_rotation() * glm::vec3(0, 1, 0);
-        glm::vec3 up      = camera->get_rotation() * glm::vec3(0, 0, 1);
+        glm::vec3 forward = camera->get_relative_rotation() * glm::vec3(1, 0, 0);
+        glm::vec3 right   = camera->get_relative_rotation() * glm::vec3(0, 1, 0);
+        glm::vec3 up      = camera->get_relative_rotation() * glm::vec3(0, 0, 1);
 
         glm::vec3 vec = mov_vec.x * forward + mov_vec.y * right + mov_vec.z * up;
 
-        camera->set_position(camera->get_position() + static_cast<float>(delta_second) * 500.f * vec);
+        camera->set_position(camera->get_relative_position() + static_cast<float>(delta_second) * speed * vec);
 
         scene->tick(delta_second);
     }
 
+    float                          speed         = 500.f;
     bool                           set_first_pos = false;
     glm::vec2                      last_cursor_pos;
     TObjectRef<FpsCameraComponent> camera;

@@ -87,7 +87,6 @@ class PermutationDescription
 {
   public:
     PermutationDescription() = default;
-
     PermutationDescription(const PermutationGroup& group)
     {
         for (const auto& item : group.permutation_group | std::views::keys)

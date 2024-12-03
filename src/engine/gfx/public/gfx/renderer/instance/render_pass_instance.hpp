@@ -31,7 +31,7 @@ class RenderPassInstance
 public:
     RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const std::string& name, bool b_is_present);
 
-    // Should be called before each frame to reset all draw flags
+    // Should be called before each frame to reset max draw flags
     void         reset_for_next_frame();
     virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force = false);
     virtual void render(SwapchainImageId swapchain_image, DeviceImageId device_image);
@@ -120,7 +120,7 @@ protected:
     // One view per attachment
     ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> attachments_view;
 
-    // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new one to be sure
+    // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new none to be sure
     // we are always submitting valid images
     std::vector<std::shared_ptr<Framebuffer>>                             next_frame_framebuffers;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;

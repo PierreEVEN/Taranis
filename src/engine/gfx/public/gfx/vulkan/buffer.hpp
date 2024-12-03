@@ -45,12 +45,49 @@ public:
     {
     }
 
-    BufferData(BufferData&) = delete;
+    BufferData(const BufferData& other)
+    {
+        own_data = other.own_data;
+        if (own_data)
+        {
+            ptr = std::malloc(other.get_byte_size());
+            std::memcpy(ptr, other.ptr, other.get_byte_size());
+        }
+        else
+            ptr = other.ptr;
+        element_count       = other.element_count;
+        stride              = other.stride;
+    }
+
+    BufferData(BufferData&& other) noexcept
+    {
+        own_data            = other.own_data;
+        ptr                 = other.ptr;
+        element_count       = other.element_count;
+        stride              = other.stride;
+        other.ptr           = nullptr;
+        other.element_count = 0;
+        other.stride        = 0;
+        other.own_data      = false;
+    }
 
     ~BufferData()
     {
         if (own_data)
             free(ptr);
+    }
+
+    BufferData& operator=(BufferData&& other) noexcept
+    {
+        own_data            = other.own_data;
+        ptr                 = other.ptr;
+        element_count       = other.element_count;
+        stride              = other.stride;
+        other.ptr           = nullptr;
+        other.element_count = 0;
+        other.stride        = 0;
+        other.own_data      = false;
+        return *this;
     }
 
     std::shared_ptr<BufferData> copy() const

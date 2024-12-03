@@ -1,7 +1,7 @@
 add_rules("mode.debug", "mode.release")
 add_rules("plugin.vsxmake.autoupdate")
 
-set_project("Ashwga")
+set_project("TaranisEngine")
 set_languages("clatest", "cxx20")
 set_allowedarchs("windows|x64")
 set_warnings("allextra")

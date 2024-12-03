@@ -74,7 +74,7 @@ public:
 
     /**
      * Cast Ptr to To Object
-     * if ThisClass == To, return Ptr, else try to cast to one of the parent class
+     * if ThisClass == To, return Ptr, else try to cast to none of the parent class
      */
     void* cast_to(const Class* To, void* Ptr) const
     {

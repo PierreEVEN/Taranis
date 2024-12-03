@@ -15,7 +15,7 @@
 #include "assets/sampler_asset.hpp"
 #include "assets/texture_asset.hpp"
 #include "import/material_import.hpp"
-#include "import/stb_import.hpp"
+#include "import/image_import.hpp"
 #include "scene/components/mesh_component.hpp"
 #include "scene/components/scene_component.hpp"
 
@@ -52,8 +52,6 @@ Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
 void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene)
 {
     TObjectRef<SceneComponent> this_component;
-
-    float pi = std::numbers::pi_v<float>;
     if (node->mNumMeshes > 0)
     {
         auto new_mesh = Engine::get().asset_registry().create<MeshAsset>(node->mName.C_Str());
@@ -71,7 +69,6 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         else
         {
             this_component = output_scene.add_component<MeshComponent>(node->mName.C_Str(), new_mesh);
-            this_component->set_rotation(glm::quat({pi / 2, 0, 0}));
         }
     }
     else
@@ -83,7 +80,6 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         else
         {
             this_component = output_scene.add_component<SceneComponent>(node->mName.C_Str());
-            this_component->set_rotation(glm::quat({pi / 2, 0, 0}));
         }
     }
 
@@ -102,17 +98,19 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
 
         if (embed->mHeight == 0)
         {
-            auto new_tex = StbImporter::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
+            auto new_tex = ImageImport::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
             textures.emplace(path, new_tex);
             return new_tex;
         }
         else
         {
             assert(embed->achFormatHint == std::string("rgba8888"));
-            auto new_mat = Engine::get().asset_registry().create<TextureAsset>(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth * embed->mHeight * 4),
-                                                                               TextureAsset::CreateInfos{.width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight), .channels = 4});
+            auto new_mat = Engine::get().asset_registry().create<TextureAsset>(
+                embed->mFilename.C_Str(), std::vector{Gfx::BufferData(embed->pcData, 1, embed->mWidth * embed->mHeight * 4)},
+                TextureAsset::CreateInfos{.width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight),
+                                          .format = Gfx::ColorFormat::R8G8B8A8_UNORM});
 
-            auto new_tex = StbImporter::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
+            auto new_tex = ImageImport::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
             textures.emplace(path, new_tex);
             return new_tex;
         }
@@ -130,7 +128,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
             LOG_FATAL("Failed to load texture {}", fs_path.string());
         }
 
-        auto new_tex = StbImporter::load_from_path(fs_path);
+        auto new_tex = ImageImport::load_from_path(fs_path);
         textures.emplace(path, new_tex);
         return new_tex;
     }
@@ -168,7 +166,8 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         std::vector<uint8_t> pixels = {
             0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
-        default_normal = Engine::get().asset_registry().create<TextureAsset>("DefaultNormal", Gfx::BufferData(pixels.data(), 1, pixels.size()), TextureAsset::CreateInfos{.width = 2, .height = 2, .channels = 4});
+        default_normal = Engine::get().asset_registry().create<TextureAsset>("DefaultNormal", std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+                                                                             TextureAsset::CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM});
 
     }
     if (!default_mrao)
@@ -176,7 +175,8 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         std::vector<uint8_t> pixels = {
             0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0,
         };
-        default_mrao = Engine::get().asset_registry().create<TextureAsset>("DefaultMrao", Gfx::BufferData(pixels.data(), 1, pixels.size()), TextureAsset::CreateInfos{.width = 2, .height = 2, .channels = 4});
+        default_mrao = Engine::get().asset_registry().create<TextureAsset>("DefaultMrao", std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+                                                                           TextureAsset::CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM});
     }
 
     new_mat->set_sampler("sSampler", get_sampler());

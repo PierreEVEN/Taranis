@@ -22,13 +22,13 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer, const SceneView& vi
 {
     if (mesh)
     {
-        if (!view.frustum_test(get_transform() * mesh->get_bounds()))
+        if (!view.frustum_test(get_world_transform() * mesh->get_bounds()))
             return;
 
         PROFILER_SCOPE_NAMED(DrawMesh, "Draw mesh component " + std::string(get_name()) + " : " + std::to_string(mesh->get_sections().size()) + " sections");
         for (const auto& section : mesh->get_sections())
         {
-            if (!view.frustum_test(get_transform() * section.bounds))
+            if (!view.frustum_test(get_world_transform() * section.bounds))
                 continue;
 
             if (section.material)
@@ -39,7 +39,7 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer, const SceneView& vi
                 if (!pipeline)
                     return;
                 command_buffer.bind_pipeline(pipeline);
-                command_buffer.push_constant(Gfx::EShaderStage::Vertex, *pipeline, Gfx::BufferData(Pc{.model = get_transform()}));
+                command_buffer.push_constant(Gfx::EShaderStage::Vertex, *pipeline, Gfx::BufferData(Pc{.model = get_world_transform()}));
 
                 auto resources = section.material->get_descriptor_resource(command_buffer.render_pass());
                 assert(resources);

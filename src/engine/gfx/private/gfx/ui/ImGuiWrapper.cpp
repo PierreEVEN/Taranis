@@ -615,7 +615,7 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
                                      .width = static_cast<uint32_t>(width),
                                      .height = static_cast<uint32_t>(height),
                                  },
-                                 BufferData(pixels, 4, width * height));
+                                          std::vector{BufferData(pixels, 4, width * height)});
     font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
     imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
@@ -746,7 +746,7 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
     // (1,1) unless using retina display which are often (2,2)
 
     // Render command lists
-    // (Because we merged all buffers into a single one, we maintain our own offset into them)
+    // (Because we merged max buffers into a single none, we maintain our own offset into them)
     int global_vtx_offset = 0;
     int global_idx_offset = 0;
 

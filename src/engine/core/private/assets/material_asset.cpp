@@ -62,6 +62,12 @@ MaterialPermutation::MaterialPermutation(MaterialAsset* in_owner, Gfx::Permutati
 {
 }
 
+MaterialPermutation::~MaterialPermutation()
+{
+    for (const auto& pass : passes)
+        Engine::get().get_device().lock()->drop_resource(pass.second.pipeline);
+}
+
 std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const std::string& render_pass)
 {
     {

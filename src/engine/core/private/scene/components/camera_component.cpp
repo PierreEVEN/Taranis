@@ -30,8 +30,8 @@ SceneView& CameraComponent::get_view()
     if (!scene_view)
     {
         scene_view = SceneView::create();
-        scene_view->set_position(get_position());
-        scene_view->set_rotation(get_rotation());
+        scene_view->set_position(get_relative_position());
+        scene_view->set_rotation(get_relative_rotation());
     }
     return *scene_view;
 
