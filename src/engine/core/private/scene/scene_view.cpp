@@ -24,21 +24,21 @@ void SceneView::pre_draw(const Gfx::RenderPassInstance& render_pass)
 {
     PROFILER_SCOPE(ScenePreDraw);
 
-    if (!view_buffer)
-        view_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
-
     update_matrices(render_pass.resolution());
 
     glm::mat4 inv_view             = inverse(view);
     glm::mat4 inv_perspective      = inverse(perspective_view);
     glm::mat4 inv_perspective_view = inv_view * inv_perspective;
 
+    if (!view_buffer)
+        view_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
+
     view_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.perspective_view_mat = perspective_view,
                                                              .view_mat = view,
                                                              .perspective_mat = perspective_view,
                                                              .inv_perspective_view_mat = inv_perspective_view,
                                                              .inv_view_mat = inv_view,
-                                                             .inv_perspective_mat = inv_perspective}});
+                                                             .inv_perspective_mat      = inv_perspective}});
 }
 
 void SceneView::pre_submit() const
@@ -54,7 +54,7 @@ void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstance&, Gfx::Co
         {
             object.draw(command_buffer, *this);
         },
-        idx, num_threads);
+        idx, std::max(1llu, num_threads));
 }
 
 void SceneView::set_position(const glm::vec3& in_position)

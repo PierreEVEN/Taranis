@@ -22,6 +22,7 @@ void Device::next_frame()
 {
     glfwPollEvents();
     current_image = (current_image + 1) % image_count;
+    LOG_WARNING("start frame {}", current_image);
 }
 
 void Device::wait() const

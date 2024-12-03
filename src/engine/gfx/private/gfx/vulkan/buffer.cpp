@@ -124,6 +124,7 @@ const VkDescriptorBufferInfo& Buffer::get_descriptor_infos_current() const
 {
     if (buffers.size() == 1)
         return buffers[0]->descriptor_data;
+    LOG_DEBUG("Get #{} for {}", device.lock()->get_current_image(), buffers[device.lock()->get_current_image()]->name);
     return buffers[device.lock()->get_current_image()]->descriptor_data;
 }
 
