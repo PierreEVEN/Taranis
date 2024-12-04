@@ -202,9 +202,7 @@ void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
     assert(mip_count == mips.size() || generate_mips.does_generates());
 
     for (const auto& mip : mips)
-    {
         transfer_buffers.emplace_back(Buffer::create(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, mip));
-    }
 
     auto command_buffer = CommandBuffer::create(name + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
 

@@ -174,6 +174,8 @@ class RenderNode
     RenderNode() = default;
 
 public:
+    using ResizeCallback = std::function<glm::uvec2(glm::uvec2)>;
+
     RenderPassKey get_key(bool b_present) const
     {
         RenderPassKey key;
@@ -204,6 +206,12 @@ public:
         return *this;
     }
 
+    RenderNode& resize_callback(const ResizeCallback& callback)
+    {
+        resize_callback_ptr = callback;
+        return *this;
+    }
+
     RenderNode& operator[](const Attachment& attachment)
     {
         attachments.insert_or_assign(attachment.name, attachment);
@@ -222,6 +230,7 @@ public:
     bool                                                  b_with_imgui = false;
     std::weak_ptr<Window>                                 imgui_input_window;
     std::string                                           name;
+    ResizeCallback                                        resize_callback_ptr;
 };
 
 class Renderer

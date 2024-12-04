@@ -77,11 +77,9 @@ public:
 
     std::vector<std::weak_ptr<RenderPassInstance>> all_childs() const;
 
-    using ResizeCallback = std::function<glm::uvec2(glm::uvec2)>;
-
-    void set_resize_callback(const ResizeCallback& in_callback)
+    void set_resize_callback(const RenderNode::ResizeCallback& in_callback)
     {
-        resize_callback = in_callback;
+        definition.resize_callback(in_callback);
     }
 
     ImGuiWrapper* imgui() const
@@ -106,9 +104,6 @@ protected:
     }
 
     virtual std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment);
-
-    // Used to determine the desired framebuffer resolution from the window resolution
-    ResizeCallback resize_callback;
 
     bool                  prepared  = false;
     bool                  submitted = false;

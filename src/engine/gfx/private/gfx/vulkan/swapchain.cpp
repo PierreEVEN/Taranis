@@ -146,7 +146,7 @@ void Swapchain::create_or_recreate()
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
         image_available_semaphores.emplace_back(Semaphore::create(get_definition().name + "_sem_#" + std::to_string(i), device));
 
-    if (resize_callback)
+    if (get_definition().resize_callback_ptr)
         LOG_FATAL("Resize callback can't be used with swapchain draw pass");
     create_or_resize(extent, extent, true);
 }

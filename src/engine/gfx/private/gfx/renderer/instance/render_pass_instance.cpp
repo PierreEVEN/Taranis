@@ -295,7 +295,7 @@ void RenderPassInstance::reset_for_next_frame()
 
 void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force)
 {
-    glm::uvec2 desired_resolution = resize_callback ? resize_callback(viewport) : parent;
+    glm::uvec2 desired_resolution = definition.resize_callback_ptr ? definition.resize_callback_ptr(viewport) : parent;
 
     viewport_res = viewport;
 
