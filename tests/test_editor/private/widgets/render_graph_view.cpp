@@ -29,7 +29,6 @@ static ImVec2 operator/(const ImVec2& a, const float& b)
     return {a.x / b, a.y / b};
 }
 
-
 static constexpr ImVec2 image_padding{20, 20};
 static constexpr ImVec2 group_padding{300, 40};
 
@@ -62,7 +61,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
         offset->second += stage.size.y + group_padding.y * 2;
     }
 
-    if (ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + ImGui::GetContentRegionAvail()))
+    if (ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + ImGui::GetContentRegionAvail()) || zoom == 0)
     {
         if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || desired_zoom || zoom == 0)
         {

@@ -10,7 +10,7 @@
 namespace Eng
 {
 
-MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material, bool b_in_static) : base(base_material), b_static(b_in_static)
+MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material) : base(base_material)
 {
 }
 
@@ -42,7 +42,7 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
     std::unique_lock lk(descriptor_lock);
     if (auto base_material = get_base_resource(shader_pass))
     {
-        auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + shader_pass, Engine::get().get_device(), base_material, b_static)).first->second;
+        auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + shader_pass, Engine::get().get_device(), base_material)).first->second;
 
         for (const auto& sampler : samplers)
             new_descriptor->bind_sampler(sampler.first, sampler.second->get_resource());

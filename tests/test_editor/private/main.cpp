@@ -4,7 +4,6 @@
 #include "assets/sampler_asset.hpp"
 #include "config.hpp"
 #include "engine.hpp"
-#include "test_reflected_header.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
@@ -48,8 +47,7 @@ public:
 
     size_t record_threads() override
     {
-        return 0;
-        //return std::thread::hardware_concurrency() * 3;
+        return std::thread::hardware_concurrency() * 3;
     }
 
     void pre_submit(const Gfx::RenderPassInstance&) override
@@ -73,7 +71,7 @@ public:
         base_mat->set_shader_code("gbuffer_resolve");
 
         sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler");
-        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat, false);
+        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat);
         material->set_sampler("sSampler", sampler);
     }
 
@@ -290,7 +288,7 @@ public:
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
-    Config config = {.gfx = {.enable_validation_layers = true, .v_sync = true}, .auto_update_materials = true};
+    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = true}, .auto_update_materials = true};
     Engine engine(config);
-    engine.run<TestApp>(Gfx::WindowConfig{.name = "primary"});
+    engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

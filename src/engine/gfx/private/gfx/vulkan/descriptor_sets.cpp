@@ -14,7 +14,7 @@
 
 namespace Eng::Gfx
 {
-DescriptorSet::DescriptorSet(const std::weak_ptr<Device>& in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static)
+DescriptorSet::DescriptorSet(const std::string& in_name, const std::weak_ptr<Device>& in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static), name(in_name)
 {
     for (const auto& binding : in_pipeline->get_bindings())
         descriptor_bindings.insert_or_assign(binding.name, binding.binding);
@@ -42,7 +42,7 @@ DescriptorSet::~DescriptorSet()
 
 std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static)
 {
-    const auto descriptors = std::shared_ptr<DescriptorSet>(new DescriptorSet(device, pipeline, b_static));
+    const auto descriptors = std::shared_ptr<DescriptorSet>(new DescriptorSet(name, device, pipeline, b_static));
 
     if (b_static)
         descriptors->resources = std::vector{std::make_shared<Resource>(name, device, descriptors, pipeline)};
@@ -90,6 +90,9 @@ void DescriptorSet::Resource::update()
 
 void DescriptorSet::bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
 {
+    if (b_static && in_image->raw().size() > 1)
+        LOG_ERROR("Cannot bind dynamic image '{}' to static descriptors '{}::{}'", in_image->get_name(), name, binding_name);
+
     //@TODO : improve this check by recreating new descriptors when needed
     std::lock_guard lk(update_lock);
     auto            new_descriptor = std::make_shared<ImageDescriptor>(in_image);
@@ -123,6 +126,9 @@ void DescriptorSet::bind_sampler(const std::string& binding_name, const std::sha
 
 void DescriptorSet::bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer)
 {
+    if (b_static && in_buffer->raw().size() > 1)
+        LOG_ERROR("Cannot bind dynamic buffer '{}' to static descriptors '{}::{}'", in_buffer->get_name(), name, binding_name);
+
     std::lock_guard lk(update_lock);
     auto            new_descriptor = std::make_shared<BufferDescriptor>(in_buffer);
     if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())

@@ -805,7 +805,7 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
                             {
                                 if (!found_descriptors->second.second)
                                 {
-                                    const auto descriptors = DescriptorSet::create(name + "_descriptor:" + found_image_view->second->get_name(), device, imgui_material, true);
+                                    const auto descriptors = DescriptorSet::create(name + "_descriptor:" + found_image_view->second->get_name(), device, imgui_material, found_image_view->second->raw().size() <= 1);
                                     descriptors->bind_image("sTexture", found_image_view->second);
                                     descriptors->bind_sampler("sSampler", image_sampler);
                                     found_descriptors->second.second = descriptors;

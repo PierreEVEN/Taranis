@@ -197,6 +197,11 @@ public:
         std::shared_ptr<Buffer>            transfer_buffer;
     };
 
+    const std::string& get_name() const
+    {
+        return name;
+    }
+
 private:
     Buffer(std::string name, std::weak_ptr<Device> device, const CreateInfos& create_infos, size_t stride, size_t element_count);
     size_t                                 stride        = 0;

@@ -21,7 +21,7 @@ public:
     DescriptorSet(DescriptorSet&)  = delete;
     DescriptorSet(DescriptorSet&&) = delete;
     ~DescriptorSet();
-    static std::shared_ptr<DescriptorSet> create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static = true);
+    static std::shared_ptr<DescriptorSet> create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static = false);
 
     const VkDescriptorSet& raw_current() const;
 
@@ -59,7 +59,7 @@ private:
         VkDescriptorSet              ptr = VK_NULL_HANDLE;
     };
 
-    DescriptorSet(const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static);
+    DescriptorSet(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static);
 
     class Descriptor
     {
@@ -120,5 +120,6 @@ private:
     mutable std::mutex                     update_lock;
     std::weak_ptr<Device>                  device;
     bool                                   b_static;
+    std::string                            name;
 };
 } // namespace Eng::Gfx

@@ -37,7 +37,7 @@ class MaterialInstanceAsset : public AssetBase
     REFLECT_BODY()
 
 public:
-    MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material, bool b_static = true);
+    MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material);
 
     std::shared_ptr<Gfx::Pipeline>      get_base_resource(const std::string& shader_pass);
     std::shared_ptr<Gfx::DescriptorSet> get_descriptor_resource(const std::string& shader_pass);
@@ -54,7 +54,6 @@ public:
 private:
     TObjectRef<MaterialAsset>                                                      base;
     std::shared_mutex                                                              descriptor_lock;
-    bool                                                                           b_static = true;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
     Gfx::PermutationDescription        permutation_description;

@@ -292,21 +292,37 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
 
     if (mesh->mNumVertices <= UINT16_MAX)
     {
-        std::vector<uint16_t> triangles(static_cast<size_t>(mesh->mNumFaces) * 3);
+        uint32_t total_faces = mesh->mNumFaces;
 
-        for (uint32_t i = 0; i < mesh->mNumFaces; ++i)
+        std::vector<uint16_t> triangles(total_faces * 3);
+
+        for (uint32_t i = 0, initial_face = 0; i < total_faces; ++i, ++initial_face)
         {
-            auto& face = mesh->mFaces[i];
-            if (face.mNumIndices != 3)
+            auto& face = mesh->mFaces[initial_face];
+            if (face.mNumIndices == 3)
             {
-                LOG_ERROR("Mesh import doesn't support non triangle faces ! ({})", face.mNumIndices);
+                triangles[i * 3]     = static_cast<uint16_t>(face.mIndices[0]);
+                triangles[i * 3 + 1] = static_cast<uint16_t>(face.mIndices[1]);
+                triangles[i * 3 + 2] = static_cast<uint16_t>(face.mIndices[2]);
+            }
+            else if (face.mNumIndices == 4)
+            {
+                triangles[i * 3]     = static_cast<uint16_t>(face.mIndices[0]);
+                triangles[i * 3 + 1] = static_cast<uint16_t>(face.mIndices[1]);
+                triangles[i * 3 + 2] = static_cast<uint16_t>(face.mIndices[2]);
+                ++total_faces;
+                triangles.resize(total_faces * 3);
+                ++i;
+                triangles[i * 3]     = static_cast<uint16_t>(face.mIndices[0]);
+                triangles[i * 3 + 1] = static_cast<uint16_t>(face.mIndices[2]);
+                triangles[i * 3 + 2] = static_cast<uint16_t>(face.mIndices[3]);
+            }
+            else
+            {
+                LOG_ERROR("Unsupported mesh topology : {} ({})", mesh->mName.C_Str(), face.mNumIndices);
                 meshes.emplace(id, nullptr);
                 return nullptr;
             }
-            assert(face.mNumIndices == 3);
-            triangles[i * 3]     = static_cast<uint16_t>(face.mIndices[0]);
-            triangles[i * 3 + 1] = static_cast<uint16_t>(face.mIndices[1]);
-            triangles[i * 3 + 2] = static_cast<uint16_t>(face.mIndices[2]);
         }
 
         auto base_buffer = Gfx::BufferData(triangles.data(), 2, triangles.size());
