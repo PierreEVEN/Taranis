@@ -163,21 +163,6 @@ public:
         camera->activate();
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
-
-        for (int i = 0; i < 1; ++i)
-        {
-            auto a = scene->add_component<SceneComponent>(std::format("__{}", i));
-            for (int j = 0; j < 1; ++j)
-            {
-                auto b = a->add_component<SceneComponent>(std::format("__{}__{}", i, j));
-                for (int k = 0; k < 1; ++k)
-                {
-                    b->add_component<SceneComponent>(std::format("__{}__{}__{}", i, j, k));
-                }
-            }
-        }
-
-
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]

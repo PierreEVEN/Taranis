@@ -45,7 +45,6 @@ struct PushConsts
 {
     float4x4 model;
 };
-// PushConsts pc
 
 [shader("vertex")]
 [RenderPass("gbuffers")]

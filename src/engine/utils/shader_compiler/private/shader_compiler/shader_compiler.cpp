@@ -3,7 +3,6 @@
 #include "slang-com-ptr.h"
 #include "slang.h"
 #include "slang_helper.hpp"
-#include "../../../types/public/logger.hpp"
 
 #include <iostream>
 #include <mutex>
@@ -81,6 +80,32 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
         load_errors.emplace_back(static_cast<const char*>(diagnostics->getBufferPointer()));
         return;
     }
+}
+
+std::optional<std::string> Session::try_register_variable(slang::VariableLayoutReflection* variable, ankerl::unordered_dense::map<std::string, StageInputOutputDescription>& in_outs, slang::IMetadata* metadata)
+{
+    if (variable->getTypeLayout()->getKind() == slang::TypeReflection::Kind::Struct)
+    {
+        for (size_t fi = 0; fi < variable->getTypeLayout()->getFieldCount(); ++fi)
+            if (auto error = try_register_variable(variable->getTypeLayout()->getFieldByIndex(fi), in_outs, metadata))
+                return error;
+    }
+    else
+    {
+        if (variable->getTypeLayout()->getBindingRangeCount() == 1)
+        {
+            bool b_used = true;
+            metadata->isParameterLocationUsed((SlangParameterCategory)variable->getCategory(), variable->getBindingSpace(), variable->getBindingIndex(), b_used);
+            std::cout << variable->getName() << " : used=" << b_used << "\n";
+
+            std::cout << "cat : " << (int)variable->getCategory() << " space=" << variable->getBindingSpace() << " index=" << variable->getBindingIndex() << "\n";
+
+            if (in_outs.contains(variable->getName()))
+                return "Duplicated input : " + std::string(variable->getName());
+            in_outs.emplace(variable->getName(), StageInputOutputDescription{variable->getBindingIndex(), 0, Eng::Gfx::ColorFormat::UNDEFINED});
+        }
+    }
+    return {};
 }
 
 Session::~Session()
@@ -298,16 +323,17 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         {
             auto parameter = entry_point->getLayout()->getEntryPointByIndex(0)->getParameterByIndex(par_i);
 
-            // @TODO Should be marked as PushConstant (slang issue : https://github.com/shader-slang/slang/issues/5676)
+            // Note : uniforms in stage parameters are considered as push constant in vulkan ecosystem
             if (parameter->getTypeLayout()->getParameterCategory() == slang::Uniform)
                 data.push_constant_size = static_cast<uint32_t>(parameter->getTypeLayout()->getSize());
         }
 
-        for (uint32_t pi = 0; pi < entry_point->getFunctionReflection()->getParameterCount(); ++pi)
-            data.inputs.push_variable(entry_point->getFunctionReflection()->getParameterByIndex(pi));
-
-        if (auto return_type = entry_point->getFunctionReflection()->getReturnType())
-            data.outputs     = TypeReflection(return_type);
+        for (uint32_t pi = 0; pi < entry_point->getLayout()->getEntryPointByIndex(0)->getParameterCount(); ++pi)
+        {
+            auto parameter = entry_point->getLayout()->getEntryPointByIndex(0)->getParameterByIndex(pi);
+            if (auto error = try_register_variable(parameter, data.inputs, metadata))
+                return result.push_error({"Unhandled shader stage type"});
+        }
 
         data.compiled_module = std::vector<uint8_t>(kernel_blob->getBufferSize());
         std::memcpy(data.compiled_module.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());
