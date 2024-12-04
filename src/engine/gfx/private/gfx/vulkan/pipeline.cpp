@@ -163,9 +163,6 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
             const auto input = create_infos.vertex_inputs;
             for (const auto& input_property : input)
             {
-                stage
-                    ->infos().inputs->na
-
                 vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
                     .location = static_cast<uint32_t>(input_property.location),
                     .format   = static_cast<VkFormat>(input_property.format),

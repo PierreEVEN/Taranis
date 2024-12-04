@@ -273,7 +273,7 @@ public:
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
-    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = true}, .auto_update_materials = true};
+    Config config = {.gfx = {.enable_validation_layers = true, .v_sync = true}, .auto_update_materials = true};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

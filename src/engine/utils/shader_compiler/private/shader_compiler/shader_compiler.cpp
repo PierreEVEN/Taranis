@@ -96,10 +96,6 @@ std::optional<std::string> Session::try_register_variable(slang::VariableLayoutR
         {
             bool b_used = true;
             metadata->isParameterLocationUsed((SlangParameterCategory)variable->getCategory(), variable->getBindingSpace(), variable->getBindingIndex(), b_used);
-            std::cout << variable->getName() << " : used=" << b_used << "\n";
-
-            std::cout << "cat : " << (int)variable->getCategory() << " space=" << variable->getBindingSpace() << " index=" << variable->getBindingIndex() << "\n";
-
             if (in_outs.contains(variable->getName()))
                 return "Duplicated input : " + std::string(variable->getName());
             in_outs.emplace(variable->getName(), StageInputOutputDescription{variable->getBindingIndex(), 0, Eng::Gfx::ColorFormat::UNDEFINED});

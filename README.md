@@ -1,12 +1,27 @@
 # ⚡Taranis engine 💫
 
-
-
 [![Build Status](https://github.com/PierreEVEN/Taranis/actions/workflows/build.yml/badge.svg)](https://github.com/PierreEVEN/Taranis/actions/workflows/build.yml)
 
 Taranis is a custom game engine focused on the rendering of multi-planetary worlds.
 
 This engine is built around vulkan. Other backends may be implemented later if necessary. The main goal for now is to handle all the features required to build a openworld game, solar system sized.
+
+![Screenshot](./resources/screenshot.png)
+
+
+## Build & Install
+
+> Tested using latest msvc version
+
+- install the [vulkan sdk](https://vulkan.lunarg.com/) (1.3.296 or later) 
+- install the [xmake build system](https://xmake.io/#/)
+- configure xmake `xmake f --build-tests=y` _(currently the only executable targets are test targets)_
+- build `xmake build test_editor` 
+- run `xmake run test_editor`
+
+> Note : download example models and place them in `resource/models/samples/`
+>  - Gltf sample models : https://github.com/KhronosGroup/glTF-Sample-Models
+> - Bistro scene : https://developer.nvidia.com/orca/amazon-lumberyard-bistro
 
 ## Features and roadmap
 
@@ -31,6 +46,11 @@ This engine is built around vulkan. Other backends may be implemented later if n
 - [ ] Try voxel rendering (test if voxel planet could be a good starting point)
 - [ ] Property reflection : add properties to reflection system
 - [ ] Serialization : automatically serialize assets using reflection
+
+## Known issues
+
+- Validation warning : vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute not consumed by vertex shader.
+- Texture are flipped to handle .dds format default orientation. Todo : flip imported .dds images
 
 ## Dependencies
 
