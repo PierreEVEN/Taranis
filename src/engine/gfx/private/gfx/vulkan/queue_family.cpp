@@ -141,7 +141,7 @@ const char* get_queue_specialization_name(QueueSpecialization elem)
         return "AsyncCompute";
     }
 
-    return "Unhandled queue specialization name";
+    return "Unhandled queue specialization generic_name";
 }
 
 QueueFamily::QueueFamily(uint32_t index, VkQueueFlags flags, bool support_present, std::shared_ptr<std::shared_mutex> in_queue_global_lock)

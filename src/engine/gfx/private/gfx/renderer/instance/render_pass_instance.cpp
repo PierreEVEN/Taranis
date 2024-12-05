@@ -44,19 +44,19 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         return;
     prepared                  = true;
     current_framebuffer_index = swapchain_image;
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.name));
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.generic_name));
 
     if (framebuffers.empty())
-        LOG_FATAL("Framebuffers for '{}' have not been created using RenderPassInstance::create_or_resize()", definition.name)
+        LOG_FATAL("Framebuffers for '{}' have not been created using RenderPassInstance::create_or_resize()", definition.generic_name)
     const auto&    framebuffer = framebuffers[current_framebuffer_index];
     CommandBuffer& global_cmd  = framebuffer->begin();
-    global_cmd.begin_debug_marker("BeginRenderPass_" + definition.name, {1, 0, 0, 1});
+    global_cmd.begin_debug_marker("BeginRenderPass_" + definition.generic_name, {1, 0, 0, 1});
 
     /*
     auto task = JobSystem::current_thread().schedule(
         [&]
         {*/
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.generic_name))
         temp_child->render(device_image, device_image);
     // });
 
@@ -142,7 +142,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         render_pass_interface->pre_submit(*this);
     }
     {
-        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", definition.name));
+        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", definition.generic_name));
 
         // Submit current_thread (wait children completion using children_semaphores)
         std::vector<VkSemaphore> children_semaphores;
@@ -171,7 +171,7 @@ std::vector<const Semaphore*> RenderPassInstance::get_semaphores_to_wait(DeviceI
     std::vector<const Semaphore*> semaphores;
     for (const auto& child : dependencies)
         semaphores.emplace_back(&child.second->framebuffers[device_image]->render_finished_semaphore());
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.generic_name))
         semaphores.emplace_back(&temp_child->framebuffers[device_image]->render_finished_semaphore());
     return semaphores;
 }
@@ -185,8 +185,8 @@ std::weak_ptr<RenderPassInstance> RenderPassInstance::get_dependency(const std::
 {
     if (auto found = dependencies.find(name); found != dependencies.end())
         return found->second;
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
-        if (temp_child->get_definition().name == name)
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.generic_name))
+        if (temp_child->get_definition().generic_name == name)
             return temp_child;
     return {};
 }
@@ -196,7 +196,7 @@ std::vector<std::weak_ptr<RenderPassInstance>> RenderPassInstance::all_childs() 
     std::vector<std::weak_ptr<RenderPassInstance>> childs;
     for (const auto& temp_child : dependencies)
         childs.emplace_back(temp_child.second);
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.generic_name))
         childs.emplace_back(temp_child);
     return childs;
 }
@@ -270,7 +270,7 @@ void RenderPassInstance::reset_for_next_frame()
     prepared = false;
     for (const auto& dependency : dependencies | std::views::values)
         dependency->reset_for_next_frame();
-    for (const auto& temp_dep : custom_passes->get_dependencies(definition.name))
+    for (const auto& temp_dep : custom_passes->get_dependencies(definition.generic_name))
     {
         if (temp_dep->viewport_resolution().x == 0 || temp_dep->viewport_resolution().y == 0)
             temp_dep->create_or_resize(viewport_resolution(), resolution());
@@ -301,16 +301,16 @@ void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm:
 
     for (const auto& dep : dependencies)
         dep.second->create_or_resize(viewport, desired_resolution, b_force);
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.name))
+    for (const auto& temp_child : custom_passes->get_dependencies(definition.generic_name))
         temp_child->create_or_resize(viewport, desired_resolution, b_force);
 
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize draw pass {}", definition.name));
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize draw pass {}", definition.generic_name));
     if (!b_force && desired_resolution == current_resolution && !framebuffers.empty())
         return;
 
     if (desired_resolution.x == 0 || desired_resolution.y == 0)
     {
-        LOG_ERROR("Invalid framebuffer resolution for '{}' : {}x{}", definition.name, desired_resolution.x, desired_resolution.y);
+        LOG_ERROR("Invalid framebuffer resolution for '{}' : {}x{}", definition.generic_name, desired_resolution.x, desired_resolution.y);
         if (desired_resolution.x == 0)
             desired_resolution.x = 1;
         if (desired_resolution.y == 0)

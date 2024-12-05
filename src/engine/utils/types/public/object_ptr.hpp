@@ -248,6 +248,7 @@ template <typename T> class TObjectPtr final : public IObject
 
     T* operator->() const
     {
+        assert(*this);
         return static_cast<T*>(allocation->ptr);
     }
 
@@ -429,6 +430,7 @@ template <typename T> class TObjectRef final : public IObject
 
     T* operator->() const
     {
+        assert(*this);
         return static_cast<T*>(allocation->ptr);
     }
 };

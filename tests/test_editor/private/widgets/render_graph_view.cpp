@@ -120,7 +120,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 {
                     if (ImGui::BeginTooltip())
                     {
-                        ImGui::Text("Render pass %s", group.first.c_str());
+                        ImGui::Text("Render pass %s", group.second.name);
                         ImGui::EndTooltip();
                     }
                 }
@@ -159,14 +159,14 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
 
 void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstance>& pass, Content& content, int current_stage)
 {
-    if (auto found = content.passes.find(pass->get_definition().name); found != content.passes.end())
+    if (auto found = content.passes.find(pass->get_definition().unique_id); found != content.passes.end())
     {
         if (current_stage > found->second.stage)
             found->second.stage = current_stage;
         return;
     }
     Group group;
-    group.name  = pass->get_definition().name;
+    group.name  = pass->get_definition().generic_name;
     group.stage = current_stage;
 
     for (const auto& attachment : pass->get_definition().attachments | std::views::keys)
@@ -194,7 +194,7 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
         stage_dims.x = group.size.x + group_padding.y * 2;
     stage_dims.y += group.size.y + group_padding.y;
 
-    content.passes.emplace(pass->get_definition().name, group);
+    content.passes.emplace(pass->get_definition().unique_id, group);
 
     for (const auto& child : pass->all_childs())
         add_pass_content(ctx, child.lock(), content, current_stage + 1);

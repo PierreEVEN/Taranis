@@ -44,16 +44,16 @@ protected:
         std::vector<std::string> dependencies;
         std::vector<Object>      attachments;
         float                    y_offset = 0;
-        int                      stage = 0;
+        int                      stage    = 0;
     };
 
     struct Content
     {
         // This is the total size of each stage (none stage contains multiple groups)
-        ankerl::unordered_dense::map<int, ImVec2>        stage_sizes;
-        ImVec2                                           size        = {0, 0};
-        ImVec2                                           current_pos = {0, 0};
-        ankerl::unordered_dense::map<std::string, Group> passes;
+        ankerl::unordered_dense::map<int, ImVec2>     stage_sizes;
+        ImVec2                                        size        = {0, 0};
+        ImVec2                                        current_pos = {0, 0};
+        ankerl::unordered_dense::map<uint64_t, Group> passes;
     };
 
     std::optional<ImVec2> desired_pos;

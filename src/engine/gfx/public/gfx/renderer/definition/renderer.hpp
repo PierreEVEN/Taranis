@@ -179,7 +179,7 @@ public:
     RenderPassKey get_key(bool b_present) const
     {
         RenderPassKey key;
-        key.name      = name;
+        key.name      = generic_name;
         key.b_present = b_present;
         for (const auto& attachment : attachments | std::views::values)
             key.attachments.emplace_back(attachment);
@@ -229,7 +229,8 @@ public:
     ankerl::unordered_dense::set<std::string>             dependencies;
     bool                                                  b_with_imgui = false;
     std::weak_ptr<Window>                                 imgui_input_window;
-    std::string                                           name;
+    std::string                                           generic_name;
+    uint64_t                                              unique_id = 0;
     ResizeCallback                                        resize_callback_ptr;
 };
 
@@ -240,8 +241,8 @@ public:
 
     RenderNode& operator[](const std::string& node)
     {
-        auto& found = nodes.emplace(node, RenderNode{}).first->second;
-        found.name  = node;
+        auto& found        = nodes.emplace(node, RenderNode{}).first->second;
+        found.generic_name = node;
         return found;
     }
 
@@ -260,8 +261,7 @@ public:
         return custom_passes;
     }
 
-  private:
-
+private:
     std::shared_ptr<CustomPassList> custom_passes;
 
     bool                                                  b_compiled = false;

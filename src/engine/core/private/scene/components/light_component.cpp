@@ -41,31 +41,6 @@ LightComponent::LightComponent()
 {
 }
 
-class ShadowIds
-{
-public:
-    uint32_t acquire()
-    {
-        if (available.empty())
-            return ++max;
-        auto last = available.back();
-        available.pop_back();
-        return last;
-    }
-
-    void release(uint32_t& id)
-    {
-        available.emplace_back(id);
-        id = 0;
-    }
-
-private:
-    std::vector<uint32_t> available;
-    uint32_t              max = 0;
-};
-
-static ShadowIds SHADOW_IDS;
-
 void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
 {
     light_type = in_light_type;
@@ -76,8 +51,7 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
     if (in_enabled)
     {
         Gfx::Renderer renderer;
-        shadow_map_id = SHADOW_IDS.acquire();
-        renderer["shadows_#" + std::to_string(shadow_map_id)]
+        renderer["shadows"]
             .render_pass<SceneShadowsInterface>(get_scene())
             .resize_callback(
                 [this](const glm::uvec2&)-> glm::uvec2
@@ -91,7 +65,6 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
     else
     {
         get_scene().remove_custom_pass(shadow_update_pass);
-        SHADOW_IDS.release(shadow_map_id);
     }
 }
 } // namespace Eng

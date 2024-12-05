@@ -10,7 +10,8 @@ ObjectAllocation* ContiguousObjectPool::allocate()
     ObjectAllocation* allocation = new ObjectAllocation();
     allocation->object_class     = object_class;
     reserve(component_count + 1);
-    allocation->ptr = static_cast<uint8_t*>(memory) + (component_count * stride);
+    allocation->ptr = nth(component_count);
+    LOG_DEBUG("Allocate : {}", stride);
     std::memset(allocation->ptr, 0, stride);
     allocation_map.emplace(allocation->ptr, allocation);
     component_count += 1;
@@ -29,7 +30,7 @@ void ContiguousObjectPool::free(void* ptr)
     if (auto obj_ptr = allocation_map.find(ptr); obj_ptr != allocation_map.end())
     {
         // Invalidate allocation
-        obj_ptr->second->ptr  = nullptr;
+        obj_ptr->second->ptr = nullptr;
 
         // Unregister allocation (note : the allocation will be deleted once no object will reference it)
         allocation_map.erase(obj_ptr);
@@ -42,7 +43,7 @@ void ContiguousObjectPool::free(void* ptr)
             memcpy(ptr, nth(component_count), stride);
 
             // Update allocation for the moved element
-            auto moved_elem = allocation_map.find(nth(component_count));
+            auto moved_elem         = allocation_map.find(nth(component_count));
             moved_elem->second->ptr = ptr;
             // Update the registry
             allocation_map.emplace(ptr, moved_elem->second);
@@ -92,7 +93,8 @@ void ContiguousObjectPool::resize(size_t new_count)
 
     if (new_count == 0)
     {
-        std::free(memory);
+        if (allocated_count != 0 && memory)
+            std::free(memory);
         memory          = nullptr;
         allocated_count = 0;
         component_count = 0;

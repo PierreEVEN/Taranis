@@ -86,7 +86,7 @@ std::optional<std::string> Session::try_register_variable(slang::VariableLayoutR
 {
     if (variable->getTypeLayout()->getKind() == slang::TypeReflection::Kind::Struct)
     {
-        for (size_t fi = 0; fi < variable->getTypeLayout()->getFieldCount(); ++fi)
+        for (uint32_t fi = 0; fi < variable->getTypeLayout()->getFieldCount(); ++fi)
             if (auto error = try_register_variable(variable->getTypeLayout()->getFieldByIndex(fi), in_outs, metadata))
                 return error;
     }

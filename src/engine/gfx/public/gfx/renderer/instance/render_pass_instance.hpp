@@ -58,7 +58,7 @@ public:
         return definition;
     }
 
-    // Find the image for the given input attachment name
+    // Find the image for the given input attachment generic_name
     std::weak_ptr<ImageView> get_attachment(const std::string& dependency_name) const
     {
         if (attachments_view.empty())
@@ -95,6 +95,11 @@ public:
     std::weak_ptr<CustomPassList> get_custom_passes()
     {
         return custom_passes;
+    }
+
+    uint64_t get_unique_id() const
+    {
+        return definition.unique_id;
     }
 
 protected:

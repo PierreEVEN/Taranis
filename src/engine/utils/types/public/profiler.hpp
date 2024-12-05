@@ -12,9 +12,9 @@
 #define PROFILER_SCOPE(name)                    Profiler::EventRecorder __profiler_event__##name(#name)
 #define PROFILER_SCOPE_NAMED(name, string_name) Profiler::EventRecorder __profiler_event__##name(string_name)
 #else
-#define PROFILER_MARKER(name)
-#define PROFILER_SCOPE(name)
-#define PROFILER_SCOPE_NAMED(name, string_name)
+#define PROFILER_MARKER(generic_name)
+#define PROFILER_SCOPE(generic_name)
+#define PROFILER_SCOPE_NAMED(generic_name, string_name)
 #endif
 
 

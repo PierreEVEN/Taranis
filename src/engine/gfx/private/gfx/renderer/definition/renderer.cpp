@@ -43,9 +43,11 @@ std::optional<std::string> Renderer::root_node() const
     return *roots.begin();
 }
 
+static uint64_t UNIQUE_PASS_ID = 0;
+
 Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device>& device) const
 {
-    Renderer copy = *this;
+    Renderer copy      = *this;
     copy.custom_passes = std::make_shared<CustomPassList>(device);
 
     assert(!copy.b_compiled);
@@ -54,6 +56,9 @@ Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device
     auto root = copy.root_node();
     if (!root)
         LOG_FATAL("Failed to compile renderer, no root");
+
+    for (auto& node : copy.nodes)
+        node.second.unique_id = ++UNIQUE_PASS_ID;
 
     if (target_format == ColorFormat::UNDEFINED)
         return copy;

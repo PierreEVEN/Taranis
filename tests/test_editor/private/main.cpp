@@ -178,6 +178,7 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
+                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
@@ -186,6 +187,7 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
+                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
@@ -275,6 +277,7 @@ public:
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
+
     Config config = {.gfx = {.enable_validation_layers = false, .v_sync = false}, .auto_update_materials = true};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});

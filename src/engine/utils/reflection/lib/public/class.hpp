@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <string>
 #include <ankerl/unordered_dense.h>
 #include <vector>
@@ -19,14 +20,14 @@ public:
 
     template <typename C> static const Class* get()
     {
-        static_assert(StaticClassInfos<C>::value, "Failed to current_thread class : not a reflected class. Please declare this class as a reflected class.");
+        static_assert(StaticClassInfos<C>::value, "Failed to register class : not a reflected class. Please add the REFLECT_BODY macro to it.");
         return get(StaticClassInfos<C>::name);
     }
 
-    template <typename ClassName> static Class* RegisterClass(const std::string& inClassName)
+    template <typename ClassName> static Class* RegisterClass(const std::string& in_class_name)
     {
-        static_assert(StaticClassInfos<ClassName>::value, "Failed to register class : not a reflected class. Please declare this class as a reflected class.");
-        Class* new_class = new Class(inClassName, sizeof(ClassName));
+        static_assert(StaticClassInfos<ClassName>::value, "Failed to register class : not a reflected class. Please add the REFLECT_BODY macro to it.");
+        Class* new_class = new Class(in_class_name, sizeof(ClassName));
         register_class_internal(new_class);
         return new_class;
     }
