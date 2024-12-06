@@ -73,6 +73,14 @@ class Engine
         return *job_system;
     }
 
+    std::vector<std::shared_ptr<Gfx::Window>> get_windows() const
+    {
+        std::vector<std::shared_ptr<Gfx::Window>> win;
+        for (const auto& w : windows)
+            win.emplace_back(w.second);
+        return win;
+    }
+
   private:
     void run_internal();
 

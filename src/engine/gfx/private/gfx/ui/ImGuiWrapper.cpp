@@ -615,7 +615,7 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
                                      .width = static_cast<uint32_t>(width),
                                      .height = static_cast<uint32_t>(height),
                                  },
-                                          std::vector{BufferData(pixels, 4, width * height)});
+                                 std::vector{BufferData(pixels, 4, width * height)});
     font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
     imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
@@ -653,6 +653,14 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
     if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus))
     {
         ImGui::DockSpace(ImGui::GetID("Master dockSpace"), ImVec2(0.f, 0.f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+        if (!main_menu_items.empty())
+            if (ImGui::BeginMainMenuBar())
+            {
+                for (const auto& item : main_menu_items)
+                    item->draw(*this);
+                ImGui::EndMainMenuBar();
+            }
     }
     ImGui::End();
 }
@@ -737,7 +745,7 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
     cmd.push_constant(EShaderStage::Vertex, *imgui_material, constant_data);
 
     /**
-     * Draw meshs
+     * draw meshs
      */
 
     // Will project scissor/clipping rectangles into framebuffer space

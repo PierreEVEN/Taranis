@@ -18,6 +18,7 @@ struct ImGuiContext;
 
 namespace Eng::Gfx
 {
+class MainMenuItem;
 class RenderPassInstance;
 class Window;
 class DescriptorSet;
@@ -65,6 +66,11 @@ public:
         return current_render_pass;
     }
 
+    template <typename T, typename... Args> void add_main_menu_item(Args&&... args)
+    {
+        main_menu_items.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
+    }
+
 private:
     std::vector<std::shared_ptr<UiWindow>> windows;
 
@@ -88,5 +94,15 @@ private:
     ankerl::unordered_dense::map<std::shared_ptr<ImageView>, std::pair<ImTextureID, std::shared_ptr<DescriptorSet>>> per_image_descriptor;
     ankerl::unordered_dense::map<ImTextureID, std::shared_ptr<ImageView>>                                            per_image_ids;
     std::string                                                                                                      name;
+    std::vector<std::unique_ptr<MainMenuItem>>                                                                       main_menu_items;
 };
+
+class MainMenuItem
+{
+public:
+    virtual      ~MainMenuItem() = default;
+    virtual void draw(ImGuiWrapper& ctx) = 0;
+};
+
+
 } // namespace Eng::Gfx

@@ -110,6 +110,48 @@ public:
     std::shared_ptr<Scene>            scene;
 };
 
+
+class GlobalMainMenu : public Gfx::MainMenuItem
+{
+public:
+    GlobalMainMenu(const std::shared_ptr<Scene>& in_scene, const std::weak_ptr<Gfx::RenderPassInstance>& in_scene_rp) : scene(in_scene), scene_rp(in_scene_rp)
+    {
+    }
+
+    void draw(Gfx::ImGuiWrapper& ctx) override
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Quit"))
+            {
+                for (const auto& window : Engine::get().get_windows())
+                    window->close();
+            }
+
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Tool"))
+        {
+            if (ImGui::MenuItem("Viewport"))
+                ctx.new_window<Viewport>("Viewport", scene_rp, scene);
+
+            if (ImGui::MenuItem("Content Browser"))
+                ctx.new_window<ContentBrowser>("Content Browser", Engine::get().asset_registry());
+
+            if (ImGui::MenuItem("Render Graph View"))
+                ctx.new_window<RenderGraphView>("Render Graph View");
+
+            if (ImGui::MenuItem("Profiler"))
+                ctx.new_window<ProfilerWindow>("Profiler");
+
+            ImGui::EndMenu();
+        }
+    }
+
+    std::shared_ptr<Scene>                 scene;
+    std::weak_ptr<Gfx::RenderPassInstance> scene_rp;
+};
+
 class PresentPass : public Gfx::IRenderPass
 {
 public:
@@ -121,9 +163,10 @@ public:
     {
         rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency("gbuffer_resolve"), scene);
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
-        rp.imgui()->new_window<SceneOutliner>("Scene outliner", scene);
+        rp.imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
         rp.imgui()->new_window<ProfilerWindow>("Profiler");
-        rp.imgui()->new_window<RenderGraphView>("Render graph");
+        rp.imgui()->new_window<RenderGraphView>("Render Graph View");
+        rp.imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependency("gbuffer_resolve"));
     }
 
     std::shared_ptr<Scene> scene;

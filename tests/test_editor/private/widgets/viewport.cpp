@@ -31,12 +31,6 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 ctx.new_window<SceneOutliner>("Scene outliner", scene);
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Profiler"))
-        {
-            ctx.new_window<Eng::ProfilerWindow>("Profiler");
-            ImGui::EndMenu();
-        }
-
         ImGui::Dummy({ImGui::GetContentRegionAvail().x - 75, 0});
         ImGui::Text("%d fps", static_cast<int>(ImGui::GetIO().Framerate));
 
