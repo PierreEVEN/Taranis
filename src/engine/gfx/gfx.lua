@@ -3,11 +3,10 @@ declare_module(
     {"types", "job-sys", "shader_compiler", "gfx_types"}, 
     {
         {name = "vulkan-loader", public = true},
-        {name = "vulkan-memory-allocator", public = true},
         {name = "glm", public = true},
         "glfw",
-        "imgui",
-        "imgui docking",
+        "vulkan-memory-allocator",
+        {name = "imgui", public = true},
         {name = "unordered_dense", public = true}
     }, 
     false, 

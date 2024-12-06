@@ -9,6 +9,11 @@
 
 namespace Eng
 {
+namespace Gfx
+{
+class ImGuiWrapper;
+}
+
 class Scene;
 
 class SceneComponent
@@ -113,6 +118,8 @@ public:
     {
         return *scene;
     }
+
+    virtual void build_outliner(Gfx::ImGuiWrapper& ctx);
 
 protected:
     SceneComponent()

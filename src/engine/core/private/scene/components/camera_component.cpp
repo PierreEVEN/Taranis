@@ -3,6 +3,7 @@
 #include "engine.hpp"
 #include "scene/scene_view.hpp"
 
+#include <imgui.h>
 #include <numbers>
 
 namespace Eng
@@ -32,6 +33,9 @@ SceneView& CameraComponent::get_view()
         scene_view = SceneView::create();
         scene_view->set_position(get_relative_position());
         scene_view->set_rotation(get_relative_rotation());
+        scene_view->set_fov(fov);
+        scene_view->set_z_far(z_far);
+        scene_view->set_z_near(z_near);
     }
     return *scene_view;
 
@@ -47,6 +51,23 @@ void CameraComponent::set_rotation(glm::quat in_rotation)
 {
     get_view().set_rotation(in_rotation);
     SceneComponent::set_rotation(in_rotation);
+}
+
+void CameraComponent::build_outliner(Gfx::ImGuiWrapper& ctx)
+{
+    SceneComponent::build_outliner(ctx);
+
+    if (ImGui::Checkbox("Orthographic", &orthographic))
+    {
+        scene_view->set_perspective(!orthographic);
+        scene_view->set_fov(orthographic ? orthographic_scale : fov);
+    }
+    if (ImGui::DragFloat(orthographic ? "Orthographic scale" : "Fov", orthographic ? &orthographic_scale : &fov))
+        scene_view->set_fov(orthographic ? orthographic_scale : fov);
+    if (ImGui::DragFloat("z_far", &z_far))
+        scene_view->set_z_far(z_far);
+    if (ImGui::DragFloat("z_near", &z_near))
+        scene_view->set_z_near(z_near);
 }
 
 void FpsCameraComponent::set_pitch(float in_pitch)

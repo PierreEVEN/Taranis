@@ -9,6 +9,7 @@
 
 namespace Eng
 {
+class SceneView;
 
 enum class ELightType
 {
@@ -26,6 +27,9 @@ class LightComponent : public SceneComponent
     void enable_shadow(ELightType light_type = ELightType::Stationary, bool enabled = true);
 
 protected:
+    void set_position(glm::vec3 in_position) override;
+    void set_rotation(glm::quat in_rotation) override;
+
     virtual void void_create_shadow_resources()
     {
 
@@ -36,6 +40,7 @@ protected:
     bool                                              shadows           = false;
     ELightType                                        light_type        = ELightType::Stationary;
     std::shared_ptr<Gfx::TemporaryRenderPassInstance> shadow_update_pass;
+    std::shared_ptr<SceneView>                        shadow_view;
     uint32_t                                          shadow_map_id = 0;
 };
 }

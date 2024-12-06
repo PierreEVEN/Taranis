@@ -18,7 +18,7 @@ class CameraComponent : public SceneComponent
 {
     REFLECT_BODY();
 
-  public:
+public:
     CameraComponent();
 
     void activate();
@@ -27,12 +27,20 @@ class CameraComponent : public SceneComponent
 
     SceneView& get_view();
 
-  private:
-  public:
+private:
+public:
     void set_position(glm::vec3 in_position) override;
     void set_rotation(glm::quat in_rotation) override;
 
-  private:
+    void build_outliner(Gfx::ImGuiWrapper& ctx) override;
+
+private:
+    bool  orthographic       = false;
+    float fov                = 90.f;
+    float orthographic_scale = 1000.f;
+    float z_near             = 0.1f;
+    float z_far              = 10000.f;
+
     std::shared_ptr<SceneView> scene_view;
 };
 
@@ -40,8 +48,10 @@ class FpsCameraComponent : public CameraComponent
 {
     REFLECT_BODY();
 
-  public:
-    FpsCameraComponent(){};
+public:
+    FpsCameraComponent()
+    {
+    };
 
     void set_pitch(float in_pitch);
     void set_yaw(float in_yaw);
@@ -56,7 +66,7 @@ class FpsCameraComponent : public CameraComponent
         return yaw;
     }
 
-  private:
+private:
     void update_rotation();
 
     float pitch = 0, yaw = 0;

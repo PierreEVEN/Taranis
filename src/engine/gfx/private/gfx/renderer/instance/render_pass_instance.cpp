@@ -75,7 +75,8 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         if (attachment.has_clear())
         {
             if (is_depth_format(attachment.color_format))
-                clear_value.depthStencil = VkClearDepthStencilValue{attachment.clear_depth_value->x, static_cast<uint32_t>(attachment.clear_depth_value->y)};
+                clear_value.depthStencil =
+                    VkClearDepthStencilValue{definition.reversed_logarithmic_depth ? attachment.clear_depth_value->x : 1.f - attachment.clear_depth_value->x, static_cast<uint32_t>(attachment.clear_depth_value->y) };
             else
                 clear_value.color = VkClearColorValue{.float32 = {attachment.clear_color_value->x, attachment.clear_color_value->y, attachment.clear_color_value->z, attachment.clear_color_value->w}};
         }

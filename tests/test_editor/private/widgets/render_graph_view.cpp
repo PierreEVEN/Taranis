@@ -50,7 +50,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
             total_size.y = idx_size.y;
 
         stage_x_offsets.emplace(i, current_offset_x);
-        current_offset_x += idx_size.x + group_padding.x * 2;
+        current_offset_x += idx_size.x + group_padding.x * 2.f;
     }
 
     ankerl::unordered_dense::map<int, float> stage_y_offsets;
@@ -58,23 +58,26 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
     {
         auto offset           = stage_y_offsets.emplace(stage.stage, -group_padding.y).first;
         stage.y_offset = offset->second;
-        offset->second += stage.size.y + group_padding.y * 2;
+        offset->second += stage.size.y + group_padding.y * 2.f;
     }
 
-    if (ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + ImGui::GetContentRegionAvail()) || zoom == 0)
+    if (ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + ImGui::GetContentRegionAvail()) || !initialized)
     {
-        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || desired_zoom || zoom == 0)
+        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || desired_zoom || !initialized)
         {
             auto& io       = ImGui::GetIO();
             float old_zoom = zoom;
-            zoom *= atan(io.MouseWheel) * 0.5f + 1;
+            zoom *= atan(io.MouseWheel) * 0.5f + 1.f;
 
             if (desired_zoom)
             {
                 zoom         = *desired_zoom;
                 desired_zoom = {};
             }
-            ImVec2 min_zoom = ImGui::GetContentRegionAvail() / (total_size + group_padding * 4);
+            ImVec2 min_zoom = ImGui::GetContentRegionAvail() / (total_size + group_padding * 4.f);
+            if (min_zoom.x < 0 || min_zoom.y < 0)
+                return;
+            initialized = true;
             if (zoom < std::min(min_zoom.x, min_zoom.y))
                 zoom = std::min(min_zoom.x, min_zoom.y);
 
@@ -98,7 +101,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
         last_scroll   = ImGui::GetScrollX();
         last_scroll_y = ImGui::GetScrollY();
 
-        if (ImGui::BeginChild("Canvas content", {(total_size + group_padding * 4) * zoom}))
+        if (ImGui::BeginChild("Canvas content", {(total_size + group_padding * 4.f) * zoom}))
         {
             auto dl = ImGui::GetWindowDrawList();
 
@@ -109,7 +112,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 ImVec2 idx_size     = content.stage_sizes.find(group.second.stage)->second;
                 float  idx_offset_x = stage_x_offsets.find(group.second.stage)->second;
 
-                float offset_y = (total_size.y - idx_size.y) / 2;
+                float offset_y = (total_size.y - idx_size.y) / 2.f;
 
                 auto group_pos = ImVec2{total_size.x - idx_offset_x - idx_size.x, group.second.y_offset + offset_y};
 
@@ -120,16 +123,16 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 {
                     if (ImGui::BeginTooltip())
                     {
-                        ImGui::Text("Render pass %s", group.second.name);
+                        ImGui::Text("Render pass %s", group.second.name.c_str());
                         ImGui::EndTooltip();
                     }
                 }
 
-                dl->AddRectFilled(window_pos + group_pos * zoom, window_pos + (group_pos + group.second.size) * zoom, ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.2f, 0.2f, 1)));
+                dl->AddRectFilled(window_pos + group_pos * zoom, window_pos + (group_pos + group.second.size) * zoom, ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.2f, 0.2f, 1.f)));
 
                 for (const auto& attachment : group.second.attachments)
                 {
-                    ImVec2 attachment_pos = group_pos + ImVec2{((group.second.size.x - attachment.res.x) / 2), attachment.offset_y};
+                    ImVec2 attachment_pos = group_pos + ImVec2{((group.second.size.x - attachment.res.x) / 2.f), attachment.offset_y};
                     auto   min            = window_pos + attachment_pos * zoom;
                     auto   max            = window_pos + (attachment_pos + attachment.res) * zoom;
 
@@ -140,10 +143,10 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
                             ImGui::Text("Attachment %s", attachment.name.c_str());
                             ImGui::EndTooltip();
                         }
-                        dl->AddRectFilled(min - image_padding * zoom * 0.5f, max + image_padding * zoom * 0.5f, ImGui::ColorConvertFloat4ToU32(ImVec4(0.4f, 0.4f, 0.2f, 1)));
+                        dl->AddRectFilled(min - image_padding * zoom * 0.5f, max + image_padding * zoom * 0.5f, ImGui::ColorConvertFloat4ToU32(ImVec4(0.4f, 0.4f, 0.2f, 1.f)));
                         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                         {
-                            desired_zoom = 1;
+                            desired_zoom = 1.f;
                             desired_pos  = attachment_pos;
                         }
                     }
@@ -183,15 +186,15 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
         object.res      = {static_cast<float>(extent.x), static_cast<float>(extent.y)};
         object.name     = attachment;
 
-        if (object.res.x + image_padding.x * 2 > group.size.x)
-            group.size.x = object.res.x + image_padding.x * 2;
-        group.size.y += object.res.y + image_padding.y * 2;
+        if (object.res.x + image_padding.x * 2.f > group.size.x)
+            group.size.x = object.res.x + image_padding.x * 2.f;
+        group.size.y += object.res.y + image_padding.y * 2.f;
         group.attachments.emplace_back(object);
     }
 
     auto& stage_dims = content.stage_sizes.emplace(current_stage, ImVec2{0, 0}).first->second;
-    if (group.size.x + group_padding.x * 2 > stage_dims.x)
-        stage_dims.x = group.size.x + group_padding.y * 2;
+    if (group.size.x + group_padding.x * 2.f > stage_dims.x)
+        stage_dims.x = group.size.x + group_padding.y * 2.f;
     stage_dims.y += group.size.y + group_padding.y;
 
     content.passes.emplace(pass->get_definition().unique_id, group);

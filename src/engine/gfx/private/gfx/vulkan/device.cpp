@@ -146,7 +146,7 @@ const std::vector<const char*>& Device::get_device_extensions()
     return device_extensions;
 }
 
-std::weak_ptr<Gfx::VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const std::string& name)
+std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const std::string& name)
 {
     const auto existing = render_passes.find(key);
 

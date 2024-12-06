@@ -1,4 +1,4 @@
-declare_module("test_editor", {"core", "types", "import"}, {"vulkan-loader", "vulkan-memory-allocator", "glfw", "imgui"}, true, true)
+declare_module("test_editor", {"core", "types", "import"}, {"glfw"}, true, true)
 
 target("test_editor")
 set_group("test")

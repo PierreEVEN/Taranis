@@ -100,7 +100,7 @@ struct RenderPassKey
 {
     bool operator==(const RenderPassKey& other) const
     {
-        if (b_present != other.b_present)
+        if (b_present != other.b_present || b_reversed_z != other.b_reversed_z)
             return false;
         if (attachments.size() != other.attachments.size())
             return false;
@@ -112,7 +112,8 @@ struct RenderPassKey
 
     std::vector<Attachment> attachments;
     std::string             name;
-    bool                    b_present = false;
+    bool                    b_reversed_z = false;
+    bool                    b_present    = false;
 };
 
 } // namespace Eng::Gfx
@@ -179,8 +180,9 @@ public:
     RenderPassKey get_key(bool b_present) const
     {
         RenderPassKey key;
-        key.name      = generic_name;
-        key.b_present = b_present;
+        key.name         = generic_name;
+        key.b_present    = b_present;
+        key.b_reversed_z = reversed_logarithmic_depth;
         for (const auto& attachment : attachments | std::views::values)
             key.attachments.emplace_back(attachment);
         return key;
@@ -212,6 +214,12 @@ public:
         return *this;
     }
 
+    RenderNode& reversed_log_z(bool enabled)
+    {
+        reversed_logarithmic_depth = enabled;
+        return *this;
+    }
+
     RenderNode& operator[](const Attachment& attachment)
     {
         attachments.insert_or_assign(attachment.name, attachment);
@@ -232,6 +240,7 @@ public:
     std::string                                           generic_name;
     uint64_t                                              unique_id = 0;
     ResizeCallback                                        resize_callback_ptr;
+    bool                                                  reversed_logarithmic_depth = false;
 };
 
 class Renderer

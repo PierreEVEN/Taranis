@@ -76,6 +76,7 @@ public:
 
     bool test(const Bounds& bounds) const
     {
+        return true;
         // check box outside/inside of frustum
         for (auto m_plane : m_planes)
         {
@@ -154,23 +155,60 @@ public:
         return frustum.test(bounds);
     }
 
-private:
+    void set_fov(float in_fov)
+    {
+        if (in_fov != fov)
+            outdated = true;
+        fov = in_fov;
+    }
+
+    void set_orthographic_width(float in_width)
+    {
+        if (in_width != fov)
+            outdated = true;
+        fov = in_width;
+    }
+
+    void set_perspective(bool b_is_perspective = true)
+    {
+        if (b_is_perspective == orthographic)
+            outdated = true;
+        orthographic = !b_is_perspective;
+    }
+
+    void set_z_far(float in_z_far)
+    {
+        if (in_z_far != z_far)
+            outdated = true;
+        z_far = in_z_far;
+    }
+
+    void set_z_near(float in_z_near)
+    {
+        if (in_z_near != z_near)
+            outdated = true;
+        z_near = in_z_near;
+    }
+
+  private:
     SceneView()
     {
     }
 
-    void update_matrices(const glm::uvec2& in_resolution);
+    void update_matrices(const glm::uvec2& in_resolution, bool reversed_z);
 
     glm::quat rotation = glm::identity<glm::quat>();
     glm::vec3 position = {0, 0, 0};
 
     glm::mat4  view;
-    glm::mat4  perspective;
-    glm::mat4  perspective_view;
+    glm::mat4  projection;
+    glm::mat4  projection_view;
     bool       outdated = true;
     float      fov      = 90.0f;
     float      z_near   = 0.01f;
+    float      z_far   = 1000.f;
     glm::uvec2 resolution;
+    bool       orthographic = false;
 
     Frustum frustum;
 

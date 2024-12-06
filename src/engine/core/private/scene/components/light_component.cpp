@@ -8,7 +8,7 @@ namespace Eng
 class SceneShadowsInterface : public Gfx::IRenderPass
 {
 public:
-    SceneShadowsInterface(Scene& in_scene) : scene_view(SceneView::create()), scene(&in_scene)
+    SceneShadowsInterface(const std::shared_ptr<SceneView>& in_scene_view, Scene& in_scene) : scene_view(in_scene_view), scene(&in_scene)
     {
     }
 
@@ -36,7 +36,6 @@ public:
     Scene*                     scene = nullptr;
 };
 
-
 LightComponent::LightComponent()
 {
 }
@@ -50,15 +49,21 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
 
     if (in_enabled)
     {
+        shadow_view = SceneView::create();
+        shadow_view->set_perspective(false);
+        shadow_view->set_z_far(5000);
+        shadow_view->set_z_near(-5000);
+        shadow_view->set_orthographic_width(2500);
+
         Gfx::Renderer renderer;
         renderer["shadows"]
-            .render_pass<SceneShadowsInterface>(get_scene())
+            .render_pass<SceneShadowsInterface>(shadow_view, get_scene())
             .resize_callback(
                 [this](const glm::uvec2&)-> glm::uvec2
                 {
                     return {shadow_resolution, shadow_resolution};
                 })
-            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D32_SFLOAT).clear_depth({0.0f, 0.0f})];
+            [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D24_UNORM_S8_UINT).clear_depth({0.0f, 0.0f})];
 
         shadow_update_pass = get_scene().add_custom_pass({"gbuffer_resolve"}, renderer);
     }
@@ -66,5 +71,17 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
     {
         get_scene().remove_custom_pass(shadow_update_pass);
     }
+}
+
+void LightComponent::set_position(glm::vec3 in_position)
+{
+    SceneComponent::set_position(in_position);
+    shadow_view->set_position(in_position);
+}
+
+void LightComponent::set_rotation(glm::quat in_rotation)
+{
+    SceneComponent::set_rotation(in_rotation);
+    shadow_view->set_rotation(in_rotation);
 }
 } // namespace Eng
