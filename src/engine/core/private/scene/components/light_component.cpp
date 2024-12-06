@@ -47,6 +47,8 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
     if (in_enabled == shadows)
         return;
 
+    shadows = in_enabled;
+    return;
     if (in_enabled)
     {
         shadow_view = SceneView::create();

@@ -31,7 +31,7 @@ add_defines("ENABLE_PROFILER")
 
 add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "assimp", "concurrentqueue", "unordered_dense")
 add_requires("freeimage", {configs = {rgb = true}})
-add_requires("slang v2024.14.5", {verify = false})
+add_requires("slang v2024.15.1", {verify = false})
 
 local function getParentPath(_path)
     pattern1 = "^(.+)//"

@@ -11,6 +11,7 @@ namespace ShaderCompiler
 {
 static Compiler* compiler_instance = nullptr;
 
+std::mutex global_guard;
 Compiler& Compiler::get()
 {
     if (!compiler_instance)
@@ -25,11 +26,13 @@ Compiler::~Compiler()
 
 std::shared_ptr<Session> Compiler::create_session(const std::filesystem::path& path)
 {
+    std::lock_guard lktt(global_guard);
     return std::shared_ptr<Session>(new Session(this, path));
 }
 
 Compiler::Compiler()
 {
+    std::lock_guard lktt(global_guard);
     if (SLANG_FAILED(createGlobalSession(&global_session)))
     {
         std::cerr << "Failed to create global slang compiler session\n";
@@ -178,8 +181,11 @@ bool TypeReflection::can_reflect(slang::TypeReflection* slang_var)
     }
 }
 
+
 CompilationResult Session::compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const
 {
+    std::lock_guard tt(global_guard);
+
     std::lock_guard   lk(session_lock);
     CompilationResult result;
 

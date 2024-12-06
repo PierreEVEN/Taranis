@@ -47,7 +47,8 @@ public:
 
     size_t record_threads() override
     {
-        return std::thread::hardware_concurrency() * 3;
+        return 0;
+        //std::thread::hardware_concurrency() * 3;
     }
 
     void pre_submit(const Gfx::RenderPassInstance&) override
@@ -206,13 +207,14 @@ public:
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        directional_light->enable_shadow(ELightType::Movable);
+        //directional_light->enable_shadow(ELightType::Movable);
         auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
-        directional_light2->enable_shadow(ELightType::Movable);
+        //directional_light2->enable_shadow(ELightType::Movable);
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]
             {
+                return;
                 auto  new_scene = importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
