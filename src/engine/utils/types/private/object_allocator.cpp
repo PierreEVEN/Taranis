@@ -11,7 +11,6 @@ ObjectAllocation* ContiguousObjectPool::allocate()
     allocation->object_class     = object_class;
     reserve(component_count + 1);
     allocation->ptr = nth(component_count);
-    LOG_DEBUG("Allocate : {}", stride);
     std::memset(allocation->ptr, 0, stride);
     allocation_map.emplace(allocation->ptr, allocation);
     component_count += 1;
