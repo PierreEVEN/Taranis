@@ -22,6 +22,10 @@ class SamplerAsset : public AssetBase
         return sampler;
     }
 
+    glm::vec3 asset_color() const override
+    {
+        return {1, 0.5, 0.7};
+    }
   private:
     SamplerAsset();
 

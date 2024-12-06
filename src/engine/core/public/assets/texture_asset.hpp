@@ -42,6 +42,16 @@ public:
 
     static TObjectRef<TextureAsset> get_default_asset();
 
+    std::shared_ptr<Gfx::ImageView> get_thumbnail() override
+    {
+        return view;
+    }
+
+    glm::vec3 asset_color() const override
+    {
+        return {0.5, 0.4, 1};
+    }
+
 private:
     friend class AssetRegistry;
     TextureAsset(const std::vector<Gfx::BufferData>& mips, const CreateInfos& create_infos);

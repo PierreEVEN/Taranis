@@ -62,7 +62,12 @@ public:
 
     void check_for_updates();
 
-private:
+    glm::vec3 asset_color() const override
+    {
+        return {0.5, 1, 0.7};
+    }
+
+  private:
     friend MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 

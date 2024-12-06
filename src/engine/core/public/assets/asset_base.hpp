@@ -3,6 +3,13 @@
 #include "object_ptr.hpp"
 #include "assets/asset_base.gen.hpp"
 
+#include <glm/vec3.hpp>
+
+namespace Eng::Gfx
+{
+class ImageView;
+}
+
 namespace Eng
 {
 class AssetBase
@@ -23,6 +30,16 @@ public:
     const TObjectRef<AssetBase>& this_ref() const
     {
         return this_ref_obj;
+    }
+
+    virtual std::shared_ptr<Gfx::ImageView> get_thumbnail()
+    {
+        return nullptr;
+    }
+
+    virtual glm::vec3 asset_color() const
+    {
+        return {1, 1, 1};
     }
 
 protected:

@@ -51,7 +51,12 @@ public:
     // Compile shader for given pass if available (avoid lag spike later)
     void prepare_for_passes(const std::string& render_pass);
 
-private:
+    glm::vec3 asset_color() const override
+    {
+        return {0.2, 0.7, 0.3};
+    }
+
+  private:
     TObjectRef<MaterialAsset>                                                      base;
     std::shared_mutex                                                              descriptor_lock;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;

@@ -1,11 +1,18 @@
 #include "content_browser.hpp"
 
+#include "gfx/ui/ImGuiWrapper.hpp"
+
 #include <imgui.h>
 #include <ranges>
 
-void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
+ContentBrowser::ContentBrowser(const std::string& name, Eng::AssetRegistry& asset_registry) : UiWindow(name), registry(&asset_registry)
 {
+    memset(filter.data(), 0, filter.size());
+}
 
+void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
+{
+    internal_draw_id = 0;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 7});
     if (ImGui::Button("Create"))
     {
@@ -23,8 +30,15 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
         LOG_DEBUG("NOPE FOR NOW");
 
     ImGui::PopStyleVar();
-
     ImGui::Separator();
+
+    float window_size = std::max(ImGui::GetContentRegionAvail().x / 7.f, 150.f);
+    ImGui::Columns(2);
+    if (b_set_column_width && ImGui::GetContentRegionAvail().x > 0)
+    {
+        ImGui::SetColumnWidth(0, window_size);
+        b_set_column_width = false;
+    }
     drawHierarchy();
 
     ImGui::NextColumn();
@@ -39,16 +53,15 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
 
     if (ImGui::BeginChild("contentAssets"))
     {
-
         float sizeX = ImGui::GetContentRegionAvail().x;
 
         int widthItems = static_cast<int>(sizeX / 70);
         ImGui::Columns(std::max(widthItems, 1), "", false);
 
         registry->for_each(
-            [this](const TObjectPtr<Eng::AssetBase>& asset)
+            [this, &ctx](const TObjectPtr<Eng::AssetBase>& asset)
             {
-                draw_asset_thumbnail(asset);
+                draw_asset_thumbnail(asset, ctx);
                 ImGui::NextColumn();
             });
         ImGui::Columns(1);
@@ -60,17 +73,8 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper&)
 void ContentBrowser::drawHierarchy()
 {
     // Initialize left side size
-    float windowSize = std::max(ImGui::GetContentRegionAvail().x / 7.f, 150.f);
-    ImGui::Columns(2);
-    if (b_set_column_width)
-    {
-        ImGui::SetColumnWidth(0, windowSize);
-        b_set_column_width = false;
-    }
     if (ImGui::BeginChild("folders"))
-    {
         drawHierarchy("./resources");
-    }
     ImGui::EndChild();
 }
 
@@ -114,42 +118,68 @@ void ContentBrowser::drawHierarchy(const std::filesystem::path& f)
     }
 }
 
-void ContentBrowser::draw_asset_thumbnail(const TObjectPtr<Eng::AssetBase>& asset)
+static void TextCentered(const std::string& text)
+{
+    float  avail         = ImGui::GetContentRegionAvail().x;
+    ImVec2 text_size     = ImGui::CalcTextSize(text.c_str());
+    float  char_width    = text_size.x / text.size();
+    int    char_per_line = std::max(1, static_cast<int>(avail / char_width));
+
+    auto  dl            = ImGui::GetWindowDrawList();
+    float start_x       = ImGui::GetCursorScreenPos().x;
+    int   current_width = 0;
+    while (current_width < text.size())
+    {
+        const char* begin = &text[std::min(current_width, static_cast<int>(text.size()))];
+        current_width += char_per_line;
+        const char* end = &text[std::min(current_width, static_cast<int>(text.size()))];
+
+        ImGui::SetCursorScreenPos({start_x + (avail - static_cast<float>(end - begin) * char_width) / 2, ImGui::GetCursorScreenPos().y});
+        dl->AddText(ImGui::GetCursorScreenPos(), 0xFFFFFFFF, begin, end);
+
+        ImGui::SetCursorScreenPos({start_x, ImGui::GetCursorScreenPos().y + text_size.y});
+    }
+}
+
+void ContentBrowser::draw_asset_thumbnail(const TObjectPtr<Eng::AssetBase>& asset, Eng::Gfx::ImGuiWrapper& ctx)
 {
     if (!asset)
         return;
 
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
     ImGui::BeginGroup();
-    draw_asset_button(asset);
+    draw_asset_button(asset, ctx);
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
     {
         ImGui::SetDragDropPayload("DDOP_ASSET", asset->get_name(), std::string(asset->get_name()).size());
-        draw_asset_button(asset);
+        draw_asset_button(asset, ctx);
         ImGui::EndDragDropSource();
     }
-    ImGui::TextWrapped(asset->get_name());
+    ImGui::GetWindowDrawList()->AddRectFilled({ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - 4}, {ImGui::GetCursorScreenPos().x + 60, ImGui::GetCursorScreenPos().y + 1},
+                                              ImGui::ColorConvertFloat4ToU32(ImVec4{asset->asset_color().x, asset->asset_color().y, asset->asset_color().z, 1}));
+    ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y + 1});
+    TextCentered(asset->get_name());
     ImGui::EndGroup();
+    ImGui::PopStyleVar();
 }
 
-void ContentBrowser::draw_asset_button(const TObjectPtr<Eng::AssetBase>& asset)
+void ContentBrowser::draw_asset_button(const TObjectPtr<Eng::AssetBase>& asset, Eng::Gfx::ImGuiWrapper& ctx)
 {
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 0.2f));
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 4});
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
 
-    // if (thumbnail == null)
+    if (asset->get_thumbnail())
     {
-        ImGui::Dummy({0, 4});
-        if (ImGui::Button(("#" + std::string(asset->get_name())).c_str(), {64, 64}))
+        if (ImGui::ImageButton(("##" + std::to_string(++internal_draw_id)).c_str(), ctx.add_image(asset->get_thumbnail()), {64, 64}, {0, 1}, {1, 0}))
         {
         }
     }
-    /*else
+    else
     {
-        if (ImGui.imageButton(thumbnail.getTextureHandle(), 64, 64, 0, 1, 1, 0))
+        if (ImGui::Button(("#" + std::string(asset->get_name()) + "##" + std::to_string(++internal_draw_id)).c_str(), {64, 64}))
         {
-            new AssetWindow(asset, asset.getName());
         }
-    }*/
+    }
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
 }
