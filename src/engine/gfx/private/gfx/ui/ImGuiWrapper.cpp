@@ -648,8 +648,8 @@ void ImGuiWrapper::begin(glm::uvec2 draw_res)
         glfwSetCursor(target_window.lock()->raw(), cursor_map[imgui_cursor]);
 
     ImGui::NewFrame();
-    ImGui::SetNextWindowPos(ImVec2(-4, -4));
-    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(draw_res.x) + 8.f, static_cast<float>(draw_res.y) + 8.f));
+    ImGui::SetNextWindowPos(ImVec2(-4, 32));
+    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(draw_res.x) + 8.f, static_cast<float>(draw_res.y) - 28));
     if (ImGui::Begin("BackgroundHUD", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus))
     {
         ImGui::DockSpace(ImGui::GetID("Master dockSpace"), ImVec2(0.f, 0.f), ImGuiDockNodeFlags_PassthruCentralNode);
