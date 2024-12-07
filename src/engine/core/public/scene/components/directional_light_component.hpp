@@ -4,6 +4,7 @@
 
 namespace Eng
 {
+
 class DirectionalLightComponent : public LightComponent
 {
     REFLECT_BODY()
@@ -11,5 +12,5 @@ class DirectionalLightComponent : public LightComponent
     DirectionalLightComponent();
     
 };
-
 }
+

@@ -11,6 +11,7 @@ namespace Eng
 {
 class SceneView;
 
+
 enum class ELightType
 {
     Movable,
@@ -42,5 +43,7 @@ protected:
     std::shared_ptr<Gfx::TemporaryRenderPassInstance> shadow_update_pass;
     std::shared_ptr<SceneView>                        shadow_view;
     uint32_t                                          shadow_map_id = 0;
+
+
 };
 }

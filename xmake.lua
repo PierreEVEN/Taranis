@@ -33,17 +33,6 @@ add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-all
 add_requires("freeimage", {configs = {rgb = true}})
 add_requires("slang v2024.15.1", {verify = false})
 
-local function getParentPath(_path)
-    pattern1 = "^(.+)//"
-    pattern2 = "^(.+)\\"
-
-    if (string.match(_path,pattern1) == nil) then
-        return string.match(_path,pattern2)
-    else
-        return string.match(_path,pattern1)
-    end
-end
-
 rule("generated_cpp", function (rule)
     set_extensions(".hpp")
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
@@ -57,13 +46,34 @@ rule("generated_cpp", function (rule)
         generated_source = generated_source:gsub("public", "private", 1)
         
         if (os.exists(generated_source)) then
-            print("[generate] "..generated_source)
             local test_str = tostring(generated_source)
             local objectfile = target:objectfile(generated_source)
+            --batchcmds:vrunv(TODO : make the header tool works for one header at a time)
             batchcmds:compile(generated_source, objectfile)
+
+            table.insert(target:objectfiles(), objectfile)
+            batchcmds:show_progress(opt.progress, "${color.build.object}Compiling.reflection %s", generated_source)
             batchcmds:add_depfiles(source_header)
+
             batchcmds:set_depmtime(os.mtime(objectfile))
             batchcmds:set_depcache(target:dependfile(objectfile))
+
+            if (false) then
+                print("AHBZOIFUAZF AZUVIF AZUOFOAZIFH BUILDING " .. source_header .." : "..type(batchcmds:depinfo().files))
+                print("TEST : "..type(res))
+                for prop, k in pairs(batchcmds) do
+                    print("DEPEND : "..prop)
+                end
+                for prop, k in pairs(batchcmds:depinfo().files) do
+                    print("files " ..prop.." : "..k)
+                end
+                for prop, k in pairs(batchcmds:depinfo().lastmtime) do
+                    print("lastmtime " ..prop.." : "..k)
+                end
+                for prop, k in pairs(batchcmds:depinfo().dependfile) do
+                    print("dependfile " ..prop.." : "..k)
+                end
+            end
         end
     end)
 end)
@@ -74,7 +84,6 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
     end
     target(module_name, function (target)
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
-
         -- enable and generate reflection
         if enable_reflection then
             add_deps('header_tool')

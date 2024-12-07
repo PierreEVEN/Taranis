@@ -206,15 +206,20 @@ public:
         scene->set_pass_list(default_window.lock()->set_renderer(renderer));
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
+
+        LOG_WARNING("REAL SIZE {} vs {}", sizeof(DirectionalLightComponent), DirectionalLightComponent::static_class()->stride());
+        assert(sizeof(DirectionalLightComponent) == DirectionalLightComponent::static_class()->stride());
+
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        //directional_light->enable_shadow(ELightType::Movable);
+        directional_light->enable_shadow(ELightType::Movable);
         auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
-        //directional_light2->enable_shadow(ELightType::Movable);
+        auto directional_light3 = scene->add_component<DirectionalLightComponent>("Directional light");
+        directional_light2->enable_shadow(ELightType::Movable);
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
+
         engine.jobs().schedule(
             [&, importer]
             {
-                return;
                 auto  new_scene = importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
@@ -324,7 +329,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = false}, .auto_update_materials = false};
+    Config config = {.gfx = {.enable_validation_layers = true, .v_sync = true}, .auto_update_materials = false};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

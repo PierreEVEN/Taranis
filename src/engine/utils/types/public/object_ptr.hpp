@@ -1,6 +1,7 @@
 #pragma once
 
 #include "class.hpp"
+#include "logger.hpp"
 
 #include <cassert>
 #include <type_traits>

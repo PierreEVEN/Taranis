@@ -11,7 +11,6 @@ namespace ShaderCompiler
 {
 static Compiler* compiler_instance = nullptr;
 
-std::mutex global_guard;
 Compiler& Compiler::get()
 {
     if (!compiler_instance)
@@ -26,13 +25,11 @@ Compiler::~Compiler()
 
 std::shared_ptr<Session> Compiler::create_session(const std::filesystem::path& path)
 {
-    std::lock_guard lktt(global_guard);
     return std::shared_ptr<Session>(new Session(this, path));
 }
 
 Compiler::Compiler()
 {
-    std::lock_guard lktt(global_guard);
     if (SLANG_FAILED(createGlobalSession(&global_session)))
     {
         std::cerr << "Failed to create global slang compiler session\n";
@@ -114,6 +111,8 @@ Session::~Session()
 
 std::optional<std::filesystem::path> Session::get_filesystem_path() const
 {
+    if (!load_errors.empty())
+        return {};
     return module->getFilePath() ? module->getFilePath() : std::optional<std::filesystem::path>{};
 }
 
@@ -184,8 +183,6 @@ bool TypeReflection::can_reflect(slang::TypeReflection* slang_var)
 
 CompilationResult Session::compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const
 {
-    std::lock_guard tt(global_guard);
-
     std::lock_guard   lk(session_lock);
     CompilationResult result;
 
@@ -245,12 +242,6 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         program->link(linkedProgram.writeRef(), diagnostics.writeRef());
         if (diagnostics)
             return result.push_error({static_cast<const char*>(diagnostics->getBufferPointer())});
-
-        Slang::ComPtr<slang::IBlob> kernel_blob;
-        linkedProgram->getEntryPointCode(0, 0, kernel_blob.writeRef(), diagnostics.writeRef());
-
-        std::vector<uint8_t> buffer(kernel_blob->getBufferSize());
-        memcpy(buffer.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());
 
         slang::IMetadata* metadata;
         linkedProgram->getEntryPointMetadata(0, 0, &metadata, diagnostics.writeRef());
@@ -336,6 +327,9 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             if (auto error = try_register_variable(parameter, data.inputs, metadata))
                 return result.push_error({"Unhandled shader stage type"});
         }
+
+        Slang::ComPtr<slang::IBlob> kernel_blob;
+        linkedProgram->getEntryPointCode(0, 0, kernel_blob.writeRef(), diagnostics.writeRef());
 
         data.compiled_module = std::vector<uint8_t>(kernel_blob->getBufferSize());
         std::memcpy(data.compiled_module.data(), kernel_blob->getBufferPointer(), kernel_blob->getBufferSize());
