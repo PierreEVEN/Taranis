@@ -14,11 +14,11 @@ MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& ba
 {
 }
 
-std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const std::string& shader_pass)
+std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const Gfx::RenderPassRef& render_pass_id)
 {
     auto perm = permutation.lock();
     if (perm)
-        return perm->get_resource(shader_pass);
+        return perm->get_resource(render_pass_id);
 
     permutation = base->get_permutation(permutation_description);
     if (!permutation.lock())
@@ -29,20 +29,21 @@ std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const st
     perm = permutation.lock();
     if (!perm)
         return nullptr;
-    return perm->get_resource(shader_pass);
+    return perm->get_resource(render_pass_id);
 }
 
-std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resource(const std::string& shader_pass)
+std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resource(const Gfx::RenderPassRef& render_pass_id)
 {
     {
         std::shared_lock lk(descriptor_lock);
-        if (auto found = descriptors.find(shader_pass); found != descriptors.end())
+        if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
             return found->second;
     }
     std::unique_lock lk(descriptor_lock);
-    if (auto base_material = get_base_resource(shader_pass))
+    if (auto base_material = get_base_resource(render_pass_id))
     {
-        auto new_descriptor = descriptors.emplace(shader_pass, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + shader_pass, Engine::get().get_device(), base_material)).first->second;
+        auto new_descriptor = descriptors.emplace(render_pass_id, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + render_pass_id.to_string(), Engine::get().get_device(), base_material)).first->
+                                          second;
 
         for (const auto& sampler : samplers)
             new_descriptor->bind_sampler(sampler.first, sampler.second->get_resource());
@@ -82,7 +83,7 @@ void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::we
         desc.second->bind_buffer(binding, buffer.lock());
 }
 
-void MaterialInstanceAsset::set_buffer(const std::string& render_pass, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
+void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
     std::unique_lock lk(descriptor_lock);
 
@@ -94,17 +95,18 @@ void MaterialInstanceAsset::set_buffer(const std::string& render_pass, const std
     }
     else
         buffers.emplace(binding, buffer);
-    if (auto found = descriptors.find(render_pass); found != descriptors.end())
+    if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
         found->second->bind_buffer(binding, buffer.lock());
 }
 
-void MaterialInstanceAsset::set_scene_data(const std::string& render_pass, const std::weak_ptr<Gfx::Buffer>& buffer_data)
+void MaterialInstanceAsset::set_scene_data(const Gfx::RenderPassRef& render_pass_id, const std::weak_ptr<Gfx::Buffer>& buffer_data)
 {
-    set_buffer(render_pass, "scene_data_buffer", buffer_data);
+    set_buffer(render_pass_id, "scene_data_buffer", buffer_data);
 }
 
-void MaterialInstanceAsset::prepare_for_passes(const std::string& render_pass)
+void MaterialInstanceAsset::prepare_for_passes(const Gfx::RenderPassGenericId& render_pass_id)
 {
-    get_base_resource(render_pass);
+    for (const auto& pass : Engine::get().get_device().lock()->get_all_pass_of_type(render_pass_id))
+        get_base_resource(pass);
 }
 } // namespace Eng

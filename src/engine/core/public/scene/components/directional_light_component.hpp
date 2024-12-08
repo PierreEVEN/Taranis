@@ -10,7 +10,6 @@ class DirectionalLightComponent : public LightComponent
     REFLECT_BODY()
 
     DirectionalLightComponent();
-    
 };
 }
 

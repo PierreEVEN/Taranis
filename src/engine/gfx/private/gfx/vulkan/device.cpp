@@ -146,8 +146,9 @@ const std::vector<const char*>& Device::get_device_extensions()
     return device_extensions;
 }
 
-std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const std::string& name)
+std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const RenderPassGenericId& name)
 {
+    registered_render_passes.emplace(key.render_pass_ref.generic_id(), ankerl::unordered_dense::set<RenderPassRef>{}).first->second.insert(key.render_pass_ref);
     const auto existing = render_passes.find(key);
 
     if (existing != render_passes.end())
@@ -156,13 +157,13 @@ std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& k
         return existing->second;
     }
 
-    const auto new_render_pass = VkRendererPass::create(key.name, shared_from_this(), key);
+    const auto new_render_pass = VkRendererPass::create(key.render_pass_ref.generic_id(), shared_from_this(), key);
     render_passes.emplace(key, new_render_pass);
     render_passes_named.emplace(name, new_render_pass);
     return new_render_pass;
 }
 
-std::weak_ptr<VkRendererPass> Device::get_render_pass(const std::string& name) const
+std::weak_ptr<VkRendererPass> Device::get_render_pass(const RenderPassGenericId& name) const
 {
     if (auto found = render_passes_named.find(name); found != render_passes_named.end())
         return found->second;

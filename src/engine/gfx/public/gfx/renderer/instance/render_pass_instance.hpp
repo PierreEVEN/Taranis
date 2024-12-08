@@ -3,6 +3,7 @@
 #include "gfx/renderer/definition/renderer.hpp"
 #include "jobsys/job_sys.hpp"
 #include "logger.hpp"
+#include "gfx/renderer/definition/render_pass_id.hpp"
 
 #include <functional>
 #include <memory>
@@ -29,7 +30,7 @@ using DeviceImageId    = uint8_t;
 class RenderPassInstance
 {
 public:
-    RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const std::string& name, bool b_is_present);
+    RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present);
 
     // Should be called before each frame to reset max draw flags
     void         reset_for_next_frame();
@@ -68,7 +69,9 @@ public:
         return {};
     }
 
-    std::weak_ptr<RenderPassInstance> get_dependency(const std::string& name) const;
+    std::vector<RenderPassRef> search_dependencies(const RenderPassGenericId& id) const;
+
+    std::weak_ptr<RenderPassInstance> get_dependency(const RenderPassRef& name) const;
 
     std::weak_ptr<VkRendererPass> get_render_pass_resource() const
     {
@@ -97,11 +100,6 @@ public:
         return custom_passes;
     }
 
-    uint64_t get_unique_id() const
-    {
-        return definition.unique_id;
-    }
-
 protected:
     bool enable_parallel_rendering() const
     {
@@ -127,7 +125,7 @@ protected:
 
     virtual uint8_t get_framebuffer_count() const;
 
-    ankerl::unordered_dense::map<std::string, std::shared_ptr<RenderPassInstance>> dependencies;
+    ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstance>> dependencies;
 
 private:
     std::shared_ptr<CustomPassList> custom_passes;
@@ -175,7 +173,7 @@ public:
     {
     }
 
-    std::shared_ptr<TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Renderer& renderer)
+    std::shared_ptr<TemporaryRenderPassInstance> add_custom_pass(const std::vector<RenderPassGenericId>& targets, const Renderer& renderer)
     {
         const auto new_rp = TemporaryRenderPassInstance::create(device, renderer);
         for (const auto& target : targets)
@@ -183,7 +181,7 @@ public:
         return new_rp;
     }
 
-    void remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass)
+    void remove_custom_pass(const std::shared_ptr<TemporaryRenderPassInstance>& pass)
     {
         for (auto& dep : temporary_dependencies | std::views::values)
         {
@@ -193,7 +191,7 @@ public:
         }
     }
 
-    std::vector<std::shared_ptr<TemporaryRenderPassInstance>> get_dependencies(const std::string& pass_name) const
+    std::vector<std::shared_ptr<TemporaryRenderPassInstance>> get_dependencies(const RenderPassGenericId& pass_name) const
     {
         if (auto found = temporary_dependencies.find(pass_name); found != temporary_dependencies.end())
             return found->second;
@@ -201,8 +199,8 @@ public:
     }
 
 private:
-    std::weak_ptr<Device>                                                                                device;
-    ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<TemporaryRenderPassInstance>>> temporary_dependencies;
+    std::weak_ptr<Device>                                                                                        device;
+    ankerl::unordered_dense::map<RenderPassGenericId, std::vector<std::shared_ptr<TemporaryRenderPassInstance>>> temporary_dependencies;
 };
 
 } // namespace Eng::Gfx

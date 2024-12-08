@@ -22,7 +22,7 @@ void SceneComponent::internal_tick(double delta_second)
     tick(delta_second);
 }
 
-void SceneComponent::build_outliner(Gfx::ImGuiWrapper& ctx)
+void SceneComponent::build_outliner(Gfx::ImGuiWrapper&)
 {
     glm::vec3 out_pos = get_relative_position();
     ImGui::DragFloat3("position", &out_pos.x, 10);

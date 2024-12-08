@@ -8,6 +8,11 @@
 
 namespace Eng::Gfx
 {
+class RenderPassRef;
+}
+
+namespace Eng::Gfx
+{
 class ImageView;
 }
 
@@ -50,10 +55,10 @@ protected:
     struct Content
     {
         // This is the total size of each stage (none stage contains multiple groups)
-        ankerl::unordered_dense::map<int, ImVec2>     stage_sizes;
-        ImVec2                                        size        = {0, 0};
-        ImVec2                                        current_pos = {0, 0};
-        ankerl::unordered_dense::map<uint64_t, Group> passes;
+        ankerl::unordered_dense::map<int, ImVec2>                    stage_sizes;
+        ImVec2                                                       size        = {0, 0};
+        ImVec2                                                       current_pos = {0, 0};
+        ankerl::unordered_dense::map<Eng::Gfx::RenderPassRef, Group> passes;
     };
 
     std::optional<ImVec2> desired_pos;

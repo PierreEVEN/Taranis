@@ -17,7 +17,7 @@ const Fence* Framebuffer::get_render_finished_fence() const
 
 Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets) : DeviceResource(std::move(in_device))
 {
-    auto& name                 = render_pass.get_definition().generic_name;
+    auto name                 = render_pass.get_definition().render_pass_ref.to_string();
     render_finished_fence      = Fence::create(name + "_cmd", device(), true);
     command_buffer             = CommandBuffer::create(name + "_cmd", device(), QueueSpecialization::Graphic);
     render_finished_semaphores = Semaphore::create(name + "_sem", device());
@@ -50,7 +50,7 @@ std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, c
     auto fb = std::shared_ptr<Framebuffer>(new Framebuffer(std::move(device), render_pass, image_index, render_targets));
     if (require_secondary)
         for (const auto& worker : JobSystem::get().get_workers())
-            fb->secondary_command_buffers.emplace(worker->thread_id(), SecondaryCommandBuffer::create(render_pass.get_definition().generic_name + "_sec_cmd", fb->command_buffer, fb, worker->thread_id()));
+            fb->secondary_command_buffers.emplace(worker->thread_id(), SecondaryCommandBuffer::create(render_pass.get_definition().render_pass_ref.to_string() + "_sec_cmd", fb->command_buffer, fb, worker->thread_id()));
     return fb;
 }
 

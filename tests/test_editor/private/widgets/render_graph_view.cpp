@@ -162,14 +162,14 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
 
 void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstance>& pass, Content& content, int current_stage)
 {
-    if (auto found = content.passes.find(pass->get_definition().unique_id); found != content.passes.end())
+    if (auto found = content.passes.find(pass->get_definition().render_pass_ref); found != content.passes.end())
     {
         if (current_stage > found->second.stage)
             found->second.stage = current_stage;
         return;
     }
     Group group;
-    group.name  = pass->get_definition().generic_name;
+    group.name  = pass->get_definition().render_pass_ref.to_string();
     group.stage = current_stage;
 
     for (const auto& attachment : pass->get_definition().attachments | std::views::keys)
@@ -197,7 +197,7 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
         stage_dims.x = group.size.x + group_padding.y * 2.f;
     stage_dims.y += group.size.y + group_padding.y;
 
-    content.passes.emplace(pass->get_definition().unique_id, group);
+    content.passes.emplace(pass->get_definition().render_pass_ref, group);
 
     for (const auto& child : pass->all_childs())
         add_pass_content(ctx, child.lock(), content, current_stage + 1);

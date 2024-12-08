@@ -4,6 +4,7 @@
 
 #include "physical_device.hpp"
 #include "gfx/gfx.hpp"
+#include "gfx/renderer/definition/render_pass_id.hpp"
 
 struct VmaAllocatorWrap;
 
@@ -39,8 +40,15 @@ public:
     }
 
     static const std::vector<const char*>& get_device_extensions();
-    std::weak_ptr<VkRendererPass>          declare_render_pass(const RenderPassKey& key, const std::string& name);
-    std::weak_ptr<VkRendererPass>          get_render_pass(const std::string& name) const;
+    std::weak_ptr<VkRendererPass>          declare_render_pass(const RenderPassKey& key, const RenderPassGenericId& name);
+    std::weak_ptr<VkRendererPass>          get_render_pass(const RenderPassGenericId& name) const;
+
+    ankerl::unordered_dense::set<RenderPassRef> get_all_pass_of_type(const RenderPassGenericId& name) const
+    {
+        if (auto found = registered_render_passes.find(name); found != registered_render_passes.end())
+            return found->second;
+        return {};
+    }
 
     void destroy_resources();
 
@@ -171,19 +179,20 @@ private:
     std::mutex object_name_mutex;
     bool       b_enable_validation_layers = false;
     Device(const GfxConfig& config, const std::weak_ptr<Instance>& instance, const PhysicalDevice& physical_device, const Surface& surface);
-    ankerl::unordered_dense::map<RenderPassKey, std::shared_ptr<VkRendererPass>> render_passes;
-    ankerl::unordered_dense::map<std::string, std::weak_ptr<VkRendererPass>>     render_passes_named;
-    std::unique_ptr<Queues>                                                      queues;
-    PhysicalDevice                                                               physical_device;
-    VkDevice                                                                     ptr = VK_NULL_HANDLE;
-    std::unique_ptr<VmaAllocatorWrap>                                            allocator;
-    uint8_t                                                                      image_count   = 2;
-    uint8_t                                                                      current_image = 0;
-    std::mutex                                                                   resource_mutex;
-    std::vector<std::vector<std::shared_ptr<DeviceResource>>>                    pending_kill_resources;
-    std::shared_ptr<DescriptorPool>                                              descriptor_pool;
-    std::weak_ptr<Instance>                                                      instance;
-    GfxConfig                                                                    config;
+    ankerl::unordered_dense::map<RenderPassKey, std::shared_ptr<VkRendererPass>>                   render_passes;
+    ankerl::unordered_dense::map<RenderPassGenericId, std::weak_ptr<VkRendererPass>>               render_passes_named;
+    ankerl::unordered_dense::map<RenderPassGenericId, ankerl::unordered_dense::set<RenderPassRef>> registered_render_passes;
+    std::unique_ptr<Queues>                                                                        queues;
+    PhysicalDevice                                                                                 physical_device;
+    VkDevice                                                                                       ptr = VK_NULL_HANDLE;
+    std::unique_ptr<VmaAllocatorWrap>                                                              allocator;
+    uint8_t                                                                                        image_count   = 2;
+    uint8_t                                                                                        current_image = 0;
+    std::mutex                                                                                     resource_mutex;
+    std::vector<std::vector<std::shared_ptr<DeviceResource>>>                                      pending_kill_resources;
+    std::shared_ptr<DescriptorPool>                                                                descriptor_pool;
+    std::weak_ptr<Instance>                                                                        instance;
+    GfxConfig                                                                                      config;
 };
 
 class DeviceResource : public std::enable_shared_from_this<DeviceResource>

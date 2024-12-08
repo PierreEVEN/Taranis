@@ -36,9 +36,7 @@ public:
     Scene*                     scene = nullptr;
 };
 
-LightComponent::LightComponent()
-{
-}
+LightComponent::LightComponent() = default;
 
 void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
 {
@@ -48,7 +46,7 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
         return;
 
     shadows = in_enabled;
-    
+
     if (in_enabled)
     {
         shadow_view = SceneView::create();
@@ -57,13 +55,14 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
         shadow_view->set_z_near(-5000);
         shadow_view->set_orthographic_width(2500);
 
+        auto          obj_ref = as_ref();
         Gfx::Renderer renderer;
         renderer["shadows"]
             .render_pass<SceneShadowsInterface>(shadow_view, get_scene())
             .resize_callback(
-                [this](const glm::uvec2&)-> glm::uvec2
+                [obj_ref](const glm::uvec2&) -> glm::uvec2
                 {
-                    return {shadow_resolution, shadow_resolution};
+                    return {obj_ref.cast<LightComponent>()->shadow_resolution, obj_ref.cast<LightComponent>()->shadow_resolution};
                 })
             [Gfx::Attachment::slot("depth").format(Gfx::ColorFormat::D24_UNORM_S8_UINT).clear_depth({0.0f, 0.0f})];
 
@@ -78,12 +77,14 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
 void LightComponent::set_position(glm::vec3 in_position)
 {
     SceneComponent::set_position(in_position);
-    shadow_view->set_position(in_position);
+    if (shadow_view)
+        shadow_view->set_position(in_position);
 }
 
 void LightComponent::set_rotation(glm::quat in_rotation)
 {
     SceneComponent::set_rotation(in_rotation);
-    shadow_view->set_rotation(in_rotation);
+    if (shadow_view)
+        shadow_view->set_rotation(in_rotation);
 }
 } // namespace Eng

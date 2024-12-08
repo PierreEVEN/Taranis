@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render_pass_id.hpp"
 #include "gfx/types.hpp"
 #include "gfx_types/format.hpp"
 
@@ -111,7 +112,7 @@ struct RenderPassKey
     }
 
     std::vector<Attachment> attachments;
-    std::string             name;
+    RenderPassRef           render_pass_ref;
     bool                    b_reversed_z = false;
     bool                    b_present    = false;
 };
@@ -180,9 +181,9 @@ public:
     RenderPassKey get_key(bool b_present) const
     {
         RenderPassKey key;
-        key.name         = generic_name;
-        key.b_present    = b_present;
-        key.b_reversed_z = reversed_logarithmic_depth;
+        key.render_pass_ref = render_pass_ref;
+        key.b_present       = b_present;
+        key.b_reversed_z    = reversed_logarithmic_depth;
         for (const auto& attachment : attachments | std::views::values)
             key.attachments.emplace_back(attachment);
         return key;
@@ -237,8 +238,7 @@ public:
     ankerl::unordered_dense::set<std::string>             dependencies;
     bool                                                  b_with_imgui = false;
     std::weak_ptr<Window>                                 imgui_input_window;
-    std::string                                           generic_name;
-    uint64_t                                              unique_id = 0;
+    RenderPassRef                                         render_pass_ref;
     ResizeCallback                                        resize_callback_ptr;
     bool                                                  reversed_logarithmic_depth = false;
 };
@@ -250,13 +250,13 @@ public:
 
     RenderNode& operator[](const std::string& node)
     {
-        auto& found        = nodes.emplace(node, RenderNode{}).first->second;
-        found.generic_name = node;
+        auto& found           = nodes.emplace(node, RenderNode{}).first->second;
+        found.render_pass_ref = RenderPassRef(node, 0);
         return found;
     }
 
-    const RenderNode&          get_node(const std::string& pass_name) const;
-    std::optional<std::string> root_node() const;
+    const RenderNode&                  get_node(const std::string& pass_name) const;
+    std::optional<RenderPassGenericId> root_node() const;
 
     Renderer compile(ColorFormat target_format, const std::weak_ptr<Device>& device) const;
 

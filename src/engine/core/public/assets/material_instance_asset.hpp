@@ -39,27 +39,27 @@ class MaterialInstanceAsset : public AssetBase
 public:
     MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material);
 
-    std::shared_ptr<Gfx::Pipeline>      get_base_resource(const std::string& shader_pass);
-    std::shared_ptr<Gfx::DescriptorSet> get_descriptor_resource(const std::string& shader_pass);
+    std::shared_ptr<Gfx::Pipeline>      get_base_resource(const Gfx::RenderPassRef& render_pass_id);
+    std::shared_ptr<Gfx::DescriptorSet> get_descriptor_resource(const Gfx::RenderPassRef& render_pass_id);
 
     void set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
     void set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture);
     void set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
-    void set_buffer(const std::string& render_pass, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
-    void set_scene_data(const std::string& render_pass, const std::weak_ptr<Gfx::Buffer>& buffer);
+    void set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
+    void set_scene_data(const Gfx::RenderPassRef& render_pass_id, const std::weak_ptr<Gfx::Buffer>& buffer);
 
     // Compile shader for given pass if available (avoid lag spike later)
-    void prepare_for_passes(const std::string& render_pass);
+    void prepare_for_passes(const Gfx::RenderPassGenericId& render_pass_id);
 
     glm::vec3 asset_color() const override
     {
         return {0.2, 0.7, 0.3};
     }
 
-  private:
-    TObjectRef<MaterialAsset>                                                      base;
-    std::shared_mutex                                                              descriptor_lock;
-    ankerl::unordered_dense::map<std::string, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
+private:
+    TObjectRef<MaterialAsset>                                                             base;
+    std::shared_mutex                                                                     descriptor_lock;
+    ankerl::unordered_dense::map<Gfx::RenderPassRef, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
     Gfx::PermutationDescription        permutation_description;
     std::weak_ptr<MaterialPermutation> permutation;

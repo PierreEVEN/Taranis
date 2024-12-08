@@ -56,6 +56,7 @@ public:
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {
         static_assert(std::is_base_of_v<SceneComponent, T>, "This type is not an SceneComponent");
+        assert(sizeof(T) == T::static_class()->stride());
         ObjectAllocation* alloc = allocator->allocate(T::static_class());
         T*                ptr   = static_cast<T*>(alloc->ptr);
         ptr->scene              = this;
@@ -65,6 +66,7 @@ public:
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
+        obj_ptr->this_ref = obj_ptr;
         root_nodes.emplace_back(obj_ptr);
         return obj_ptr;
     }

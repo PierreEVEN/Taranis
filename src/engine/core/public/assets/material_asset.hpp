@@ -28,7 +28,7 @@ struct MaterialPermutation
 {
     MaterialPermutation(MaterialAsset* owner, Gfx::PermutationDescription permutation_desc);
     ~MaterialPermutation();
-    std::shared_ptr<Gfx::Pipeline> get_resource(const std::string& render_pass);
+    std::shared_ptr<Gfx::Pipeline> get_resource(const Gfx::RenderPassRef& render_pass);
 
 private:
     struct PassInfos
@@ -37,9 +37,9 @@ private:
         std::shared_ptr<Gfx::Pipeline>                                        pipeline;
     };
 
-    ankerl::unordered_dense::map<std::string, PassInfos> passes;
-    MaterialAsset*                                       owner = nullptr;
-    Gfx::PermutationDescription                          permutation_description;
+    ankerl::unordered_dense::map<Gfx::RenderPassRef, PassInfos> passes;
+    MaterialAsset*                                              owner = nullptr;
+    Gfx::PermutationDescription                                 permutation_description;
 };
 
 class MaterialAsset : public AssetBase
@@ -67,14 +67,14 @@ public:
         return {0.5, 1, 0.7};
     }
 
-  private:
+private:
     friend MaterialPermutation;
     Gfx::PermutationDescription default_permutation;
 
     ankerl::unordered_dense::map<Gfx::PermutationDescription, std::shared_ptr<MaterialPermutation>> permutations;
 
-    bool                            scan_source_updates = true;
-    std::filesystem::path           shader_real_path;
+    bool                  scan_source_updates = true;
+    std::filesystem::path shader_real_path;
 
     std::filesystem::file_time_type last_update;
 

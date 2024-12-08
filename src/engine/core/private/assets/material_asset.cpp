@@ -68,7 +68,7 @@ MaterialPermutation::~MaterialPermutation()
         Engine::get().get_device().lock()->drop_resource(pass.second.pipeline);
 }
 
-std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const std::string& render_pass)
+std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const Gfx::RenderPassRef& render_pass)
 {
     {
         std::shared_lock lk(owner->pipeline_mutex);
@@ -80,8 +80,8 @@ std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const std::stri
     if (!owner->compiler_session)
         return nullptr;
 
-    PROFILER_SCOPE_NAMED(CompileShader, std::string("Compile material '") + owner->get_name() + "' for render pass " + render_pass);
-    auto compilation_result = owner->compiler_session->compile(render_pass, permutation_description);
+    PROFILER_SCOPE_NAMED(CompileShader, std::string("Compile material '") + owner->get_name() + "' for render pass " + render_pass.to_string());
+    auto compilation_result = owner->compiler_session->compile(render_pass.generic_id(), permutation_description);
 
     if (!compilation_result.errors.empty())
     {
@@ -96,7 +96,7 @@ std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const std::stri
 
     auto device = Engine::get().get_device();
 
-    auto render_pass_object = device.lock()->get_render_pass(render_pass);
+    auto render_pass_object = device.lock()->get_render_pass(render_pass.generic_id());
     if (!render_pass_object.lock())
     {
         LOG_ERROR("There is no render pass named {}", render_pass);

@@ -129,6 +129,8 @@ void DescriptorSet::bind_buffer(const std::string& binding_name, const std::shar
     if (b_static && in_buffer->raw().size() > 1)
         LOG_ERROR("Cannot bind dynamic buffer '{}' to static descriptors '{}::{}'", in_buffer->get_name(), name, binding_name);
 
+    if (name == "MaterialInstance__0_descriptors_shadows")
+        LOG_DEBUG("bind buffer {} to {:x} : {}", (size_t)in_buffer.get(), size_t(this), name);
     std::lock_guard lk(update_lock);
     auto            new_descriptor = std::make_shared<BufferDescriptor>(in_buffer);
     if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())

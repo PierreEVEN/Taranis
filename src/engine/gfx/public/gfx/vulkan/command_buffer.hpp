@@ -6,6 +6,7 @@
 
 #include "queue_family.hpp"
 #include "shader_module.hpp"
+#include "gfx/renderer/definition/render_pass_id.hpp"
 
 #include <ankerl/unordered_dense.h>
 
@@ -86,7 +87,7 @@ class CommandBuffer
     void set_scissor(const Scissor& scissors) const;
     void set_viewport(const Viewport& viewport) const;
     void push_constant(EShaderStage stage, const Pipeline& pipeline, const BufferData& data) const;
-    void begin_render_pass(const std::string& pass_name, const VkRenderPassBeginInfo& begin_infos, bool parallel_rendering);
+    void begin_render_pass(const RenderPassRef& pass_name, const VkRenderPassBeginInfo& begin_infos, bool parallel_rendering);
     void end_render_pass();
 
     const std::weak_ptr<Device>& get_device() const
@@ -104,13 +105,13 @@ class CommandBuffer
         return name;
     }
 
-    const std::string& render_pass() const
+    const RenderPassRef& render_pass() const
     {
         return render_pass_name;
     }
 
   protected:
-    std::string render_pass_name;
+    RenderPassRef render_pass_name;
     friend class SecondaryCommandBuffer;
     void                                                        reset_stats();
     std::mutex                                                  secondary_vector_mtx;

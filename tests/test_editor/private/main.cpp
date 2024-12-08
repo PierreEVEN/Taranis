@@ -47,8 +47,7 @@ public:
 
     size_t record_threads() override
     {
-        return 0;
-        //std::thread::hardware_concurrency() * 3;
+        return std::thread::hardware_concurrency() * 3;
     }
 
     void pre_submit(const Gfx::RenderPassInstance&) override
@@ -78,8 +77,8 @@ public:
 
     void on_create_framebuffer(const Gfx::RenderPassInstance& render_pass) override
     {
-        auto dep      = render_pass.get_dependency("gbuffers").lock();
-        auto resource = material->get_descriptor_resource("gbuffer_resolve");
+        auto dep      = render_pass.get_dependency(render_pass.search_dependencies("gbuffers")[0]).lock();
+        auto resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
 
         if (!resource)
             return LOG_ERROR("Cannot find descriptor resource for pass {}", "gbuffer_resolve");
@@ -162,12 +161,12 @@ public:
 
     void init(const Gfx::RenderPassInstance& rp) override
     {
-        rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency("gbuffer_resolve"), scene);
+        rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency(rp.search_dependencies("gbuffer_resolve")[0]), scene);
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
         rp.imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
         rp.imgui()->new_window<ProfilerWindow>("Profiler");
         rp.imgui()->new_window<RenderGraphView>("Render Graph View");
-        rp.imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependency("gbuffer_resolve"));
+        rp.imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependency(rp.search_dependencies("gbuffer_resolve")[0]));
     }
 
     std::shared_ptr<Scene> scene;
@@ -207,13 +206,9 @@ public:
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
 
-        LOG_WARNING("REAL SIZE {} vs {}", sizeof(DirectionalLightComponent), DirectionalLightComponent::static_class()->stride());
-        assert(sizeof(DirectionalLightComponent) == DirectionalLightComponent::static_class()->stride());
-
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
         auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
-        auto directional_light3 = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light2->enable_shadow(ELightType::Movable);
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
 
@@ -229,7 +224,6 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
@@ -238,7 +232,6 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});

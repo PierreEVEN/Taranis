@@ -14,9 +14,9 @@ const RenderNode& Renderer::get_node(const std::string& pass_name) const
     LOG_FATAL("There is no render pass named {}", pass_name);
 }
 
-std::optional<std::string> Renderer::root_node() const
+std::optional<RenderPassGenericId> Renderer::root_node() const
 {
-    ankerl::unordered_dense::set<std::string> roots;
+    ankerl::unordered_dense::set<RenderPassGenericId> roots;
     for (const auto& node_name : nodes | std::views::keys)
         roots.insert(node_name);
 
@@ -58,7 +58,7 @@ Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device
         LOG_FATAL("Failed to compile renderer, no root");
 
     for (auto& node : copy.nodes)
-        node.second.unique_id = ++UNIQUE_PASS_ID;
+        node.second.render_pass_ref.id = ++UNIQUE_PASS_ID;
 
     if (target_format == ColorFormat::UNDEFINED)
         return copy;

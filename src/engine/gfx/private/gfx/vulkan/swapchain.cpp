@@ -136,7 +136,7 @@ void Swapchain::create_or_recreate()
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
     VK_CHECK(vkCreateSwapchainKHR(device_ptr->raw(), &createInfo, nullptr, &ptr), "Failed to create swapchain")
-    device_ptr->debug_set_object_name(get_definition().generic_name, ptr);
+    device_ptr->debug_set_object_name(get_definition().render_pass_ref.to_string(), ptr);
 
     vkGetSwapchainImagesKHR(device_ptr->raw(), ptr, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
@@ -144,7 +144,7 @@ void Swapchain::create_or_recreate()
 
     image_available_semaphores.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
-        image_available_semaphores.emplace_back(Semaphore::create(get_definition().generic_name + "_sem_#" + std::to_string(i), device));
+        image_available_semaphores.emplace_back(Semaphore::create(get_definition().render_pass_ref.to_string() + "_sem_#" + std::to_string(i), device));
 
     if (get_definition().resize_callback_ptr)
         LOG_FATAL("Resize callback can't be used with swapchain draw pass");

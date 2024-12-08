@@ -41,21 +41,23 @@ public:
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {
         static_assert(std::is_base_of_v<SceneComponent, T>, "This type is not an SceneComponent");
+        assert(sizeof(T) == T::static_class()->stride());
         // this component could be moved during the next allocation. The TObjectRef will handle this move
-        TObjectRef<SceneComponent> this_ref = scene->allocator->get_ref<SceneComponent>(this, get_class());
-        if (!this_ref)
+        TObjectRef<SceneComponent> this_ref_tmp = this_ref;
+        if (!this_ref_tmp)
             LOG_FATAL("Internal error : failed to current_thread ref to this object");
-        ObjectAllocation* alloc = this_ref->scene->allocator->allocate(T::static_class());
+        ObjectAllocation* alloc = this_ref_tmp->scene->allocator->allocate(T::static_class());
         T*                ptr   = static_cast<T*>(alloc->ptr);
-        ptr->scene              = this_ref->scene;
+        ptr->scene              = this_ref_tmp->scene;
         ptr->name               = new char[name.size() + 1];
         memcpy(const_cast<char*>(ptr->name), name.c_str(), name.size() + 1);
         new(alloc->ptr) T(std::forward<Args>(args)...);
         if (!ptr->name)
             LOG_FATAL("Object {} does not contains any constructor", typeid(T).name())
         TObjectPtr<T> obj_ptr(alloc);
-        obj_ptr->parent = this_ref;
-        this_ref->children.emplace_back(obj_ptr);
+        obj_ptr->parent   = this_ref_tmp;
+        obj_ptr->this_ref = obj_ptr;
+        this_ref_tmp->children.emplace_back(obj_ptr);
         return obj_ptr;
     }
 
@@ -121,6 +123,11 @@ public:
 
     virtual void build_outliner(Gfx::ImGuiWrapper& ctx);
 
+    TObjectRef<SceneComponent> as_ref() const
+    {
+        return this_ref;
+    }
+
 protected:
     SceneComponent()
     {
@@ -137,6 +144,7 @@ private:
     const char*                             name;
     Scene*                                  scene;
     TObjectRef<SceneComponent>              parent = {};
+    TObjectRef<SceneComponent>              this_ref = {};
     std::vector<TObjectPtr<SceneComponent>> children{};
 
 
