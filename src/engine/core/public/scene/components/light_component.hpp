@@ -27,6 +27,11 @@ class LightComponent : public SceneComponent
 
     void enable_shadow(ELightType light_type = ELightType::Stationary, bool enabled = true);
 
+    const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& get_shadow_pass() const
+    {
+        return shadow_update_pass;
+    }
+
 protected:
     void set_position(glm::vec3 in_position) override;
     void set_rotation(glm::quat in_rotation) override;

@@ -89,11 +89,34 @@ public:
         resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
+    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t) override
     {
         auto resource = material->get_base_resource(command_buffer.render_pass());
         if (!resource)
             return;
+
+        struct Light
+        {
+            uint8_t   type;
+            glm::vec3 pos;
+            glm::vec3 dir;
+        };
+
+        std::vector<Light> lights;
+
+        scene->for_each<LightComponent>(
+            [&](const LightComponent& comp)
+            {
+                if (comp.get_shadow_pass())
+                {
+                    lights.emplace_back(0, comp.get_relative_position(), glm::vec3{0});
+                    comp.get_shadow_pass()->get_attachment("depth");
+                }
+            });
+        material->set_buffer("lights", light_buffer);
+        if (!light_buffer)
+            light_buffer = Gfx::Buffer::create("Light buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(Light), lights.size());
+
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
             {
@@ -108,6 +131,7 @@ public:
     TObjectRef<MaterialInstanceAsset> material;
     TObjectRef<SamplerAsset>          sampler;
     std::shared_ptr<Scene>            scene;
+    std::shared_ptr<Gfx::Buffer>      light_buffer;
 };
 
 
@@ -322,7 +346,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {.gfx = {.enable_validation_layers = true, .v_sync = true}, .auto_update_materials = false};
+    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = true}, .auto_update_materials = false};
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }
