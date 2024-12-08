@@ -47,7 +47,6 @@ private:
 class FpsCameraComponent : public CameraComponent
 {
     REFLECT_BODY();
-
 public:
     FpsCameraComponent()
     {

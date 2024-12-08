@@ -89,7 +89,7 @@ public:
         resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t) override
+    void draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
     {
         auto resource = material->get_base_resource(command_buffer.render_pass());
         if (!resource)

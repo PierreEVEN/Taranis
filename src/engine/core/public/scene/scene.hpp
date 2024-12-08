@@ -56,7 +56,8 @@ public:
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {
         static_assert(std::is_base_of_v<SceneComponent, T>, "This type is not an SceneComponent");
-        assert(sizeof(T) == T::static_class()->stride());
+        if (sizeof(T) != T::static_class()->stride())
+            LOG_FATAL("Please recompile {}", T::static_class()->name());
         ObjectAllocation* alloc = allocator->allocate(T::static_class());
         T*                ptr   = static_cast<T*>(alloc->ptr);
         ptr->scene              = this;

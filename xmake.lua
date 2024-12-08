@@ -29,8 +29,10 @@ end
 add_defines("ENABLE_VALIDATION_LAYER")
 add_defines("ENABLE_PROFILER")
 
-add_requires("vulkan-loader", "glfw", "glm", "imgui docking", "vulkan-memory-allocator", "assimp", "concurrentqueue", "unordered_dense")
-add_requires("freeimage", {configs = {rgb = true}})
+add_requires("vulkan-loader", "glm", "imgui docking", "vulkan-memory-allocator", "concurrentqueue", "unordered_dense")
+add_requires("glfw", {configs = {shared = true}})
+add_requires("assimp", {configs = {shared = true, no_export = true}})
+add_requires("freeimage", {configs = {rgb = true, shared = true}})
 add_requires("slang v2024.15.1", {verify = false})
 
 rule("generated_cpp", function (rule)
@@ -51,29 +53,11 @@ rule("generated_cpp", function (rule)
             --batchcmds:vrunv(TODO : make the header tool works for one header at a time)
             batchcmds:compile(generated_source, objectfile)
 
-            table.insert(target:objectfiles(), objectfile)
             batchcmds:show_progress(opt.progress, "${color.build.object}Compiling.reflection %s", generated_source)
             batchcmds:add_depfiles(source_header)
 
             batchcmds:set_depmtime(os.mtime(objectfile))
             batchcmds:set_depcache(target:dependfile(objectfile))
-
-            if (false) then
-                print("AHBZOIFUAZF AZUVIF AZUOFOAZIFH BUILDING " .. source_header .." : "..type(batchcmds:depinfo().files))
-                print("TEST : "..type(res))
-                for prop, k in pairs(batchcmds) do
-                    print("DEPEND : "..prop)
-                end
-                for prop, k in pairs(batchcmds:depinfo().files) do
-                    print("files " ..prop.." : "..k)
-                end
-                for prop, k in pairs(batchcmds:depinfo().lastmtime) do
-                    print("lastmtime " ..prop.." : "..k)
-                end
-                for prop, k in pairs(batchcmds:depinfo().dependfile) do
-                    print("dependfile " ..prop.." : "..k)
-                end
-            end
         end
     end)
 end)

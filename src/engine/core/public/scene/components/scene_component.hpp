@@ -41,7 +41,8 @@ public:
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {
         static_assert(std::is_base_of_v<SceneComponent, T>, "This type is not an SceneComponent");
-        assert(sizeof(T) == T::static_class()->stride());
+        if (sizeof(T) != T::static_class()->stride())
+            LOG_FATAL("Please recompile {}", T::static_class()->name());
         // this component could be moved during the next allocation. The TObjectRef will handle this move
         TObjectRef<SceneComponent> this_ref_tmp = this_ref;
         if (!this_ref_tmp)
