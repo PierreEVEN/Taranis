@@ -4,7 +4,7 @@
 
 #include <glm/vec3.hpp>
 
-#include "scene\components\light_component.gen.hpp"
+#include "scene/components/light_component.gen.hpp"
 
 
 namespace Eng
@@ -24,6 +24,7 @@ class LightComponent : public SceneComponent
     REFLECT_BODY()
 
     LightComponent();
+
 
     void enable_shadow(ELightType light_type = ELightType::Stationary, bool enabled = true);
 

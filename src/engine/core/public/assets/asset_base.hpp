@@ -1,9 +1,9 @@
 #pragma once
 
 #include "object_ptr.hpp"
-#include "assets/asset_base.gen.hpp"
 
 #include <glm/vec3.hpp>
+#include "assets/asset_base.gen.hpp"
 
 namespace Eng::Gfx
 {

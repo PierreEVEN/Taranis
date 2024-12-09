@@ -2,7 +2,7 @@
 #include "macros.hpp"
 #include "scene_component.hpp"
 
-#include "scene\components\camera_component.gen.hpp"
+#include "scene/components/camera_component.gen.hpp"
 
 namespace Eng::Gfx
 {

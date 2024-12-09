@@ -5,7 +5,7 @@
 #include "scene/scene.hpp"
 #include <glm/gtc/quaternion.hpp>
 
-#include "scene\components\scene_component.gen.hpp"
+#include "scene/components/scene_component.gen.hpp"
 
 namespace Eng
 {
@@ -37,6 +37,7 @@ public:
     virtual void tick(double)
     {
     }
+
 
     template <typename T, typename... Args> TObjectRef<T> add_component(const std::string& name, Args&&... args)
     {

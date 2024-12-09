@@ -1,15 +1,13 @@
 #pragma once
 #include "asset_base.hpp"
-#include "object_ptr.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx_types/pipeline.hpp"
 
 #include <filesystem>
-#include <mutex>
-
-#include "assets\material_asset.gen.hpp"
 
 #include <shared_mutex>
+
+#include "assets/material_asset.gen.hpp"
 
 namespace ShaderCompiler
 {

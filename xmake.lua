@@ -39,25 +39,59 @@ rule("generated_cpp", function (rule)
     set_extensions(".hpp")
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
 
+        import("core.tool.compiler")
+        import("core.project.depend")
+
         -- Guess generated source file path
         local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
+
+        -- this is the include string the user should have added to it's class
+        local include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
+
         -- replace .hpp extension with .gen.cpp
         local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
-
         -- generated classes are always private
         generated_source = generated_source:gsub("public", "private", 1)
         
+        -- replace .hpp extension with .gen.hpp
+        local generated_header = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.hpp"
+        -- generated headers are always public
+        generated_header = generated_header:gsub("private", "public", 1)
+
+        local compinst = compiler.load("cxx", {target = target})
+        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
+
+        local objectfile = target:objectfile(generated_source)
+        local dependfile = target:dependfile(objectfile)
+        -- Load existing dep infos (or create if not exists)
+        local dependinfo = target:is_rebuilt() and {} or (depend.load(dependfile, {target = target}) or {})
+
+        local depvalues = {compinst:program(), compflags}
+        local lastmtime = os.isfile(objectfile) and os.mtime(objectfile) or 0
+
+        -- Test if source file was modified (otherwise skip it)
+        if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
+            return
+        end
+
+        -- Generate reflection header
+        os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
+
+        -- if exists
         if (os.exists(generated_source)) then
-            local test_str = tostring(generated_source)
-            local objectfile = target:objectfile(generated_source)
-            --batchcmds:vrunv(TODO : make the header tool works for one header at a time)
-            batchcmds:compile(generated_source, objectfile)
 
-            batchcmds:show_progress(opt.progress, "${color.build.object}Compiling.reflection %s", generated_source)
-            batchcmds:add_depfiles(source_header)
-
-            batchcmds:set_depmtime(os.mtime(objectfile))
-            batchcmds:set_depcache(target:dependfile(objectfile))
+            batchcmds:show_progress(opt.progress, "${color.build.object}compiling.$(mode) %s", generated_source)
+            -- Compile and fill the dependency list into dependinfo
+            assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
+            
+            -- store build depvalues to detect depvalues changes
+            dependinfo.values = depvalues
+            depend.save(dependinfo, dependfile)
+        else
+            -- save last update check time
+            dependinfo.files = {source_header}
+            dependinfo.values = depvalues
+            depend.save(dependinfo, dependfile)    
         end
     end)
 end)
@@ -90,7 +124,7 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
                 end
                 os.mkdir(target:autogendir().."/private/")
                 os.mkdir(target:autogendir().."/public/")
-                os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..target:scriptdir().." "..target:autogendir().."/")
+                --os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..target:scriptdir().." "..target:autogendir().."/")
                 -- will register the generated files in the link process, so we still needs to generate the .obj in a custom rule
                 for _, file in pairs(os.files(target:autogendir().."/private/**.cpp")) do
                     target:add("files", file)

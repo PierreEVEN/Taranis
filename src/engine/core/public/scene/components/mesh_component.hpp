@@ -1,7 +1,7 @@
 #pragma once
 #include "scene_component.hpp"
 
-#include "scene\components\mesh_component.gen.hpp"
+#include "scene/components/mesh_component.gen.hpp"
 
 namespace Eng
 {

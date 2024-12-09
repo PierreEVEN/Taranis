@@ -1,7 +1,7 @@
 #pragma once
 
-#include "test_refl_class.gen.hpp"
 #include <cassert>
+#include "test_refl_class.gen.hpp"
 
 class TestReflectClass
 {

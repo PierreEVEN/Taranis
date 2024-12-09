@@ -7,7 +7,7 @@
 #include <vector>
 #include <glm/ext/matrix_float4x4.hpp>
 
-#include "scene\scene.gen.hpp"
+#include "scene/scene.gen.hpp"
 
 namespace Eng::Gfx
 {

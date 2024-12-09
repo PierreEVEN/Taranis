@@ -1,8 +1,7 @@
 #pragma once
 #include "asset_base.hpp"
-#include "object_ptr.hpp"
 
-#include "assets\sampler_asset.gen.hpp"
+#include "assets/sampler_asset.gen.hpp"
 
 namespace Eng
 {

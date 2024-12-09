@@ -12,6 +12,7 @@ class ParentA
     {
     }
 
+
     int a = 1;
 
     virtual void my_func()
@@ -27,7 +28,9 @@ class ParentB
     virtual void my_func2()
     {
     }
+
 };
+
 
 class TestChildA : public ParentA, public ParentB
 {
