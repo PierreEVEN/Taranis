@@ -115,7 +115,8 @@ public:
             });
         material->set_buffer("lights", light_buffer);
         if (!light_buffer)
-            light_buffer = Gfx::Buffer::create("Light buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(Light), lights.size());
+            light_buffer = Gfx::Buffer::create("Light buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(Light),
+                                               lights.size());
 
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
@@ -160,7 +161,7 @@ public:
                 ctx.new_window<Viewport>("Viewport", scene_rp, scene);
 
             if (ImGui::MenuItem("Content Browser"))
-                ctx.new_window<ContentBrowser>("Content Browser", Engine::get().asset_registry());
+                ctx.new_window<ContentBrowser>("Content Browser", Engine::get().asset_registry(), scene);
 
             if (ImGui::MenuItem("Render Graph View"))
                 ctx.new_window<RenderGraphView>("Render Graph View");
@@ -186,7 +187,7 @@ public:
     void init(const Gfx::RenderPassInstance& rp) override
     {
         rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency(rp.search_dependencies("gbuffer_resolve")[0]), scene);
-        rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry());
+        rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);
         rp.imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
         rp.imgui()->new_window<ProfilerWindow>("Profiler");
         rp.imgui()->new_window<RenderGraphView>("Render Graph View");
@@ -239,6 +240,7 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
+                return;
                 auto  new_scene = importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
@@ -248,6 +250,7 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
+                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
@@ -256,6 +259,7 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
+                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
@@ -347,7 +351,10 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    Config config = {.gfx = {.enable_validation_layers = false, .v_sync = true}, .auto_update_materials = false};
+    Config config;
+    config.gfx.enable_validation_layers = false;
+    config.gfx.v_sync                   = true;
+    config.auto_update_materials        = false;
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

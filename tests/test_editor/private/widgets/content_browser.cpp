@@ -1,33 +1,99 @@
 #include "content_browser.hpp"
 
+#include "engine.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
+#include "import/assimp_import.hpp"
+#include "import/image_import.hpp"
+#include "scene/scene.hpp"
 
 #include <imgui.h>
 #include <ranges>
+#include <nfd.h>
 
-ContentBrowser::ContentBrowser(const std::string& name, Eng::AssetRegistry& asset_registry) : UiWindow(name), registry(&asset_registry)
+ContentBrowser::ContentBrowser(const std::string& name, Eng::AssetRegistry& asset_registry, std::shared_ptr<Eng::Scene> in_scene) : UiWindow(name), registry(&asset_registry), scene(in_scene)
 {
     memset(filter.data(), 0, filter.size());
+}
+
+static std::optional<std::filesystem::path> get_file(const std::vector<std::string>& extensions)
+{
+    NFD_Init();
+
+    nfdu8char_t*          outPath;
+
+    std::string exts;
+    for (const auto& ext : extensions)
+        exts += ext + ", ";
+
+    std::vector<nfdu8filteritem_t> filter_items;
+    filter_items.emplace_back("available extensions", exts.c_str());
+
+
+    nfdopendialogu8args_t args = {0};
+    args.filterList            = filter_items.data();
+    args.filterCount           = static_cast<nfdfiltersize_t>(filter_items.size());
+    nfdresult_t result         = NFD_OpenDialogU8_With(&outPath, &args);
+    if (result == NFD_OKAY)
+    {
+        std::filesystem::path out_path = outPath;
+        NFD_FreePathU8(outPath);
+        LOG_WARNING("Loading asset {}", out_path.string());
+        NFD_Quit();
+        return out_path;
+    }
+
+    if (result == NFD_CANCEL)
+        LOG_WARNING("Item selection canceled");
+    else
+        LOG_ERROR("Failed to select item : {}", NFD_GetError());
+
+    NFD_Quit();
+    return {};
 }
 
 void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
 {
     internal_draw_id = 0;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 7});
-    if (ImGui::Button("Create"))
+    if (ImGui::Button("Import"))
     {
-        ImGui::OpenPopup("CreatePopup");
+        ImGui::OpenPopup("ImportPopup");
     }
 
-    if (ImGui::BeginPopup("CreatePopup"))
+    if (ImGui::BeginPopup("ImportPopup"))
     {
+        if (ImGui::MenuItem("Mesh"))
+        {
+            if (auto path = get_file({"gltf", "fbx", "obj", "glb", "dae"}))
+            {
+                auto scene_cp = scene;
+                Eng::Engine::get().jobs().schedule(
+                    [scene_cp, path]
+                    {
+                        Eng::AssimpImporter importer;
+                        scene_cp->merge(importer.load_from_path(*path));
+                    });
+            }
+        }
+        if (ImGui::MenuItem("Image"))
+        {
+            if (auto path = get_file({"png", "jpg", "dds", "tif", "jpeg", "bmp"}))
+            {
+                Eng::Engine::get().jobs().schedule(
+                    [path]
+                    {
+                        Eng::ImageImport::load_from_path(*path);
+                    });
+            }
+        }
+
         ImGui::EndPopup();
     }
 
     ImGui::SameLine();
 
     if (ImGui::Button("Save All"))
-        LOG_DEBUG("NOPE FOR NOW");
+        LOG_ERROR("Not implemented yet");
 
     ImGui::PopStyleVar();
     ImGui::Separator();

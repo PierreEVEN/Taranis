@@ -34,5 +34,10 @@ void SceneComponent::build_outliner(Gfx::ImGuiWrapper&)
     ImGui::DragFloat3("rotation", &out_rot.x, 0.02f);
     if (out_rot != base_rot)
         set_rotation(out_rot);
+
+    glm::vec3 out_scale = get_relative_scale();
+    ImGui::DragFloat3("scale", &out_scale.x, 10);
+    if (out_scale != get_relative_scale())
+        set_scale(out_scale);
 };
 } // namespace Eng

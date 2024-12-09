@@ -29,7 +29,7 @@ end
 add_defines("ENABLE_VALIDATION_LAYER")
 add_defines("ENABLE_PROFILER")
 
-add_requires("vulkan-loader", "glm", "imgui docking", "vulkan-memory-allocator", "concurrentqueue", "unordered_dense")
+add_requires("vulkan-loader", "glm", "imgui docking", "vulkan-memory-allocator", "concurrentqueue", "unordered_dense", "nativefiledialog-extended")
 add_requires("glfw", {configs = {shared = true}})
 add_requires("assimp", {configs = {shared = true, no_export = true}})
 add_requires("freeimage", {configs = {rgb = true, shared = true}})
