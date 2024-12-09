@@ -27,7 +27,7 @@ jobs:
                 vulkan-use-cache: true
 
             - name: xmake setup
-              run: xmake f --build-tests=y
+              run: xmake f --build-tests=y -y
               
             - name: xmake build
               run: xmake build test_editor 
