@@ -100,10 +100,10 @@ public:
     {
         if (b_transform_dirty)
         {
+            b_transform_dirty = false;
             world_transform = translate(mat4_cast(rotation) * glm::scale({1}, scale), position);
             if (parent)
                 world_transform = parent->get_world_transform() * world_transform;
-            b_transform_dirty = false;
         }
         return world_transform;
     }
@@ -138,9 +138,9 @@ protected:
 private:
     void mark_transform_dirty()
     {
-        b_transform_dirty = true;
         for (const auto& child : children)
             child->mark_transform_dirty();
+        b_transform_dirty = true;
     }
 
     const char*                             name;

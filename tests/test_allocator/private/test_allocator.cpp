@@ -21,7 +21,10 @@ int main()
     }
 
     for (const auto& obj : objects)
+    {
+        (void)obj;
         assert(obj.second == obj.first->identifier);
+    }
 
     for (int i = 0; i < 9000; ++i)
     {
@@ -70,9 +73,15 @@ int main()
         Obj.destroy();
 
     for (const auto& obj : refs_A)
+    {
+        (void)obj;
         assert(!obj);
+    }
     for (const auto& obj : objects_B)
+    {
+        (void)obj;
         assert(!obj);
+    }
 
     refs_A.clear();
     objects_B.clear();

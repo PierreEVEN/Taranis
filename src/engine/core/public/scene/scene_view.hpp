@@ -76,7 +76,6 @@ public:
 
     bool test(const Bounds& bounds) const
     {
-        return true;
         // check box outside/inside of frustum
         for (auto m_plane : m_planes)
         {
