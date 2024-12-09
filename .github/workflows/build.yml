@@ -26,11 +26,8 @@ jobs:
                 vulkan-components: Vulkan-Headers, Vulkan-Loader
                 vulkan-use-cache: true
 
-            - name: xmake downloa deps
-              run: xmake -y
-
             - name: xmake setup
               run: xmake f --build-tests=y
               
             - name: xmake build
-              run: xmake build test_app
+              run: xmake build test_editor 

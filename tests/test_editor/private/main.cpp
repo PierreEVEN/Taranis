@@ -235,12 +235,12 @@ public:
         directional_light->enable_shadow(ELightType::Movable);
         auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light2->enable_shadow(ELightType::Movable);
+        
+/*
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
-
         engine.jobs().schedule(
             [&, importer]
             {
-                return;
                 auto  new_scene = importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
@@ -250,7 +250,6 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
@@ -259,12 +258,12 @@ public:
         engine.jobs().schedule(
             [&, importer]
             {
-                return;
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
             });
+            */
 
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
