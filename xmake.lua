@@ -71,6 +71,9 @@ rule("generated_cpp", function (rule)
 
         -- Test if source file was modified (otherwise skip it)
         if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
+            if (os.exists(generated_source)) then
+                table.insert(target:objectfiles(), objectfile)
+            end
             return
         end
 
@@ -87,6 +90,7 @@ rule("generated_cpp", function (rule)
             -- store build depvalues to detect depvalues changes
             dependinfo.values = depvalues
             depend.save(dependinfo, dependfile)
+            table.insert(target:objectfiles(), objectfile)
         else
             -- save last update check time
             dependinfo.files = {source_header}
