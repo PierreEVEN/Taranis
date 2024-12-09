@@ -265,7 +265,8 @@ public:
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
             {
-                speed *= atan(static_cast<float>(y) * 0.25f) * 0.5f + 1;
+                if (glfwGetMouseButton(default_window.lock()->raw(), GLFW_MOUSE_BUTTON_2))
+                    speed *= atan(static_cast<float>(y) * 0.25f) * 0.5f + 1;
             });
     }
 
