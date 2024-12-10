@@ -1,4 +1,11 @@
-declare_module("reflection", {}, {{name = "unordered_dense", public = true}}, false, false)
+declare_module(
+    "reflection", 
+    {
+        packages = {
+            {name = "unordered_dense", public = true}
+        },
+    }
+)
 
 target("reflection")
-set_group("utils")
+    set_group("utils")

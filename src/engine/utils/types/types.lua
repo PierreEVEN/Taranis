@@ -1,7 +1,13 @@
-declare_module("types", {"reflection"}, {
-    {name = "unordered_dense", public = true},
-    {name = "glm", public = true}
-}, false, false)
+declare_module(
+    "types",
+    {
+        deps = {"reflection"}, 
+        packages = {
+            {name = "unordered_dense", public = true},
+            {name = "glm", public = true}
+        },
+    }
+)
 
 target("types")
-set_group("engine")
+    set_group("engine")

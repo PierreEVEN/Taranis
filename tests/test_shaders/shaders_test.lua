@@ -1,4 +1,11 @@
-declare_module("test_shaders", {"shader_compiler"}, {}, true, true)
+declare_module(
+    "test_shaders",
+    {
+        deps = {"shader_compiler"},
+        is_executable = true,
+        enable_reflection = true
+    }
+)
 
 target("test_shaders")
-set_group("test")
+    set_group("test")

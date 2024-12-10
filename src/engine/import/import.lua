@@ -1,14 +1,14 @@
 declare_module(
     "import", 
-    {"core"}, 
     {
-        "freeimage",
-        "assimp",
-        {name = "unordered_dense", public = true}
-    }, 
-    false, 
-    false
+        deps = {"core"}, 
+        packages = {
+            "freeimage",
+            "assimp",
+            {name = "unordered_dense", public = true}
+        }
+    }
 )
 
 target("import")
-set_group("engine")
+    set_group("engine")

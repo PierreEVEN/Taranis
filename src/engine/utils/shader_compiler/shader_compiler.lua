@@ -1,4 +1,13 @@
-declare_module("shader_compiler", {"llp", "gfx_types"}, {"slang","unordered_dense"}, false, false)
+declare_module(
+    "shader_compiler",
+    {
+        deps = {"llp", "gfx_types"}, 
+        packages = {
+            "slang",
+            "unordered_dense"
+        },
+    }
+)
 
 target("shader_compiler")
     set_group("utils")

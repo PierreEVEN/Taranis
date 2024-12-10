@@ -1,13 +1,14 @@
 declare_module(
     "core", 
-    {"types", "gfx", "job-sys"}, 
-    {{name = "unordered_dense", public = true}}, 
-    false, 
-    true
+    {
+        deps = {"types", "gfx", "job-sys"},
+        packages = {{name = "unordered_dense", public = true}},
+        enable_reflection = true
+    }
 )
 
 target("core")
-if is_plat("windows") then
-    add_syslinks("winmm")
-end
-set_group("engine")
+    if is_plat("windows") then
+        add_syslinks("winmm")
+    end
+    set_group("engine")

@@ -1,4 +1,12 @@
-declare_module("test_editor", {"core", "types", "import"}, {"glfw", "nativefiledialog-extended",}, true, true)
+declare_module(
+    "test_editor",
+    {
+        deps = {"core", "types", "import"},
+        packages = {"glfw", "nativefiledialog-extended"},
+        is_executable = true,
+        enable_reflection = true
+    }
+)
 
 target("test_editor")
-set_group("test")
+    set_group("test")

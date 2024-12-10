@@ -1,4 +1,12 @@
-declare_module("gfx_types", {}, {{name = "unordered_dense", public = true}}, false, false)
+declare_module(
+    "gfx_types",
+    {
+        deps = {"types"}, 
+        packages = {
+            {name = "unordered_dense", public = true}
+        },
+    }
+)
 
 target("gfx_types")
-set_group("engine")
+    set_group("engine")

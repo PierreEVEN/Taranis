@@ -1,11 +1,15 @@
 #pragma once
 #include "llp/file_data.hpp"
-#include "llp/lexical_analyzer.hpp"
 
 #include <filesystem>
-#include <memory>
 #include <ankerl/unordered_dense.h>
 #include <vector>
+
+namespace Llp
+{
+struct ParserError;
+class Block;
+}
 
 namespace std::filesystem
 {
@@ -22,7 +26,7 @@ struct ClassDefinition
 
 class HeaderParser
 {
-  public:
+public:
     struct ParserContext
     {
         std::vector<std::string>     namespace_stack;
@@ -43,7 +47,7 @@ class HeaderParser
         }
     };
 
-    HeaderParser(const std::shared_ptr<FileReader>& header_data, std::filesystem::path generated_header_include_path, std::filesystem::path header_path);
+    HeaderParser(const std::string& header_data, std::filesystem::path generated_header_include_path, std::filesystem::path header_path);
 
     struct ReflectedClass
     {
@@ -67,17 +71,15 @@ class HeaderParser
         return reflected_classes;
     }
 
-  private:
-    TokenizerBlock tokenized_file;
-
-    void        parse_block(TokenizerBlock& block, const ParserContext& context);
-    static bool parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
+private:
+    std::optional<Llp::ParserError> parse_block(const Llp::Block& block, const ParserContext& context);
+    static bool                     parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
 
     void error(const std::string& message, size_t line, size_t column) const;
 
-    std::filesystem::path                           generated_header_include_path;
-    std::filesystem::path                           header_path;
+    std::filesystem::path                                     generated_header_include_path;
+    std::filesystem::path                                     header_path;
     ankerl::unordered_dense::map<std::string, ReflectedClass> reflected_classes;
-    size_t                                          line_after_last_include = 0;
-    bool                                            b_found_include         = false;
+    size_t                                                    line_after_last_include = 0;
+    bool                                                      b_found_include         = false;
 };

@@ -14,6 +14,7 @@ DEBUG = false;
 BUILD_MONOLITHIC = false;
 
 option("build-tests", { default = false })
+option("build-monolithic", { default = true })
 
 if is_mode("debug") then
     --set_optimize("fastest")
@@ -75,6 +76,8 @@ rule("generated_cpp", function (rule)
             end
             return
         end
+
+        --print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
 
         -- Generate reflection header
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
@@ -139,12 +142,27 @@ rule("generated_cpp", function (rule)
     end)
 end)
 
-function declare_module(module_name, deps, packages, is_executable, enable_reflection)
+
+function declare_module(module_name, opts)
+
+    if (opts == nil) then
+        print("Error : invalid options for module "..module_name)
+        os.exit(-1)
+    end
+    
+    local deps = opts.deps or {}
+    local packages = opts.packages or {}
+    local is_executable = opts.is_executable or false
+    local enable_reflection = opts.enable_reflection or false
+    local allow_shared_build = opts.allow_shared_build or false
+    
     if DEBUG then
         print("### "..module_name.." ###")
     end
     target(module_name, function (target)
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
+        add_defines(module_name:upper().."_API=__declspec(dllexport)")
+
         -- enable and generate reflection
         if enable_reflection then
             add_deps('header_tool')
@@ -225,9 +243,10 @@ function declare_module(module_name, deps, packages, is_executable, enable_refle
         -- set kind
         if is_executable then
             set_kind("binary")
-        elseif BUILD_MONOLITHIC then
+        elseif BUILD_MONOLITHIC or not allow_shared_build then
             set_kind("static")
         else
+            add_rules("utils.symbols.export_all", {export_classes = true})
             set_kind("shared")
         end
     end)

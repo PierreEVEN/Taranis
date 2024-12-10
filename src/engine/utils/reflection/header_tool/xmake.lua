@@ -1,5 +1,15 @@
-declare_module("header_tool", {"llp"}, {{name = "unordered_dense", public = true}}, true, false)
+declare_module(
+    "header_tool", 
+    
+    {
+        deps = {"llp"}, 
+        packages = {
+            {name = "unordered_dense", public = true}
+        },
+        is_executable = true,
+    }
+)
 
 target("header_tool")
-set_group("utils")
-set_policy('build.fence', true)
+    set_group("utils")
+    set_policy('build.fence', true)

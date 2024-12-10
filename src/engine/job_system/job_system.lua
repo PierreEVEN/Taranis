@@ -1,12 +1,12 @@
 declare_module(
     "job-sys", 
-    {"types"}, 
     {
-        {name = "unordered_dense", public = true},
-        {name = "concurrentqueue", public = true}
-    },
-    false, 
-    false
+        deps = {"types"}, 
+        packages = {
+            {name = "unordered_dense", public = true},
+            {name = "concurrentqueue", public = true}
+        },
+    }
 )
 
 target("job-sys")

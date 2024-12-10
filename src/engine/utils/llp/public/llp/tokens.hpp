@@ -128,7 +128,7 @@ struct ILexerToken
             if (test[i] != str[loc.index + i])
                 return false;
         }
-        if (i == test.size() - 1)
+        if (i == test.size())
         {
             loc.index += i;
             return true;

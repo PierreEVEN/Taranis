@@ -200,7 +200,7 @@ public:
 class TestApp : public Application
 {
 public:
-    void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
+    void init(Engine&, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
 

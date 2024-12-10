@@ -131,7 +131,7 @@ std::unique_ptr<IncludeToken> IncludeToken::consume(Location& in_location, const
                     if (source[in_location.index] == '"' || source[in_location.index] == '>')
                     {
                         auto include  = std::make_unique<IncludeToken>(start);
-                        include->path = source.substr(start.index, in_location.index - start.index - 1);
+                        include->path = source.substr(start.index, in_location.index - start.index);
                         ++in_location;
                         return include;
                     }

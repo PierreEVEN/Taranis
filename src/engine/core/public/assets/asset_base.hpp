@@ -16,6 +16,7 @@ class AssetBase
 {
     REFLECT_BODY()
 
+
 public:
     AssetBase(AssetBase&)  = delete;
     AssetBase(AssetBase&&) = delete;

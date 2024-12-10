@@ -22,7 +22,8 @@ int main(int argc, char** argv)
     generated_include_path = generated_include_path.replace_extension(".gen.hpp");
 
     auto source_header = std::make_shared<FileReader>(scanned_header);
-    HeaderParser parser(source_header, generated_include_path, scanned_header);
+    source_header->read();
+    HeaderParser parser(source_header->raw_stream(), generated_include_path, scanned_header);
     if (parser.get_classes().empty())
         return 0;
 

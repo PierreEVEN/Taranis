@@ -1,17 +1,21 @@
 #include "header_parser.hpp"
 
 #include "llp/file_data.hpp"
-#include "llp/lexical_analyzer.hpp"
+#include "llp/lexer.hpp"
+#include "llp/parser.hpp"
 
 #include <filesystem>
 #include <iostream>
 
-HeaderParser::HeaderParser(const std::shared_ptr<FileReader>& header_data, std::filesystem::path in_generated_header_include_path, std::filesystem::path in_header_path)
+HeaderParser::HeaderParser(const std::string& header_data, std::filesystem::path in_generated_header_include_path, std::filesystem::path in_header_path)
     : generated_header_include_path(std::move(in_generated_header_include_path)), header_path(std::move(in_header_path))
 {
-    auto reader    = header_data->read();
-    tokenized_file = TokenizerBlock(reader);
-    parse_block(tokenized_file, {});
+    Llp::Lexer lexer(header_data);
+    if (auto error = parse_block(lexer.get_root(), {}))
+    {
+        std::cerr << "Generation to generate reflection data for " << header_path.string() << ":" << error->location.line << ":" << error->location.column << " : " << error->message << "\n";
+        exit(-1);
+    }
 }
 
 std::string HeaderParser::ReflectedClass::class_path() const
@@ -64,67 +68,69 @@ std::string HeaderParser::ReflectedClass::namespace_path() const
     return name;
 }
 
-void HeaderParser::parse_block(TokenizerBlock& block, const ParserContext& context)
+std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& block, const ParserContext& context)
 {
-    for (auto reader = block.read(); reader && !reader.consume<Symbol>(TokenType::Symbol, '}');)
+    for (Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl}); parser;)
     {
-        switch (reader->type)
+        switch (parser.get_current_token_type())
         {
-        case TokenType::Symbol:
-            reader.consume<Symbol>(TokenType::Symbol);
+        case Llp::ELexerToken::Symbol:
+            parser.consume<Llp::SymbolToken>();
             break;
-        case TokenType::Word:
+        case Llp::ELexerToken::Word:
         {
-            const std::string& word = *reader.consume<Word>(TokenType::Word);
+            const std::string& word = parser.consume<Llp::WordToken>()->word;
+            
             // Class declaration
             if (word == "class")
             {
-                if (auto class_name = reader.consume<Word>(TokenType::Word))
+                if (auto class_name = parser.consume<Llp::WordToken>())
                 {
                     // Skip final keyword
-                    reader.consume<Word>(TokenType::Word, "final");
+                    parser.consume<Llp::WordToken>("final");
 
                     std::vector<std::string> parents;
-                    if (reader.consume<Symbol>(TokenType::Symbol, ':'))
+                    if (parser.consume<Llp::SymbolToken>(':'))
                     {
                         do
                         {
                             // Skip fields
-                            reader.consume<Word>(TokenType::Word, "public") || reader.consume<Word>(TokenType::Word, "protected") || reader.consume<Word>(TokenType::Word, "private");
+                            parser.consume<Llp::WordToken>("public") || parser.consume<Llp::WordToken>("protected") || parser.consume<Llp::WordToken>("private");
 
-                            if (auto parent_class = reader.consume<Word>(TokenType::Word))
+                            if (auto parent_class = parser.consume<Llp::WordToken>())
                             {
-                                std::string parent = *parent_class;
+                                std::string parent = parent_class->word;
 
-                                if (reader.consume<Symbol>(TokenType::Symbol, '<'))
+                                if (parser.consume<Llp::SymbolToken>('<'))
                                 {
                                     size_t template_level = 1;
                                     do
                                     {
-                                        if (reader.consume<Symbol>(TokenType::Symbol, '<'))
+                                        if (parser.consume<Llp::SymbolToken>('<'))
                                         {
                                             parent += '<';
                                             template_level++;
                                         }
-                                        else if (auto* template_str = reader.consume<Word>(TokenType::Word))
-                                            parent += *template_str;
-                                        else if (reader.consume<Symbol>(TokenType::Symbol, '>'))
+                                        else if (auto* template_str = parser.consume<Llp::WordToken>())
+                                            parent += template_str->word;
+                                        else if (parser.consume<Llp::SymbolToken>('>'))
                                         {
                                             parent += '>';
                                             template_level--;
                                         }
 
-                                    } while (reader && template_level != 0);
+                                    } while (parser && template_level != 0);
                                 }
 
                                 parents.push_back(parent);
                             }
                             else
-                                error("Expected class name", reader->line, reader->column);
-                        } while (reader.consume<Symbol>(TokenType::Symbol, ','));
+                                return Llp::ParserError{parser.current_location(), "Expected class name"};
+                        } while (parser.consume<Llp::SymbolToken>(','));
                     }
-                    if (auto* class_block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
-                        parse_block(*class_block, context.push_class(ClassDefinition{*class_name, parents}));
+                    if (auto* class_block = parser.consume<Llp::BlockToken>())
+                        if (auto error = parse_block(class_block->content, context.push_class(ClassDefinition{class_name->word, parents})))
+                            return error;
                 }
             }
             else if (word == "namespace")
@@ -133,63 +139,58 @@ void HeaderParser::parse_block(TokenizerBlock& block, const ParserContext& conte
                 bool                     b_failed = false;
                 do
                 {
-                    reader.consume<Word>(TokenType::Word, "::");
-                    if (auto namespace_name = reader.consume<Word>(TokenType::Word))
-                        added_namespace_stack.push_back(*namespace_name);
+                    parser.consume<Llp::WordToken>("::");
+                    if (auto namespace_name = parser.consume<Llp::WordToken>())
+                        added_namespace_stack.push_back(namespace_name->word);
                     else
                     {
                         b_failed = true;
                         break;
                     }
 
-                } while (reader->type != TokenType::TokenizerBlock);
+                } while (parser.get_current_token_type() != Llp::ELexerToken::Block);
                 if (!b_failed)
                 {
                     ParserContext new_context = context;
                     for (const auto& elem : added_namespace_stack)
                         new_context = new_context.push_namespace(elem);
-                    if (auto* class_block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
-                        parse_block(*class_block, new_context);
+                    if (auto* class_block = parser.consume<Llp::BlockToken>())
+                        if (auto error = parse_block(class_block->content, new_context))
+                            return error;
                 }
             }
             if (word == "REFLECT_BODY")
             {
                 if (context.class_stack.empty())
-                    error("REFLECT_BODY() should not be declared outside classes", reader->line, reader->column);
+                    return Llp::ParserError{parser.current_location(), "REFLECT_BODY() should not be declared outside classes"};
 
                 std::string absolute_class_name;
                 for (const auto& elem : context.class_stack)
                     absolute_class_name += "::" + elem.name;
                 if (reflected_classes.contains(absolute_class_name))
-                    error("Cannot implement multiple REFLECT_BODY() for the same class", reader->line, reader->column);
-                reflected_classes.emplace(absolute_class_name, ReflectedClass{context, reader->line});
+                    return Llp::ParserError{parser.current_location(), "Cannot implement multiple REFLECT_BODY() for the same class"};
+                reflected_classes.emplace(absolute_class_name, ReflectedClass{context, parser.current_location().line + 1});
             }
         }
         break;
-        case TokenType::Include:
+        case Llp::ELexerToken::Include:
         {
-            line_after_last_include = reader->line + 1;
-            std::string& include    = *reader.consume<Include>(TokenType::Include);
+            line_after_last_include = parser.current_location().line + 2;
+            std::string& include    = parser.consume<Llp::IncludeToken>()->path;
             if (std::filesystem::path(include).lexically_normal() == generated_header_include_path)
                 b_found_include = true;
-            break;
         }
         break;
-        case TokenType::TokenizerBlock:
-            if (auto* class_block = reader.consume<TokenizerBlock>(TokenType::TokenizerBlock))
-                parse_block(*class_block, context);
-            break;
-        case TokenType::Arguments:
-            reader.consume<Arguments>(TokenType::Arguments);
-            break;
-        case TokenType::Number:
-            reader.consume<Number>(TokenType::Number);
+        case Llp::ELexerToken::Block:
+            if (auto* class_block = parser.consume<Llp::BlockToken>())
+                if (auto error = parse_block(class_block->content, context))
+                    return error;
             break;
         default:
-            std::cerr << "unhandled token type" << std::endl;
-            exit(-2);
+            ++parser;
         }
     }
+    return {};
 }
 
 bool HeaderParser::parse_check_include(TextReader& reader, const std::filesystem::path& desired_path)

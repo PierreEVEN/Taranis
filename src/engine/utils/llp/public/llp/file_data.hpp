@@ -80,6 +80,11 @@ class FileReader
         return last_write_time;
     }
 
+    const std::string& raw_stream() const
+    {
+        return loaded_data;
+    }
+
   private:
     size_t      last_write_time = 0;
     std::string loaded_data;

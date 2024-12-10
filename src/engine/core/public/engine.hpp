@@ -24,16 +24,16 @@ class Instance;
 
 class Application
 {
-  public:
+public:
     virtual ~Application() = default;
 
     virtual void init(Engine& engine, const std::weak_ptr<Gfx::Window>& default_window) = 0;
-    virtual void tick_game(Engine& engine, double delta_second)                         = 0;
+    virtual void tick_game(Engine& engine, double delta_second) = 0;
 };
 
 class Engine
 {
-  public:
+public:
     Engine(Config config);
     Engine(Engine&&) = delete;
     Engine(Engine&)  = delete;
@@ -81,7 +81,7 @@ class Engine
         return win;
     }
 
-  private:
+private:
     void run_internal();
 
     std::chrono::steady_clock::time_point last_time;

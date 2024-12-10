@@ -1,4 +1,11 @@
-declare_module("llp", {}, {{name = "unordered_dense", public = true}}, false, false)
+declare_module(
+    "llp", 
+    {
+        packages = {
+            {name = "unordered_dense", public = true}
+        },
+    }
+)
 
 target("llp")
-set_group("utils")
+    set_group("utils")
