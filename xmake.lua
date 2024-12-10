@@ -11,7 +11,7 @@ set_rundir(".")
 set_runtimes(is_mode("debug") and "MTd" or "MT")
 		
 DEBUG = false;
-BUILD_MONOLITHIC = true;
+BUILD_MONOLITHIC = false;
 
 option("build-tests", { default = false })
 
