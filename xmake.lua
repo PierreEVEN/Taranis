@@ -38,7 +38,6 @@ add_requires("slang v2024.15.1", {verify = false})
 rule("generated_cpp", function (rule)
     set_extensions(".hpp")
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
-
         import("core.tool.compiler")
         import("core.project.depend")
 
@@ -67,7 +66,7 @@ rule("generated_cpp", function (rule)
         local dependinfo = target:is_rebuilt() and {} or (depend.load(dependfile, {target = target}) or {})
 
         local depvalues = {compinst:program(), compflags}
-        local lastmtime = os.isfile(objectfile) and os.mtime(objectfile) or 0
+        local lastmtime = os.isfile(objectfile) and os.mtime(objectfile) or os.isfile(dependfile) and os.mtime(dependfile) or 0
 
         -- Test if source file was modified (otherwise skip it)
         if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
@@ -78,10 +77,49 @@ rule("generated_cpp", function (rule)
         end
 
         -- Generate reflection header
+        batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
         os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
+    end)
 
+    
+    on_buildcmd_file(function (target, batchcmds, source_header, opt)
+        import("core.tool.compiler")
+        import("core.project.depend")
+
+        -- Guess generated source file path
+        local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
+
+        -- this is the include string the user should have added to it's class
+        local include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
+
+        -- replace .hpp extension with .gen.cpp
+        local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
+        -- generated classes are always private
+        generated_source = generated_source:gsub("public", "private", 1)
+        
+        local compinst = compiler.load("cxx", {target = target})
+        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
+        local depvalues = {compinst:program(), compflags}
+
+        local objectfile = target:objectfile(generated_source)
+        local dependfile = target:dependfile(objectfile)
         -- if exists
         if (os.exists(generated_source)) then
+
+            -- replace .hpp extension with .gen.hpp
+            local generated_header = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.hpp"
+            -- generated headers are always public
+            generated_header = generated_header:gsub("private", "public", 1)
+
+            -- Load existing dep infos (or create if not exists)
+            local dependinfo = target:is_rebuilt() and {} or (depend.load(dependfile, {target = target}) or {})
+
+            local lastmtime = os.isfile(objectfile) and os.mtime(objectfile) or 0
+
+            -- Test if source file was modified (otherwise skip it)
+            if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
+                return
+            end
 
             batchcmds:show_progress(opt.progress, "${color.build.object}compiling.$(mode) %s", generated_source)
             -- Compile and fill the dependency list into dependinfo
@@ -93,6 +131,7 @@ rule("generated_cpp", function (rule)
             table.insert(target:objectfiles(), objectfile)
         else
             -- save last update check time
+            local dependinfo = {}
             dependinfo.files = {source_header}
             dependinfo.values = depvalues
             depend.save(dependinfo, dependfile)    
