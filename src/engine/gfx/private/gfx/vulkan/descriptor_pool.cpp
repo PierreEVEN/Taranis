@@ -61,7 +61,7 @@ PoolDescription::PoolDescription(const Pipeline& pipeline)
 
         auto found = sizes.find(type);
         if (found != sizes.end())
-            found->second++;
+            found->second += binding.array_elements > 0 ? binding.array_elements == UINT32_MAX ? 0 : binding.array_elements : 1;
         else
             sizes.emplace(type, 1);
     }

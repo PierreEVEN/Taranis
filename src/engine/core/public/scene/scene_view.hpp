@@ -189,6 +189,21 @@ public:
         z_near = in_z_near;
     }
 
+    const glm::mat4& get_projection_view_matrix() const
+    {
+        return projection_view;
+    }
+
+    const glm::mat4& get_projection_matrix() const
+    {
+        return projection;
+    }
+
+    const glm::mat4& get_view_matrix() const
+    {
+        return view;
+    }
+
   private:
     SceneView()
     {

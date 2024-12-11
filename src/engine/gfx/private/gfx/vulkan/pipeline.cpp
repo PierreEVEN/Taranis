@@ -112,11 +112,13 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
     {
         for (const auto& binding : stage->infos().bindings)
         {
+            if (bindless)
+                LOG_FATAL("Variable sized descriptor {} should be the last one", binding.name);
             descriptor_bindings.push_back(binding);
             bindings.emplace_back(VkDescriptorSetLayoutBinding{
                 .binding = binding.binding,
                 .descriptorType = vk_descriptor_type(binding.type),
-                .descriptorCount = binding.array_elements > 0 ? binding.array_elements : 1,
+                .descriptorCount    = binding.array_elements > 0 ? binding.array_elements : 1,
                 .stageFlags = static_cast<VkShaderStageFlags>(stage->infos().stage),
                 .pImmutableSamplers = nullptr,
             });
@@ -126,7 +128,10 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
                 flags.emplace_back(0);
 
             if (binding.array_elements == UINT32_MAX)
+            {
+                bindless = true;
                 flags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            }
         }
     }
 

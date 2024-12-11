@@ -68,6 +68,7 @@ Texture2D                       gbuffer_normal_r;
 Texture2D gbuffer_depth;
 
 struct LightData {
+    float4x4 light_mat;
     float3 dir;
     float3 pos;
     uint32_t type;
@@ -75,10 +76,21 @@ struct LightData {
 }
 StructuredBuffer<LightData> light_buffer;
 
-Texture2D shadow_maps[];
+struct SceneBufferData
+{
+    float4x4 perspective_view_mat;
+    float4x4 view_mat;
+    float4x4 perspective_mat;
+    float4x4 inv_perspective_view_mat;
+    float4x4 inv_view_mat;
+    float4x4 inv_perspective_mat;
+};
+StructuredBuffer<SceneBufferData> scene_data_buffer;
+
+Texture2D shadow_maps[10];
 struct PushConsts
 {
-    float3 camera;
+    float3 cam_position;
     uint32_t light_count;
 };
 
@@ -97,9 +109,15 @@ VsToFsStruct vs_main(uint vertex_index : SV_VertexID)
 [RenderPass("gbuffer_resolve")]
 float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 {
+    SceneBufferData scene_buffer_data = scene_data_buffer.Load(0);
+
     float3 worldPosition = gbuffer_position.Sample(sSampler, input.Uv).xyz;
-    float4 albedo_m      = gbuffer_albedo_m.Sample(sSampler, input.Uv);
+    float4 albedo_m = gbuffer_albedo_m.Sample(sSampler, input.Uv);
     float4 normal_r = gbuffer_normal_r.Sample(sSampler, input.Uv);
+
+    if (length(worldPosition) == 0) {
+        return float4(0.5, 0.7, 1, 1);
+    }
 
     float3 albedo   = albedo_m.rgb;
     float  metallic = albedo_m.a;
@@ -107,9 +125,10 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     float3 normal    = normalize((normal_r.rgb - 0.5) * 2);
     float  roughness = normal_r.a;
 
-    float3 cam_pos = pc.camera;
+    float4 cm_dir = mul(scene_buffer_data.view_mat, float4(0, 0, 0, 1));
+    float3 cam_pos = pc.cam_position;
 
-    float3 ambiant_intensity = float3(0.1, 0.1, 0.1) * 0.01;
+    float3 ambiant_intensity = float3(0.1, 0.1, 0.1) * 0.1;
     float3 light_color       = float3(1, 1, 1);
 
     //float ao = texture(aoMap, TexCoords).r;
@@ -130,11 +149,28 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
         LightData light = light_buffer.Load(i);
 
-        if (light.has_shadows || true) {
-            float3 sm = shadow_maps[i].Sample(sSampler, input.Uv).xyz;
-            if (sm.b < 10)
-                return float4(sm.r, 0 , 0, 1);
-            // @TODO
+        float shadow = 1;
+
+        if (light.type - 1 == 0) {
+            float4 projectedEyeDir = mul(light.light_mat, float4(-worldPosition, 1));
+            projectedEyeDir = projectedEyeDir / projectedEyeDir.w;
+
+            float2 textureCoordinates = projectedEyeDir.xy * float2(-0.5, 0.5) + float2(0.5, 0.5);
+
+            const float bias = 0.0001;
+
+            shadow = 0.0;
+            float current_depth = 1 - projectedEyeDir.z;
+
+            float texelSize = 1.0 / 4092.0;
+            for (int x = -1; x <= 1; ++x)
+            {
+                for (int y = -1; y <= 1; ++y)
+                {
+                    float pcfDepth = shadow_maps[i].Sample(sSampler, textureCoordinates + float2(x, y) * texelSize).r + bias;
+                    shadow += current_depth < pcfDepth ? 1.0 : 0.0;
+                }
+            }
         }
 
         // calculate per-light radiance
@@ -168,7 +204,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
         float NdotL = max(dot(N, L), 0.0);
 
         // add to outgoing radiance Lo
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
     }
 
     // ambient lighting (note that the next IBL tutorial will replace 

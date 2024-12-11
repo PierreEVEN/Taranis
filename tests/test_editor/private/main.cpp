@@ -68,10 +68,11 @@ public:
 
     struct Light
     {
-        alignas(8) glm::vec3 dir;
-        alignas(8) glm::vec3 pos;
-        alignas(8) uint32_t type;
-        alignas(8) bool has_shadows;
+        alignas(16) glm::mat4 shadow_matrix;
+        alignas(16) glm::vec3 dir;
+        alignas(16) glm::vec3 pos;
+        alignas(4) uint32_t type;
+        alignas(0) bool has_shadows;
     };
 
     void init(const Gfx::RenderPassInstance&) override
@@ -107,7 +108,9 @@ public:
             {
                 if (comp.get_shadow_pass())
                 {
-                    lights.emplace_back(comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 0, true);
+                    auto light_mat = comp.get_shadow_view()->get_projection_view_matrix();
+
+                    lights.emplace_back(light_mat, comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, true);
                     shadow_maps.emplace_back(comp.get_shadow_pass()->get_attachment("depth"));
                 }
             });
@@ -117,7 +120,7 @@ public:
             {
                 if (!comp.get_shadow_pass())
                 {
-                    lights.emplace_back(comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 0, false);
+                    lights.emplace_back(glm::identity<glm::mat4>(), comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, false);
                 }
             });
 
@@ -134,17 +137,17 @@ public:
 
         auto desc_resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
         desc_resource->bind_buffer("light_buffer", light_buffer);
+        desc_resource->bind_buffer("scene_data_buffer", scene->get_active_camera()->get_view().get_view_buffer());
 
-        scene->for_each<CameraComponent>(
-            [&](const CameraComponent& object)
-            {
-                struct PcData
-                {
-                    glm::vec3 camera;
-                    uint32_t  light_count;
-                };
-                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData{PcData{object.get_relative_position(), static_cast<uint32_t>(lights.size())}});
-            });
+        struct PcData
+        {
+            glm::vec3 cam_pos;
+            uint32_t light_count;
+        };
+        command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource,
+                                     Gfx::BufferData{PcData{
+                                         scene->get_active_camera()->get_relative_position() , static_cast<uint32_t>(lights.size())
+                                     }});
 
         command_buffer.bind_pipeline(resource);
         command_buffer.bind_descriptors(*desc_resource, *resource);
@@ -263,9 +266,10 @@ public:
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
-        auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
+
+        /*auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light2->enable_shadow(ELightType::Movable);
-        directional_light2->set_rotation(glm::vec3{0, 1.8f, -1.2f});
+        directional_light2->set_rotation(glm::vec3{0, 1.8f, -1.2f});*/
 
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
@@ -277,7 +281,7 @@ public:
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
-        /*
+       
         engine.jobs().schedule(
             [&, importer]
             {
@@ -294,7 +298,6 @@ public:
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
             });
-            */
 
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
@@ -382,7 +385,7 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
     Config config;
-    config.gfx.enable_validation_layers = true;
+    config.gfx.enable_validation_layers = false;
     config.gfx.v_sync                   = true;
     config.auto_update_materials        = true;
     Engine engine(config);

@@ -1,7 +1,10 @@
 #include "scene/components/light_component.hpp"
 
 #include "gfx/renderer/definition/renderer.hpp"
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "scene/scene_view.hpp"
+
+#include <imgui.h>
 
 namespace Eng
 {
@@ -51,9 +54,9 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
     {
         shadow_view = SceneView::create();
         shadow_view->set_perspective(false);
-        shadow_view->set_z_far(5000);
-        shadow_view->set_z_near(-5000);
-        shadow_view->set_orthographic_width(2500);
+        shadow_view->set_z_far(z_far);
+        shadow_view->set_z_near(z_near);
+        shadow_view->set_orthographic_width(orthographic_width);
 
         auto          obj_ref = as_ref();
         Gfx::Renderer renderer;
@@ -86,5 +89,20 @@ void LightComponent::set_rotation(glm::quat in_rotation)
     SceneComponent::set_rotation(in_rotation);
     if (shadow_view)
         shadow_view->set_rotation(in_rotation);
+}
+
+void LightComponent::build_outliner(Gfx::ImGuiWrapper& ctx)
+{
+    SceneComponent::build_outliner(ctx);
+
+    if (shadow_view)
+    {
+        if (ImGui::SliderFloat("Width", &orthographic_width, 10, 50000))
+            shadow_view->set_orthographic_width(orthographic_width);
+        if (ImGui::SliderFloat("Z near", &z_near, -50000, 0))
+            shadow_view->set_z_near(z_near);
+        if (ImGui::SliderFloat("Z far", &z_far, 0, 50000))
+            shadow_view->set_z_far(z_far);
+    }
 }
 } // namespace Eng
