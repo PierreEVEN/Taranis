@@ -115,6 +115,7 @@ struct RenderPassKey
     RenderPassRef           render_pass_ref;
     bool                    b_reversed_z = false;
     bool                    b_present    = false;
+    bool                    reverse_cull = false;
 };
 
 } // namespace Eng::Gfx
@@ -184,6 +185,7 @@ public:
         key.render_pass_ref = render_pass_ref;
         key.b_present       = b_present;
         key.b_reversed_z    = reversed_logarithmic_depth;
+        key.reverse_cull    = b_flip_culling;
         for (const auto& attachment : attachments | std::views::values)
             key.attachments.emplace_back(attachment);
         return key;
@@ -221,6 +223,12 @@ public:
         return *this;
     }
 
+    RenderNode& flip_culling(bool flip)
+    {
+        b_flip_culling = flip;
+        return *this;
+    }
+
     RenderNode& operator[](const Attachment& attachment)
     {
         attachments.insert_or_assign(attachment.name, attachment);
@@ -241,6 +249,7 @@ public:
     RenderPassRef                                         render_pass_ref;
     ResizeCallback                                        resize_callback_ptr;
     bool                                                  reversed_logarithmic_depth = false;
+    bool                                                  b_flip_culling               = false;
 };
 
 class Renderer

@@ -287,10 +287,10 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
 
                         if (shape == SLANG_TEXTURE_1D || shape == SLANG_TEXTURE_2D || shape == SLANG_TEXTURE_3D || shape == SLANG_TEXTURE_CUBE)
                             binding_type = Eng::Gfx::EBindingType::SAMPLED_IMAGE;
-                        else if (shape == SLANG_STRUCTURED_BUFFER)
+                        else if (shape == SLANG_STRUCTURED_BUFFER || shape == SLANG_BYTE_ADDRESS_BUFFER)
                             binding_type = Eng::Gfx::EBindingType::STORAGE_BUFFER;
                         else
-                            return result.push_error({"Unhandled descriptor parameter shape"});
+                            return result.push_error({"Unhandled descriptor parameter shape " + std::to_string(static_cast<int>(shape)) + " for parameter " + parameter->getName()});
                     }
                     else if (kind == slang::TypeReflection::Kind::SamplerState)
                         binding_type = Eng::Gfx::EBindingType::SAMPLER;

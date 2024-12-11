@@ -34,7 +34,7 @@ add_requires("vulkan-loader", "glm", "imgui docking", "vulkan-memory-allocator",
 add_requires("glfw", {configs = {shared = true}})
 add_requires("assimp", {configs = {shared = true, no_export = true}})
 add_requires("freeimage", {configs = {rgb = true, shared = true}})
-add_requires("slang v2024.15.1", {verify = false})
+add_requires("slang v2024.15.2", {verify = false})
 
 rule("generated_cpp", function (rule)
     set_extensions(".hpp")

@@ -85,16 +85,16 @@ static VkFrontFace vk_front_face(EFrontFace front_face)
     }
 }
 
-static VkCullModeFlags vk_cull_mode(ECulling culling)
+static VkCullModeFlags vk_cull_mode(ECulling culling, bool b_flip)
 {
     switch (culling)
     {
     case ECulling::None:
         return VK_CULL_MODE_NONE;
     case ECulling::Front:
-        return VK_CULL_MODE_FRONT_BIT;
+        return b_flip ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT;
     case ECulling::Back:
-        return VK_CULL_MODE_BACK_BIT;
+        return b_flip ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_BACK_BIT;
     case ECulling::Both:
         return VK_CULL_MODE_FRONT_AND_BACK;
     default:
@@ -118,7 +118,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
             bindings.emplace_back(VkDescriptorSetLayoutBinding{
                 .binding = binding.binding,
                 .descriptorType = vk_descriptor_type(binding.type),
-                .descriptorCount    = binding.array_elements > 0 ? binding.array_elements : 1,
+                .descriptorCount = binding.array_elements > 0 ? binding.array_elements : 1,
                 .stageFlags = static_cast<VkShaderStageFlags>(stage->infos().stage),
                 .pImmutableSamplers = nullptr,
             });
@@ -130,20 +130,21 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
             if (binding.array_elements == UINT32_MAX)
             {
                 bindless = true;
+                LOG_ERROR("Bindless descriptors are not supported yet");
                 flags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
             }
         }
     }
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{
-        .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-        .bindingCount  = static_cast<uint32_t>(bindings.size()),
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .bindingCount = static_cast<uint32_t>(bindings.size()),
         .pBindingFlags = flags.data(),
     };
 
     VkDescriptorSetLayoutCreateInfo layout_infos{
-        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .pNext        = &bindingFlags,
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext = &bindingFlags,
         .bindingCount = static_cast<uint32_t>(bindings.size()),
         .pBindings = bindings.data(),
     };
@@ -223,7 +224,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .depthClampEnable = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = vk_polygon_mode(create_infos.options.polygon),
-        .cullMode = vk_cull_mode(create_infos.options.culling),
+        .cullMode = vk_cull_mode(create_infos.options.culling, render_pass.lock()->get_key().reverse_cull),
         .frontFace = vk_front_face(create_infos.options.front_face),
         .depthBiasEnable = VK_FALSE,
         .depthBiasConstantFactor = 0.0f,

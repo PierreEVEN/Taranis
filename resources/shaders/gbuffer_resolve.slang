@@ -151,7 +151,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
         float shadow = 1;
 
-        if (light.type - 1 == 0) {
+        if (light.has_shadows) {
             float4 projectedEyeDir = mul(light.light_mat, float4(-worldPosition, 1));
             projectedEyeDir = projectedEyeDir / projectedEyeDir.w;
 

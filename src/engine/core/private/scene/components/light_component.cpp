@@ -62,6 +62,7 @@ void LightComponent::enable_shadow(ELightType in_light_type, bool in_enabled)
         Gfx::Renderer renderer;
         renderer["shadows"]
             .render_pass<SceneShadowsInterface>(shadow_view, get_scene())
+            .flip_culling(true)
             .resize_callback(
                 [obj_ref](const glm::uvec2&) -> glm::uvec2
                 {

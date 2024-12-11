@@ -1,3 +1,4 @@
+#include "cmaa.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
@@ -71,8 +72,8 @@ public:
         alignas(16) glm::mat4 shadow_matrix;
         alignas(16) glm::vec3 dir;
         alignas(16) glm::vec3 pos;
-        alignas(4) uint32_t type;
-        alignas(0) bool has_shadows;
+        alignas(4) uint32_t   type;
+        alignas(0) bool       has_shadows;
     };
 
     void init(const Gfx::RenderPassInstance&) override
@@ -125,7 +126,8 @@ public:
             });
 
         auto desc_resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
-        desc_resource->bind_images("shadow_maps", shadow_maps);
+        if (!shadow_maps.empty())
+            desc_resource->bind_images("shadow_maps", shadow_maps);
         light_buffer->set_data(0, Gfx::BufferData(lights));
     }
 
@@ -142,11 +144,11 @@ public:
         struct PcData
         {
             glm::vec3 cam_pos;
-            uint32_t light_count;
+            uint32_t  light_count;
         };
         command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource,
                                      Gfx::BufferData{PcData{
-                                         scene->get_active_camera()->get_relative_position() , static_cast<uint32_t>(lights.size())
+                                         scene->get_active_camera()->get_relative_position(), static_cast<uint32_t>(lights.size())
                                      }});
 
         command_buffer.bind_pipeline(resource);
@@ -253,8 +255,11 @@ public:
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
+        Cmaa2 cmaa;
+        cmaa.append_to_renderer(renderer);
+
         renderer["present"]
-            .require("gbuffer_resolve")
+            .require("cmaa2")
             .with_imgui(true, default_window)
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
@@ -264,7 +269,7 @@ public:
         camera->activate();
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        directional_light->enable_shadow(ELightType::Movable);
+        //directional_light->enable_shadow(ELightType::Movable);
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
 
         /*
@@ -282,8 +287,9 @@ public:
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
-       
-        engine.jobs().schedule(
+
+        /*
+         engine.jobs().schedule(
             [&, importer]
             {
                 auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
@@ -298,7 +304,7 @@ public:
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
-            });
+            });*/
 
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
@@ -314,29 +320,32 @@ public:
 
         glm::vec3 mov_vec{0};
 
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_W))
+        if (glfwGetMouseButton(glfw_ptr, GLFW_MOUSE_BUTTON_2))
         {
-            mov_vec.x = 1;
-        }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_S))
-        {
-            mov_vec.x = -1;
-        }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
-        {
-            mov_vec.y = -1;
-        }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
-        {
-            mov_vec.y = 1;
-        }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_SPACE))
-        {
-            mov_vec.z = 1;
-        }
-        if (glfwGetKey(glfw_ptr, GLFW_KEY_LEFT_SHIFT))
-        {
-            mov_vec.z = -1;
+            if (glfwGetKey(glfw_ptr, GLFW_KEY_W))
+            {
+                mov_vec.x = 1;
+            }
+            if (glfwGetKey(glfw_ptr, GLFW_KEY_S))
+            {
+                mov_vec.x = -1;
+            }
+            if (glfwGetKey(glfw_ptr, GLFW_KEY_D))
+            {
+                mov_vec.y = -1;
+            }
+            if (glfwGetKey(glfw_ptr, GLFW_KEY_A))
+            {
+                mov_vec.y = 1;
+            }
+            if (glfwGetKey(glfw_ptr, GLFW_KEY_SPACE))
+            {
+                mov_vec.z = 1;
+            }
+            if (glfwGetKey(glfw_ptr, GLFW_KEY_LEFT_SHIFT))
+            {
+                mov_vec.z = -1;
+            }
         }
 
         double pos_x, pos_y;
@@ -386,7 +395,7 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
     Config config;
-    config.gfx.enable_validation_layers = false;
+    config.gfx.enable_validation_layers = true;
     config.gfx.v_sync                   = true;
     config.auto_update_materials        = true;
     Engine engine(config);
