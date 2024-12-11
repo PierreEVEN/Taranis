@@ -13,7 +13,7 @@ HeaderParser::HeaderParser(const std::string& header_data, std::filesystem::path
     Llp::Lexer lexer(header_data);
     if (auto error = parse_block(lexer.get_root(), {}))
     {
-        std::cerr << "Generation to generate reflection data for " << header_path.string() << ":" << error->location.line << ":" << error->location.column << " : " << error->message << "\n";
+        std::cerr << "Failed to generate reflection data for " << header_path.string() << ":" << error->location.line << ":" << error->location.column << " : " << error->message << "\n";
         exit(-1);
     }
 }
@@ -126,8 +126,9 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                             }
                             else
                                 return Llp::ParserError{parser.current_location(), "Expected class name"};
-                        } while (parser.consume<Llp::SymbolToken>(','));
+                        } while (parser.consume<Llp::ComaToken>());
                     }
+
                     if (auto* class_block = parser.consume<Llp::BlockToken>())
                         if (auto error = parse_block(class_block->content, context.push_class(ClassDefinition{class_name->word, parents})))
                             return error;
