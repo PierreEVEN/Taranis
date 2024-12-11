@@ -85,9 +85,10 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
 
     VkPhysicalDeviceVulkan12Features device_features_12{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .descriptorBindingPartiallyBound = true,
+        .descriptorBindingVariableDescriptorCount = true,
         .runtimeDescriptorArray = true,
     };
-
 
     VkDeviceCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

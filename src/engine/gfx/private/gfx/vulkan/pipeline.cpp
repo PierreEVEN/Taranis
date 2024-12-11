@@ -106,26 +106,39 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
     : DeviceResource(std::move(in_device)), create_infos(std::move(in_create_infos))
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
+    std::vector<VkDescriptorBindingFlags>     flags{};
+    bool                                      bindless = false;
     for (const auto& stage : shader_stage)
     {
         for (const auto& binding : stage->infos().bindings)
         {
             descriptor_bindings.push_back(binding);
-
             bindings.emplace_back(VkDescriptorSetLayoutBinding{
                 .binding = binding.binding,
                 .descriptorType = vk_descriptor_type(binding.type),
-                .descriptorCount = 1,
+                .descriptorCount = binding.array_elements > 0 ? binding.array_elements : 1,
                 .stageFlags = static_cast<VkShaderStageFlags>(stage->infos().stage),
                 .pImmutableSamplers = nullptr,
             });
+            if (binding.array_elements > 0)
+                flags.emplace_back(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+            else
+                flags.emplace_back(0);
+
+            if (binding.array_elements == UINT32_MAX)
+                flags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
         }
     }
 
+    VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{
+        .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .bindingCount  = static_cast<uint32_t>(bindings.size()),
+        .pBindingFlags = flags.data(),
+    };
+
     VkDescriptorSetLayoutCreateInfo layout_infos{
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = NULL,
+        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext        = &bindingFlags,
         .bindingCount = static_cast<uint32_t>(bindings.size()),
         .pBindings = bindings.data(),
     };

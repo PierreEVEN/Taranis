@@ -90,21 +90,17 @@ void DescriptorSet::Resource::update()
         if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
             val.second->fill(desc_sets, ptr, found->second, image_descs, buffer_descs);
 
-    for (int64_t i = desc_sets.size() - 1; i >= 0; --i)
-    {
-        if (desc_sets[i].descriptorCount > 1)
-        {
-            vkUpdateDescriptorSets(device().lock()->raw(), 1, &desc_sets[i], 0, nullptr);
-            desc_sets.erase(desc_sets.begin() + i);
-        }
-    }
-
     vkUpdateDescriptorSets(device().lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
     outdated = false;
 }
 
 void DescriptorSet::bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images)
 {
+    if (in_images.empty())
+    {
+        LOG_ERROR("Empty image array for binding {}", binding_name);
+        return;
+    }
     for (const auto& image : in_images)
     {
         if (!image)
@@ -118,6 +114,11 @@ void DescriptorSet::bind_images(const std::string& binding_name, const std::vect
 
 void DescriptorSet::bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers)
 {
+    if (in_samplers.empty())
+    {
+        LOG_ERROR("Empty sampler array for binding {}", binding_name);
+        return;
+    }
     for (const auto& sampler : in_samplers)
         if (!sampler)
             LOG_FATAL("Invalid sampler provided to descriptors");
@@ -127,6 +128,11 @@ void DescriptorSet::bind_samplers(const std::string& binding_name, const std::ve
 
 void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers)
 {
+    if (in_buffers.empty())
+    {
+        LOG_ERROR("Empty buffer array for binding {}", binding_name);
+        return;
+    }
     for (const auto& buffer : in_buffers)
     {
         if (!buffer)

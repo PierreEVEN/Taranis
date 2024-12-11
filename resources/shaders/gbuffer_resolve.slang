@@ -66,7 +66,6 @@ Texture2D                       gbuffer_position;
 Texture2D                       gbuffer_albedo_m;
 Texture2D                       gbuffer_normal_r;
 Texture2D gbuffer_depth;
-Texture2D shadow_maps[];
 
 struct LightData {
     float3 dir;
@@ -76,6 +75,7 @@ struct LightData {
 }
 StructuredBuffer<LightData> light_buffer;
 
+Texture2D shadow_maps[];
 struct PushConsts
 {
     float3 camera;

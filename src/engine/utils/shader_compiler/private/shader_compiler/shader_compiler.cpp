@@ -1,5 +1,6 @@
 #include "shader_compiler/shader_compiler.hpp"
 
+#include "logger.hpp"
 #include "slang-com-ptr.h"
 #include "slang.h"
 #include "slang_helper.hpp"
@@ -272,8 +273,14 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                 {
                     Eng::Gfx::EBindingType binding_type;
 
-                    auto kind = parameter->getType()->getKind() == slang::TypeReflection::Kind::Array ? parameter->getType()->getElementType()->getKind() : parameter->getType()->getKind();
+                    auto kind = parameter->getType()->getKind();
 
+                    uint32_t array_element_count = 0;
+                    if (parameter->getType()->getKind() == slang::TypeReflection::Kind::Array)
+                    {
+                        array_element_count = parameter->getType()->getElementCount() > 0 ? static_cast<uint32_t>(parameter->getType()->getElementCount()) : UINT32_MAX;
+                        kind                = parameter->getType()->getElementType()->getKind();
+                    }
                     if (kind == slang::TypeReflection::Kind::Resource)
                     {
                         auto shape = parameter->getType()->getResourceShape();
@@ -290,7 +297,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                     else
                         return result.push_error({"Unhandled descriptor parameter type " + std::to_string(static_cast<int>(kind))});
 
-                    data.bindings.emplace_back(parameter->getName(), parameter->getBindingIndex(), binding_type);
+                    data.bindings.emplace_back(parameter->getName(), parameter->getBindingIndex(), binding_type, array_element_count);
                 }
                 else
                     return result.push_error({"Unhandled parameter category"});

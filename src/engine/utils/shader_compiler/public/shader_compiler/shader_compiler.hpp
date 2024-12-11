@@ -38,13 +38,15 @@ struct StageInputOutputDescription
 
 struct BindingDescription
 {
-    BindingDescription(std::string in_name, uint32_t in_binding, Eng::Gfx::EBindingType in_type) : name(std::move(in_name)), binding(in_binding), type(in_type)
+    BindingDescription(std::string in_name, uint32_t in_binding, Eng::Gfx::EBindingType in_type, uint32_t in_array_elements)
+        : name(std::move(in_name)), binding(in_binding), type(in_type), array_elements(in_array_elements)
     {
     }
 
     std::string            name;
     uint32_t               binding;
     Eng::Gfx::EBindingType type;
+    uint32_t               array_elements = 0;
 };
 
 struct CompilationError
