@@ -41,6 +41,10 @@ public:
     {
     }
 
+    template <typename T> BufferData(const std::vector<T>& objects) : BufferData(objects.data(), sizeof(T), objects.size())
+    {
+    }
+
     BufferData(const void* in_data, size_t in_stride, size_t in_element_count) : ptr(const_cast<void*>(in_data)), element_count(in_element_count), stride(in_stride)
     {
     }

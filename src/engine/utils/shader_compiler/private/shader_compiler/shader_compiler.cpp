@@ -272,7 +272,9 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                 {
                     Eng::Gfx::EBindingType binding_type;
 
-                    if (parameter->getType()->getKind() == slang::TypeReflection::Kind::Resource)
+                    auto kind = parameter->getType()->getKind() == slang::TypeReflection::Kind::Array ? parameter->getType()->getElementType()->getKind() : parameter->getType()->getKind();
+
+                    if (kind == slang::TypeReflection::Kind::Resource)
                     {
                         auto shape = parameter->getType()->getResourceShape();
 
@@ -283,10 +285,10 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                         else
                             return result.push_error({"Unhandled descriptor parameter shape"});
                     }
-                    else if (parameter->getType()->getKind() == slang::TypeReflection::Kind::SamplerState)
+                    else if (kind == slang::TypeReflection::Kind::SamplerState)
                         binding_type = Eng::Gfx::EBindingType::SAMPLER;
                     else
-                        return result.push_error({"Unhandled descriptor parameter type"});
+                        return result.push_error({"Unhandled descriptor parameter type " + std::to_string(static_cast<int>(kind))});
 
                     data.bindings.emplace_back(parameter->getName(), parameter->getBindingIndex(), binding_type);
                 }

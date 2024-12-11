@@ -25,12 +25,28 @@ public:
 
     const VkDescriptorSet& raw_current() const;
 
-    void       bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image);
-    void       bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler);
-    void       bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer);
+    void bind_image(const std::string& binding_name, const std::shared_ptr<ImageView>& in_image)
+    {
+        bind_images(binding_name, {in_image});
+    }
+
+    void bind_sampler(const std::string& binding_name, const std::shared_ptr<Sampler>& in_sampler)
+    {
+        bind_samplers(binding_name, {in_sampler});
+    }
+
+    void bind_buffer(const std::string& binding_name, const std::shared_ptr<Buffer>& in_buffer)
+    {
+        bind_buffers(binding_name, {in_buffer});
+    }
+
+    void       bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
+    void       bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
+    void       bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
     std::mutex test_mtx;
 
 private:
+
     class Resource : public DeviceResource
     {
     public:
@@ -64,54 +80,81 @@ private:
     class Descriptor
     {
     public:
-        bool operator==(const Descriptor& other) const
-        {
-            return raw_ptr() == other.raw_ptr();
-        }
-
         Descriptor()             = default;
         Descriptor(Descriptor&)  = delete;
-        Descriptor(Descriptor&&)                     = delete;
+        Descriptor(Descriptor&&) = delete;
 
-        virtual void*                raw_ptr() const = 0;
-        virtual VkWriteDescriptorSet get() = 0;
+        bool operator==(const Descriptor& other) const
+        {
+            return get_type_id() == other.get_type_id() && equals(other);
+        }
+
+        virtual void     fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) = 0;
+        virtual uint32_t get_type_id() const = 0;
+
+    protected:
+        virtual bool equals(const Descriptor& other) const = 0;
     };
 
-    class ImageDescriptor : public Descriptor
+    class ImagesDescriptor : public Descriptor
     {
     public:
-        ImageDescriptor(std::shared_ptr<ImageView> in_image) : image(std::move(in_image))
+        ImagesDescriptor(std::vector<std::shared_ptr<ImageView>> in_images) : images(std::move(in_images))
         {
         }
 
-        VkWriteDescriptorSet       get() override;
-        void*                      raw_ptr() const override;
-        std::shared_ptr<ImageView> image;
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) override;
+        bool equals(const Descriptor& other) const override;
+
+    protected:
+        uint32_t get_type_id() const override
+        {
+            return 1;
+        }
+
+        std::vector<std::shared_ptr<ImageView>> images;
     };
 
     class SamplerDescriptor : public Descriptor
     {
     public:
-        SamplerDescriptor(std::shared_ptr<Sampler> in_sampler) : sampler(std::move(in_sampler))
+        SamplerDescriptor(std::vector<std::shared_ptr<Sampler>> in_samplers) : samplers(std::move(in_samplers))
         {
         }
 
-        VkWriteDescriptorSet     get() override;
-        void*                    raw_ptr() const override;
-        std::shared_ptr<Sampler> sampler;
+    public:
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) override;
+
+        uint32_t get_type_id() const override
+        {
+            return 2;
+        }
+
+    protected:
+        bool                                  equals(const Descriptor& other) const override;
+        std::vector<std::shared_ptr<Sampler>> samplers;
     };
 
     class BufferDescriptor : public Descriptor
     {
     public:
-        BufferDescriptor(std::shared_ptr<Buffer> in_buffer) : buffer(std::move(in_buffer))
+        BufferDescriptor(std::vector<std::shared_ptr<Buffer>> in_buffer) : buffers(std::move(in_buffer))
         {
         }
 
-        VkWriteDescriptorSet    get() override;
-        void*                   raw_ptr() const override;
-        std::shared_ptr<Buffer> buffer;
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) override;
+
+        uint32_t get_type_id() const override
+        {
+            return 3;
+        }
+
+    protected:
+        bool                                 equals(const Descriptor& other) const override;
+        std::vector<std::shared_ptr<Buffer>> buffers;
     };
+
+    bool try_insert(const std::string& binding_name, const std::shared_ptr<Descriptor>& descriptor);
 
     ankerl::unordered_dense::map<std::string, std::shared_ptr<Descriptor>> write_descriptors;
     ankerl::unordered_dense::map<std::string, uint32_t>                    descriptor_bindings;

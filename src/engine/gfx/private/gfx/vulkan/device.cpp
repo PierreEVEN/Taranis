@@ -81,7 +81,14 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
     VkPhysicalDeviceFeatures deviceFeatures{
         .fillModeNonSolid = true,
         .samplerAnisotropy = true,
+        .runtimeDescriptorArray = true,
     };
+
+    VkPhysicalDeviceVulkan12Features{
+        .pNext =
+    };
+
+
     VkDeviceCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),

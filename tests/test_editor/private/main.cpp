@@ -89,7 +89,7 @@ public:
         resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void draw(const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t) override
+    void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t) override
     {
         auto resource = material->get_base_resource(command_buffer.render_pass());
         if (!resource)
@@ -97,35 +97,55 @@ public:
 
         struct Light
         {
-            uint8_t   type;
+            uint32_t  type;
             glm::vec3 pos;
             glm::vec3 dir;
+            bool      has_shadows;
         };
 
-        std::vector<Light> lights;
+        std::vector<Light>                           lights;
+        std::vector<std::shared_ptr<Gfx::ImageView>> shadow_maps;
 
         scene->for_each<LightComponent>(
             [&](const LightComponent& comp)
             {
                 if (comp.get_shadow_pass())
                 {
-                    lights.emplace_back(0, comp.get_relative_position(), glm::vec3{0});
-                    comp.get_shadow_pass()->get_attachment("depth");
+                    lights.emplace_back(0, comp.get_relative_position(), glm::vec3{0}, true);
+                    shadow_maps.emplace_back(comp.get_shadow_pass()->get_attachment("depth"));
                 }
             });
+
+        scene->for_each<LightComponent>(
+            [&](const LightComponent& comp)
+            {
+                if (!comp.get_shadow_pass())
+                {
+                    lights.emplace_back(0, comp.get_relative_position(), glm::vec3{0}, false);
+                }
+            });
+
+        auto desc_resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
+        desc_resource->bind_buffer("light_buffer", light_buffer);
         material->set_buffer("lights", light_buffer);
         if (!light_buffer)
-            light_buffer = Gfx::Buffer::create("Light buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(Light),
-                                               lights.size());
+            light_buffer = Gfx::Buffer::create("Light buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, Gfx::BufferData(lights));
+        else
+            light_buffer->set_data(0, Gfx::BufferData(lights));
 
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
             {
-                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData{object.get_relative_position()});
+                struct PcData
+                {
+                    glm::vec3 camera;
+                    uint32_t  light_count;
+                };
+                command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData{PcData{object.get_relative_position(), static_cast<uint32_t>(lights.size())}});
             });
 
         command_buffer.bind_pipeline(resource);
-        command_buffer.bind_descriptors(*material->get_descriptor_resource(command_buffer.render_pass()), *resource);
+        command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData());
         command_buffer.draw_procedural(6, 0, 1, 0);
     }
 
@@ -200,7 +220,7 @@ public:
 class TestApp : public Application
 {
 public:
-    void init(Engine&, const std::weak_ptr<Gfx::Window>& in_default_window) override
+    void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
 
@@ -235,8 +255,7 @@ public:
         directional_light->enable_shadow(ELightType::Movable);
         auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light2->enable_shadow(ELightType::Movable);
-        
-/*
+
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]
@@ -247,6 +266,7 @@ public:
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
+        /*
         engine.jobs().schedule(
             [&, importer]
             {
@@ -351,7 +371,7 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
     Config config;
-    config.gfx.enable_validation_layers = false;
+    config.gfx.enable_validation_layers = true;
     config.gfx.v_sync                   = true;
     config.auto_update_materials        = false;
     Engine engine(config);

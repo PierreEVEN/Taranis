@@ -65,12 +65,21 @@ SamplerState sSampler;
 Texture2D                       gbuffer_position;
 Texture2D                       gbuffer_albedo_m;
 Texture2D                       gbuffer_normal_r;
-Texture2D                       gbuffer_depth;
+Texture2D gbuffer_depth;
+Texture2D shadow_maps[];
 
+struct LightData {
+    uint32_t type;
+    float3 pos;
+    float3 dir;
+    bool has_shadows;
+}
+StructuredBuffer<LightData> light_buffer;
 
 struct PushConsts
 {
     float3 camera;
+    uint32_t light_count;
 };
 
 [shader("vertex")]
@@ -100,8 +109,6 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
     float3 cam_pos = pc.camera;
 
-    float3 light_dir = normalize(float3(0.5, 0.5, 1));
-
     float3 ambiant_intensity = float3(0.1, 0.1, 0.1);
     float3 light_color       = float3(1, 1, 1);
 
@@ -117,10 +124,20 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
     // reflectance equation
     float3 Lo = float3(0, 0, 0);
-    for (int i = 0; i < 4; ++i)
-    {
+
+    for (uint32_t i = 0; i < pc.light_count; ++i) {
+
+        LightData light = light_buffer.Load(i);
+
+        if (light.has_shadows) {
+            float3 sm = shadow_maps[i].Sample(sSampler, input.Uv).xyz;
+            if (sm.b > 10)
+                discard;
+            // @TODO
+        }
+
         // calculate per-light radiance
-        float3 L = normalize(light_dir);
+        float3 L = normalize(light.dir);
         float3 H = normalize(V + L);
         //float distance = length(lightPositions[i] - WorldPos);
         //float attenuation = 1.0 / (distance * distance);
