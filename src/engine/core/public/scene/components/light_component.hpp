@@ -33,9 +33,10 @@ class LightComponent : public SceneComponent
         return shadow_update_pass;
     }
 
-protected:
     void set_position(glm::vec3 in_position) override;
     void set_rotation(glm::quat in_rotation) override;
+
+  protected:
 
     virtual void void_create_shadow_resources()
     {

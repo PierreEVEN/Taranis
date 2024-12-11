@@ -43,7 +43,6 @@ public:
     void       bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
     void       bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
     void       bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
-    std::mutex test_mtx;
 
 private:
 
@@ -89,7 +88,8 @@ private:
             return get_type_id() == other.get_type_id() && equals(other);
         }
 
-        virtual void     fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) = 0;
+        virtual void get_resources(uint32_t& buffer_count, uint32_t& image_count) = 0;
+        virtual void     fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) = 0;
         virtual uint32_t get_type_id() const = 0;
 
     protected:
@@ -103,14 +103,19 @@ private:
         {
         }
 
-        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) override;
-        bool equals(const Descriptor& other) const override;
+        void get_resources(uint32_t&, uint32_t& image_count) override
+        {
+            image_count += static_cast<uint32_t>(images.size());
+        }
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
-    protected:
         uint32_t get_type_id() const override
         {
             return 1;
         }
+        
+    protected:
+        bool equals(const Descriptor& other) const override;
 
         std::vector<std::shared_ptr<ImageView>> images;
     };
@@ -123,7 +128,11 @@ private:
         }
 
     public:
-        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) override;
+        void get_resources(uint32_t&, uint32_t& image_count) override
+        {
+            image_count += static_cast<uint32_t>(samplers.size());
+        }
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
         {
@@ -142,7 +151,11 @@ private:
         {
         }
 
-        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding) override;
+        void get_resources(uint32_t& buffer_count, uint32_t&) override
+        {
+            buffer_count += static_cast<uint32_t>(buffers.size());
+        }
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
         {

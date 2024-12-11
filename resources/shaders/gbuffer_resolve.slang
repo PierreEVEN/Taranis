@@ -69,9 +69,9 @@ Texture2D gbuffer_depth;
 Texture2D shadow_maps[];
 
 struct LightData {
-    uint32_t type;
-    float3 pos;
     float3 dir;
+    float3 pos;
+    uint32_t type;
     bool has_shadows;
 }
 StructuredBuffer<LightData> light_buffer;
@@ -99,7 +99,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 {
     float3 worldPosition = gbuffer_position.Sample(sSampler, input.Uv).xyz;
     float4 albedo_m      = gbuffer_albedo_m.Sample(sSampler, input.Uv);
-    float4 normal_r      = gbuffer_normal_r.Sample(sSampler, input.Uv);
+    float4 normal_r = gbuffer_normal_r.Sample(sSampler, input.Uv);
 
     float3 albedo   = albedo_m.rgb;
     float  metallic = albedo_m.a;
@@ -109,7 +109,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
     float3 cam_pos = pc.camera;
 
-    float3 ambiant_intensity = float3(0.1, 0.1, 0.1);
+    float3 ambiant_intensity = float3(0.1, 0.1, 0.1) * 0.01;
     float3 light_color       = float3(1, 1, 1);
 
     //float ao = texture(aoMap, TexCoords).r;
@@ -125,14 +125,15 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     // reflectance equation
     float3 Lo = float3(0, 0, 0);
 
+
     for (uint32_t i = 0; i < pc.light_count; ++i) {
 
         LightData light = light_buffer.Load(i);
 
-        if (light.has_shadows) {
+        if (light.has_shadows || true) {
             float3 sm = shadow_maps[i].Sample(sSampler, input.Uv).xyz;
-            if (sm.b > 10)
-                discard;
+            if (sm.b < 10)
+                return float4(sm.r, 0 , 0, 1);
             // @TODO
         }
 

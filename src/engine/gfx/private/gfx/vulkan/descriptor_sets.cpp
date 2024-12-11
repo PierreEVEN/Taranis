@@ -72,15 +72,33 @@ void DescriptorSet::Resource::update()
         return;
 
     PROFILER_SCOPE(UpdateDescriptorSets);
-    std::vector<VkWriteDescriptorSet> desc_sets;
-    auto                              parent_ptr = parent.lock();
+
+    auto parent_ptr = parent.lock();
+    uint32_t image_count = 0;
+    uint32_t buffer_count = 0;
     for (const auto& val : parent_ptr->write_descriptors)
-    {
         if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
+            val.second->get_resources(buffer_count, image_count);
+
+    std::vector<VkDescriptorImageInfo> image_descs;
+    std::vector<VkDescriptorBufferInfo> buffer_descs;
+    image_descs.reserve(image_count);
+    buffer_descs.reserve(buffer_count);
+
+    std::vector<VkWriteDescriptorSet> desc_sets;
+    for (const auto& val : parent_ptr->write_descriptors)
+        if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
+            val.second->fill(desc_sets, ptr, found->second, image_descs, buffer_descs);
+
+    for (int64_t i = desc_sets.size() - 1; i >= 0; --i)
+    {
+        if (desc_sets[i].descriptorCount > 1)
         {
-            val.second->fill(desc_sets, ptr, found->second);
+            vkUpdateDescriptorSets(device().lock()->raw(), 1, &desc_sets[i], 0, nullptr);
+            desc_sets.erase(desc_sets.begin() + i);
         }
     }
+
     vkUpdateDescriptorSets(device().lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
     outdated = false;
 }
@@ -88,44 +106,54 @@ void DescriptorSet::Resource::update()
 void DescriptorSet::bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images)
 {
     for (const auto& image : in_images)
+    {
+        if (!image)
+            LOG_FATAL("Invalid image provided to descriptors");
+
         if (b_static && image->raw().size() > 1)
             LOG_ERROR("Cannot bind dynamic image '{}' to static descriptors '{}::{}'", image->get_name(), name, binding_name);
+    }
     try_insert(binding_name, std::make_shared<ImagesDescriptor>(in_images));
 }
 
 void DescriptorSet::bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers)
 {
+    for (const auto& sampler : in_samplers)
+        if (!sampler)
+            LOG_FATAL("Invalid sampler provided to descriptors");
+
     try_insert(binding_name, std::make_shared<SamplerDescriptor>(in_samplers));
 }
 
 void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers)
 {
     for (const auto& buffer : in_buffers)
+    {
+        if (!buffer)
+            LOG_FATAL("Invalid buffer provided to descriptors");
+
         if (b_static && buffer->raw().size() > 1)
             LOG_ERROR("Cannot bind dynamic buffer '{}' to static descriptors '{}::{}'", buffer->get_name(), name, binding_name);
+    }
     try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers));
 }
 
-void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding)
+void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
+                                           std::vector<VkDescriptorBufferInfo>&)
 {
-    if (images.empty())
-        LOG_FATAL("Empty image array descriptor");
-
+    size_t start = image_descs.size();
     for (uint32_t i = 0; i < images.size(); ++i)
-    {
-        if (!images[i])
-            LOG_FATAL("Invalid image descriptor");
-
-        out_sets.emplace_back(VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = dst_set,
-            .dstBinding      = binding,
-            .dstArrayElement = i,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            .pImageInfo = &images[i]->get_descriptor_infos_current(),
-        });
-    }
+        image_descs.emplace_back(images[i]->get_descriptor_infos_current());
+    
+    out_sets.emplace_back(VkWriteDescriptorSet{
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet          = dst_set,
+        .dstBinding      = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = static_cast<uint32_t>(images.size()),
+        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .pImageInfo      = &image_descs[start],
+    });
 }
 
 bool DescriptorSet::ImagesDescriptor::equals(const Descriptor& other) const
@@ -140,26 +168,21 @@ bool DescriptorSet::ImagesDescriptor::equals(const Descriptor& other) const
 
 }
 
-void DescriptorSet::SamplerDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding)
+void DescriptorSet::SamplerDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
+                                            std::vector<VkDescriptorBufferInfo>&)
 {
-    if (samplers.empty())
-        LOG_FATAL("Empty sampler array descriptor");
-
+    size_t start = image_descs.size();
     for (uint32_t i = 0; i < samplers.size(); ++i)
-    {
-        if (!samplers[i])
-            LOG_FATAL("Invalid sampler descriptor");
-
-        out_sets.emplace_back(VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = dst_set,
-            .dstBinding      = binding,
-            .dstArrayElement = i,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-            .pImageInfo = &samplers[i]->get_descriptor_infos(),
-        });
-    }
+        image_descs.emplace_back(samplers[i]->get_descriptor_infos());
+    out_sets.emplace_back(VkWriteDescriptorSet{
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet          = dst_set,
+        .dstBinding      = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = static_cast<uint32_t>(samplers.size()),
+        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
+        .pImageInfo      = &image_descs[start],
+    });
 }
 
 bool DescriptorSet::SamplerDescriptor::equals(const Descriptor& other) const
@@ -173,26 +196,21 @@ bool DescriptorSet::SamplerDescriptor::equals(const Descriptor& other) const
     return true;
 }
 
-void DescriptorSet::BufferDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding)
+void DescriptorSet::BufferDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>&,
+                                           std::vector<VkDescriptorBufferInfo>& buffer_descs)
 {
-    if (buffers.empty())
-        LOG_FATAL("Empty buffer array descriptor");
-
+    size_t start = buffer_descs.size();
     for (uint32_t i = 0; i < buffers.size(); ++i)
-    {
-        if (!buffers[i])
-            LOG_FATAL("Invalid buffer descriptor");
-
-        out_sets.emplace_back(VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = dst_set,
-            .dstBinding      = binding,
-            .dstArrayElement = i,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .pBufferInfo = &buffers[i]->get_descriptor_infos_current(),
-        });
-    }
+        buffer_descs.emplace_back(buffers[i]->get_descriptor_infos_current());
+    out_sets.emplace_back(VkWriteDescriptorSet{
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet          = dst_set,
+        .dstBinding      = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = static_cast<uint32_t>(buffers.size()),
+        .descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .pBufferInfo     = &buffer_descs[start],
+    });
 }
 
 bool DescriptorSet::BufferDescriptor::equals(const Descriptor& other) const

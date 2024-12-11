@@ -63,7 +63,16 @@ class GBufferResolveInterface : public Gfx::IRenderPass
 public:
     GBufferResolveInterface(const std::shared_ptr<Scene>& in_scene) : scene(in_scene)
     {
+        light_buffer = Gfx::Buffer::create("light_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(Light), 1);
     }
+
+    struct Light
+    {
+        alignas(8) glm::vec3 dir;
+        alignas(8) glm::vec3 pos;
+        alignas(8) uint32_t type;
+        alignas(8) bool has_shadows;
+    };
 
     void init(const Gfx::RenderPassInstance&) override
     {
@@ -89,29 +98,16 @@ public:
         resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t) override
+    void pre_draw(const Gfx::RenderPassInstance& render_pass) override
     {
-        auto resource = material->get_base_resource(command_buffer.render_pass());
-        if (!resource)
-            return;
-
-        struct Light
-        {
-            uint32_t  type;
-            glm::vec3 pos;
-            glm::vec3 dir;
-            bool      has_shadows;
-        };
-
-        std::vector<Light>                           lights;
+        lights.clear();
         std::vector<std::shared_ptr<Gfx::ImageView>> shadow_maps;
-
         scene->for_each<LightComponent>(
             [&](const LightComponent& comp)
             {
                 if (comp.get_shadow_pass())
                 {
-                    lights.emplace_back(0, comp.get_relative_position(), glm::vec3{0}, true);
+                    lights.emplace_back(comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 0, true);
                     shadow_maps.emplace_back(comp.get_shadow_pass()->get_attachment("depth"));
                 }
             });
@@ -121,17 +117,23 @@ public:
             {
                 if (!comp.get_shadow_pass())
                 {
-                    lights.emplace_back(0, comp.get_relative_position(), glm::vec3{0}, false);
+                    lights.emplace_back(comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 0, false);
                 }
             });
 
         auto desc_resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
+        desc_resource->bind_images("shadow_maps", shadow_maps);
+        light_buffer->set_data(0, Gfx::BufferData(lights));
+    }
+
+    void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t) override
+    {
+        auto resource = material->get_base_resource(command_buffer.render_pass());
+        if (!resource)
+            return;
+
+        auto desc_resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
         desc_resource->bind_buffer("light_buffer", light_buffer);
-        material->set_buffer("lights", light_buffer);
-        if (!light_buffer)
-            light_buffer = Gfx::Buffer::create("Light buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, Gfx::BufferData(lights));
-        else
-            light_buffer->set_data(0, Gfx::BufferData(lights));
 
         scene->for_each<CameraComponent>(
             [&](const CameraComponent& object)
@@ -145,9 +147,16 @@ public:
             });
 
         command_buffer.bind_pipeline(resource);
-        command_buffer.push_constant(Gfx::EShaderStage::Fragment, *resource, Gfx::BufferData());
+        command_buffer.bind_descriptors(*desc_resource, *resource);
         command_buffer.draw_procedural(6, 0, 1, 0);
     }
+
+    void pre_submit(const Gfx::RenderPassInstance&) override
+    {
+        light_buffer->wait_data_upload();
+    }
+
+    std::vector<Light> lights;
 
     TObjectRef<MaterialInstanceAsset> material;
     TObjectRef<SamplerAsset>          sampler;
@@ -253,8 +262,10 @@ public:
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->enable_shadow(ELightType::Movable);
+        directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
         auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light2->enable_shadow(ELightType::Movable);
+        directional_light2->set_rotation(glm::vec3{0, 1.8f, -1.2f});
 
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
@@ -373,7 +384,7 @@ int main()
     Config config;
     config.gfx.enable_validation_layers = true;
     config.gfx.v_sync                   = true;
-    config.auto_update_materials        = false;
+    config.auto_update_materials        = true;
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }
