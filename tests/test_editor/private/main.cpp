@@ -242,7 +242,7 @@ public:
 
         renderer["gbuffers"]
             .render_pass<SceneGBuffers>(scene)
-            .reversed_log_z(false)
+            .reversed_log_z(true)
             [Gfx::Attachment::slot("position").format(Gfx::ColorFormat::R32G32B32A32_SFLOAT).clear_color({0, 0, 0, 0})]
             [Gfx::Attachment::slot("albedo-m").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0.5f, 0.5f, 0.8f, 0.0f})]
             [Gfx::Attachment::slot("normal-r").format(Gfx::ColorFormat::R8G8B8A8_UNORM).clear_color({0, 0, 0, 1.0f})]
@@ -267,10 +267,11 @@ public:
         directional_light->enable_shadow(ELightType::Movable);
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
 
-        /*auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
+        /*
+        auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light2->enable_shadow(ELightType::Movable);
-        directional_light2->set_rotation(glm::vec3{0, 1.8f, -1.2f});*/
-
+        directional_light2->set_rotation(glm::vec3{0, 1.8f, -1.2f});
+        */
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]
