@@ -54,6 +54,11 @@ public:
             return;
         }
         LOG_INFO("Compiled cmaa2_process_candidates");
+        std::shared_ptr<Eng::Gfx::ShaderModule> sm_cmaa2_process_candidates =
+            Eng::Gfx::ShaderModule::create(Eng::Engine::get().get_device(), cr_cmaa2_process_candidates.stages.find(Eng::Gfx::EShaderStage::Compute)->second);
+        LOG_INFO("Created cmaa2_process_candidates module");
+        std::shared_ptr<Eng::Gfx::ComputePipeline> pipeline_cmaa2_process_candidates = Eng::Gfx::ComputePipeline::create("cmaa2_process_candidates", Eng::Engine::get().get_device(), sm_cmaa2_process_candidates);
+        LOG_INFO("Created cmaa2_process_candidates pipeline");
 
         auto cr_cmaa2_deferred_color_apply2x2 = session->compile("cmaa2_deferred_color_apply2x2", session->get_default_permutations_description());
         if (!cr_cmaa2_deferred_color_apply2x2.errors.empty())
@@ -63,6 +68,12 @@ public:
             return;
         }
         LOG_INFO("Compiled cmaa2_deferred_color_apply2x2");
+        std::shared_ptr<Eng::Gfx::ShaderModule> sm_cmaa2_deferred_color_apply2x2 =
+            Eng::Gfx::ShaderModule::create(Eng::Engine::get().get_device(), cr_cmaa2_deferred_color_apply2x2.stages.find(Eng::Gfx::EShaderStage::Compute)->second);
+        LOG_INFO("Created cmaa2_deferred_color_apply2x2 module");
+        std::shared_ptr<Eng::Gfx::ComputePipeline> pipeline_cmaa2_deferred_color_apply2x2 =
+            Eng::Gfx::ComputePipeline::create("cmaa2_deferred_color_apply2x2", Eng::Engine::get().get_device(), sm_cmaa2_deferred_color_apply2x2);
+        LOG_INFO("Created cmaa2_deferred_color_apply2x2 pipeline");
 
         auto cr_cmaa2_debug_draw_edges = session->compile("cmaa2_debug_draw_edges", session->get_default_permutations_description());
         if (!cr_cmaa2_debug_draw_edges.errors.empty())
@@ -72,6 +83,10 @@ public:
             return;
         }
         LOG_INFO("Compiled cmaa2_debug_draw_edges");
+        std::shared_ptr<Eng::Gfx::ShaderModule> sm_cmaa2_debug_draw_edges = Eng::Gfx::ShaderModule::create(Eng::Engine::get().get_device(), cr_cmaa2_debug_draw_edges.stages.find(Eng::Gfx::EShaderStage::Compute)->second);
+        LOG_INFO("Created cmaa2_debug_draw_edges module");
+        std::shared_ptr<Eng::Gfx::ComputePipeline> pipeline_cmaa2_debug_draw_edges = Eng::Gfx::ComputePipeline::create("cmaa2_debug_draw_edges", Eng::Engine::get().get_device(), sm_cmaa2_debug_draw_edges);
+        LOG_INFO("Created cmaa2_debug_draw_edges pipeline");
 
     }
 

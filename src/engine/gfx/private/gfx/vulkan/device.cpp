@@ -81,10 +81,12 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
     VkPhysicalDeviceFeatures deviceFeatures{
         .fillModeNonSolid = true,
         .samplerAnisotropy = true,
+        .shaderInt16 = true,
     };
 
     VkPhysicalDeviceVulkan12Features device_features_12{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .shaderFloat16 = true,
         .descriptorBindingPartiallyBound = true,
         .descriptorBindingVariableDescriptorCount = true,
         .runtimeDescriptorArray = true,
