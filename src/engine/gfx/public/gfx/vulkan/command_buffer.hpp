@@ -17,6 +17,7 @@ class shared_mutex;
 
 namespace Eng::Gfx
 {
+class ComputePipeline;
 class SecondaryCommandBuffer;
 class VkRendererPass;
 class Framebuffer;
@@ -88,6 +89,11 @@ class CommandBuffer
     void set_viewport(const Viewport& viewport) const;
     void push_constant(EShaderStage stage, const Pipeline& pipeline, const BufferData& data) const;
     void begin_render_pass(const RenderPassRef& pass_name, const VkRenderPassBeginInfo& begin_infos, bool parallel_rendering);
+
+    void bind_compute_pipeline(const ComputePipeline& pipeline) const;
+    void bind_descriptors(const DescriptorSet& descriptors, const ComputePipeline& pipeline) const;
+    void dispatch_compute(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) const;
+
     void end_render_pass();
 
     const std::weak_ptr<Device>& get_device() const

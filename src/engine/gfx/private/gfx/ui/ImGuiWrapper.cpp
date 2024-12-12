@@ -617,7 +617,7 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
                                  },
                                  std::vector{BufferData(pixels, 4, width * height)});
     font_texture_view     = ImageView::create(name + "_font_image_view", font_texture);
-    imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material);
+    imgui_font_descriptor = DescriptorSet::create(name + "_font_descriptors", device, imgui_material->get_layout());
     imgui_font_descriptor->bind_image("sTexture", font_texture_view);
     imgui_font_descriptor->bind_sampler("sSampler", image_sampler);
 }
@@ -813,7 +813,7 @@ void ImGuiWrapper::end(CommandBuffer& cmd)
                             {
                                 if (!found_descriptors->second.second)
                                 {
-                                    const auto descriptors = DescriptorSet::create(name + "_descriptor:" + found_image_view->second->get_name(), device, imgui_material, found_image_view->second->raw().size() <= 1);
+                                    const auto descriptors = DescriptorSet::create(name + "_descriptor:" + found_image_view->second->get_name(), device, imgui_material->get_layout(), found_image_view->second->raw().size() <= 1);
                                     descriptors->bind_image("sTexture", found_image_view->second);
                                     descriptors->bind_sampler("sSampler", image_sampler);
                                     found_descriptors->second.second = descriptors;

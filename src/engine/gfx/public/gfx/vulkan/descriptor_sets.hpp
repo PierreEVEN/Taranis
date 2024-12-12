@@ -7,6 +7,7 @@
 
 namespace Eng::Gfx
 {
+class PipelineLayout;
 class Buffer;
 class ImageView;
 class Pipeline;
@@ -21,7 +22,7 @@ public:
     DescriptorSet(DescriptorSet&)  = delete;
     DescriptorSet(DescriptorSet&&) = delete;
     ~DescriptorSet();
-    static std::shared_ptr<DescriptorSet> create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static = false);
+    static std::shared_ptr<DescriptorSet> create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<PipelineLayout>& pipeline, bool b_static = false);
 
     const VkDescriptorSet& raw_current() const;
 
@@ -40,16 +41,15 @@ public:
         bind_buffers(binding_name, {in_buffer});
     }
 
-    void       bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
-    void       bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
-    void       bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
+    void bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
+    void bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
+    void bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
 
 private:
-
     class Resource : public DeviceResource
     {
     public:
-        Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<Pipeline>& in_pipeline);
+        Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<PipelineLayout>& in_pipeline);
         Resource(Resource&)  = delete;
         Resource(Resource&&) = delete;
         ~Resource();
@@ -67,14 +67,14 @@ private:
         }
 
     private:
-        bool                         outdated   = false;
-        size_t                       pool_index = 0;
-        std::shared_ptr<Pipeline>    pipeline;
-        std::weak_ptr<DescriptorSet> parent;
-        VkDescriptorSet              ptr = VK_NULL_HANDLE;
+        bool                            outdated   = false;
+        size_t                          pool_index = 0;
+        std::shared_ptr<PipelineLayout> pipeline;
+        std::weak_ptr<DescriptorSet>    parent;
+        VkDescriptorSet                 ptr = VK_NULL_HANDLE;
     };
 
-    DescriptorSet(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static);
+    DescriptorSet(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<PipelineLayout>& pipeline, bool b_static);
 
     class Descriptor
     {
@@ -89,7 +89,7 @@ private:
         }
 
         virtual void get_resources(uint32_t& buffer_count, uint32_t& image_count) = 0;
-        virtual void     fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) = 0;
+        virtual void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) = 0;
         virtual uint32_t get_type_id() const = 0;
 
     protected:
@@ -107,13 +107,14 @@ private:
         {
             image_count += static_cast<uint32_t>(images.size());
         }
+
         void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
         {
             return 1;
         }
-        
+
     protected:
         bool equals(const Descriptor& other) const override;
 
@@ -132,6 +133,7 @@ private:
         {
             image_count += static_cast<uint32_t>(samplers.size());
         }
+
         void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
@@ -155,6 +157,7 @@ private:
         {
             buffer_count += static_cast<uint32_t>(buffers.size());
         }
+
         void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override

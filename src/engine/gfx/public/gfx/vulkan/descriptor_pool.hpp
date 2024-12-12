@@ -6,10 +6,12 @@
 
 namespace Eng::Gfx
 {
+class PipelineLayout;
+
 struct PoolDescription
 {
   public:
-    PoolDescription(const Pipeline& pipeline);
+    PoolDescription(const PipelineLayout& pipeline);
 
     bool operator==(const PoolDescription& other) const
     {
@@ -54,8 +56,8 @@ class DescriptorPool
 
     DescriptorPool(DescriptorPool&)  = delete;
     DescriptorPool(DescriptorPool&&) = delete;
-    VkDescriptorSet allocate(const Pipeline& pipeline, size_t& pool_index);
-    void            free(const VkDescriptorSet& desc_set, const Pipeline& pipeline, size_t pool_index);
+    VkDescriptorSet allocate(const PipelineLayout& pipeline, size_t& pool_index);
+    void            free(const VkDescriptorSet& desc_set, const PipelineLayout& pipeline, size_t pool_index);
 
   private:
     DescriptorPool(std::weak_ptr<Device> device);

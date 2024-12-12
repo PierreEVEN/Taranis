@@ -63,7 +63,7 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
     sessionDesc.searchPathCount = 1;
 
     std::vector<slang::CompilerOptionEntry> compiler_options;
-    compiler_options.emplace_back(slang::CompilerOptionEntry{slang::CompilerOptionName::UseUpToDateBinaryModule, slang::CompilerOptionValue{.kind = slang::CompilerOptionValueKind::Int, .intValue0 = 1}});
+    //compiler_options.emplace_back(slang::CompilerOptionEntry{slang::CompilerOptionName::UseUpToDateBinaryModule, slang::CompilerOptionValue{.kind = slang::CompilerOptionValueKind::Int, .intValue0 = 1}});
     compiler_options.emplace_back(slang::CompilerOptionEntry{slang::CompilerOptionName::Optimization, slang::CompilerOptionValue{.kind = slang::CompilerOptionValueKind::Int, .intValue0 = 3}});
     sessionDesc.compilerOptionEntries    = compiler_options.data();
     sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(compiler_options.size());
@@ -249,7 +249,23 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         if (diagnostics)
             return result.push_error({static_cast<const char*>(diagnostics->getBufferPointer())});
 
-        StageData             data;
+        StageData data;
+
+        switch (entry_point->getLayout()->getEntryPointByIndex(0)->getStage())
+        {
+        case SLANG_STAGE_VERTEX:
+            data.stage = Eng::Gfx::EShaderStage::Vertex;
+            break;
+        case SLANG_STAGE_FRAGMENT:
+            data.stage = Eng::Gfx::EShaderStage::Fragment;
+            break;
+        case SLANG_STAGE_COMPUTE:
+            data.stage = Eng::Gfx::EShaderStage::Compute;
+            break;
+        default:
+            return result.push_error({"Unhandled shader stage type"});
+        }
+
         slang::ProgramLayout* shaderReflection = linkedProgram->getLayout();
         for (unsigned par_i = 0; par_i < shaderReflection->getParameterCount(); par_i++)
         {
@@ -286,7 +302,12 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                         auto shape = parameter->getType()->getResourceShape();
 
                         if (shape == SLANG_TEXTURE_1D || shape == SLANG_TEXTURE_2D || shape == SLANG_TEXTURE_3D || shape == SLANG_TEXTURE_CUBE)
-                            binding_type = Eng::Gfx::EBindingType::SAMPLED_IMAGE;
+                        {
+                            if (parameter->getType()->getResourceAccess() == SLANG_RESOURCE_ACCESS_READ_WRITE)
+                                binding_type = Eng::Gfx::EBindingType::STORAGE_IMAGE;
+                            else
+                                binding_type = Eng::Gfx::EBindingType::SAMPLED_IMAGE;
+                        }
                         else if (shape == SLANG_STRUCTURED_BUFFER || shape == SLANG_BYTE_ADDRESS_BUFFER)
                             binding_type = Eng::Gfx::EBindingType::STORAGE_BUFFER;
                         else
@@ -304,21 +325,6 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
             }
 
             // BINDINGS HERE
-        }
-
-        switch (entry_point->getLayout()->getEntryPointByIndex(0)->getStage())
-        {
-        case SLANG_STAGE_VERTEX:
-            data.stage = Eng::Gfx::EShaderStage::Vertex;
-            break;
-        case SLANG_STAGE_FRAGMENT:
-            data.stage = Eng::Gfx::EShaderStage::Fragment;
-            break;
-        case SLANG_STAGE_COMPUTE:
-            data.stage = Eng::Gfx::EShaderStage::Compute;
-            break;
-        default:
-            return result.push_error({"Unhandled shader stage type"});
         }
 
         for (unsigned par_i = 0; par_i < entry_point->getLayout()->getEntryPointByIndex(0)->getParameterCount(); ++par_i)

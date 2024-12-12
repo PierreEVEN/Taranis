@@ -11,6 +11,11 @@
 
 namespace Eng::Gfx
 {
+class PipelineLayout;
+}
+
+namespace Eng::Gfx
+{
 enum class ColorFormat;
 }
 
@@ -39,7 +44,7 @@ enum class ColorFormat;
 
 class Pipeline : public DeviceResource
 {
-  public:
+public:
     struct CreateInfos
     {
         PipelineOptions                          options;
@@ -47,7 +52,7 @@ class Pipeline : public DeviceResource
     };
 
     static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
-                                            CreateInfos create_infos)
+                                            CreateInfos        create_infos)
     {
         return std::shared_ptr<Pipeline>(new Pipeline(name, std::move(device), render_pass, shader_stage, std::move(create_infos)));
     }
@@ -56,14 +61,9 @@ class Pipeline : public DeviceResource
     Pipeline(Pipeline&&) = delete;
     ~Pipeline();
 
-    const VkPipelineLayout& get_layout() const
+    const std::shared_ptr<PipelineLayout>& get_layout() const
     {
         return layout;
-    }
-
-    const VkDescriptorSetLayout& get_descriptor_layout() const
-    {
-        return descriptor_set_layout;
     }
 
     const VkPipeline& raw() const
@@ -76,17 +76,10 @@ class Pipeline : public DeviceResource
         return create_infos;
     }
 
-    const std::vector<ShaderCompiler::BindingDescription>& get_bindings() const
-    {
-        return descriptor_bindings;
-    }
-
-  private:
+private:
     Pipeline(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
-    std::vector<ShaderCompiler::BindingDescription> descriptor_bindings;
-    CreateInfos                                     create_infos;
-    VkPipelineLayout                                layout                = VK_NULL_HANDLE;
-    VkDescriptorSetLayout                           descriptor_set_layout = VK_NULL_HANDLE;
-    VkPipeline                                      ptr                   = VK_NULL_HANDLE;
+    CreateInfos                     create_infos;
+    std::shared_ptr<PipelineLayout> layout;
+    VkPipeline                      ptr = VK_NULL_HANDLE;
 };
 } // namespace Eng::Gfx

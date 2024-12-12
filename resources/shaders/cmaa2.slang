@@ -57,9 +57,6 @@ import shader_base;
 #endif
 
 // for CMAA2+MSAA support
-#ifndef CMAA_MSAA_SAMPLE_COUNT
-#define CMAA_MSAA_SAMPLE_COUNT 1
-#endif
 
 #define CMAA2_CS_OUTPUT_KERNEL_SIZE_X               (CMAA2_CS_INPUT_KERNEL_SIZE_X-2)
 #define CMAA2_CS_OUTPUT_KERNEL_SIZE_Y               (CMAA2_CS_INPUT_KERNEL_SIZE_Y-2)
@@ -153,14 +150,7 @@ static const uint c_maxLineLength = 86;
 // 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-#define CMAA_MSAA_USE_COMPLEXITY_MASK 1
-#else
-#define CMAA_MSAA_USE_COMPLEXITY_MASK 0
-#endif
-
-#if CMAA2_EDGE_DETECTION_LUMA_PATH == 2 || CMAA2_EDGE_DETECTION_LUMA_PATH == 3 || CMAA_MSAA_USE_COMPLEXITY_MASK
+#if CMAA2_EDGE_DETECTION_LUMA_PATH == 2 || CMAA2_EDGE_DETECTION_LUMA_PATH == 3
 SamplerState                    g_gather_point_clamp_Sampler;       // there's also a slightly less efficient codepath that avoids Gather for easier porting
 #endif
 
@@ -188,12 +178,7 @@ RWTexture2D<uint>               g_workingDeferredBlendItemListHeads ;
 RWByteAddressBuffer             g_workingControlBuffer             ;
 RWByteAddressBuffer             g_workingExecuteIndirectBuffer     ;
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-Texture2DArray<lpfloat4>        g_inColorMSReadonly                ;       // input MS color
-Texture2D<lpfloat>              g_inColorMSComplexityMaskReadonly  ;       // input MS color control surface
-#else
 Texture2D<lpfloat4>             g_inoutColorReadonly               ;       // input color
-#endif
 
 #if CMAA2_EDGE_DETECTION_LUMA_PATH == 2
 Texture2D<float>                g_inLumaReadonly                 ;
@@ -243,12 +228,8 @@ lpfloat4 UnpackEdgesFlt( uint value )
 
 lpfloat3 LoadSourceColor( uint2 pixelPos, int2 offset, int sampleIndex )
 {
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    lpfloat3 color = g_inColorMSReadonly.Load( int4( pixelPos, sampleIndex, 0 ), offset ).rgb;
-#else
-    lpfloat3 color = g_inoutColorReadonly.Load( int3( pixelPos, 0 ), offset ).rgb;
-#endif
-    return color;
+    // @NOTE : Fix from g_inoutColorReadonly.Load(int3(pixelPos, 0), offset).rgb;
+    return g_inoutColorReadonly.Load(int3(pixelPos + offset, 0)).rgb;
 }
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -429,7 +410,7 @@ lpfloat GetActualEdgeThreshold( )
 {
     lpfloat retVal = g_CMAA2_EdgeThreshold;
 #if CMAA2_SCALE_QUALITY_WITH_MSAA
-    retVal *= 1.0 + (CMAA_MSAA_SAMPLE_COUNT-1) * 0.06;
+    retVal *= 1.0 -1 * 0.06;
 #endif
     return retVal;
 }
@@ -564,10 +545,6 @@ lpfloat4 ComputeSimpleShapeBlendValues( lpfloat4 edges, lpfloat4 edgesLeft, lpfl
 
 uint LoadEdge( int2 pixelPos, int2 offset, uint msaaSampleIndex )
 {
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    uint edge = g_workingEdges.Load( pixelPos + offset ).x;
-    edge = (edge >> (msaaSampleIndex*4)) & 0xF;
-#else
 #if CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH
     uint a      = uint(pixelPos.x+offset.x) % 2;
 
@@ -579,7 +556,6 @@ uint LoadEdge( int2 pixelPos, int2 offset, uint msaaSampleIndex )
     edge = (edge >> (a*4)) & 0xF;
 #else
     uint edge   = g_workingEdges.Load( pixelPos + offset ).x;
-#endif
 #endif
     return edge;
 }
@@ -619,44 +595,12 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
     lpfloat2 qe0, qe1, qe2, qe3;
     uint4 outEdges = { 0, 0, 0, 0 };
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    bool firstLoopIsEnough = false;
-
-    #if CMAA_MSAA_USE_COMPLEXITY_MASK
-    {
-        float2 texSize;
-        g_inColorMSComplexityMaskReadonly.GetDimensions( texSize.x, texSize.y );
-        float2 gatherUV = float2(pixelPos) / texSize;
-        float4 TL = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 0, 0 ) );
-        float4 TR = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 0 ) );
-        float4 BL = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 0, 2 ) );
-        float4 BR = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 2 ) );
-        float4 sumAll = TL+TR+BL+BR;
-        firstLoopIsEnough = !any(sumAll);
-    }
-    #endif
-#endif
-
-
-    // not optimal - to be optimized
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    // clear this here to reduce complexity below - turns out it's quicker as well this way
-    g_workingDeferredBlendItemListHeads[ uint2( pixelPos ) / 2 ] = 0xFFFFFFFF;
-    [loop]
-    for( uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++ )
-    {
-        bool msaaSampleIsRelevant = !firstLoopIsEnough || msaaSampleIndex == 0;
-        [branch]
-        if( msaaSampleIsRelevant )
-        {
-#else
         {
             uint msaaSampleIndex = 0;
-#endif
 
 
             // edge detection
-#if CMAA2_EDGE_DETECTION_LUMA_PATH == 0
+    #if CMAA2_EDGE_DETECTION_LUMA_PATH == 0
             lpfloat3 pixelColors[3 * 3 - 1];
             [unroll]
             for( i = 0; i < 3 * 3 - 1; i++ )
@@ -670,7 +614,7 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
             qe1 = ComputeEdge( 1, 0, pixelColors );
             qe2 = ComputeEdge( 0, 1, pixelColors );
             qe3 = ComputeEdge( 1, 1, pixelColors );
-#else // CMAA2_EDGE_DETECTION_LUMA_PATH != 0
+    #else // CMAA2_EDGE_DETECTION_LUMA_PATH != 0
             lpfloat pixelLumas[3 * 3 - 1];
     #if CMAA2_EDGE_DETECTION_LUMA_PATH == 1 // compute in-place
             [unroll]
@@ -683,7 +627,7 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
     #if 0 // same as below, just without Gather
             [unroll]
             for( i = 0; i < 3 * 3 - 1; i++ )
-                 pixelLumas[i] = g_inLumaReadonly.Load( int3( pixelPos, 0 ), int2( i % 3, i / 3 ) ).r;
+                    pixelLumas[i] = g_inLumaReadonly.Load( int3( pixelPos, 0 ), int2( i % 3, i / 3 ) ).r;
     #else
             float2 texSize;
             g_inLumaReadonly.GetDimensions( texSize.x, texSize.y );
@@ -708,15 +652,11 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
             qe1 = ComputeEdgeLuma( 1, 0, pixelLumas );
             qe2 = ComputeEdgeLuma( 0, 1, pixelLumas );
             qe3 = ComputeEdgeLuma( 1, 1, pixelLumas );
-#endif
+    #endif
 
             g_groupShared2x2FracEdgesV[centerAddr2x2 + rowStride2x2 * 0] = lpfloat4( qe0.x, qe1.x, qe2.x, qe3.x );
             g_groupShared2x2FracEdgesH[centerAddr2x2 + rowStride2x2 * 0] = lpfloat4( qe0.y, qe1.y, qe2.y, qe3.y );
      
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-         }  // if( msaaSampleIsRelevant )
-#endif
-
         GroupMemoryBarrierWithGroupSync( );
 
         [branch]
@@ -728,18 +668,15 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
             bool someNonZeroEdges = any( lpfloat4( qe0, qe1 ) + lpfloat4( qe2, qe3 ) + lpfloat4( topRow[0], topRow[1], leftColumn[0], leftColumn[1] ) );
             //bool someNonZeroEdges = packedCenterEdges.x | packedCenterEdges.y | (packedQuadP0M1.y & 0xFFFF0000) | (packedQuadM1P0.x & 0xFF00FF00);
 
-            //[branch]
-            //if( someNonZeroEdges )
+            [branch]
+            if( someNonZeroEdges )
             {
-    #if CMAA_MSAA_SAMPLE_COUNT == 1
                 // Clear deferred color list heads to empty (if potentially needed - even though some edges might get culled by local contrast adaptation 
                 // step below, it's still cheaper to just clear it without additional logic)
                 g_workingDeferredBlendItemListHeads[ uint2( pixelPos ) / 2 ] = 0xFFFFFFFF;
-    #endif
 
                 lpfloat4 ce[4];
 
-            #if 1 // local contrast adaptation
                 lpfloat2 dummyd0, dummyd1, dummyd2;
                 lpfloat2 neighbourhood[4][4];
 
@@ -775,20 +712,6 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
                 ce[2].y = (qe2.y - ComputeLocalContrastH(0, 1, neighbourhood)) > GetActualEdgeThreshold() ? 1 : 0;
                 ce[3].x = (qe3.x - ComputeLocalContrastV(1, 1, neighbourhood)) > GetActualEdgeThreshold() ? 1 : 0;
                 ce[3].y = (qe3.y - ComputeLocalContrastH(1, 1, neighbourhood)) > GetActualEdgeThreshold() ? 1 : 0;
-            #else
-                topRow[0]     = topRow[0]    > GetActualEdgeThreshold();
-                topRow[1]     = topRow[1]    > GetActualEdgeThreshold();
-                leftColumn[0] = leftColumn[0]> GetActualEdgeThreshold();
-                leftColumn[1] = leftColumn[1]> GetActualEdgeThreshold();
-                ce[0].x = qe0.x > GetActualEdgeThreshold();
-                ce[0].y = qe0.y > GetActualEdgeThreshold();
-                ce[1].x = qe1.x > GetActualEdgeThreshold();
-                ce[1].y = qe1.y > GetActualEdgeThreshold();
-                ce[2].x = qe2.x > GetActualEdgeThreshold();
-                ce[2].y = qe2.y > GetActualEdgeThreshold();
-                ce[3].x = qe3.x > GetActualEdgeThreshold();
-                ce[3].y = qe3.y > GetActualEdgeThreshold();
-            #endif
             
                 //left
                 ce[0].z = leftColumn[0];
@@ -820,11 +743,7 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
                     // Write out edges - we write out all, including empty pixels, to make sure shape detection edge tracing
                     // doesn't continue on previous frame's edges that no longer exist.
                     uint packedEdge = PackEdges( edges );
-    #if CMAA_MSAA_SAMPLE_COUNT > 1
-                    outEdges[i] |= packedEdge << (msaaSampleIndex * 4);
-    #else
                     outEdges[i] = packedEdge;
-    #endif
                 }
             }
         }
@@ -834,20 +753,10 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
     [branch]
     if( inOutputKernel )
     {
-#if CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH && CMAA_MSAA_SAMPLE_COUNT == 1
-#if CMAA2_EDGE_UNORM
-        g_workingEdges[ int2(pixelPos.x/2, pixelPos.y+0) ] = ((outEdges[1] << 4) | outEdges[0]) / 255.0;
-        g_workingEdges[ int2(pixelPos.x/2, pixelPos.y+1) ] = ((outEdges[3] << 4) | outEdges[2]) / 255.0;        
-#else
-        g_workingEdges[ int2(pixelPos.x/2, pixelPos.y+0) ] = (outEdges[1] << 4) | outEdges[0];
-        g_workingEdges[ int2(pixelPos.x/2, pixelPos.y+1) ] = (outEdges[3] << 4) | outEdges[2];
-#endif
-#else
         {
             [unroll] for( uint i = 0; i < 4; i++ )
             g_workingEdges[pixelPos + qeOffsets[i]] = outEdges[i];
         }
-#endif
     }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1147,15 +1056,7 @@ void ProcessCandidatesCS( uint3 dispatchThreadID : SV_DispatchThreadID, uint3 gr
 #endif
 
     uint2 pixelPos = uint2( (pixelID >> 18) /*& 0x3FFF*/, pixelID & 0x3FFF );
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    msaaSampleIndex = (pixelID >> 14) & 0x07;
-#endif
-
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    int4 loadPosCenter = int4( pixelPos, msaaSampleIndex, 0 );
-#else
     int3 loadPosCenter = int3( pixelPos, 0 );
-#endif
 
     uint edgesCenterPacked = LoadEdge( pixelPos, int2( 0, 0 ), msaaSampleIndex );
     lpfloat4 edges      = UnpackEdgesFlt( edgesCenterPacked );
@@ -1297,10 +1198,6 @@ void ProcessCandidatesCS( uint3 dispatchThreadID : SV_DispatchThreadID, uint3 gr
 
         uint2   startingPos     = uint2( (itemVal.x >> 18) /*& 0x3FFF*/, itemVal.x & 0x3FFF );
         uint itemMSAASampleIndex= 0;
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-        itemMSAASampleIndex     = (itemVal.x >> 14) & 0x07;
-#endif
-
         bool itemHorizontal = ((itemVal.y >> 31) & 1) != 0;
         bool itemInvertedZ = ((itemVal.y >> 30) & 1) != 0;
         lpfloat itemStepIndex   = float((itemVal.y >> 20) & 0x3FF) - 256.0;
@@ -1355,17 +1252,9 @@ void DeferredColorApply2x2CS( uint3 dispatchThreadID : SV_DispatchThreadID, uint
 
     int counter = 0;
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    lpfloat4 outColors[CMAA_MSAA_SAMPLE_COUNT];
-    [unroll]
-    for( uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++ )
-        outColors[msaaSampleIndex] = lpfloat4( 0, 0, 0, 0 );
-    bool hasValue = false;
-#else
     lpfloat4 outColors = lpfloat4( 0, 0, 0, 0 );
-#endif
 
-    const uint maxLoops = 32*CMAA_MSAA_SAMPLE_COUNT;   // do the loop to prevent bad data hanging the GPU <- probably not needed
+    const uint maxLoops = 0;   // do the loop to prevent bad data hanging the GPU <- probably not needed
     {
         for( uint i = 0; (counterIndexWithHeader != 0xFFFFFFFF) && ( i < maxLoops); i ++ )
         {
@@ -1382,38 +1271,16 @@ void DeferredColorApply2x2CS( uint3 dispatchThreadID : SV_DispatchThreadID, uint
             {
                 lpfloat3 color      = InternalUnpackColor(val.y);
                 lpfloat weight      = 0.8 + 1.0 * lpfloat(isComplexShape);
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-                outColors[msaaSampleIndex] += lpfloat4( color * weight, weight );
-                hasValue = true;
-#else
                 outColors += lpfloat4( color * weight, weight );
-#endif
             }
             //numberOfElements[offsetXY]++;
         }
     }
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    if( !hasValue )             return;
-#else
     if( outColors.a == 0 )      return;
-#endif
-
     {
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-        lpfloat4 outColor = 0;
-        for( uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++ )
-        {
-            if( outColors[msaaSampleIndex].a != 0 )
-                outColor.xyz += outColors[msaaSampleIndex].rgb / (outColors[msaaSampleIndex].a);
-            else
-                outColor.xyz += LoadSourceColor( pixelPos, int2(0, 0), msaaSampleIndex );
-        }
-        outColor /= (lpfloat)CMAA_MSAA_SAMPLE_COUNT;
-#else
         lpfloat4 outColor = outColors;
         outColor.rgb /= outColor.a;
-#endif
         FinalUAVStore( pixelPos, lpfloat3(outColor.rgb) );
     }
 }
@@ -1430,37 +1297,6 @@ void DebugDrawEdgesCS( uint2 dispatchThreadID : SV_DispatchThreadID )
     // uint v = g_inColorMSComplexityMaskReadonly.Load( int3( dispatchThreadID, 0 ) );
     // FinalUAVStore( dispatchThreadID, float3( v, v, v ) );
     // return;
-
-#if 0
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    uint2 pixelPos = dispatchThreadID.xy / 2 * 2;
-    /*
-    uint all2x2MSSamplesDifferent = 0;
-
-     [unroll] for( uint x = 0; x < 4; x++ )
-         [unroll] for( uint y = 0; y < 4; y++ )
-             all2x2MSSamplesDifferent |= g_inColorMSComplexityMaskReadonly.Load( int3( pixelPos, 0 ), int2( x-1, y-1 ) ) > 0;
-    bool firstLoopIsEnough = all2x2MSSamplesDifferent == 0;
-    */
-    
-#if CMAA_MSAA_USE_COMPLEXITY_MASK
-    float2 texSize;
-    g_inColorMSComplexityMaskReadonly.GetDimensions( texSize.x, texSize.y );
-    float2 gatherUV = float2(pixelPos) / texSize;
-    float4 TL = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 0, 0 ) );
-    float4 TR = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 0 ) );
-    float4 BL = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 0, 2 ) );
-    float4 BR = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 2 ) );
-    float4 sumAll = TL+TR+BL+BR;
-    bool firstLoopIsEnough = !any(sumAll);
-
-    //all2x2MSSamplesDifferent = (all2x2MSSamplesDifferent != 0)?(CMAA_MSAA_SAMPLE_COUNT):(1);
-    FinalUAVStore( dispatchThreadID, (firstLoopIsEnough).xxx );
-    return;
-#endif
-#endif
-#endif
-
 
     //if( any(edges) )
     {

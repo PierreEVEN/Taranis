@@ -9,18 +9,20 @@
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/pipeline.hpp"
+#include "gfx/vulkan/pipeline_layout.hpp"
 #include "gfx/vulkan/sampler.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace Eng::Gfx
 {
-DescriptorSet::DescriptorSet(const std::string& in_name, const std::weak_ptr<Device>& in_device, const std::shared_ptr<Pipeline>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static), name(in_name)
+DescriptorSet::DescriptorSet(const std::string& in_name, const std::weak_ptr<Device>& in_device, const std::shared_ptr<PipelineLayout>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static),
+    name(in_name)
 {
     for (const auto& binding : in_pipeline->get_bindings())
         descriptor_bindings.insert_or_assign(binding.name, binding.binding);
 }
 
-DescriptorSet::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<Pipeline>& in_pipeline)
+DescriptorSet::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<PipelineLayout>& in_pipeline)
     : DeviceResource(in_device), pipeline(in_pipeline), parent(in_parent.lock())
 {
     ptr = device().lock()->get_descriptor_pool().allocate(*pipeline, pool_index);
@@ -40,7 +42,7 @@ DescriptorSet::~DescriptorSet()
     }
 }
 
-std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Pipeline>& pipeline, bool b_static)
+std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<PipelineLayout>& pipeline, bool b_static)
 {
     const auto descriptors = std::shared_ptr<DescriptorSet>(new DescriptorSet(name, device, pipeline, b_static));
 
@@ -73,14 +75,14 @@ void DescriptorSet::Resource::update()
 
     PROFILER_SCOPE(UpdateDescriptorSets);
 
-    auto parent_ptr = parent.lock();
-    uint32_t image_count = 0;
+    auto     parent_ptr   = parent.lock();
+    uint32_t image_count  = 0;
     uint32_t buffer_count = 0;
     for (const auto& val : parent_ptr->write_descriptors)
         if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
             val.second->get_resources(buffer_count, image_count);
 
-    std::vector<VkDescriptorImageInfo> image_descs;
+    std::vector<VkDescriptorImageInfo>  image_descs;
     std::vector<VkDescriptorBufferInfo> buffer_descs;
     image_descs.reserve(image_count);
     buffer_descs.reserve(buffer_count);
@@ -150,15 +152,15 @@ void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& ou
     size_t start = image_descs.size();
     for (uint32_t i = 0; i < images.size(); ++i)
         image_descs.emplace_back(images[i]->get_descriptor_infos_current());
-    
+
     out_sets.emplace_back(VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        .dstSet          = dst_set,
-        .dstBinding      = binding,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet = dst_set,
+        .dstBinding = binding,
         .dstArrayElement = 0,
         .descriptorCount = static_cast<uint32_t>(images.size()),
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        .pImageInfo      = &image_descs[start],
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .pImageInfo = &image_descs[start],
     });
 }
 
@@ -181,13 +183,13 @@ void DescriptorSet::SamplerDescriptor::fill(std::vector<VkWriteDescriptorSet>& o
     for (uint32_t i = 0; i < samplers.size(); ++i)
         image_descs.emplace_back(samplers[i]->get_descriptor_infos());
     out_sets.emplace_back(VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        .dstSet          = dst_set,
-        .dstBinding      = binding,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet = dst_set,
+        .dstBinding = binding,
         .dstArrayElement = 0,
         .descriptorCount = static_cast<uint32_t>(samplers.size()),
-        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
-        .pImageInfo      = &image_descs[start],
+        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+        .pImageInfo = &image_descs[start],
     });
 }
 
@@ -202,20 +204,20 @@ bool DescriptorSet::SamplerDescriptor::equals(const Descriptor& other) const
     return true;
 }
 
-void DescriptorSet::BufferDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>&,
+void DescriptorSet::BufferDescriptor::fill(std::vector<VkWriteDescriptorSet>&   out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>&,
                                            std::vector<VkDescriptorBufferInfo>& buffer_descs)
 {
     size_t start = buffer_descs.size();
     for (uint32_t i = 0; i < buffers.size(); ++i)
         buffer_descs.emplace_back(buffers[i]->get_descriptor_infos_current());
     out_sets.emplace_back(VkWriteDescriptorSet{
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        .dstSet          = dst_set,
-        .dstBinding      = binding,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet = dst_set,
+        .dstBinding = binding,
         .dstArrayElement = 0,
         .descriptorCount = static_cast<uint32_t>(buffers.size()),
-        .descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .pBufferInfo     = &buffer_descs[start],
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .pBufferInfo = &buffer_descs[start],
     });
 }
 

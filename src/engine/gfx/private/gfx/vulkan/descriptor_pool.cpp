@@ -2,6 +2,7 @@
 
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/pipeline.hpp"
+#include "gfx/vulkan/pipeline_layout.hpp"
 #include "gfx/vulkan/vk_check.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
@@ -13,7 +14,7 @@ DescriptorPool::DescriptorPool(std::weak_ptr<Device> in_device) : device(std::mo
 {
 }
 
-PoolDescription::PoolDescription(const Pipeline& pipeline)
+PoolDescription::PoolDescription(const PipelineLayout& pipeline)
 {
     ankerl::unordered_dense::map<VkDescriptorType, uint32_t> sizes;
 
@@ -75,7 +76,7 @@ PoolDescription::PoolDescription(const Pipeline& pipeline)
                       });
 }
 
-VkDescriptorSet DescriptorPool::allocate(const Pipeline& pipeline, size_t& pool_index)
+VkDescriptorSet DescriptorPool::allocate(const PipelineLayout& pipeline, size_t& pool_index)
 {
     PoolDescription description(pipeline);
 
@@ -101,7 +102,7 @@ VkDescriptorSet DescriptorPool::allocate(const Pipeline& pipeline, size_t& pool_
     return handle;
 }
 
-void DescriptorPool::free(const VkDescriptorSet& desc_set, const Pipeline& pipeline, size_t pool_index)
+void DescriptorPool::free(const VkDescriptorSet& desc_set, const PipelineLayout& pipeline, size_t pool_index)
 {
     PoolDescription description(pipeline);
 
@@ -133,12 +134,12 @@ DescriptorPool::Pool::Pool(std::weak_ptr<Device> in_device, const PoolDescriptio
         pool_size.descriptorCount *= DESCRIPTOR_PER_POOL;
     space_left = initial_space;
     const VkDescriptorPoolCreateInfo poolInfo{
-        .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .pNext         = nullptr,
-        .flags         = static_cast<VkDescriptorPoolCreateFlags>(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
-        .maxSets       = space_left,
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = static_cast<VkDescriptorPoolCreateFlags>(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        .maxSets = space_left,
         .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
-        .pPoolSizes    = pool_sizes.data(),
+        .pPoolSizes = pool_sizes.data(),
     };
 
     VK_CHECK(vkCreateDescriptorPool(device.lock()->raw(), &poolInfo, nullptr, &ptr), "Failed to create descriptor pool")
@@ -154,12 +155,12 @@ VkDescriptorSet DescriptorPool::Pool::allocate(const VkDescriptorSetLayout& layo
     if (space_left == 0)
         return VK_NULL_HANDLE;
 
-    space_left--;
+    --space_left;
     const VkDescriptorSetAllocateInfo descriptor_info{
-        .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .descriptorPool     = ptr,
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = ptr,
         .descriptorSetCount = 1,
-        .pSetLayouts        = &layout,
+        .pSetLayouts = &layout,
     };
     VkDescriptorSet descriptor_set;
     VK_CHECK(vkAllocateDescriptorSets(device.lock()->raw(), &descriptor_info, &descriptor_set), "failed to allocate descriptor sets")

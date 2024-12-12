@@ -13,6 +13,8 @@
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
+#include "gfx/vulkan/compute_pipeline.hpp"
+#include "gfx/vulkan/pipeline_layout.hpp"
 
 namespace Eng::Gfx
 {
@@ -108,7 +110,7 @@ void CommandBuffer::bind_pipeline(const std::shared_ptr<Pipeline>& pipeline)
 void CommandBuffer::bind_descriptors(const DescriptorSet& descriptors, const Pipeline& pipeline) const
 {
     assert(std::this_thread::get_id() == thread_id);
-    vkCmdBindDescriptorSets(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_layout(), 0, 1, &descriptors.raw_current(), 0, nullptr);
+    vkCmdBindDescriptorSets(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_layout()->raw(), 0, 1, &descriptors.raw_current(), 0, nullptr);
 }
 
 void CommandBuffer::draw_mesh(const Mesh& in_mesh, uint32_t instance_count, uint32_t first_instance) const
@@ -186,15 +188,15 @@ void CommandBuffer::set_scissor(const Scissor& scissors) const
     assert(std::this_thread::get_id() == thread_id);
     const VkRect2D vk_scissor{
         .offset =
-            VkOffset2D{
-                .x = scissors.offset_x,
-                .y = scissors.offset_y,
-            },
+        VkOffset2D{
+            .x = scissors.offset_x,
+            .y = scissors.offset_y,
+        },
         .extent =
-            VkExtent2D{
-                .width  = scissors.width,
-                .height = scissors.height,
-            },
+        VkExtent2D{
+            .width = scissors.width,
+            .height = scissors.height,
+        },
     };
     vkCmdSetScissor(ptr, 0, 1, &vk_scissor);
 }
@@ -203,10 +205,10 @@ void CommandBuffer::set_viewport(const Viewport& in_viewport) const
 {
     assert(std::this_thread::get_id() == thread_id);
     const VkViewport viewport{
-        .x        = in_viewport.x,
-        .y        = in_viewport.y,
-        .width    = in_viewport.width,
-        .height   = in_viewport.height,
+        .x = in_viewport.x,
+        .y = in_viewport.y,
+        .width = in_viewport.width,
+        .height = in_viewport.height,
         .minDepth = in_viewport.min_depth,
         .maxDepth = in_viewport.max_depth,
     };
@@ -216,13 +218,28 @@ void CommandBuffer::set_viewport(const Viewport& in_viewport) const
 void CommandBuffer::push_constant(EShaderStage stage, const Pipeline& pipeline, const BufferData& data) const
 {
     assert(std::this_thread::get_id() == thread_id);
-    vkCmdPushConstants(ptr, pipeline.get_layout(), static_cast<VkShaderStageFlags>(stage), 0, static_cast<uint32_t>(data.get_byte_size()), data.data());
+    vkCmdPushConstants(ptr, pipeline.get_layout()->raw(), static_cast<VkShaderStageFlags>(stage), 0, static_cast<uint32_t>(data.get_byte_size()), data.data());
 }
 
 void CommandBuffer::begin_render_pass(const RenderPassRef& pass_name, const VkRenderPassBeginInfo& begin_infos, bool parallel_rendering)
 {
     vkCmdBeginRenderPass(ptr, &begin_infos, parallel_rendering ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
     render_pass_name = pass_name;
+}
+
+void CommandBuffer::bind_compute_pipeline(const ComputePipeline& pipeline) const
+{
+    vkCmdBindPipeline(ptr, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.raw());
+}
+
+void CommandBuffer::bind_descriptors(const DescriptorSet& descriptors, const ComputePipeline& pipeline) const
+{
+    vkCmdBindDescriptorSets(ptr, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.get_layout()->raw(), 0, 1, &descriptors.raw_current(), 0, 0);
+}
+
+void CommandBuffer::dispatch_compute(uint32_t x, uint32_t y, uint32_t z) const
+{
+    vkCmdDispatch(ptr, x, y, z);
 }
 
 void CommandBuffer::end_render_pass()
@@ -254,14 +271,14 @@ void SecondaryCommandBuffer::begin(bool)
     b_wait_submission = true;
     is_recording      = true;
     VkCommandBufferInheritanceInfo inheritance{
-        .sType       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-        .renderPass  = framebuffer.lock()->get_render_pass_resource().lock()->raw(),
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+        .renderPass = framebuffer.lock()->get_render_pass_resource().lock()->raw(),
         .framebuffer = framebuffer.lock()->raw(),
     };
 
     const VkCommandBufferBeginInfo beginInfo = {
-        .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags            = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
         .pInheritanceInfo = &inheritance,
     };
 

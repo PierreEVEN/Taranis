@@ -42,7 +42,7 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
     std::unique_lock lk(descriptor_lock);
     if (auto base_material = get_base_resource(render_pass_id))
     {
-        auto new_descriptor = descriptors.emplace(render_pass_id, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + render_pass_id.to_string(), Engine::get().get_device(), base_material)).first->
+        auto new_descriptor = descriptors.emplace(render_pass_id, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + render_pass_id.to_string(), Engine::get().get_device(), base_material->get_layout())).first->
                                           second;
 
         for (const auto& sampler : samplers)
