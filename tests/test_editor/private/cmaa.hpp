@@ -8,7 +8,5 @@ class Renderer;
 class Cmaa2
 {
 public:
-    void append_to_renderer(Eng::Gfx::Renderer& renderer);
-
-
+    static void append_to_renderer(Eng::Gfx::Renderer& renderer);
 };

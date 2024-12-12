@@ -132,9 +132,9 @@ public:
         return std::shared_ptr<SceneView>(new SceneView());
     }
 
-    void pre_draw(const Gfx::RenderPassInstance& render_pass);
+    void pre_draw(const Gfx::RenderPassInstanceBase& render_pass);
     void pre_submit() const;
-    void draw(const Scene& scene, const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads) const;
+    void draw(const Scene& scene, const Gfx::RenderPassInstanceBase& render_pass, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads) const;
 
     const glm::uvec2& get_resolution() const
     {

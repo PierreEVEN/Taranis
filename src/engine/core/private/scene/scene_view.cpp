@@ -20,7 +20,7 @@ struct SceneBufferData
     glm::mat4 inv_perspective_mat;
 };
 
-void SceneView::pre_draw(const Gfx::RenderPassInstance& render_pass)
+void SceneView::pre_draw(const Gfx::RenderPassInstanceBase& render_pass)
 {
     PROFILER_SCOPE(ScenePreDraw);
 
@@ -46,7 +46,7 @@ void SceneView::pre_submit() const
     view_buffer->wait_data_upload();
 }
 
-void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstance&, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads) const
+void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstanceBase&, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads) const
 {
     PROFILER_SCOPE(SceneDraw);
     scene.for_each_part<MeshComponent>(

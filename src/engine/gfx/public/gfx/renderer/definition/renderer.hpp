@@ -1,5 +1,6 @@
 #pragma once
 
+#include "logger.hpp"
 #include "render_pass_id.hpp"
 #include "gfx/types.hpp"
 #include "gfx_types/format.hpp"
@@ -15,13 +16,13 @@
 
 namespace Eng::Gfx
 {
+class RenderPassInstanceBase;
 class CustomPassList;
 }
 
 namespace Eng::Gfx
 {
 class Window;
-class RenderPassInstance;
 class CommandBuffer;
 class Device;
 
@@ -70,23 +71,23 @@ private:
 class IRenderPass
 {
 public:
-    virtual void init(const RenderPassInstance&)
+    virtual void init(const RenderPassInstanceBase&)
     {
     }
 
-    virtual void on_create_framebuffer(const RenderPassInstance&)
+    virtual void on_create_framebuffer(const RenderPassInstanceBase&)
     {
     }
 
-    virtual void pre_draw(const RenderPassInstance&)
+    virtual void pre_draw(const RenderPassInstanceBase&)
     {
     }
 
-    virtual void draw(const RenderPassInstance&, CommandBuffer&, size_t)
+    virtual void draw(const RenderPassInstanceBase&, CommandBuffer&, size_t)
     {
     }
 
-    virtual void pre_submit(const RenderPassInstance&)
+    virtual void pre_submit(const RenderPassInstanceBase&)
     {
     }
 
@@ -181,6 +182,8 @@ public:
 
     RenderPassKey get_key(bool b_present) const
     {
+        if (b_is_compute_pass)
+            LOG_FATAL("Cannot create Render Pass key for compute passes")
         RenderPassKey key;
         key.render_pass_ref = render_pass_ref;
         key.b_present       = b_present;
@@ -229,6 +232,12 @@ public:
         return *this;
     }
 
+    RenderNode& compute_pass(bool is_compute_pass)
+    {
+        b_is_compute_pass = is_compute_pass;
+        return *this;
+    }
+
     RenderNode& operator[](const Attachment& attachment)
     {
         attachments.insert_or_assign(attachment.name, attachment);
@@ -249,7 +258,8 @@ public:
     RenderPassRef                                         render_pass_ref;
     ResizeCallback                                        resize_callback_ptr;
     bool                                                  reversed_logarithmic_depth = false;
-    bool                                                  b_flip_culling               = false;
+    bool                                                  b_flip_culling             = false;
+    bool                                                  b_is_compute_pass;
 };
 
 class Renderer

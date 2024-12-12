@@ -36,12 +36,12 @@ public:
     {
     }
 
-    void pre_draw(const Gfx::RenderPassInstance& rp) override
+    void pre_draw(const Gfx::RenderPassInstanceBase& rp) override
     {
         scene->get_active_camera()->get_view().pre_draw(rp);
     }
 
-    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
+    void draw(const Gfx::RenderPassInstanceBase& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
     {
         scene->get_active_camera()->get_view().draw(*scene, rp, command_buffer, thread_index, record_threads());
     }
@@ -51,7 +51,7 @@ public:
         return std::thread::hardware_concurrency() * 3;
     }
 
-    void pre_submit(const Gfx::RenderPassInstance&) override
+    void pre_submit(const Gfx::RenderPassInstanceBase&) override
     {
         scene->get_active_camera()->get_view().pre_submit();
     }
@@ -76,7 +76,7 @@ public:
         alignas(0) bool       has_shadows;
     };
 
-    void init(const Gfx::RenderPassInstance&) override
+    void init(const Gfx::RenderPassInstanceBase&) override
     {
         auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat");
         base_mat->set_shader_code("gbuffer_resolve");
@@ -86,7 +86,7 @@ public:
         material->set_sampler("sSampler", sampler);
     }
 
-    void on_create_framebuffer(const Gfx::RenderPassInstance& render_pass) override
+    void on_create_framebuffer(const Gfx::RenderPassInstanceBase& render_pass) override
     {
         auto dep      = render_pass.get_dependency(render_pass.search_dependencies("gbuffers")[0]).lock();
         auto resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
@@ -100,7 +100,7 @@ public:
         resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
     }
 
-    void pre_draw(const Gfx::RenderPassInstance& render_pass) override
+    void pre_draw(const Gfx::RenderPassInstanceBase& render_pass) override
     {
         lights.clear();
         std::vector<std::shared_ptr<Gfx::ImageView>> shadow_maps;
@@ -131,7 +131,7 @@ public:
         light_buffer->set_data(0, Gfx::BufferData(lights));
     }
 
-    void draw(const Gfx::RenderPassInstance& render_pass, Gfx::CommandBuffer& command_buffer, size_t) override
+    void draw(const Gfx::RenderPassInstanceBase& render_pass, Gfx::CommandBuffer& command_buffer, size_t) override
     {
         auto resource = material->get_base_resource(command_buffer.render_pass());
         if (!resource)
@@ -156,7 +156,7 @@ public:
         command_buffer.draw_procedural(6, 0, 1, 0);
     }
 
-    void pre_submit(const Gfx::RenderPassInstance&) override
+    void pre_submit(const Gfx::RenderPassInstanceBase&) override
     {
         light_buffer->wait_data_upload();
     }
@@ -173,7 +173,7 @@ public:
 class GlobalMainMenu : public Gfx::MainMenuItem
 {
 public:
-    GlobalMainMenu(const std::shared_ptr<Scene>& in_scene, const std::weak_ptr<Gfx::RenderPassInstance>& in_scene_rp) : scene(in_scene), scene_rp(in_scene_rp)
+    GlobalMainMenu(const std::shared_ptr<Scene>& in_scene, const std::weak_ptr<Gfx::RenderPassInstanceBase>& in_scene_rp) : scene(in_scene), scene_rp(in_scene_rp)
     {
     }
 
@@ -208,7 +208,7 @@ public:
     }
 
     std::shared_ptr<Scene>                 scene;
-    std::weak_ptr<Gfx::RenderPassInstance> scene_rp;
+    std::weak_ptr<Gfx::RenderPassInstanceBase> scene_rp;
 };
 
 class PresentPass : public Gfx::IRenderPass
@@ -218,7 +218,7 @@ public:
     {
     }
 
-    void init(const Gfx::RenderPassInstance& rp) override
+    void init(const Gfx::RenderPassInstanceBase& rp) override
     {
         rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency(rp.search_dependencies("gbuffer_resolve")[0]), scene);
         rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);

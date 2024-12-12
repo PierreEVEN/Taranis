@@ -113,5 +113,6 @@ void Cmaa2::append_to_renderer(Eng::Gfx::Renderer& renderer)
         .require("gbuffer_resolve")
         .require("gbuffers")
         .render_pass<CmaaRenderPass>()
+        .compute_pass(true)
         [Eng::Gfx::Attachment::slot("target").format(Eng::Gfx::ColorFormat::R8G8B8A8_UNORM)];
 }

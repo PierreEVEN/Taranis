@@ -4,7 +4,6 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
-#include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
@@ -12,58 +11,23 @@
 
 namespace Eng::Gfx
 {
-RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : device(std::move(in_device)), definition(renderer.get_node(name))
+RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : RenderPassInstanceBase(std::move(in_device), renderer, name, b_is_present)
 {
-    assert(renderer.compiled());
-    custom_passes = renderer.get_custom_passes();
-
-    // Init draw pass tree
-    for (const auto& dependency : definition.dependencies)
-        dependencies.emplace(renderer.get_node(dependency).render_pass_ref, std::make_shared<RenderPassInstance>(device, renderer, dependency, false));
-
-    render_pass_resource = device.lock()->declare_render_pass(definition.get_key(b_is_present), name);
+    render_pass_resource = device().lock()->declare_render_pass(get_definition().get_key(b_is_present), name);
 
     // Create imgui_context context
-    if (definition.b_with_imgui)
+    if (get_definition().b_with_imgui)
     {
-        imgui_context = std::make_unique<ImGuiWrapper>(definition.render_pass_ref.to_string(), render_pass_resource.lock()->get_name(), device, definition.imgui_input_window);
+        imgui_context = std::make_unique<ImGuiWrapper>(get_definition().render_pass_ref.to_string(), render_pass_resource.lock()->get_name(), device(), get_definition().imgui_input_window);
         imgui_context->begin(resolution());
-    }
-
-    // Create draw pass interface
-    if (definition.render_pass_initializer)
-    {
-        render_pass_interface = definition.render_pass_initializer->construct();
-        render_pass_interface->init(*this);
     }
 }
 
-void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId device_image)
+void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image)
 {
-    // Call reset_for_next_frame() to reset max the draw graph
-    if (prepared)
-        return;
-    prepared                  = true;
-    current_framebuffer_index = swapchain_image;
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.render_pass_ref));
-
-    if (framebuffers.empty())
-        LOG_FATAL("Framebuffers for '{}' have not been created using RenderPassInstance::create_or_resize()", definition.render_pass_ref)
-    const auto&    framebuffer = framebuffers[current_framebuffer_index];
+    const auto&    framebuffer = get_current_framebuffer().lock();
     CommandBuffer& global_cmd  = framebuffer->begin();
-    global_cmd.begin_debug_marker("BeginRenderPass_" + definition.render_pass_ref.to_string(), {1, 0, 0, 1});
-
-    /*
-    auto task = JobSystem::current_thread().schedule(
-        [&]
-        {*/
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-        temp_child->render(device_image, device_image);
-    // });
-
-    for (const auto& child : dependencies | std::views::values)
-        child->render(device_image, device_image);
-    //task.await();
+    global_cmd.begin_debug_marker("BeginRenderPass_" + get_definition().render_pass_ref.to_string(), {1, 0, 0, 1});
 
     // Begin draw pass
     std::vector<VkClearValue> clear_values;
@@ -77,7 +41,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         {
             if (is_depth_format(attachment.color_format))
                 clear_value.depthStencil =
-                    VkClearDepthStencilValue{definition.reversed_logarithmic_depth ? attachment.clear_depth_value->x : 1.f - attachment.clear_depth_value->x, static_cast<uint32_t>(attachment.clear_depth_value->y)};
+                    VkClearDepthStencilValue{get_definition().reversed_logarithmic_depth ? attachment.clear_depth_value->x : 1.f - attachment.clear_depth_value->x, static_cast<uint32_t>(attachment.clear_depth_value->y)};
             else
                 clear_value.color = VkClearColorValue{.float32 = {attachment.clear_color_value->x, attachment.clear_color_value->y, attachment.clear_color_value->z, attachment.clear_color_value->w}};
         }
@@ -96,7 +60,7 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
         .pClearValues = clear_values.data(),
     };
-    global_cmd.begin_render_pass(definition.render_pass_ref, begin_infos, enable_parallel_rendering());
+    global_cmd.begin_render_pass(get_definition().render_pass_ref, begin_infos, enable_parallel_rendering());
 
     if (render_pass_interface)
     {
@@ -144,12 +108,15 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
         render_pass_interface->pre_submit(*this);
     }
     {
-        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", definition.render_pass_ref));
+        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", get_definition().render_pass_ref));
 
         // Submit current_thread (wait children completion using children_semaphores)
         std::vector<VkSemaphore> children_semaphores;
-        for (const auto& semaphore : get_semaphores_to_wait(device_image))
-            children_semaphores.emplace_back(semaphore->raw());
+        for_each_dependency(
+            [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
+            {
+                children_semaphores.emplace_back(dep->get_current_framebuffer().lock()->render_finished_semaphore().raw());
+            });
 
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         const auto                        command_buffer_ptr            = global_cmd.raw();
@@ -168,89 +135,9 @@ void RenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId 
     }
 }
 
-std::vector<const Semaphore*> RenderPassInstance::get_semaphores_to_wait(DeviceImageId device_image) const
-{
-    std::vector<const Semaphore*> semaphores;
-    for (const auto& child : dependencies)
-        semaphores.emplace_back(&child.second->framebuffers[device_image]->render_finished_semaphore());
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-        semaphores.emplace_back(&temp_child->framebuffers[device_image]->render_finished_semaphore());
-    return semaphores;
-}
-
-const Fence* RenderPassInstance::get_render_finished_fence(DeviceImageId device_image) const
-{
-    return framebuffers[device_image]->get_render_finished_fence();
-}
-
-std::vector<RenderPassRef> RenderPassInstance::search_dependencies(const RenderPassGenericId& id) const
-{
-    std::vector<RenderPassRef> refs;
-    for (const auto& dep : dependencies)
-        if (dep.first.generic_id() == id)
-            refs.emplace_back(dep.first);
-
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-        if (temp_child->get_definition().render_pass_ref.generic_id() == id)
-            refs.emplace_back(temp_child->get_definition().render_pass_ref);
-    return refs;
-}
-
-std::weak_ptr<RenderPassInstance> RenderPassInstance::get_dependency(const RenderPassRef& name) const
-{
-    if (auto found = dependencies.find(name); found != dependencies.end())
-        return found->second;
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-        if (temp_child->get_definition().render_pass_ref == name)
-            return temp_child;
-    return {};
-}
-
-std::vector<std::weak_ptr<RenderPassInstance>> RenderPassInstance::all_childs() const
-{
-    std::vector<std::weak_ptr<RenderPassInstance>> childs;
-    for (const auto& temp_child : dependencies)
-        childs.emplace_back(temp_child.second);
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-        childs.emplace_back(temp_child);
-    return childs;
-}
-
-std::shared_ptr<ImageView> RenderPassInstance::create_view_for_attachment(const std::string& attachment_name)
-{
-    auto attachment = definition.attachments.find(attachment_name);
-    if (attachment == definition.attachments.end())
-        LOG_FATAL("Attachment {} not found", attachment_name);
-    return ImageView::create(attachment_name, Image::create(attachment_name, device,
-                                                            ImageParameter{
-                                                                .format = attachment->second.color_format,
-                                                                .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
-                                                                .buffer_type = EBufferType::IMMEDIATE,
-                                                                .width = resolution().x,
-                                                                .height = resolution().y,
-                                                            }));
-}
-
-uint8_t RenderPassInstance::get_framebuffer_count() const
-{
-    return device.lock()->get_image_count();
-}
-
 void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_index) const
 {
-    cmd.set_viewport({
-        .y = static_cast<float>(resolution().y),
-        .width = static_cast<float>(resolution().x),
-        .height = -static_cast<float>(resolution().y),
-    });
-    cmd.set_scissor({0, 0, resolution().x, resolution().y});
-
-    if (render_pass_interface)
-    {
-        PROFILER_SCOPE(BuildCommandBufferSync);
-        render_pass_interface->draw(*this, cmd, group_index);
-    }
-
+    RenderPassInstanceBase::fill_command_buffer(cmd, group_index);
     if (imgui_context && group_index == 0)
     {
         PROFILER_SCOPE(RenderPass_DrawUI);
@@ -280,71 +167,4 @@ TemporaryRenderPassInstance::TemporaryRenderPassInstance(const std::weak_ptr<Dev
 {
 }
 
-void RenderPassInstance::reset_for_next_frame()
-{
-    prepared = false;
-    for (const auto& dependency : dependencies | std::views::values)
-        dependency->reset_for_next_frame();
-    for (const auto& temp_dep : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-    {
-        if (temp_dep->viewport_resolution().x == 0 || temp_dep->viewport_resolution().y == 0)
-            temp_dep->create_or_resize(viewport_resolution(), resolution());
-        temp_dep->reset_for_next_frame();
-    }
-
-    if (!next_frame_framebuffers.empty())
-    {
-        for (size_t i = 0; i < framebuffers.size(); ++i)
-            device.lock()->drop_resource(framebuffers[i], i);
-        framebuffers = next_frame_framebuffers;
-        next_frame_framebuffers.clear();
-
-        assert(!next_frame_attachments_view.empty());
-        attachments_view = next_frame_attachments_view;
-        next_frame_attachments_view.clear();
-
-        if (render_pass_interface)
-            render_pass_interface->on_create_framebuffer(*this);
-    }
-}
-
-void RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force)
-{
-    glm::uvec2 desired_resolution = definition.resize_callback_ptr ? definition.resize_callback_ptr(viewport) : parent;
-
-    viewport_res = viewport;
-
-    for (const auto& dep : dependencies)
-        dep.second->create_or_resize(viewport, desired_resolution, b_force);
-    for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-        temp_child->create_or_resize(viewport, desired_resolution, b_force);
-
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize draw pass {}", definition.render_pass_ref));
-    if (!b_force && desired_resolution == current_resolution && !framebuffers.empty())
-        return;
-
-    if (desired_resolution.x == 0 || desired_resolution.y == 0)
-    {
-        LOG_ERROR("Invalid framebuffer resolution for '{}' : {}x{}", definition.render_pass_ref, desired_resolution.x, desired_resolution.y);
-        if (desired_resolution.x == 0)
-            desired_resolution.x = 1;
-        if (desired_resolution.y == 0)
-            desired_resolution.y = 1;
-    }
-
-    current_resolution = desired_resolution;
-
-    next_frame_attachments_view.clear();
-    next_frame_framebuffers.clear();
-
-    std::vector<std::shared_ptr<ImageView>> ordered_attachments;
-    for (const auto& attachment : render_pass_resource.lock()->get_key().attachments)
-    {
-        ordered_attachments.push_back(create_view_for_attachment(attachment.name));
-        next_frame_attachments_view.emplace(attachment.name, ordered_attachments.back());
-    }
-
-    for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
-        next_frame_framebuffers.push_back(Framebuffer::create(device, *this, i, ordered_attachments, enable_parallel_rendering()));
-}
 } // namespace Eng::Gfx
