@@ -36,8 +36,11 @@ This engine is built around vulkan. Other backends may be implemented later if n
 - [x] Parallel command buffers recording : improve performances by splitting command buffer reccording in multiple tasks
 - [x] Custom dynamic render passes : add or remove custom render passes on the fly (will be used to build shadow maps)
 - [x] Frustum culling
-- [ ] Custom render targets : Allow a shader to retrieve the result of a child render pass
-- [ ] Directional Shadows (point shadows ?) : automatically handle multiple light sources with shadows
+- [x] Custom render targets : Allow a shader to retrieve the result of a child render pass
+- [x] Directional Shadows : automatically handle multiple light sources with shadows
+- [ ] Implement compute shaders and compute pass
+- [ ] Implement Cmaa V2 antialiasing
+- [ ] Allow concurrent render passes : currently render passes render consecutivelly which is not optimal.
 - [ ] Post process : add basic post process passes (bloom...)
 - [ ] Camera-centric coordinates : We need to keep the camera at the origin to limite floating-point precision with fp32 on the gpu
 - [ ] Planet landscape : Add 1:1 earth-like planet landscape (basic procedural generation)
