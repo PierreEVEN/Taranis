@@ -29,7 +29,12 @@ using DeviceImageId    = uint8_t;
 class RenderPassInstanceBase : public DeviceResource
 {
 public:
-    RenderPassInstanceBase(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present);
+    static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
+
+    static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer)
+    {
+        return create(std::move(device), renderer, *renderer.root_node());
+    }
 
     // Should be called before each frame to reset max draw flags
     void         reset_for_next_frame();
@@ -61,46 +66,18 @@ public:
     /**
      * Iterate over dependencies
      */
-    void for_each_dependency(const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const
-    {
-        for (const auto& dependency : dependencies)
-            callback(dependency.second);
-        for (const auto& dependency : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-            callback(dependency);
-    }
+    void for_each_dependency(const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const;
 
     /**
      * Iterate over dependencies that match the given filter
      */
-    void for_each_dependency(const RenderPassGenericId& id, const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const
-    {
-        for (const auto& dependency : dependencies)
-            if (dependency.first.generic_id() == id)
-                callback(dependency.second);
-        for (const auto& dependency : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-            if (dependency.generic_id() == id)
-                callback(dependency);
-    }
+    void for_each_dependency(const RenderPassGenericId& id, const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const;
 
-    std::weak_ptr<RenderPassInstanceBase> get_dependency(const RenderPassRef& name) const
-    {
-        if (auto found = dependencies.find(name); found != dependencies.end())
-            return found->second;
-        for (const auto& temp_child : custom_passes->get_dependencies(definition.render_pass_ref.generic_id()))
-            if (temp_child->get_definition().render_pass_ref == name)
-                return temp_child;
-        return {};
-    }
+    // Find child dependency by reference
+    std::weak_ptr<RenderPassInstanceBase> get_dependency(const RenderPassRef& ref) const;
 
     // Find the image for the given input attachment generic_name
-    std::weak_ptr<ImageView> get_attachment(const std::string& attachment_name) const
-    {
-        if (attachments_view.empty())
-            LOG_FATAL("Attachments have not been initialized yet. Please wait framebuffer update");
-        if (auto found = attachments_view.find(attachment_name); found != attachments_view.end())
-            return found->second;
-        return {};
-    }
+    std::weak_ptr<ImageView> get_attachment(const std::string& attachment_name) const;
 
     void set_resize_callback(const RenderNode::ResizeCallback& in_callback)
     {
@@ -117,7 +94,17 @@ public:
         return framebuffers[current_framebuffer_index];
     }
 
-  protected:
+    uint32_t get_current_image_index() const
+    {
+        return current_framebuffer_index;
+    }
+
+protected:
+    RenderPassInstanceBase(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
+
+    // Retrieve a list of VkSemaphores to wait before submitting
+    virtual std::vector<VkSemaphore> get_semaphores_to_wait() const;
+
     // Retrieve the fence that will be signaled once the image rendering is finished
     const Fence* get_render_finished_fence(DeviceImageId device_image) const;
 
@@ -156,6 +143,30 @@ private:
     glm::uvec2 current_resolution{0, 0};
     RenderNode definition;
     uint32_t   current_framebuffer_index = 0;
+};
+
+class CustomPassList
+{
+public:
+    CustomPassList(const std::weak_ptr<Device>& in_device) : device(in_device)
+    {
+    }
+
+    std::shared_ptr<RenderPassInstanceBase> add_custom_pass(const std::vector<RenderPassGenericId>& targets, const Renderer& renderer);
+
+    void remove_custom_pass(const RenderPassRef& ref);
+
+    /**
+     * Iterate over dependencies
+     */
+    void for_each_dependency(const RenderPassGenericId& target_id, const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const;
+
+    // Find child dependency by reference
+    std::weak_ptr<RenderPassInstanceBase> get_dependency(const RenderPassGenericId& target_id, const RenderPassRef& ref) const;
+
+private:
+    std::weak_ptr<Device>                                                                                                                   device;
+    ankerl::unordered_dense::map<RenderPassGenericId, ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>>> temporary_dependencies;
 };
 
 } // namespace Eng::Gfx

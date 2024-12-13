@@ -10,7 +10,7 @@ int main()
 
     ContiguousObjectAllocator alloc;
 
-    std::unordered_map<TObjectPtr<TestReflectClass>, int> objects;
+    ankerl::unordered_dense::map<TObjectPtr<TestReflectClass>, int> objects;
 
     for (int i = 0; i < 10000; ++i)
     {

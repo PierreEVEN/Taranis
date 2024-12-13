@@ -194,14 +194,14 @@ public:
         return key;
     }
 
-    RenderNode& require(std::initializer_list<std::string> required)
+    RenderNode& require(std::initializer_list<RenderPassGenericId> required)
     {
         for (const auto& item : required)
             dependencies.insert(item);
         return *this;
     }
 
-    RenderNode& require(const std::string& required)
+    RenderNode& require(const RenderPassGenericId& required)
     {
         dependencies.insert(required);
         return *this;
@@ -252,7 +252,7 @@ public:
 
     std::shared_ptr<IRenderPassInitializer>               render_pass_initializer;
     ankerl::unordered_dense::map<std::string, Attachment> attachments;
-    ankerl::unordered_dense::set<std::string>             dependencies;
+    ankerl::unordered_dense::set<RenderPassGenericId>     dependencies;
     bool                                                  b_with_imgui = false;
     std::weak_ptr<Window>                                 imgui_input_window;
     RenderPassRef                                         render_pass_ref;
@@ -267,14 +267,14 @@ class Renderer
 public:
     Renderer() = default;
 
-    RenderNode& operator[](const std::string& node)
+    RenderNode& operator[](const RenderPassGenericId& node)
     {
         auto& found           = nodes.emplace(node, RenderNode{}).first->second;
         found.render_pass_ref = RenderPassRef(node, 0);
         return found;
     }
 
-    const RenderNode&                  get_node(const std::string& pass_name) const;
+    const RenderNode&                  get_node(const RenderPassGenericId& pass_name) const;
     std::optional<RenderPassGenericId> root_node() const;
 
     Renderer compile(ColorFormat target_format, const std::weak_ptr<Device>& device) const;
@@ -292,8 +292,8 @@ public:
 private:
     std::shared_ptr<CustomPassList> custom_passes;
 
-    bool                                                  b_compiled = false;
-    ankerl::unordered_dense::map<std::string, RenderNode> nodes;
+    bool                                                          b_compiled = false;
+    ankerl::unordered_dense::map<RenderPassGenericId, RenderNode> nodes;
 };
 
 } // namespace Eng::Gfx

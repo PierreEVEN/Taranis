@@ -11,7 +11,7 @@
 
 namespace Eng::Gfx
 {
-RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : RenderPassInstanceBase(std::move(in_device), renderer, name, b_is_present)
+RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : RenderPassInstanceBase(std::move(in_device), renderer, name)
 {
     render_pass_resource = device().lock()->declare_render_pass(get_definition().get_key(b_is_present), name);
 
@@ -111,13 +111,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", get_definition().render_pass_ref));
 
         // Submit current_thread (wait children completion using children_semaphores)
-        std::vector<VkSemaphore> children_semaphores;
-        for_each_dependency(
-            [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
-            {
-                children_semaphores.emplace_back(dep->get_current_framebuffer().lock()->render_finished_semaphore().raw());
-            });
-
+        std::vector<VkSemaphore> children_semaphores = get_semaphores_to_wait();
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         const auto                        command_buffer_ptr            = global_cmd.raw();
         const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
@@ -146,25 +140,4 @@ void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_in
         imgui_context->begin(resolution());
     }
 }
-
-std::shared_ptr<TemporaryRenderPassInstance> TemporaryRenderPassInstance::create(const std::weak_ptr<Device>& device, const Renderer& renderer)
-{
-    return std::shared_ptr<TemporaryRenderPassInstance>(new TemporaryRenderPassInstance(device, renderer));
-}
-
-void TemporaryRenderPassInstance::render(SwapchainImageId swapchain_image, DeviceImageId device_image)
-{
-    if (first_render)
-    {
-        create_or_resize(viewport_resolution(), resolution());
-        first_render = false;
-    }
-    RenderPassInstance::render(swapchain_image, device_image);
-}
-
-TemporaryRenderPassInstance::TemporaryRenderPassInstance(const std::weak_ptr<Device>& device, const Renderer& renderer) : RenderPassInstance(
-    device, renderer.compile(ColorFormat::UNDEFINED, device), *renderer.root_node(), false)
-{
-}
-
 } // namespace Eng::Gfx

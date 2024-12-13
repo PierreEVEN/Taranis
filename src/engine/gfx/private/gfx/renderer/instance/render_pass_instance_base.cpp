@@ -12,7 +12,7 @@
 namespace Eng::Gfx
 {
 
-RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present)
+RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name)
     : DeviceResource(std::move(in_device)), definition(renderer.get_node(name))
 {
     assert(renderer.compiled());
@@ -23,7 +23,7 @@ RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, 
     {
         const auto& dependency_node = renderer.get_node(dependency);
         if (dependency_node.b_is_compute_pass)
-            dependencies.emplace(dependency_node.render_pass_ref, std::make_shared<ComputePassInstance>(device(), renderer, dependency, false));
+            dependencies.emplace(dependency_node.render_pass_ref, std::make_shared<ComputePassInstance>(device(), renderer, dependency));
         else
             dependencies.emplace(dependency_node.render_pass_ref, std::make_shared<RenderPassInstance>(device(), renderer, dependency, false));
     }
@@ -51,6 +51,53 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
         });
 
     render_internal(swapchain_image, device_image);
+}
+
+void RenderPassInstanceBase::for_each_dependency(const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const
+{
+    for (const auto& dependency : dependencies)
+        callback(dependency.second);
+    custom_passes->for_each_dependency(definition.render_pass_ref.generic_id(), callback);
+}
+
+void RenderPassInstanceBase::for_each_dependency(const RenderPassGenericId& id, const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const
+{
+    for (const auto& dependency : dependencies)
+        if (dependency.first.generic_id() == id)
+            callback(dependency.second);
+    custom_passes->for_each_dependency(definition.render_pass_ref.generic_id(),
+                                       [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
+                                       {
+                                           if (dep->get_definition().render_pass_ref.generic_id() == id)
+                                               callback(dep);
+                                       });
+}
+
+std::weak_ptr<RenderPassInstanceBase> RenderPassInstanceBase::get_dependency(const RenderPassRef& ref) const
+{
+    if (auto found = dependencies.find(ref); found != dependencies.end())
+        return found->second;
+    return custom_passes->get_dependency(definition.render_pass_ref.generic_id(), ref);
+}
+
+std::weak_ptr<ImageView> RenderPassInstanceBase::get_attachment(const std::string& attachment_name) const
+{
+    if (attachments_view.empty())
+        LOG_FATAL("Attachments have not been initialized yet. Please wait framebuffer update");
+    if (auto found = attachments_view.find(attachment_name); found != attachments_view.end())
+        return found->second;
+    return {};
+}
+
+std::vector<VkSemaphore> RenderPassInstanceBase::get_semaphores_to_wait() const
+{
+    std::vector<VkSemaphore> children_semaphores;
+    for_each_dependency(
+        [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
+        {
+            children_semaphores.emplace_back(dep->get_current_framebuffer().lock()->render_finished_semaphore().raw());
+        });
+    return children_semaphores;
 }
 
 const Fence* RenderPassInstanceBase::get_render_finished_fence(DeviceImageId device_image) const
@@ -92,6 +139,16 @@ void RenderPassInstanceBase::fill_command_buffer(CommandBuffer& cmd, size_t grou
         PROFILER_SCOPE(BuildCommandBufferSync);
         render_pass_interface->draw(*this, cmd, group_index);
     }
+}
+
+std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref)
+{
+    auto node = renderer.get_node(rp_ref);
+    if (node.b_is_compute_pass)
+        return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<ComputePassInstance>(std::move(device), renderer, rp_ref));
+
+    else
+        return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<RenderPassInstance>(std::move(device), renderer, rp_ref, false));
 }
 
 void RenderPassInstanceBase::reset_for_next_frame()
@@ -159,5 +216,36 @@ void RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewport, const 
 
     for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
         next_frame_framebuffers.push_back(Framebuffer::create(device(), *this, i, ordered_attachments, enable_parallel_rendering()));
+}
+
+std::shared_ptr<RenderPassInstanceBase> CustomPassList::add_custom_pass(const std::vector<RenderPassGenericId>& targets, const Renderer& renderer)
+{
+    const auto new_rp = RenderPassInstanceBase::create(device, renderer);
+    for (const auto& target : targets)
+        temporary_dependencies.emplace(target, std::vector<std::shared_ptr<RenderPassInstanceBase>>{}).first->second.emplace(new_rp->get_definition().render_pass_ref, new_rp);
+    return new_rp;
+}
+
+void CustomPassList::remove_custom_pass(const RenderPassRef& ref)
+{
+    for (auto& dependencies : temporary_dependencies | std::views::values)
+        dependencies.erase(ref);
+}
+
+void CustomPassList::for_each_dependency(const RenderPassGenericId& target_id, const std::function<void(const std::shared_ptr<RenderPassInstanceBase>&)>& callback) const
+{
+    if (auto found = temporary_dependencies.find(target_id); found != temporary_dependencies.end())
+    {
+        for (const auto& elem : found->second)
+            callback(elem.second);
+    }
+}
+
+std::weak_ptr<RenderPassInstanceBase> CustomPassList::get_dependency(const RenderPassGenericId& target_id, const RenderPassRef& ref) const
+{
+    if (auto found = temporary_dependencies.find(target_id); found != temporary_dependencies.end())
+        if (auto found2 = found->second.find(ref); found2 != found->second.end())
+            return found2->second;
+    return {};
 }
 }

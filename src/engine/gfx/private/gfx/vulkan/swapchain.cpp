@@ -27,10 +27,10 @@ Swapchain::~Swapchain()
     swapChainImages.clear();
 }
 
-std::vector<const Semaphore*> Swapchain::get_semaphores_to_wait(SwapchainImageId swapchain_image) const
+std::vector<VkSemaphore> Swapchain::get_semaphores_to_wait() const
 {
-    auto semaphores = RenderPassInstance::get_semaphores_to_wait(device.lock()->get_current_image());
-    semaphores.push_back(image_available_semaphores[swapchain_image].get());
+    auto semaphores = RenderPassInstance::get_semaphores_to_wait();
+    semaphores.push_back(image_available_semaphores[get_current_image_index()].get()->raw());
     return semaphores;
 }
 
@@ -54,11 +54,11 @@ VkSurfaceFormatKHR Swapchain::choose_surface_format(const std::vector<VkSurfaceF
     return available_formats[0];
 }
 
-VkPresentModeKHR Swapchain::choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes)
+VkPresentModeKHR Swapchain::choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes) const
 {
     for (const auto& availablePresentMode : available_present_modes)
     {
-        if (device.lock()->get_gfx_config().v_sync)
+        if (device().lock()->get_gfx_config().v_sync)
         {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
                 return availablePresentMode;
@@ -84,7 +84,7 @@ glm::uvec2 Swapchain::choose_extent(const VkSurfaceCapabilitiesKHR& capabilities
 
 void Swapchain::create_or_recreate()
 {
-    const auto              device_ptr        = device.lock();
+    const auto              device_ptr        = device().lock();
     SwapChainSupportDetails swapchain_support = device_ptr->get_physical_device().query_swapchain_support(*surface.lock());
 
     const auto window_extent = surface.lock()->get_window().lock()->internal_extent();
@@ -144,7 +144,7 @@ void Swapchain::create_or_recreate()
 
     image_available_semaphores.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
-        image_available_semaphores.emplace_back(Semaphore::create(get_definition().render_pass_ref.to_string() + "_sem_#" + std::to_string(i), device));
+        image_available_semaphores.emplace_back(Semaphore::create(get_definition().render_pass_ref.to_string() + "_sem_#" + std::to_string(i), device()));
 
     if (get_definition().resize_callback_ptr)
         LOG_FATAL("Resize callback can't be used with swapchain draw pass");
@@ -163,27 +163,27 @@ void Swapchain::draw()
 
 std::shared_ptr<ImageView> Swapchain::create_view_for_attachment(const std::string& name)
 {
-    return ImageView::create(name + "view", device, swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
+    return ImageView::create(name + "view", device(), swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
 }
 
 uint8_t Swapchain::get_framebuffer_count() const
 {
-    return device.lock()->get_image_count() + 1;
+    return device().lock()->get_image_count() + 1;
 }
 
 bool Swapchain::render_internal()
 {
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
     reset_for_next_frame();
-    const auto device_ref    = device.lock();
-    uint8_t    current_frame = device.lock()->get_current_image();
+    const auto device_ref    = device().lock();
+    uint8_t    current_frame = device().lock()->get_current_image();
 
     if (current_frame < in_flight_fences.size() && in_flight_fences[current_frame])
     {
         PROFILER_SCOPE(WaitSwapchainImageAvailable);
         in_flight_fences[current_frame]->wait();
     }
-    device.lock()->flush_resources();
+    device().lock()->flush_resources();
 
     uint32_t       image_index;
     const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
@@ -201,7 +201,7 @@ bool Swapchain::render_internal()
     RenderPassInstance::render(static_cast<uint8_t>(image_index), current_frame);
 
     // Submit to present queue
-    const auto             render_finished_semaphore = framebuffers[image_index]->render_finished_semaphore().raw();
+    const auto             render_finished_semaphore = get_current_framebuffer().lock()->render_finished_semaphore().raw();
     const VkPresentInfoKHR present_infos{
         .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
@@ -223,13 +223,13 @@ bool Swapchain::render_internal()
 
 void Swapchain::destroy()
 {
-    device.lock()->wait();
+    device().lock()->wait();
     in_flight_fences.clear();
     image_view = nullptr;
 
     if (ptr != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(device.lock()->raw(), ptr, nullptr);
+        vkDestroySwapchainKHR(device().lock()->raw(), ptr, nullptr);
         ptr = VK_NULL_HANDLE;
     }
 }

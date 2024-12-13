@@ -43,11 +43,9 @@ public:
         return ptr;
     }
 
-    std::vector<const Semaphore*> get_semaphores_to_wait(SwapchainImageId swapchain_image) const override;
-
     static ColorFormat        get_swapchain_format(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface);
     static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
-    VkPresentModeKHR          choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes);
+    VkPresentModeKHR          choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes) const;
     static glm::uvec2         choose_extent(const VkSurfaceCapabilitiesKHR& capabilities, glm::uvec2 base_extent);
 
     void create_or_recreate();
@@ -71,12 +69,10 @@ public:
         return swapchain_format;
     }
 
-    std::weak_ptr<Device> get_device() const
-    {
-        return device;
-    }
+protected:
+    std::vector<VkSemaphore> get_semaphores_to_wait() const override;
 
-private:
+  private:
     Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer);
 
     std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;

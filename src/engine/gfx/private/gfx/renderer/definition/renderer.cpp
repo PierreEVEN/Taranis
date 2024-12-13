@@ -7,7 +7,7 @@
 
 namespace Eng::Gfx
 {
-const RenderNode& Renderer::get_node(const std::string& pass_name) const
+const RenderNode& Renderer::get_node(const RenderPassGenericId& pass_name) const
 {
     if (auto found = nodes.find(pass_name); found != nodes.end())
         return found->second;

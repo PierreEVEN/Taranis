@@ -57,7 +57,7 @@ public:
     }
 
 private:
-    std::unordered_map<const Reflection::Class*, ankerl::unordered_dense::map<void*, TObjectPtr<AssetBase>>> assets;
-    mutable std::shared_mutex                                                                                asset_lock;
+    ankerl::unordered_dense::map<const Reflection::Class*, ankerl::unordered_dense::map<void*, TObjectPtr<AssetBase>>> assets;
+    mutable std::shared_mutex                                                                                          asset_lock;
 };
 } // namespace Eng

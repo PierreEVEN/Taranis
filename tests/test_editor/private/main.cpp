@@ -255,11 +255,11 @@ public:
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
-        Cmaa2 cmaa;
-        cmaa.append_to_renderer(renderer);
+        //Cmaa2 cmaa;
+        //cmaa.append_to_renderer(renderer);
 
         renderer["present"]
-            .require("cmaa2")
+            .require("gbuffer_resolve")
             .with_imgui(true, default_window)
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
