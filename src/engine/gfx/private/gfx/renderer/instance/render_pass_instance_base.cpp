@@ -147,8 +147,7 @@ std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak
     if (node.b_is_compute_pass)
         return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<ComputePassInstance>(std::move(device), renderer, rp_ref));
 
-    else
-        return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<RenderPassInstance>(std::move(device), renderer, rp_ref, false));
+    return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<RenderPassInstance>(std::move(device), renderer, rp_ref, false));
 }
 
 void RenderPassInstanceBase::reset_for_next_frame()
