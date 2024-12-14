@@ -2,6 +2,7 @@
 
 #include "engine.hpp"
 #include "profiler.hpp"
+#include "gfx/renderer/instance/render_pass_instance_base.hpp"
 #include "gfx/vulkan/buffer.hpp"
 #include "scene/components/mesh_component.hpp"
 

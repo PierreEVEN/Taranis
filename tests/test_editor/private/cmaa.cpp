@@ -16,7 +16,7 @@ public:
     {
     }
 
-    void init(const Eng::Gfx::RenderPassInstance& rp) override
+    void init(const Eng::Gfx::RenderPassInstanceBase&) override
     {
         auto session                  = ShaderCompiler::Compiler::get().create_session("cmaa2");
         auto cr_cmaa2_edges_color_2x2 = session->compile("cmaa2_edges_color_2x2", session->get_default_permutations_description());
@@ -90,17 +90,17 @@ public:
 
     }
 
-    void pre_draw(const Eng::Gfx::RenderPassInstance&) override
+    void pre_draw(const Eng::Gfx::RenderPassInstanceBase&) override
     {
 
     }
 
-    void draw(const Eng::Gfx::RenderPassInstance&, Eng::Gfx::CommandBuffer&, size_t) override
+    void draw(const Eng::Gfx::RenderPassInstanceBase&, Eng::Gfx::CommandBuffer&, size_t) override
     {
 
     }
 
-    void pre_submit(const Eng::Gfx::RenderPassInstance&) override
+    void pre_submit(const Eng::Gfx::RenderPassInstanceBase&) override
     {
 
     }

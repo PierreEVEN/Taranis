@@ -88,7 +88,8 @@ public:
 
     void on_create_framebuffer(const Gfx::RenderPassInstanceBase& render_pass) override
     {
-        auto dep      = render_pass.get_dependency(render_pass.search_dependencies("gbuffers")[0]).lock();
+        std::shared_ptr<Gfx::RenderPassInstanceBase> dep = render_pass.get_dependencies("gbuffers")[0].lock();
+
         auto resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
 
         if (!resource)
@@ -112,7 +113,7 @@ public:
                     auto light_mat = comp.get_shadow_view()->get_projection_view_matrix();
 
                     lights.emplace_back(light_mat, comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, true);
-                    shadow_maps.emplace_back(comp.get_shadow_pass()->get_attachment("depth"));
+                    shadow_maps.emplace_back(comp.get_shadow_pass()->get_image_resource("depth"));
                 }
             });
 
@@ -207,7 +208,7 @@ public:
         }
     }
 
-    std::shared_ptr<Scene>                 scene;
+    std::shared_ptr<Scene>                     scene;
     std::weak_ptr<Gfx::RenderPassInstanceBase> scene_rp;
 };
 
@@ -220,12 +221,14 @@ public:
 
     void init(const Gfx::RenderPassInstanceBase& rp) override
     {
-        rp.imgui()->new_window<Viewport>("Viewport", rp.get_dependency(rp.search_dependencies("gbuffer_resolve")[0]), scene);
-        rp.imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);
-        rp.imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
-        rp.imgui()->new_window<ProfilerWindow>("Profiler");
-        rp.imgui()->new_window<RenderGraphView>("Render Graph View");
-        rp.imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependency(rp.search_dependencies("gbuffer_resolve")[0]));
+        const Gfx::RenderPassInstance* rp_inst = rp.cast<Gfx::RenderPassInstance>();
+
+        rp_inst->imgui()->new_window<Viewport>("Viewport", rp.get_dependencies("gbuffer_resolve")[0], scene);
+        rp_inst->imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);
+        rp_inst->imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
+        rp_inst->imgui()->new_window<ProfilerWindow>("Profiler");
+        rp_inst->imgui()->new_window<RenderGraphView>("Render Graph View");
+        rp_inst->imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependencies("gbuffer_resolve")[0]);
     }
 
     std::shared_ptr<Scene> scene;

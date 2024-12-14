@@ -32,6 +32,13 @@
             return reinterpret_cast<T*>(get_class()->cast_to(T::static_class(), this));              \
         else                                                                                         \
             return nullptr;                                                                          \
+    }                                                                                                \
+    template <typename T> const T* cast() const                                                \
+    {                                                                                                \
+        if constexpr (Reflection::StaticClassInfos<T>::value)                                        \
+            return reinterpret_cast<const T*>(get_class()->cast_to_const(T::static_class(), this));  \
+        else                                                                                         \
+            return nullptr;                                                                          \
     }
 
 #define REFL_REGISTER_CLASS(ClassName) Reflection::Class::RegisterClass<ClassName>(#ClassName);

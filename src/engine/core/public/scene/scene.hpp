@@ -11,8 +11,8 @@
 
 namespace Eng::Gfx
 {
+class RenderPassInstanceBase;
 class Renderer;
-class TemporaryRenderPassInstance;
 class CustomPassList;
 class RenderNode;
 class RenderPassInstance;
@@ -108,9 +108,9 @@ public:
 
     void set_pass_list(const std::weak_ptr<Gfx::CustomPassList>& pass_list);
 
-    std::shared_ptr<Gfx::TemporaryRenderPassInstance> add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const;
+    std::shared_ptr<Gfx::RenderPassInstanceBase> add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const;
 
-    void remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass) const;
+    void remove_custom_pass(const std::shared_ptr<Gfx::RenderPassInstanceBase>& pass) const;
 
 private:
     std::weak_ptr<Gfx::CustomPassList> custom_passes;

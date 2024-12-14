@@ -15,8 +15,8 @@ FrameResources* RenderPassInstance::create_or_resize(const glm::uvec2& viewport,
 {
     if (auto* resources = RenderPassInstanceBase::create_or_resize(viewport, parent, b_force))
     {
-        for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
-            resources->framebuffer.push_back(Framebuffer::create(device(), *this, i, *resources, enable_parallel_rendering()));
+        for (uint8_t i = 0; i < get_image_count(); ++i)
+            resources->framebuffers.push_back(Framebuffer::create(device(), *this, i, *resources, enable_parallel_rendering()));
         return resources;
     }
     return nullptr;
@@ -34,20 +34,11 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
     }
 }
 
-std::vector<VkSemaphore> RenderPassInstance::get_semaphores_to_wait() const
+void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId)
 {
-    std::vector<VkSemaphore> children_semaphores;
-    for_each_dependency(
-        [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
-        {
-            children_semaphores.emplace_back(dep->render_finished_semaphores[get_current_image_index()]);
-        });
-    return children_semaphores;
-}
-
-void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image)
-{
-    const auto&    framebuffer = get_current_framebuffer().lock();
+    const auto*    framebuffer = get_current_framebuffer();
+    if (!framebuffer)
+        return;
     CommandBuffer& global_cmd  = framebuffer->begin();
     global_cmd.begin_debug_marker("BeginRenderPass_" + get_definition().render_pass_ref.to_string(), {1, 0, 0, 1});
 
@@ -136,7 +127,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         std::vector<VkSemaphore>          children_semaphores = get_semaphores_to_wait();
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         const auto                        command_buffer_ptr            = global_cmd.raw();
-        const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();
+        const auto                        render_finished_semaphore_ptr = get_render_finished_semaphore();
         const VkSubmitInfo                submit_infos{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .waitSemaphoreCount = static_cast<uint32_t>(children_semaphores.size()),
@@ -147,13 +138,21 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
             .signalSemaphoreCount = 1,
             .pSignalSemaphores = &render_finished_semaphore_ptr,
         };
-        global_cmd.submit(submit_infos, framebuffer->get_render_finished_fence());
+        global_cmd.submit(submit_infos, get_render_finished_fence(static_cast<DeviceImageId>(get_current_image())));
     }
 }
 
 void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_index) const
 {
+    cmd.set_viewport({
+        .y      = static_cast<float>(resolution().y),
+        .width  = static_cast<float>(resolution().x),
+        .height = -static_cast<float>(resolution().y),
+    });
+    cmd.set_scissor({0, 0, resolution().x, resolution().y});
+
     RenderPassInstanceBase::fill_command_buffer(cmd, group_index);
+
     if (imgui_context && group_index == 0)
     {
         PROFILER_SCOPE(RenderPass_DrawUI);

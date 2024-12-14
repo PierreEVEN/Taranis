@@ -149,7 +149,7 @@ std::unique_ptr<IncludeToken> IncludeToken::consume(Location& in_location, const
 
 std::unique_ptr<WhitespaceToken> WhitespaceToken::consume(Location& in_location, const std::string& source, std::optional<ParserError>&)
 {
-    if (std::isspace(source[in_location.index]))
+    if (std::isspace(static_cast<unsigned char>(source[in_location.index])))
     {
         Location start = in_location;
         consume_whitespace(in_location, source);
@@ -162,7 +162,7 @@ std::unique_ptr<WhitespaceToken> WhitespaceToken::consume(Location& in_location,
 
 std::unique_ptr<WordToken> WordToken::consume(Location& in_location, const std::string& source, std::optional<ParserError>&)
 {
-    auto start_chr = source[in_location.index];
+    unsigned char start_chr = source[in_location.index];
     if (std::isalpha(start_chr) || start_chr == '_')
     {
         auto start = in_location++;
@@ -250,7 +250,7 @@ std::unique_ptr<ArgumentsToken> ArgumentsToken::consume(Location& in_location, c
 
 std::unique_ptr<IntegerToken> IntegerToken::consume(Location& in_location, const std::string& source, std::optional<ParserError>& error)
 {
-    auto start_chr = source[in_location.index];
+    unsigned char start_chr = source[in_location.index];
     if (std::isdigit(start_chr))
     {
         auto start = in_location;
@@ -279,8 +279,8 @@ std::unique_ptr<IntegerToken> IntegerToken::consume(Location& in_location, const
 
 std::unique_ptr<FloatingPointToken> FloatingPointToken::consume(Location& in_location, const std::string& source, std::optional<ParserError>& error)
 {
-    auto start_chr = source[in_location.index];
-    if (std::isdigit(start_chr) || (in_location.index < source.size() - 1 && start_chr == '.' && std::isdigit(source[in_location.index + 1])))
+    unsigned char start_chr = source[in_location.index];
+    if (std::isdigit(start_chr) || (in_location.index < source.size() - 1 && start_chr == '.' && std::isdigit(static_cast<unsigned char>(source[in_location.index + 1]))))
     {
         bool     b_first_decimal = true;
         Location start           = in_location;

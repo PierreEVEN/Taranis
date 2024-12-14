@@ -8,6 +8,8 @@
 #include <ankerl/unordered_dense.h>
 #include <glm/vec2.hpp>
 #include <memory>
+#include "gfx/renderer/instance/render_pass_instance_base.gen.hpp"
+
 
 namespace Eng::Gfx
 {
@@ -30,15 +32,20 @@ using DeviceImageId    = uint8_t;
 
 struct FrameResources
 {
+    ~FrameResources();
+
     ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> images;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<Buffer>>    buffers;
 
-    std::vector<std::shared_ptr<Framebuffer>> framebuffer;
+    std::vector<std::shared_ptr<Framebuffer>> framebuffers;
 };
 
 class RenderPassInstanceBase : public DeviceResource
 {
 public:
+
+    REFLECT_BODY()
+
     static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
 
     static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer)
@@ -86,43 +93,71 @@ public:
     // Find child dependency by reference
     std::weak_ptr<RenderPassInstanceBase> get_dependency(const RenderPassRef& ref) const;
 
-    // Find the image for the given input attachment name
+    // Find child dependency by reference
+    std::vector<std::weak_ptr<RenderPassInstanceBase>> get_dependencies(const RenderPassGenericId& generic_name) const;
+
+    // Get usable image resource resulting this render pass
     std::weak_ptr<ImageView> get_image_resource(const std::string& resource_name) const;
-    std::weak_ptr<Buffer>    get_buffer_resource(const std::string& resource_name) const;
+    // Get usable buffer resource resulting this render pass
+    std::weak_ptr<Buffer> get_buffer_resource(const std::string& resource_name) const;
 
     void set_resize_callback(const RenderNode::ResizeCallback& in_callback)
     {
         definition.resize_callback(in_callback);
     }
 
+    // This helper can be shared to insert or remove custom render passes
     std::weak_ptr<CustomPassList> get_custom_passes()
     {
         return custom_passes;
     }
 
-    uint32_t get_current_image_index() const
+    // Get the current framebuffers image that we are drawing on
+    uint32_t get_current_image() const
     {
-        return current_framebuffer_index;
+        return current_image;
     }
 
+    // How many image does this pass use (generally 2)
+    virtual uint8_t get_image_count() const;
+
+    const Framebuffer* get_current_framebuffer() const
+    {
+        if (!frame_resources)
+            return nullptr;
+        return frame_resources->framebuffers[get_current_image()].get();
+    }
+
+    // Retrieve a list of VkSemaphores to wait before submitting
+    virtual std::vector<VkSemaphore> get_semaphores_to_wait() const;
+
+    void init();
+
 protected:
-    RenderPassInstanceBase(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
+    RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name);
+
 
     // Retrieve the fence that will be signaled once the image rendering is finished
     const Fence* get_render_finished_fence(DeviceImageId device_image) const;
+    VkSemaphore get_render_finished_semaphore() const;
 
+    // Are drawcalls split in multiple jobs for this pass
     bool enable_parallel_rendering() const
     {
         return render_pass_interface && render_pass_interface->record_threads() > 1;
     }
 
+    // Create image and the image view for the given attachment
     virtual std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment);
-    virtual void                       render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image) = 0;
+
+    // Implement the mechanics to draw this render pass
+    virtual void render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image) = 0;
 
     std::shared_ptr<IRenderPass> render_pass_interface;
 
-    virtual uint8_t get_framebuffer_count() const;
-    virtual void    fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
+    virtual void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
+
+    
 
 private:
     bool prepared  = false;
@@ -140,7 +175,7 @@ private:
     glm::uvec2 viewport_res{0, 0};
     glm::uvec2 current_resolution{0, 0};
     RenderNode definition;
-    uint32_t   current_framebuffer_index = 0;
+    uint32_t   current_image = 0;
 };
 
 class CustomPassList

@@ -8,6 +8,7 @@
 
 namespace Eng::Gfx
 {
+class RenderPassInstanceBase;
 class RenderPassRef;
 }
 
@@ -68,5 +69,5 @@ protected:
     float                 zoom          = 0;
     bool                  initialized   = false;
 
-    static void add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstance>& pass, Content& content, int current_stage);
+    static void add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstanceBase>& pass, Content& content, int current_stage);
 };

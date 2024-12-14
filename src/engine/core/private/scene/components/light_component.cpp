@@ -1,7 +1,6 @@
 #include "scene/components/light_component.hpp"
 
 #include "gfx/renderer/definition/renderer.hpp"
-#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "scene/scene_view.hpp"
 
 #include <imgui.h>
@@ -15,12 +14,12 @@ public:
     {
     }
 
-    void pre_draw(const Gfx::RenderPassInstance& rp) override
+    void pre_draw(const Gfx::RenderPassInstanceBase& rp) override
     {
         scene_view->pre_draw(rp);
     }
 
-    void draw(const Gfx::RenderPassInstance& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
+    void draw(const Gfx::RenderPassInstanceBase& rp, Gfx::CommandBuffer& command_buffer, size_t thread_index) override
     {
         scene_view->draw(*scene, rp, command_buffer, thread_index, record_threads());
     }
@@ -30,7 +29,7 @@ public:
         return std::thread::hardware_concurrency() * 3;
     }
 
-    void pre_submit(const Gfx::RenderPassInstance&) override
+    void pre_submit(const Gfx::RenderPassInstanceBase&) override
     {
         scene_view->pre_submit();
     }

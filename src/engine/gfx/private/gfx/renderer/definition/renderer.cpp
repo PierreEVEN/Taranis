@@ -60,11 +60,14 @@ Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device
     for (auto& node : copy.nodes)
     {
         node.second.render_pass_ref.id = ++UNIQUE_PASS_ID;
-        for (const auto& attachment : node.second.attachments | std::views::values)
-            node.second.attachments_sorted.emplace_back(attachment);
     }
     if (target_format == ColorFormat::UNDEFINED)
+    {
+        for (auto& node : copy.nodes)
+            for (const auto& attachment : node.second.attachments | std::views::values)
+                node.second.attachments_sorted.emplace_back(attachment);
         return copy;
+    }
 
     auto& attachment = copy[*root].attachments;
 
@@ -74,6 +77,9 @@ Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device
         attachment.begin()->second.color_format = target_format;
     else
         LOG_FATAL("Failed to compiler renderer : the root node can only contain one attachment")
+    for (auto& node : copy.nodes)
+        for (const auto& att : node.second.attachments | std::views::values)
+            node.second.attachments_sorted.emplace_back(att);
     return copy;
 }
 } // namespace Eng::Gfx

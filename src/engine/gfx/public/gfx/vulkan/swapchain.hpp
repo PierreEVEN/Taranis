@@ -1,6 +1,6 @@
 #pragma once
-#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/types.hpp"
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 
 #include <glm/vec2.hpp>
 #include <memory>
@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include "gfx/vulkan/swapchain.gen.hpp"
 
 namespace Eng::Gfx
 {
@@ -21,10 +22,14 @@ class Device;
 
 class Swapchain final : public RenderPassInstance
 {
-public:
+  public:
+    REFLECT_BODY()
+
     static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, const Renderer& renderer)
     {
-        return std::shared_ptr<Swapchain>(new Swapchain(in_device, surface, renderer));
+        auto inst = std::shared_ptr<Swapchain>(new Swapchain(in_device, surface, renderer));
+        inst->init();
+        return inst;
     }
 
     Swapchain(Swapchain&)  = delete;
@@ -69,7 +74,7 @@ protected:
     Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer);
 
     std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;
-    uint8_t                    get_framebuffer_count() const override;
+    uint8_t                    get_image_count() const override;
 
     bool render_internal();
     void destroy();

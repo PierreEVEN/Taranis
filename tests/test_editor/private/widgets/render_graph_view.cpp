@@ -35,8 +35,11 @@ static constexpr ImVec2 group_padding{300, 40};
 void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
 {
     Content content;
-    for (const auto& child : ctx.get_current_render_pass()->all_childs())
-        add_pass_content(ctx, child.lock(), content, 0);
+    ctx.get_current_render_pass()->for_each_dependency(
+        [&](const std::shared_ptr<Eng::Gfx::RenderPassInstanceBase>& dep)
+        {
+            add_pass_content(ctx, dep, content, 0);
+        });
 
     ankerl::unordered_dense::map<int, float> stage_x_offsets;
 
@@ -160,7 +163,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
     ImGui::EndChild();
 }
 
-void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstance>& pass, Content& content, int current_stage)
+void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstanceBase>& pass, Content& content, int current_stage)
 {
     if (auto found = content.passes.find(pass->get_definition().render_pass_ref); found != content.passes.end())
     {
@@ -172,9 +175,9 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
     group.name  = pass->get_definition().render_pass_ref.to_string();
     group.stage = current_stage;
 
-    for (const auto& attachment : pass->get_definition().attachments | std::views::keys)
+    for (const auto& attachment : pass->get_definition().attachments_sorted)
     {
-        auto image = pass->get_image_resource(attachment).lock();
+        auto image = pass->get_image_resource(attachment.name).lock();
         if (!image)
             continue;
 
@@ -184,7 +187,7 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
         object.image    = image;
         object.offset_y = group.size.y + image_padding.y;
         object.res      = {static_cast<float>(extent.x), static_cast<float>(extent.y)};
-        object.name     = attachment;
+        object.name     = attachment.name;
 
         if (object.res.x + image_padding.x * 2.f > group.size.x)
             group.size.x = object.res.x + image_padding.x * 2.f;
@@ -199,6 +202,9 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
 
     content.passes.emplace(pass->get_definition().render_pass_ref, group);
 
-    for (const auto& child : pass->all_childs())
-        add_pass_content(ctx, child.lock(), content, current_stage + 1);
+    pass->for_each_dependency(
+        [&](const std::shared_ptr<Eng::Gfx::RenderPassInstanceBase>& dep)
+        {
+            add_pass_content(ctx, dep, content, current_stage + 1);
+        });
 }

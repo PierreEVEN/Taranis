@@ -9,7 +9,8 @@ declare_module(
             {name = "glm", public = true},
             {name = "imgui", public = true},
             {name = "unordered_dense", public = true}
-        }
+        },
+        enable_reflection = true
     }
 )
 

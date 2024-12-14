@@ -1,6 +1,5 @@
 #pragma once
 #include "bounds.hpp"
-#include "logger.hpp"
 
 #include <memory>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -11,7 +10,7 @@ namespace Eng
 namespace Gfx
 {
 class Buffer;
-class RenderPassInstance;
+class RenderPassInstanceBase;
 class CommandBuffer;
 }
 

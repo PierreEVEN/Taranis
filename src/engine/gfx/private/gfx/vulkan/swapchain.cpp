@@ -30,7 +30,7 @@ Swapchain::~Swapchain()
 std::vector<VkSemaphore> Swapchain::get_semaphores_to_wait() const
 {
     auto semaphores = RenderPassInstance::get_semaphores_to_wait();
-    semaphores.push_back(image_available_semaphores[get_current_image_index()].get()->raw());
+    semaphores.push_back(image_available_semaphores[get_current_image()].get()->raw());
     return semaphores;
 }
 
@@ -98,7 +98,7 @@ void Swapchain::create_or_recreate()
     VkSurfaceFormatKHR surfaceFormat = choose_surface_format(swapchain_support.formats);
     swapchain_format                 = static_cast<ColorFormat>(surfaceFormat.format);
     extent                           = new_extent;
-    uint32_t imageCount              = get_framebuffer_count();
+    uint32_t imageCount              = get_image_count();
 
     if (swapchain_support.capabilities.maxImageCount > 0 && imageCount > swapchain_support.capabilities.maxImageCount)
     {
@@ -166,7 +166,7 @@ std::shared_ptr<ImageView> Swapchain::create_view_for_attachment(const std::stri
     return ImageView::create(name + "view", device(), swapChainImages, ImageView::CreateInfos{.format = swapchain_format});
 }
 
-uint8_t Swapchain::get_framebuffer_count() const
+uint8_t Swapchain::get_image_count() const
 {
     return device().lock()->get_image_count() + 1;
 }
@@ -175,7 +175,7 @@ bool Swapchain::render_internal()
 {
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
     reset_for_next_frame();
-    const auto device_ref    = device().lock();
+    const auto device_reference    = device().lock();
     uint8_t    current_frame = device().lock()->get_current_image();
 
     if (current_frame < in_flight_fences.size() && in_flight_fences[current_frame])
@@ -186,7 +186,7 @@ bool Swapchain::render_internal()
     device().lock()->flush_resources();
 
     uint32_t       image_index;
-    const VkResult acquire_result = vkAcquireNextImageKHR(device_ref->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
+    const VkResult acquire_result = vkAcquireNextImageKHR(device_reference->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
     if (acquire_result != VK_SUCCESS)
     {
         if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR || acquire_result == VK_SUBOPTIMAL_KHR)
@@ -198,10 +198,10 @@ bool Swapchain::render_internal()
         in_flight_fences.resize(current_frame + 1, nullptr);
     in_flight_fences[current_frame] = get_render_finished_fence(static_cast<DeviceImageId>(image_index));
 
-    RenderPassInstance::render(static_cast<uint8_t>(image_index), current_frame);
+    render(static_cast<uint8_t>(image_index), current_frame);
 
     // Submit to present queue
-    const auto             render_finished_semaphore = get_current_framebuffer().lock()->render_finished_semaphore().raw();
+    const auto             render_finished_semaphore = get_render_finished_semaphore();
     const VkPresentInfoKHR present_infos{
         .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
@@ -212,7 +212,7 @@ bool Swapchain::render_internal()
         .pResults           = nullptr,
     };
 
-    const VkResult submit_result = device_ref->get_queues().get_queue(QueueSpecialization::Present)->present(present_infos);
+    const VkResult submit_result = device_reference->get_queues().get_queue(QueueSpecialization::Present)->present(present_infos);
     if (submit_result == VK_ERROR_OUT_OF_DATE_KHR || submit_result == VK_SUBOPTIMAL_KHR)
         return true;
     if (submit_result != VK_SUCCESS)

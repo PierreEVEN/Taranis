@@ -6,8 +6,7 @@
 #include "gfx/vulkan/buffer.hpp"
 #include "object_allocator.hpp"
 #include "profiler.hpp"
-#include "scene/components/camera_component.hpp"
-#include "scene/components/mesh_component.hpp"
+#include "gfx/renderer/instance/render_pass_instance_base.hpp"
 #include "scene/components/scene_component.hpp"
 
 namespace Eng
@@ -68,7 +67,7 @@ void Scene::set_pass_list(const std::weak_ptr<Gfx::CustomPassList>& pass_list)
     custom_passes = pass_list;
 }
 
-std::shared_ptr<Gfx::TemporaryRenderPassInstance> Scene::add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const
+std::shared_ptr<Gfx::RenderPassInstanceBase> Scene::add_custom_pass(const std::vector<std::string>& targets, const Gfx::Renderer& node) const
 {
     if (!custom_passes.lock())
     {
@@ -78,14 +77,14 @@ std::shared_ptr<Gfx::TemporaryRenderPassInstance> Scene::add_custom_pass(const s
     return custom_passes.lock()->add_custom_pass(targets, node);
 }
 
-void Scene::remove_custom_pass(const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& pass) const
+void Scene::remove_custom_pass(const std::shared_ptr<Gfx::RenderPassInstanceBase>& pass) const
 {
     if (!custom_passes.lock())
     {
         LOG_ERROR("Scene is not attached to a renderer");
         return;
     }
-    return custom_passes.lock()->remove_custom_pass(pass);
+    return custom_passes.lock()->remove_custom_pass(pass->get_definition().render_pass_ref);
 }
 
 } // namespace Eng

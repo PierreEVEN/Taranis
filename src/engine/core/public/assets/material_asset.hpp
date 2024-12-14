@@ -16,6 +16,7 @@ class Session;
 
 namespace Eng::Gfx
 {
+class RenderPassRef;
 class DescriptorSet;
 class Pipeline;
 } // namespace Eng::Gfx

@@ -4,32 +4,23 @@
 #include "object_ptr.hpp"
 
 #include "assets/material_instance_asset.gen.hpp"
+#include "gfx/renderer/definition/render_pass_id.hpp"
 
 namespace Eng
 {
-struct MaterialPermutation;
-}
 
-namespace Eng::Gfx
-{
-class Buffer;
-class BufferData;
-} // namespace Eng::Gfx
-
-namespace Eng
-{
 class SamplerAsset;
 class TextureAsset;
-} // namespace Eng
-
-namespace Eng
-{
+struct MaterialPermutation;
 class MaterialAsset;
 
 namespace Gfx
 {
 class Pipeline;
 class DescriptorSet;
+class RenderPassRef;
+class Buffer;
+class BufferData;
 } // namespace Gfx
 
 class MaterialInstanceAsset : public AssetBase

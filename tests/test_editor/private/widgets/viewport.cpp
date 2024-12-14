@@ -8,7 +8,8 @@
 #include <glm/vec2.hpp>
 #include <imgui.h>
 
-Viewport::Viewport(const std::string& name, const std::weak_ptr<Eng::Gfx::RenderPassInstance>& in_render_pass, const std::shared_ptr<Eng::Scene> in_scene) : UiWindow(name), render_pass(in_render_pass), scene(in_scene)
+Viewport::Viewport(const std::string& name, const std::weak_ptr<Eng::Gfx::RenderPassInstanceBase>& in_render_pass, const std::shared_ptr<Eng::Scene> in_scene)
+    : UiWindow(name), render_pass(in_render_pass), scene(in_scene)
 {
     b_enable_menu_bar = true;
     draw_res          = render_pass.lock()->resolution();
@@ -48,10 +49,10 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
         render_pass.lock()->create_or_resize(draw_res, draw_res);
     }
 
-    for (const auto& attachment : render_pass.lock()->get_definition().attachments)
-        if (!is_depth_format(attachment.second.color_format))
+    for (const auto& attachment : render_pass.lock()->get_definition().attachments_sorted)
+        if (!is_depth_format(attachment.color_format))
         {
-            ImGui::Image(ctx.add_image(render_pass.lock()->get_image_resource(attachment.first).lock()), ImGui::GetContentRegionAvail());
+            ImGui::Image(ctx.add_image(render_pass.lock()->get_image_resource(attachment.name).lock()), ImGui::GetContentRegionAvail());
             break;
         }
 }

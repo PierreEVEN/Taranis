@@ -28,7 +28,7 @@ class LightComponent : public SceneComponent
 
     void enable_shadow(ELightType light_type = ELightType::Stationary, bool enabled = true);
 
-    const std::shared_ptr<Gfx::TemporaryRenderPassInstance>& get_shadow_pass() const
+    const std::shared_ptr<Gfx::RenderPassInstanceBase>& get_shadow_pass() const
     {
         return shadow_update_pass;
     }
@@ -49,15 +49,15 @@ protected:
 
     }
 
-    glm::vec3                                         color              = glm::vec3(1, 1, 1);
-    uint32_t                                          shadow_resolution  = 2048;
-    float                                             orthographic_width = 5000;
-    float                                             z_far              = 5000;
-    float                                             z_near             = -5000;
-    bool                                              shadows            = false;
-    ELightType                                        light_type         = ELightType::Stationary;
-    std::shared_ptr<Gfx::TemporaryRenderPassInstance> shadow_update_pass;
-    std::shared_ptr<SceneView>                        shadow_view;
-    uint32_t                                          shadow_map_id = 0;
+    glm::vec3                                    color              = glm::vec3(1, 1, 1);
+    uint32_t                                     shadow_resolution  = 2048;
+    float                                        orthographic_width = 5000;
+    float                                        z_far              = 5000;
+    float                                        z_near             = -5000;
+    bool                                         shadows            = false;
+    ELightType                                   light_type         = ELightType::Stationary;
+    std::shared_ptr<Gfx::RenderPassInstanceBase> shadow_update_pass;
+    std::shared_ptr<SceneView>                   shadow_view;
+    uint32_t                                     shadow_map_id = 0;
 };
 }

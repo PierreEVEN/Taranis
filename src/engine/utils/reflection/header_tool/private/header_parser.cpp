@@ -80,7 +80,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
         case Llp::ELexerToken::Word:
         {
             const std::string& word = parser.consume<Llp::WordToken>()->word;
-            
+
             // Class declaration
             if (word == "class")
             {
@@ -92,41 +92,43 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                     std::vector<std::string> parents;
                     if (parser.consume<Llp::SymbolToken>(':'))
                     {
-                        do
-                        {
-                            // Skip fields
-                            parser.consume<Llp::WordToken>("public") || parser.consume<Llp::WordToken>("protected") || parser.consume<Llp::WordToken>("private");
-
-                            if (auto parent_class = parser.consume<Llp::WordToken>())
+                        // skip Namespace::Class fields
+                        if (!parser.consume<Llp::SymbolToken>(':'))
+                            do
                             {
-                                std::string parent = parent_class->word;
+                                // Skip fields
+                                parser.consume<Llp::WordToken>("public") || parser.consume<Llp::WordToken>("protected") || parser.consume<Llp::WordToken>("private");
 
-                                if (parser.consume<Llp::SymbolToken>('<'))
+                                if (auto parent_class = parser.consume<Llp::WordToken>())
                                 {
-                                    size_t template_level = 1;
-                                    do
+                                    std::string parent = parent_class->word;
+
+                                    if (parser.consume<Llp::SymbolToken>('<'))
                                     {
-                                        if (parser.consume<Llp::SymbolToken>('<'))
+                                        size_t template_level = 1;
+                                        do
                                         {
-                                            parent += '<';
-                                            template_level++;
-                                        }
-                                        else if (auto* template_str = parser.consume<Llp::WordToken>())
-                                            parent += template_str->word;
-                                        else if (parser.consume<Llp::SymbolToken>('>'))
-                                        {
-                                            parent += '>';
-                                            template_level--;
-                                        }
+                                            if (parser.consume<Llp::SymbolToken>('<'))
+                                            {
+                                                parent += '<';
+                                                template_level++;
+                                            }
+                                            else if (auto* template_str = parser.consume<Llp::WordToken>())
+                                                parent += template_str->word;
+                                            else if (parser.consume<Llp::SymbolToken>('>'))
+                                            {
+                                                parent += '>';
+                                                template_level--;
+                                            }
 
-                                    } while (parser && template_level != 0);
+                                        } while (parser && template_level != 0);
+                                    }
+
+                                    parents.push_back(parent);
                                 }
-
-                                parents.push_back(parent);
-                            }
-                            else
-                                return Llp::ParserError{parser.current_location(), "Expected class name"};
-                        } while (parser.consume<Llp::ComaToken>());
+                                else
+                                    return Llp::ParserError{parser.current_location(), "Expected class name"};
+                            } while (parser.consume<Llp::ComaToken>());
                     }
 
                     if (auto* class_block = parser.consume<Llp::BlockToken>())
@@ -140,7 +142,8 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                 bool                     b_failed = false;
                 do
                 {
-                    parser.consume<Llp::WordToken>("::");
+                    parser.consume<Llp::SymbolToken>(':');
+                    parser.consume<Llp::SymbolToken>(':');
                     if (auto namespace_name = parser.consume<Llp::WordToken>())
                         added_namespace_stack.push_back(namespace_name->word);
                     else

@@ -130,8 +130,8 @@ void Generator::generate(size_t timestamp, const std::filesystem::path& source_p
         {
             source.new_line(1);
             source.write_line(std::format("Reflection::Class* _Static_Item_Class_{} = nullptr; // static class reference", gen_class.second.sanitized_class_path()));
-            source.write_line(std::format("const Reflection::Class* {}::static_class() {{ return Reflection::Class::get<{}>(); }}", class_name, gen_class.second.class_name()));
-            source.write_line(std::format("const Reflection::Class* {}::get_class() const {{ return Reflection::Class::get<{}>(); }}", class_name, gen_class.second.class_name()));
+            source.write_line(std::format("const Reflection::Class* {}::static_class() {{ return Reflection::Class::get<{}>(); }}", class_name, class_name));
+            source.write_line(std::format("const Reflection::Class* {}::get_class() const {{ return Reflection::Class::get<{}>(); }}", class_name, class_name));
 
             // Populate class definition
             source.new_line(1);

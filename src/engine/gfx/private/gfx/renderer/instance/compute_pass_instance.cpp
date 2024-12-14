@@ -7,7 +7,7 @@ ComputePassInstance::ComputePassInstance(std::weak_ptr<Device> device, const Ren
 {
 }
 
-void ComputePassInstance::render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image)
+void ComputePassInstance::render_internal(SwapchainImageId, DeviceImageId)
 {
 }
 }

@@ -9,7 +9,7 @@ namespace Reflection
 
 template <typename RClass> struct StaticClassInfos
 {
-    constexpr static bool Reflected = false;
+    constexpr static bool value = false;
 };
 
 class Class
@@ -52,11 +52,13 @@ public:
         return std::hash<std::string>{}(StaticClassInfos<Type>::name);
     }
 
-    using CastFunc = void*(*)(const Class*, void*);
+    using CastFunc      = void*(*)(const Class*, void*);
+    using CastFuncConst = const void*(*)(const Class*, const void*);
 
     struct CastFuncWrapper
     {
-        CastFunc fn;
+        CastFunc      fn;
+        CastFuncConst const_fn;
     };
 
     /**
@@ -68,8 +70,12 @@ public:
         {
             cast_functions.insert_or_assign(Class::make_type_id<ParentClass>(),
                                             CastFuncWrapper{[](const Class* desired_class, void* from_ptr) -> void* {
-                                                return ParentClass::static_class()->cast_to(desired_class, reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
-                                            }});
+                                                                return ParentClass::static_class()->cast_to(desired_class, reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
+                                                            },
+                                                            [](const Class* desired_class, const void* from_ptr) -> const void* {
+                                                                return ParentClass::static_class()->cast_to_const(
+                                                                    desired_class, reinterpret_cast<const void*>(static_cast<const ParentClass*>(static_cast<const ThisClass*>(from_ptr))));
+                                                            }});
         }
     }
 
@@ -86,6 +92,20 @@ public:
         {
             if (auto cast_fn = cast_functions.find(parent->get_id()); cast_fn != cast_functions.end())
                 if (void* ToPtr = cast_fn->second.fn(To, Ptr))
+                    return ToPtr;
+        }
+        return nullptr;
+    }
+
+    const void* cast_to_const(const Class* To, const void* Ptr) const
+    {
+        if (To == this)
+            return Ptr;
+
+        for (const auto& parent : parents)
+        {
+            if (auto cast_fn = cast_functions.find(parent->get_id()); cast_fn != cast_functions.end())
+                if (const void* ToPtr = cast_fn->second.const_fn(To, Ptr))
                     return ToPtr;
         }
         return nullptr;

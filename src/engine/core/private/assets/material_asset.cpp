@@ -4,6 +4,7 @@
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/shader_module.hpp"
 #include "profiler.hpp"
+#include "gfx/vulkan/device.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace Eng
