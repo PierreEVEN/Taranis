@@ -3,6 +3,7 @@
 #include "gfx/renderer/definition/renderer.hpp"
 #include "logger.hpp"
 #include "gfx/vulkan/device.hpp"
+#include "gfx/vulkan/device_resource.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <glm/vec2.hpp>
@@ -10,6 +11,7 @@
 
 namespace Eng::Gfx
 {
+class Buffer;
 class IRenderPass;
 class CommandBuffer;
 class CustomPassList;
@@ -26,6 +28,14 @@ class Device;
 using SwapchainImageId = uint8_t;
 using DeviceImageId    = uint8_t;
 
+struct FrameResources
+{
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> images;
+    ankerl::unordered_dense::map<std::string, std::shared_ptr<Buffer>>    buffers;
+
+    std::vector<std::shared_ptr<Framebuffer>> framebuffer;
+};
+
 class RenderPassInstanceBase : public DeviceResource
 {
 public:
@@ -37,9 +47,9 @@ public:
     }
 
     // Should be called before each frame to reset max draw flags
-    void         reset_for_next_frame();
-    virtual void create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force = false);
-    void         render(SwapchainImageId swapchain_image, DeviceImageId device_image);
+    void                    reset_for_next_frame();
+    virtual FrameResources* create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force = false);
+    void                    render(SwapchainImageId swapchain_image, DeviceImageId device_image);
 
     /**
      * The resolution of this current pass
@@ -50,7 +60,7 @@ public:
     }
 
     /**
-     * The internal resolution of the plateform window
+     * The internal resolution of the platform window
      */
     const glm::uvec2& viewport_resolution() const
     {
@@ -76,8 +86,9 @@ public:
     // Find child dependency by reference
     std::weak_ptr<RenderPassInstanceBase> get_dependency(const RenderPassRef& ref) const;
 
-    // Find the image for the given input attachment generic_name
-    std::weak_ptr<ImageView> get_attachment(const std::string& attachment_name) const;
+    // Find the image for the given input attachment name
+    std::weak_ptr<ImageView> get_image_resource(const std::string& resource_name) const;
+    std::weak_ptr<Buffer>    get_buffer_resource(const std::string& resource_name) const;
 
     void set_resize_callback(const RenderNode::ResizeCallback& in_callback)
     {
@@ -89,11 +100,6 @@ public:
         return custom_passes;
     }
 
-    std::weak_ptr<Framebuffer> get_current_framebuffer() const
-    {
-        return framebuffers[current_framebuffer_index];
-    }
-
     uint32_t get_current_image_index() const
     {
         return current_framebuffer_index;
@@ -101,9 +107,6 @@ public:
 
 protected:
     RenderPassInstanceBase(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
-
-    // Retrieve a list of VkSemaphores to wait before submitting
-    virtual std::vector<VkSemaphore> get_semaphores_to_wait() const;
 
     // Retrieve the fence that will be signaled once the image rendering is finished
     const Fence* get_render_finished_fence(DeviceImageId device_image) const;
@@ -125,16 +128,11 @@ private:
     bool prepared  = false;
     bool submitted = false;
 
-    // One framebuffer per swapchain or device image
-    std::vector<std::shared_ptr<Framebuffer>> framebuffers;
+    std::optional<FrameResources> frame_resources;
+    std::optional<FrameResources> next_frame_resources;
 
-    // One view per attachment
-    ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> attachments_view;
-
-    // When we request the recreation of the framebuffers, we need to wait for the next frame to replace it with the new none to be sure
-    // we are always submitting valid images
-    std::vector<std::shared_ptr<Framebuffer>>                             next_frame_framebuffers;
-    ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> next_frame_attachments_view;
+    std::vector<std::shared_ptr<Semaphore>> render_finished_semaphores;
+    std::vector<std::shared_ptr<Fence>>     render_finished_fences;
 
     ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>> dependencies;
     std::shared_ptr<CustomPassList>                                                      custom_passes;
@@ -168,5 +166,4 @@ private:
     std::weak_ptr<Device>                                                                                                                   device;
     ankerl::unordered_dense::map<RenderPassGenericId, ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>>> temporary_dependencies;
 };
-
 } // namespace Eng::Gfx

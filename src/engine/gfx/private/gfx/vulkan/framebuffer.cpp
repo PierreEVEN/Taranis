@@ -1,5 +1,6 @@
 #include "gfx/vulkan/framebuffer.hpp"
 
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
@@ -15,7 +16,7 @@ const Fence* Framebuffer::get_render_finished_fence() const
     return render_finished_fence.get();
 }
 
-Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets) : DeviceResource(std::move(in_device))
+Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, size_t image_index, const FrameResources& resources) : DeviceResource(std::move(in_device))
 {
     auto name                 = render_pass.get_definition().render_pass_ref.to_string();
     render_finished_fence      = Fence::create(name + "_cmd", device(), true);
@@ -23,10 +24,10 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     render_finished_semaphores = Semaphore::create(name + "_sem", device());
 
     std::vector<VkImageView> views;
-    for (const auto& view : render_targets)
-        views.emplace_back(view->raw()[image_index]);
+    for (const auto& attachment : render_pass.get_definition().attachments_sorted)
+        views.emplace_back(resources.images.find(attachment.name)->second->raw()[image_index]);
 
-    assert(!render_targets.empty());
+    assert(!views.empty());
 
     VkFramebufferCreateInfo create_infos = {
         .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -44,10 +45,9 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     device().lock()->debug_set_object_name(name + "_fb", ptr);
 }
 
-std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets,
-                                                 bool require_secondary)
+std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const FrameResources& resources, bool require_secondary)
 {
-    auto fb = std::shared_ptr<Framebuffer>(new Framebuffer(std::move(device), render_pass, image_index, render_targets));
+    auto fb = std::shared_ptr<Framebuffer>(new Framebuffer(std::move(device), render_pass, image_index, resources));
     if (require_secondary)
         for (const auto& worker : JobSystem::get().get_workers())
             fb->secondary_command_buffers.emplace(worker->thread_id(), SecondaryCommandBuffer::create(render_pass.get_definition().render_pass_ref.to_string() + "_sec_cmd", fb->command_buffer, fb, worker->thread_id()));

@@ -174,7 +174,7 @@ void RenderGraphView::add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::s
 
     for (const auto& attachment : pass->get_definition().attachments | std::views::keys)
     {
-        auto image = pass->get_attachment(attachment).lock();
+        auto image = pass->get_image_resource(attachment).lock();
         if (!image)
             continue;
 

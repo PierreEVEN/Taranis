@@ -3,7 +3,6 @@
 #include <vulkan/vulkan_core.h>
 
 #include "surface.hpp"
-#include "swapchain.hpp"
 #include "vk_check.hpp"
 
 namespace Eng::Gfx
@@ -11,6 +10,13 @@ namespace Eng::Gfx
 class GfxConfig;
 
 class Instance;
+
+struct SwapChainSupportDetails
+{
+    VkSurfaceCapabilitiesKHR        capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR>   presentModes;
+};
 
 class PhysicalDevice
 {

@@ -7,6 +7,7 @@
 #include "buffer.hpp"
 #include "device.hpp"
 #include "gfx/types.hpp"
+#include "gfx_types/format.hpp"
 
 namespace Eng::Gfx
 {

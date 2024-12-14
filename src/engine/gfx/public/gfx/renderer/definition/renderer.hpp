@@ -184,12 +184,13 @@ public:
     {
         if (b_is_compute_pass)
             LOG_FATAL("Cannot create Render Pass key for compute passes")
+        
         RenderPassKey key;
         key.render_pass_ref = render_pass_ref;
         key.b_present       = b_present;
         key.b_reversed_z    = reversed_logarithmic_depth;
         key.reverse_cull    = b_flip_culling;
-        for (const auto& attachment : attachments | std::views::values)
+        for (const auto& attachment : attachments_sorted)
             key.attachments.emplace_back(attachment);
         return key;
     }
@@ -251,7 +252,6 @@ public:
     }
 
     std::shared_ptr<IRenderPassInitializer>               render_pass_initializer;
-    ankerl::unordered_dense::map<std::string, Attachment> attachments;
     ankerl::unordered_dense::set<RenderPassGenericId>     dependencies;
     bool                                                  b_with_imgui = false;
     std::weak_ptr<Window>                                 imgui_input_window;
@@ -260,6 +260,17 @@ public:
     bool                                                  reversed_logarithmic_depth = false;
     bool                                                  b_flip_culling             = false;
     bool                                                  b_is_compute_pass;
+    std::vector<Attachment>                               attachments_sorted;
+
+    const Attachment* find_attachment_by_name(const std::string& attachment_name) const
+    {
+        if (auto found = attachments.find(attachment_name); found != attachments.end())
+            return &found->second;
+        return nullptr;
+    }
+
+  private:
+    ankerl::unordered_dense::map<std::string, Attachment> attachments;
 };
 
 class Renderer

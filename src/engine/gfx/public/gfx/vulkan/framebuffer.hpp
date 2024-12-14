@@ -1,26 +1,28 @@
 #pragma once
-#include "device.hpp"
+
+#include "device_resource.hpp"
 
 #include <memory>
 #include <vector>
+#include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx
 {
-class SecondaryCommandBuffer;
-}
-
-namespace Eng::Gfx
-{
+struct FrameResources;
+class Fence;
+class VkRendererPass;
 class Semaphore;
 class Device;
 class CommandBuffer;
+class ImageView;
+class RenderPassInstance;
+class SecondaryCommandBuffer;
 
 class Framebuffer : public DeviceResource
 {
   public:
-    static std::shared_ptr<Framebuffer> create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets,
-                                               bool require_secondary);
+    static std::shared_ptr<Framebuffer> create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const FrameResources& resources, bool require_secondary);
 
     Framebuffer(Framebuffer&&) = delete;
     Framebuffer(Framebuffer&)  = delete;
@@ -48,12 +50,12 @@ class Framebuffer : public DeviceResource
     const Fence* get_render_finished_fence() const;
 
   private:
-    Framebuffer(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const std::vector<std::shared_ptr<ImageView>>& render_targets);
-    std::shared_ptr<Semaphore>                                                   render_finished_semaphores;
-    VkFramebuffer                                                                ptr = VK_NULL_HANDLE;
-    std::shared_ptr<CommandBuffer>                                               command_buffer;
-    std::weak_ptr<VkRendererPass>                                                render_pass_resource;
+    Framebuffer(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, size_t image_index, const FrameResources& resources);
+    std::shared_ptr<Semaphore>                                                             render_finished_semaphores;
+    VkFramebuffer                                                                          ptr = VK_NULL_HANDLE;
+    std::shared_ptr<CommandBuffer>                                                         command_buffer;
+    std::weak_ptr<VkRendererPass>                                                          render_pass_resource;
     ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
-    std::shared_ptr<Fence>                                                       render_finished_fence;
+    std::shared_ptr<Fence>                                                                 render_finished_fence;
 };
 } // namespace Eng::Gfx

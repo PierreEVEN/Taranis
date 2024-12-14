@@ -1,9 +1,8 @@
 #pragma once
-#include "device.hpp"
+#include "device_resource.hpp"
 #include "gfx_types/pipeline.hpp"
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>

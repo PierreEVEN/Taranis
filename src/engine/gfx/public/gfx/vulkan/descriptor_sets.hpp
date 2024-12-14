@@ -1,5 +1,6 @@
 #pragma once
-#include "device.hpp"
+#include "device_resource.hpp"
+
 #include <memory>
 #include <string>
 #include <ankerl/unordered_dense.h>

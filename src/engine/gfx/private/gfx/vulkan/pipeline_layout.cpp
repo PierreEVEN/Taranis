@@ -1,6 +1,8 @@
 #include "gfx/vulkan/pipeline_layout.hpp"
 
+#include "logger.hpp"
 #include "gfx/vulkan/descriptor_pool.hpp"
+#include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/shader_module.hpp"
 
 namespace Eng::Gfx

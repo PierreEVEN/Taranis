@@ -1,6 +1,6 @@
 #include "gfx/vulkan/compute_pipeline.hpp"
 
-#include "gfx/vulkan/pipeline.hpp"
+#include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/pipeline_layout.hpp"
 #include "gfx/vulkan/shader_module.hpp"
 

@@ -19,13 +19,6 @@ class SwapchainRenderer;
 class Surface;
 class Device;
 
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR        capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR>   presentModes;
-};
-
 class Swapchain final : public RenderPassInstance
 {
 public:

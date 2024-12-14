@@ -11,6 +11,17 @@
 
 namespace Eng::Gfx
 {
+FrameResources* RenderPassInstance::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force)
+{
+    if (auto* resources = RenderPassInstanceBase::create_or_resize(viewport, parent, b_force))
+    {
+        for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
+            resources->framebuffer.push_back(Framebuffer::create(device(), *this, i, *resources, enable_parallel_rendering()));
+        return resources;
+    }
+    return nullptr;
+}
+
 RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : RenderPassInstanceBase(std::move(in_device), renderer, name)
 {
     render_pass_resource = device().lock()->declare_render_pass(get_definition().get_key(b_is_present), name);
@@ -21,6 +32,17 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
         imgui_context = std::make_unique<ImGuiWrapper>(get_definition().render_pass_ref.to_string(), render_pass_resource.lock()->get_name(), device(), get_definition().imgui_input_window);
         imgui_context->begin(resolution());
     }
+}
+
+std::vector<VkSemaphore> RenderPassInstance::get_semaphores_to_wait() const
+{
+    std::vector<VkSemaphore> children_semaphores;
+    for_each_dependency(
+        [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
+        {
+            children_semaphores.emplace_back(dep->render_finished_semaphores[get_current_image_index()]);
+        });
+    return children_semaphores;
 }
 
 void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image)
@@ -111,7 +133,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", get_definition().render_pass_ref));
 
         // Submit current_thread (wait children completion using children_semaphores)
-        std::vector<VkSemaphore> children_semaphores = get_semaphores_to_wait();
+        std::vector<VkSemaphore>          children_semaphores = get_semaphores_to_wait();
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         const auto                        command_buffer_ptr            = global_cmd.raw();
         const auto                        render_finished_semaphore_ptr = framebuffer->render_finished_semaphore().raw();

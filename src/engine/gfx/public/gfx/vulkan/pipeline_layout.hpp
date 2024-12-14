@@ -1,5 +1,9 @@
 #pragma once
-#include "device.hpp"
+#include "device_resource.hpp"
+#include <vulkan/vulkan.h>
+
+#include <string>
+#include <vector>
 
 namespace ShaderCompiler
 {

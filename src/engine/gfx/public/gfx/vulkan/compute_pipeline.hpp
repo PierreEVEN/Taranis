@@ -1,10 +1,10 @@
 #pragma once
-#include "device.hpp"
-#include "vk_render_pass.hpp"
+
+#include "device_resource.hpp"
+#include "pipeline.hpp"
 
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace Eng::Gfx
 {

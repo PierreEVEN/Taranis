@@ -2,6 +2,7 @@
 
 #include "profiler.hpp"
 #include "gfx/renderer/instance/compute_pass_instance.hpp"
+#include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
@@ -22,11 +23,9 @@ RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, 
     for (const auto& dependency : definition.dependencies)
     {
         const auto& dependency_node = renderer.get_node(dependency);
-        if (dependency_node.b_is_compute_pass)
-            dependencies.emplace(dependency_node.render_pass_ref, std::make_shared<ComputePassInstance>(device(), renderer, dependency));
-        else
-            dependencies.emplace(dependency_node.render_pass_ref, std::make_shared<RenderPassInstance>(device(), renderer, dependency, false));
+        dependencies.emplace(dependency_node.render_pass_ref, create(device(), renderer, dependency));
     }
+
     // Instantiate render pass interface
     if (definition.render_pass_initializer)
     {
@@ -80,39 +79,35 @@ std::weak_ptr<RenderPassInstanceBase> RenderPassInstanceBase::get_dependency(con
     return custom_passes->get_dependency(definition.render_pass_ref.generic_id(), ref);
 }
 
-std::weak_ptr<ImageView> RenderPassInstanceBase::get_attachment(const std::string& attachment_name) const
+std::weak_ptr<ImageView> RenderPassInstanceBase::get_image_resource(const std::string& resource_name) const
 {
-    if (attachments_view.empty())
-        LOG_FATAL("Attachments have not been initialized yet. Please wait framebuffer update");
-    if (auto found = attachments_view.find(attachment_name); found != attachments_view.end())
-        return found->second;
+    if (frame_resources)
+        if (auto found = frame_resources->images.find(resource_name); found != frame_resources->images.end())
+            return found->second;
     return {};
 }
 
-std::vector<VkSemaphore> RenderPassInstanceBase::get_semaphores_to_wait() const
+std::weak_ptr<Buffer> RenderPassInstanceBase::get_buffer_resource(const std::string& resource_name) const
 {
-    std::vector<VkSemaphore> children_semaphores;
-    for_each_dependency(
-        [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
-        {
-            children_semaphores.emplace_back(dep->get_current_framebuffer().lock()->render_finished_semaphore().raw());
-        });
-    return children_semaphores;
+    if (frame_resources)
+        if (auto found = frame_resources->buffers.find(resource_name); found != frame_resources->buffers.end())
+            return found->second;
+    return {};
 }
 
 const Fence* RenderPassInstanceBase::get_render_finished_fence(DeviceImageId device_image) const
 {
-    return framebuffers[device_image]->get_render_finished_fence();
+    return render_finished_fences[device_image].get();
 }
 
 std::shared_ptr<ImageView> RenderPassInstanceBase::create_view_for_attachment(const std::string& attachment_name)
 {
-    auto attachment = definition.attachments.find(attachment_name);
-    if (attachment == definition.attachments.end())
+    auto attachment = definition.find_attachment_by_name(attachment_name);
+    if (!attachment)
         LOG_FATAL("Attachment {} not found", attachment_name);
     return ImageView::create(attachment_name, Image::create(attachment_name, device(),
                                                             ImageParameter{
-                                                                .format = attachment->second.color_format,
+                                                                .format = attachment->color_format,
                                                                 .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
                                                                 .buffer_type = EBufferType::IMMEDIATE,
                                                                 .width = resolution().x,
@@ -145,9 +140,9 @@ std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak
 {
     auto node = renderer.get_node(rp_ref);
     if (node.b_is_compute_pass)
-        return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<ComputePassInstance>(std::move(device), renderer, rp_ref));
+        return std::dynamic_pointer_cast<RenderPassInstanceBase>(ComputePassInstance::create(std::move(device), renderer, rp_ref));
 
-    return std::dynamic_pointer_cast<RenderPassInstanceBase>(std::make_shared<RenderPassInstance>(std::move(device), renderer, rp_ref, false));
+    return std::dynamic_pointer_cast<RenderPassInstanceBase>(RenderPassInstance::create(std::move(device), renderer, rp_ref, false));
 }
 
 void RenderPassInstanceBase::reset_for_next_frame()
@@ -160,23 +155,16 @@ void RenderPassInstanceBase::reset_for_next_frame()
             dep->reset_for_next_frame();
         });
 
-    if (!next_frame_framebuffers.empty())
+    if (next_frame_resources)
     {
-        for (size_t i = 0; i < framebuffers.size(); ++i)
-            device().lock()->drop_resource(framebuffers[i], i);
-        framebuffers = next_frame_framebuffers;
-        next_frame_framebuffers.clear();
-
-        assert(!next_frame_attachments_view.empty());
-        attachments_view = next_frame_attachments_view;
-        next_frame_attachments_view.clear();
-
+        frame_resources = std::move(*next_frame_resources);
+        next_frame_resources = {};
         if (render_pass_interface)
             render_pass_interface->on_create_framebuffer(*this);
     }
 }
 
-void RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force)
+FrameResources* RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force)
 {
     glm::uvec2 desired_resolution = definition.resize_callback_ptr ? definition.resize_callback_ptr(viewport) : parent;
 
@@ -189,32 +177,23 @@ void RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewport, const 
         });
 
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Resize draw pass {}", definition.render_pass_ref));
-    if (!b_force && desired_resolution == current_resolution && !framebuffers.empty())
-        return;
+
+    if (!b_force && desired_resolution == current_resolution && frame_resources)
+        return nullptr;
+
+    next_frame_resources = {FrameResources{}};
 
     if (desired_resolution.x == 0 || desired_resolution.y == 0)
     {
-        LOG_ERROR("Invalid framebuffer resolution for '{}' : {}x{}", definition.render_pass_ref, desired_resolution.x, desired_resolution.y);
-        if (desired_resolution.x == 0)
-            desired_resolution.x = 1;
-        if (desired_resolution.y == 0)
-            desired_resolution.y = 1;
+        LOG_ERROR("Invalid framebuffer resolution for pass '{}' : {}x{}", definition.render_pass_ref, desired_resolution.x, desired_resolution.y);
+        return nullptr;
     }
 
     current_resolution = desired_resolution;
 
-    next_frame_attachments_view.clear();
-    next_frame_framebuffers.clear();
-
-    std::vector<std::shared_ptr<ImageView>> ordered_attachments;
-    for (const auto& attachment : render_pass_resource.lock()->get_key().attachments)
-    {
-        ordered_attachments.push_back(create_view_for_attachment(attachment.name));
-        next_frame_attachments_view.emplace(attachment.name, ordered_attachments.back());
-    }
-
-    for (uint8_t i = 0; i < get_framebuffer_count(); ++i)
-        next_frame_framebuffers.push_back(Framebuffer::create(device(), *this, i, ordered_attachments, enable_parallel_rendering()));
+    for (const auto& attachment : get_definition().attachments_sorted)
+        next_frame_resources->images.emplace(attachment.name, create_view_for_attachment(attachment.name));
+    return &*next_frame_resources;
 }
 
 std::shared_ptr<RenderPassInstanceBase> CustomPassList::add_custom_pass(const std::vector<RenderPassGenericId>& targets, const Renderer& renderer)

@@ -4,11 +4,14 @@
 #include <vector>
 
 #include "device.hpp"
+#include "device_resource.hpp"
 
 struct VmaAllocationWrap;
 
 namespace Eng::Gfx
 {
+class Fence;
+class CommandBuffer;
 class Device;
 
 enum class EBufferType

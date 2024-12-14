@@ -94,10 +94,10 @@ public:
         if (!resource)
             return LOG_ERROR("Cannot find descriptor resource for pass {}", "gbuffer_resolve");
 
-        resource->bind_image("gbuffer_position", dep->get_attachment("position").lock());
-        resource->bind_image("gbuffer_albedo_m", dep->get_attachment("albedo-m").lock());
-        resource->bind_image("gbuffer_normal_r", dep->get_attachment("normal-r").lock());
-        resource->bind_image("gbuffer_depth", dep->get_attachment("depth").lock());
+        resource->bind_image("gbuffer_position", dep->get_image_resource("position").lock());
+        resource->bind_image("gbuffer_albedo_m", dep->get_image_resource("albedo-m").lock());
+        resource->bind_image("gbuffer_normal_r", dep->get_image_resource("normal-r").lock());
+        resource->bind_image("gbuffer_depth", dep->get_image_resource("depth").lock());
     }
 
     void pre_draw(const Gfx::RenderPassInstanceBase& render_pass) override

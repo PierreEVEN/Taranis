@@ -51,7 +51,7 @@ void Viewport::draw(Eng::Gfx::ImGuiWrapper& ctx)
     for (const auto& attachment : render_pass.lock()->get_definition().attachments)
         if (!is_depth_format(attachment.second.color_format))
         {
-            ImGui::Image(ctx.add_image(render_pass.lock()->get_attachment(attachment.first).lock()), ImGui::GetContentRegionAvail());
+            ImGui::Image(ctx.add_image(render_pass.lock()->get_image_resource(attachment.first).lock()), ImGui::GetContentRegionAvail());
             break;
         }
 }

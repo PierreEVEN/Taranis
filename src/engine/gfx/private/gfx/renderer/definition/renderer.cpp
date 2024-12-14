@@ -58,8 +58,11 @@ Renderer Renderer::compile(ColorFormat target_format, const std::weak_ptr<Device
         LOG_FATAL("Failed to compile renderer, no root");
 
     for (auto& node : copy.nodes)
+    {
         node.second.render_pass_ref.id = ++UNIQUE_PASS_ID;
-
+        for (const auto& attachment : node.second.attachments | std::views::values)
+            node.second.attachments_sorted.emplace_back(attachment);
+    }
     if (target_format == ColorFormat::UNDEFINED)
         return copy;
 
