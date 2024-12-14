@@ -6,10 +6,9 @@
 
 namespace Eng::Gfx
 {
-ComputePipeline::ComputePipeline(const std::string& name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos)
-    : DeviceResource(std::move(in_device))
+ComputePipeline::ComputePipeline(std::string in_name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos) : DeviceResource(std::move(in_name), std::move(in_device))
 {
-    layout = PipelineLayout::create(name, device(), {shader_stage});
+    layout = PipelineLayout::create(name(), device(), {shader_stage});
 
     VkPipelineShaderStageCreateInfo computeShaderStageInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

@@ -4,7 +4,6 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/framebuffer.hpp"
-#include "gfx/vulkan/semaphore.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
@@ -34,7 +33,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
     }
 }
 
-void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId)
+void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId device_image)
 {
     const auto*    framebuffer = get_current_framebuffer();
     if (!framebuffer)
@@ -122,9 +121,9 @@ void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId)
     }
     {
         PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", get_definition().render_pass_ref));
-
+        LOG_WARNING("submit {}", get_definition().render_pass_ref);
         // Submit current_thread (wait children completion using children_semaphores)
-        std::vector<VkSemaphore>          children_semaphores = get_semaphores_to_wait();
+        std::vector<VkSemaphore>          children_semaphores = get_semaphores_to_wait(device_image);
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         const auto                        command_buffer_ptr            = global_cmd.raw();
         const auto                        render_finished_semaphore_ptr = get_render_finished_semaphore();

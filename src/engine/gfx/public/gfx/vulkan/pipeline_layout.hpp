@@ -17,9 +17,9 @@ class ShaderModule;
 class PipelineLayout : public DeviceResource
 {
 public:
-    static std::shared_ptr<PipelineLayout> create(const std::string& name, std::weak_ptr<Device> in_device, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage)
+    static std::shared_ptr<PipelineLayout> create(std::string name, std::weak_ptr<Device> in_device, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage)
     {
-        return std::shared_ptr<PipelineLayout>(new PipelineLayout(name, std::move(in_device), shader_stage));
+        return std::shared_ptr<PipelineLayout>(new PipelineLayout(std::move(name), std::move(in_device), shader_stage));
     }
 
     ~PipelineLayout();
@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    PipelineLayout(const std::string& name, std::weak_ptr<Device> in_device, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage);
+    PipelineLayout(std::string name, std::weak_ptr<Device> in_device, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage);
 
     VkDescriptorSetLayout                           descriptor_layout = VK_NULL_HANDLE;
     VkPipelineLayout                                ptr               = VK_NULL_HANDLE;

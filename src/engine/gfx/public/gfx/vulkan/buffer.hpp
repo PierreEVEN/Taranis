@@ -198,7 +198,6 @@ public:
         VkBuffer                           ptr           = VK_NULL_HANDLE;
         std::unique_ptr<VmaAllocationWrap> allocation;
         VkDescriptorBufferInfo             descriptor_data;
-        std::string                        name;
         std::shared_ptr<CommandBuffer>     data_update_cmd;
         std::shared_ptr<Fence>             data_update_fence;
         std::shared_ptr<Buffer>            transfer_buffer;

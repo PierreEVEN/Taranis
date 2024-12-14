@@ -30,9 +30,12 @@ class Device;
 using SwapchainImageId = uint8_t;
 using DeviceImageId    = uint8_t;
 
-struct FrameResources
+class FrameResources : public DeviceResource
 {
-    ~FrameResources();
+public:
+    FrameResources(const std::weak_ptr<Device>& device) : DeviceResource("frame resources", std::move(device))
+    {
+    }
 
     ankerl::unordered_dense::map<std::string, std::shared_ptr<ImageView>> images;
     ankerl::unordered_dense::map<std::string, std::shared_ptr<Buffer>>    buffers;
@@ -43,7 +46,6 @@ struct FrameResources
 class RenderPassInstanceBase : public DeviceResource
 {
 public:
-
     REFLECT_BODY()
 
     static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
@@ -129,7 +131,7 @@ public:
     }
 
     // Retrieve a list of VkSemaphores to wait before submitting
-    virtual std::vector<VkSemaphore> get_semaphores_to_wait() const;
+    virtual std::vector<VkSemaphore> get_semaphores_to_wait(DeviceImageId image) const;
 
     void init();
 
@@ -139,7 +141,7 @@ protected:
 
     // Retrieve the fence that will be signaled once the image rendering is finished
     const Fence* get_render_finished_fence(DeviceImageId device_image) const;
-    VkSemaphore get_render_finished_semaphore() const;
+    VkSemaphore  get_render_finished_semaphore() const;
 
     // Are drawcalls split in multiple jobs for this pass
     bool enable_parallel_rendering() const
@@ -157,14 +159,12 @@ protected:
 
     virtual void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
 
-    
-
 private:
     bool prepared  = false;
     bool submitted = false;
 
-    std::optional<FrameResources> frame_resources;
-    std::optional<FrameResources> next_frame_resources;
+    std::shared_ptr<FrameResources> frame_resources;
+    std::shared_ptr<FrameResources> next_frame_resources;
 
     std::vector<std::shared_ptr<Semaphore>> render_finished_semaphores;
     std::vector<std::shared_ptr<Fence>>     render_finished_fences;

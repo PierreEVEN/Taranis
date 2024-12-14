@@ -22,11 +22,11 @@ DescriptorSet::DescriptorSet(const std::string& in_name, const std::weak_ptr<Dev
         descriptor_bindings.insert_or_assign(binding.name, binding.binding);
 }
 
-DescriptorSet::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<PipelineLayout>& in_pipeline)
-    : DeviceResource(in_device), pipeline(in_pipeline), parent(in_parent.lock())
+DescriptorSet::Resource::Resource(std::string in_name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<PipelineLayout>& in_pipeline)
+    : DeviceResource(std::move(in_name), in_device), pipeline(in_pipeline), parent(in_parent.lock())
 {
     ptr = device().lock()->get_descriptor_pool().allocate(*pipeline, pool_index);
-    device().lock()->debug_set_object_name(name, ptr);
+    device().lock()->debug_set_object_name(name(), ptr);
 }
 
 DescriptorSet::Resource::~Resource()

@@ -27,10 +27,10 @@ Swapchain::~Swapchain()
     swapChainImages.clear();
 }
 
-std::vector<VkSemaphore> Swapchain::get_semaphores_to_wait() const
+std::vector<VkSemaphore> Swapchain::get_semaphores_to_wait(DeviceImageId swapchain_image) const
 {
-    auto semaphores = RenderPassInstance::get_semaphores_to_wait();
-    semaphores.push_back(image_available_semaphores[get_current_image()].get()->raw());
+    auto semaphores = RenderPassInstance::get_semaphores_to_wait(swapchain_image);
+    semaphores.push_back(image_available_semaphores[swapchain_image].get()->raw());
     return semaphores;
 }
 
@@ -174,7 +174,7 @@ uint8_t Swapchain::get_image_count() const
 bool Swapchain::render_internal()
 {
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
-    reset_for_next_frame();
+
     const auto device_reference    = device().lock();
     uint8_t    current_frame = device().lock()->get_current_image();
 
@@ -184,6 +184,7 @@ bool Swapchain::render_internal()
         in_flight_fences[current_frame]->wait();
     }
     device().lock()->flush_resources();
+    reset_for_next_frame();
 
     uint32_t       image_index;
     const VkResult acquire_result = vkAcquireNextImageKHR(device_reference->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);

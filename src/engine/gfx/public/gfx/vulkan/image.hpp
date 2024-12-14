@@ -126,7 +126,6 @@ public:
         VkFormat                           format;
         glm::uvec2                         res;
         uint32_t                           depth = 0;
-        std::string                        name;
     };
 
     static std::shared_ptr<Image> create(const std::string& name, std::weak_ptr<Device> device, const ImageParameter& params, const std::vector<BufferData>& mips)

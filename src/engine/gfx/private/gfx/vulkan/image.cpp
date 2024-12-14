@@ -150,7 +150,7 @@ void Image::set_data(glm::uvec2 new_size, const std::vector<BufferData>& mips)
 }
 
 Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> in_device, ImageParameter params, uint32_t in_mip_count)
-    : DeviceResource(std::move(in_device)), format(static_cast<VkFormat>(params.format)), name(std::move(in_name))
+    : DeviceResource(std::move(in_name), std::move(in_device)), format(static_cast<VkFormat>(params.format))
 {
     layer_cout = params.image_type == EImageType::Cubemap ? 6u : 1u;
     is_depth   = is_depth_format(params.format);
@@ -186,8 +186,8 @@ Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> i
     VmaAllocation     vma_alloc;
     VK_CHECK(vmaCreateImage(device().lock()->get_allocator().allocator, &image_create_infos, &vma_allocation, &ptr, &vma_alloc, &infos), "failed to create image")
     allocation = std::make_unique<VmaAllocationWrap>(vma_alloc);
-    device().lock()->debug_set_object_name(name, ptr);
-    device().lock()->debug_set_object_name(name + "_memory", infos.deviceMemory);
+    device().lock()->debug_set_object_name(name(), ptr);
+    device().lock()->debug_set_object_name(name() + "_memory", infos.deviceMemory);
 }
 
 Image::ImageResource::~ImageResource()
@@ -202,9 +202,9 @@ void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
     assert(mip_count == mips.size() || generate_mips.does_generates());
 
     for (const auto& mip : mips)
-        transfer_buffers.emplace_back(Buffer::create(name + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, mip));
+        transfer_buffers.emplace_back(Buffer::create(name() + "_transfer_buffer", device(), Buffer::CreateInfos{.usage = EBufferUsage::TRANSFER_MEMORY}, mip));
 
-    auto command_buffer = CommandBuffer::create(name + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
+    auto command_buffer = CommandBuffer::create(name() + "_transfer_cmd1", device(), QueueSpecialization::Transfer);
 
     command_buffer->begin(true);
 
@@ -236,12 +236,12 @@ void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
     }
     command_buffer->end();
 
-    const auto fence = Fence::create(name + "_fence", device());
+    const auto fence = Fence::create(name() + "_fence", device());
     command_buffer->submit({}, &*fence);
     fence->wait();
 
     command_buffer = nullptr;
-    command_buffer = CommandBuffer::create(name + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
+    command_buffer = CommandBuffer::create(name() + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
     command_buffer->begin(true);
     if (generate_mips.does_generates())
         generate_mipmaps(mip_count, *command_buffer);

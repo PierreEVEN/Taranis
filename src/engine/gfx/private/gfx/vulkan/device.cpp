@@ -34,8 +34,15 @@ void Device::wait() const
 void Device::flush_resources()
 {
     PROFILER_SCOPE(FlushResources);
-    std::lock_guard lock(resource_mutex);
-    pending_kill_resources[current_image].clear();
+    while (!pending_kill_resources[current_image].empty())
+    {
+        std::vector<std::shared_ptr<DeviceResource>> resources_copy;
+        {
+            std::lock_guard lock(resource_mutex);
+            resources_copy = std::move(pending_kill_resources[current_image]);
+        }
+        resources_copy.clear();
+    }
 }
 
 Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)

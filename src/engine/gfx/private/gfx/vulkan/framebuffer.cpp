@@ -11,10 +11,9 @@
 namespace Eng::Gfx
 {
 Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, uint32_t in_image_index, const FrameResources& resources)
-    : DeviceResource(std::move(in_device)), image_index(in_image_index)
+    : DeviceResource(render_pass.get_definition().render_pass_ref.to_string() , std::move(in_device)), image_index(in_image_index)
 {
-    auto name                 = render_pass.get_definition().render_pass_ref.to_string();
-    command_buffer             = CommandBuffer::create(name + "_cmd", device(), QueueSpecialization::Graphic);
+    command_buffer = CommandBuffer::create(name() + "_cmd", device(), QueueSpecialization::Graphic);
 
     std::vector<VkImageView> views;
     for (const auto& attachment : render_pass.get_definition().attachments_sorted)
@@ -35,7 +34,7 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     render_pass_resource = render_pass.get_render_pass_resource();
 
     VK_CHECK(vkCreateFramebuffer(device().lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create render pass")
-    device().lock()->debug_set_object_name(name + "_fb", ptr);
+    device().lock()->debug_set_object_name(name() + "_fb", ptr);
 }
 
 std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, uint32_t image_index, const FrameResources& resources, bool require_secondary)

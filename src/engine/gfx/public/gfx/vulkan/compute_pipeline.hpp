@@ -24,9 +24,9 @@ public:
     {
     };
 
-    static std::shared_ptr<ComputePipeline> create(const std::string& name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos in_create_infos = {})
+    static std::shared_ptr<ComputePipeline> create(std::string name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos in_create_infos = {})
     {
-        return std::shared_ptr<ComputePipeline>(new ComputePipeline(name, std::move(in_device), shader_stage, std::move(in_create_infos)));
+        return std::shared_ptr<ComputePipeline>(new ComputePipeline(std::move(name), std::move(in_device), shader_stage, std::move(in_create_infos)));
     }
 
     VkPipeline raw() const
@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    ComputePipeline(const std::string& name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos in_create_infos);
+    ComputePipeline(std::string name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos in_create_infos);
 
     std::shared_ptr<PipelineLayout> layout;
     VkPipeline                      ptr;

@@ -68,7 +68,7 @@ class Swapchain final : public RenderPassInstance
     }
 
 protected:
-    std::vector<VkSemaphore> get_semaphores_to_wait() const override;
+    std::vector<VkSemaphore> get_semaphores_to_wait(DeviceImageId swapchain_image) const override;
 
   private:
     Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer);

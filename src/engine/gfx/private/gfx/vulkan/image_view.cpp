@@ -54,13 +54,13 @@ const VkDescriptorImageInfo& ImageView::get_descriptor_infos_current() const
     return views[device.lock()->get_current_image()]->descriptor_infos;
 }
 
-ImageView::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos)
-    : Resource(name, device, resource->ptr, create_infos)
+ImageView::Resource::Resource(std::string in_name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos)
+    : Resource(std::move(in_name), device, resource->ptr, create_infos)
 {
     image_resource = resource;
 }
 
-ImageView::Resource::Resource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos) : DeviceResource(device)
+ImageView::Resource::Resource(std::string in_name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos) : DeviceResource(std::move(in_name), device)
 {
     VkImageViewCreateInfo image_view_infos{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                                            .image = image,
@@ -87,7 +87,7 @@ ImageView::Resource::Resource(const std::string& name, const std::weak_ptr<Devic
         .imageView = ptr,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
-    device.lock()->debug_set_object_name(name, ptr);
+    device.lock()->debug_set_object_name(name(), ptr);
 }
 
 ImageView::Resource::~Resource()

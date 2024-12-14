@@ -72,8 +72,8 @@ static VkCullModeFlags vk_cull_mode(ECulling culling, bool b_flip)
     }
 }
 
-Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos in_create_infos)
-    : DeviceResource(std::move(in_device)), create_infos(std::move(in_create_infos))
+Pipeline::Pipeline(std::string in_name, std::weak_ptr<Device> in_device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos in_create_infos)
+    : DeviceResource(std::move(in_name), std::move(in_device)), create_infos(std::move(in_create_infos))
 {
     std::vector<VkVertexInputAttributeDescription> vertex_attribute_description;
 
@@ -206,7 +206,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
         .pDynamicStates = dynamic_states_array.data(),
     };
 
-    layout = PipelineLayout::create(name, device(), shader_stage);
+    layout = PipelineLayout::create(name(), device(), shader_stage);
 
     VkGraphicsPipelineCreateInfo pipelineInfo{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -228,7 +228,7 @@ Pipeline::Pipeline(const std::string& name, std::weak_ptr<Device> in_device, con
     };
 
     VK_CHECK(vkCreateGraphicsPipelines(device().lock()->raw(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &ptr), "Failed to create material graphic pipeline")
-    device().lock()->debug_set_object_name(name, ptr);
+    device().lock()->debug_set_object_name(name(), ptr);
 }
 
 Pipeline::~Pipeline()

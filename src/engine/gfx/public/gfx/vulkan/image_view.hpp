@@ -55,8 +55,8 @@ class ImageView
     class Resource : public DeviceResource
     {
       public:
-        Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos);
-        Resource(const std::string& name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos);
+        Resource(std::string name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos);
+        Resource(std::string name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos);
         ~Resource();
         VkImageView                           ptr = VK_NULL_HANDLE;
         VkDescriptorImageInfo                 descriptor_infos;

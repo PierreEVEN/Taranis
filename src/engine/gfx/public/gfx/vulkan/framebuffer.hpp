@@ -3,13 +3,12 @@
 #include "device_resource.hpp"
 
 #include <memory>
-#include <vector>
 #include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx
 {
-struct FrameResources;
+class FrameResources;
 class Fence;
 class VkRendererPass;
 class Semaphore;

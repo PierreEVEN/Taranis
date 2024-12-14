@@ -178,7 +178,7 @@ size_t Buffer::get_stride() const
 }
 
 Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_device, const CreateInfos& create_infos, size_t in_stride, size_t in_element_count)
-    : DeviceResource(std::move(in_device)), stride(in_stride), element_count(in_element_count), name(in_name)
+    : DeviceResource(std::move(in_name), std::move(in_device)), stride(in_stride), element_count(in_element_count)
 {
     assert(element_count != 0 && stride != 0);
 
@@ -255,7 +255,7 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
         .offset = 0,
         .range  = element_count * stride,
     };
-    device().lock()->debug_set_object_name(name, ptr);
+    device().lock()->debug_set_object_name(name(), ptr);
 }
 
 Buffer::Resource::~Resource()
@@ -273,7 +273,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
 {
     if (host_visible)
     {
-        PROFILER_SCOPE_NAMED(CopyBufferDirect, std::format("Copy buffer direct : {}", name));
+        PROFILER_SCOPE_NAMED(CopyBufferDirect, std::format("Copy buffer direct : {}", name()));
         outdated      = false;
         void* dst_ptr = nullptr;
         VK_CHECK(vmaMapMemory(device().lock()->get_allocator().allocator, allocation->allocation, &dst_ptr), "failed to map memory")
@@ -285,7 +285,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
     }
     else
     {
-        PROFILER_SCOPE_NAMED(CopyBufferIndirect, std::format("Transfer buffer indirect : {}", name));
+        PROFILER_SCOPE_NAMED(CopyBufferIndirect, std::format("Transfer buffer indirect : {}", name()));
 
         if (data_update_fence)
             data_update_fence->wait();
@@ -296,7 +296,7 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
         delete transfer_profiler_event;
 
         Profiler::EventRecorder* transfer_profiler_event2 = new Profiler::EventRecorder("Create command buffer");
-        data_update_cmd                                   = CommandBuffer::create("transfer_cmd_" + name, device(), QueueSpecialization::Transfer);
+        data_update_cmd                                   = CommandBuffer::create("transfer_cmd_" + name(), device(), QueueSpecialization::Transfer);
         delete transfer_profiler_event2;
 
         data_update_cmd->begin(true);
@@ -318,7 +318,7 @@ void Buffer::Resource::wait_data_upload()
 {
     if (data_update_fence)
     {
-        PROFILER_SCOPE_NAMED(WaitBufferCopyIndirect, std::format("Wait buffer indirect transfer : {}", name));
+        PROFILER_SCOPE_NAMED(WaitBufferCopyIndirect, std::format("Wait buffer indirect transfer : {}", name()));
         data_update_fence->wait();
     }
     data_update_cmd   = nullptr;

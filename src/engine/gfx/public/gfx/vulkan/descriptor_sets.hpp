@@ -50,7 +50,7 @@ private:
     class Resource : public DeviceResource
     {
     public:
-        Resource(const std::string& name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<PipelineLayout>& in_pipeline);
+        Resource(std::string name, const std::weak_ptr<Device>& device, const std::weak_ptr<DescriptorSet>& parent, const std::shared_ptr<PipelineLayout>& in_pipeline);
         Resource(Resource&)  = delete;
         Resource(Resource&&) = delete;
         ~Resource();

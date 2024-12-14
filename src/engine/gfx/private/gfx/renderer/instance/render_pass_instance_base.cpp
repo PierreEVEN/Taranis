@@ -14,13 +14,13 @@
 namespace Eng::Gfx
 {
 
-std::vector<VkSemaphore> RenderPassInstanceBase::get_semaphores_to_wait() const
+std::vector<VkSemaphore> RenderPassInstanceBase::get_semaphores_to_wait(DeviceImageId image) const
 {
     std::vector<VkSemaphore> children_semaphores;
     for_each_dependency(
         [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
         {
-            children_semaphores.emplace_back(dep->render_finished_semaphores[get_current_image()]->raw());
+            children_semaphores.emplace_back(dep->render_finished_semaphores[image]->raw());
         });
     return children_semaphores;
 }
@@ -35,8 +35,7 @@ void RenderPassInstanceBase::init()
     }
 }
 
-RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name)
-    : DeviceResource(std::move(in_device)), definition(renderer.get_node(name))
+RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& id) : DeviceResource(id, std::move(in_device)), definition(renderer.get_node(id))
 {
     assert(renderer.compiled());
     custom_passes = renderer.get_custom_passes();
@@ -57,7 +56,7 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.render_pass_ref));
 
     prepared      = true;
-    current_image = device_image;
+    current_image = swapchain_image;
 
     // @TODO : parallelize
     for_each_dependency(
@@ -162,13 +161,6 @@ void RenderPassInstanceBase::fill_command_buffer(CommandBuffer& cmd, size_t grou
     }
 }
 
-FrameResources::~FrameResources()
-{
-    for (const auto& framebuffer : framebuffers)
-        framebuffer->device().lock()->drop_resource(framebuffer, framebuffer->get_image_index());
-    framebuffers.clear();
-}
-
 std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref)
 {
     auto node = renderer.get_node(rp_ref);
@@ -194,7 +186,9 @@ void RenderPassInstanceBase::reset_for_next_frame()
 
     if (next_frame_resources)
     {
-        frame_resources      = std::move(*next_frame_resources);
+        if (frame_resources)
+            device().lock()->drop_resource(frame_resources);
+        frame_resources      = next_frame_resources;
         next_frame_resources = {};
         if (render_pass_interface)
             render_pass_interface->on_create_framebuffer(*this);
@@ -228,7 +222,7 @@ FrameResources* RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewp
     if (!b_force && desired_resolution == current_resolution && frame_resources)
         return nullptr;
 
-    next_frame_resources = {FrameResources{}};
+    next_frame_resources = std::make_shared<FrameResources>(device());
 
     if (desired_resolution.x == 0 || desired_resolution.y == 0)
     {

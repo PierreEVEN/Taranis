@@ -50,10 +50,10 @@ public:
         std::vector<StageInputOutputDescription> vertex_inputs;
     };
 
-    static std::shared_ptr<Pipeline> create(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
+    static std::shared_ptr<Pipeline> create(std::string name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage,
                                             CreateInfos        create_infos)
     {
-        return std::shared_ptr<Pipeline>(new Pipeline(name, std::move(device), render_pass, shader_stage, std::move(create_infos)));
+        return std::shared_ptr<Pipeline>(new Pipeline(std::move(name), std::move(device), render_pass, shader_stage, std::move(create_infos)));
     }
 
     Pipeline(Pipeline&)  = delete;
@@ -76,7 +76,7 @@ public:
     }
 
 private:
-    Pipeline(const std::string& name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
+    Pipeline(std::string name, std::weak_ptr<Device> device, const std::weak_ptr<VkRendererPass>& render_pass, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage, CreateInfos create_infos);
     CreateInfos                     create_infos;
     std::shared_ptr<PipelineLayout> layout;
     VkPipeline                      ptr = VK_NULL_HANDLE;

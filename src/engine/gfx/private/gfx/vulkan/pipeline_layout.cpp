@@ -45,7 +45,7 @@ PipelineLayout::~PipelineLayout()
     vkDestroyPipelineLayout(device().lock()->raw(), ptr, nullptr);
 }
 
-PipelineLayout::PipelineLayout(const std::string& name, std::weak_ptr<Device> in_device, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage) : DeviceResource(std::move(in_device))
+PipelineLayout::PipelineLayout(std::string in_name, std::weak_ptr<Device> in_device, const std::vector<std::shared_ptr<ShaderModule>>& shader_stage) : DeviceResource(std::move(in_name), std::move(in_device))
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
     std::vector<VkDescriptorBindingFlags>     flags{};
@@ -92,7 +92,7 @@ PipelineLayout::PipelineLayout(const std::string& name, std::weak_ptr<Device> in
     };
 
     VK_CHECK(vkCreateDescriptorSetLayout(device().lock()->raw(), &layout_infos, nullptr, &descriptor_layout), "Failed to create descriptor set layout")
-    device().lock()->debug_set_object_name(name + "_set_layout", descriptor_layout);
+    device().lock()->debug_set_object_name(name() + "_set_layout", descriptor_layout);
 
     std::vector<VkPushConstantRange> push_constants = {};
     for (const auto& stage : shader_stage)
@@ -111,6 +111,6 @@ PipelineLayout::PipelineLayout(const std::string& name, std::weak_ptr<Device> in
         .pPushConstantRanges = push_constants.data(),
     };
     VK_CHECK(vkCreatePipelineLayout(device().lock()->raw(), &pipeline_layout_infos, nullptr, &ptr), "Failed to create pipeline layout")
-    device().lock()->debug_set_object_name(name + "_layout", ptr);
+    device().lock()->debug_set_object_name(name() + "_layout", ptr);
 }
 }
