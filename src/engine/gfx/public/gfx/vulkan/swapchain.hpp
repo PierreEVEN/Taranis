@@ -70,6 +70,11 @@ class Swapchain final : public RenderPassInstance
 protected:
     std::vector<VkSemaphore> get_semaphores_to_wait(DeviceImageId swapchain_image) const override;
 
+    const Fence* get_render_finished_fence(DeviceImageId device_image) const override
+    {
+        return render_finished_fences[device_image].get();
+    }
+
   private:
     Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer);
 
@@ -79,6 +84,7 @@ protected:
     bool render_internal();
     void destroy();
 
+    std::vector<std::shared_ptr<Fence>>     render_finished_fences;
     std::weak_ptr<Surface>                  surface;
     VkSwapchainKHR                          ptr              = VK_NULL_HANDLE;
     ColorFormat                             swapchain_format = ColorFormat::UNDEFINED;

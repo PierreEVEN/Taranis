@@ -106,19 +106,19 @@ void Swapchain::create_or_recreate()
     }
 
     VkSwapchainCreateInfoKHR createInfo{
-        .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface          = surface.lock()->raw(),
-        .minImageCount    = imageCount,
-        .imageFormat      = surfaceFormat.format,
-        .imageColorSpace  = surfaceFormat.colorSpace,
-        .imageExtent      = VkExtent2D{(extent.x), (extent.y)},
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = surface.lock()->raw(),
+        .minImageCount = imageCount,
+        .imageFormat = surfaceFormat.format,
+        .imageColorSpace = surfaceFormat.colorSpace,
+        .imageExtent = VkExtent2D{(extent.x), (extent.y)},
         .imageArrayLayers = 1,
-        .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .preTransform     = swapchain_support.capabilities.currentTransform,
-        .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode      = presentMode,
-        .clipped          = VK_TRUE,
-        .oldSwapchain     = VK_NULL_HANDLE,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform = swapchain_support.capabilities.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = presentMode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = VK_NULL_HANDLE,
     };
 
     const uint32_t graphic              = device_ptr->get_queues().get_queue(QueueSpecialization::Graphic)->index();
@@ -145,6 +145,10 @@ void Swapchain::create_or_recreate()
     image_available_semaphores.clear();
     for (uint32_t i = 0; i < device_ptr->get_image_count(); ++i)
         image_available_semaphores.emplace_back(Semaphore::create(get_definition().render_pass_ref.to_string() + "_sem_#" + std::to_string(i), device()));
+
+    render_finished_fences.resize(get_image_count());
+    for (auto& fence : render_finished_fences)
+        fence = Fence::create(std::format("Render fence semaphore : {}", get_definition().render_pass_ref), device());
 
     if (get_definition().resize_callback_ptr)
         LOG_FATAL("Resize callback can't be used with swapchain draw pass");
@@ -175,19 +179,20 @@ bool Swapchain::render_internal()
 {
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
 
-    const auto device_reference    = device().lock();
-    uint8_t    current_frame = device().lock()->get_current_image();
+    const auto device_reference = device().lock();
+    uint8_t    current_frame    = device().lock()->get_current_image();
 
     if (current_frame < in_flight_fences.size() && in_flight_fences[current_frame])
     {
         PROFILER_SCOPE(WaitSwapchainImageAvailable);
         in_flight_fences[current_frame]->wait();
+        LOG_DEBUG("Wait on fence {:x} / F{}", (size_t)in_flight_fences[current_frame]->raw(), current_frame);
     }
     device().lock()->flush_resources();
     reset_for_next_frame();
 
-    uint32_t       image_index;
-    const VkResult acquire_result = vkAcquireNextImageKHR(device_reference->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &image_index);
+    uint32_t       swapchain_image;
+    const VkResult acquire_result = vkAcquireNextImageKHR(device_reference->raw(), ptr, UINT64_MAX, image_available_semaphores[current_frame]->raw(), VK_NULL_HANDLE, &swapchain_image);
     if (acquire_result != VK_SUCCESS)
     {
         if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR || acquire_result == VK_SUBOPTIMAL_KHR)
@@ -197,20 +202,21 @@ bool Swapchain::render_internal()
 
     if (current_frame >= in_flight_fences.size())
         in_flight_fences.resize(current_frame + 1, nullptr);
-    in_flight_fences[current_frame] = get_render_finished_fence(static_cast<DeviceImageId>(image_index));
+    in_flight_fences[current_frame] = get_render_finished_fence(static_cast<SwapchainImageId>(swapchain_image));
+    LOG_WARNING("Store fence {:x} / F{}", (size_t)in_flight_fences[current_frame]->raw(), swapchain_image);
 
-    render(static_cast<uint8_t>(image_index), current_frame);
+    render(static_cast<uint8_t>(swapchain_image), current_frame);
 
     // Submit to present queue
     const auto             render_finished_semaphore = get_render_finished_semaphore();
     const VkPresentInfoKHR present_infos{
-        .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores    = &render_finished_semaphore,
-        .swapchainCount     = 1,
-        .pSwapchains        = &ptr,
-        .pImageIndices      = &image_index,
-        .pResults           = nullptr,
+        .pWaitSemaphores = &render_finished_semaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &ptr,
+        .pImageIndices = &swapchain_image,
+        .pResults = nullptr,
     };
 
     const VkResult submit_result = device_reference->get_queues().get_queue(QueueSpecialization::Present)->present(present_infos);

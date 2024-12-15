@@ -115,19 +115,19 @@ public:
     }
 
     // Get the current framebuffers image that we are drawing on
-    uint32_t get_current_image() const
+    SwapchainImageId get_current_swapchain_image() const
     {
-        return current_image;
+        return current_swapchain_image;
     }
 
     // How many image does this pass use (generally 2)
     virtual uint8_t get_image_count() const;
 
-    const Framebuffer* get_current_framebuffer() const
+    const Framebuffer* get_current_framebuffer(SwapchainImageId swapchain_image) const
     {
         if (!frame_resources)
             return nullptr;
-        return frame_resources->framebuffers[get_current_image()].get();
+        return frame_resources->framebuffers[swapchain_image].get();
     }
 
     // Retrieve a list of VkSemaphores to wait before submitting
@@ -138,9 +138,12 @@ public:
 protected:
     RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name);
 
-
     // Retrieve the fence that will be signaled once the image rendering is finished
-    const Fence* get_render_finished_fence(DeviceImageId device_image) const;
+    virtual const Fence* get_render_finished_fence(DeviceImageId) const
+    {
+        return nullptr;
+    }
+
     VkSemaphore  get_render_finished_semaphore() const;
 
     // Are drawcalls split in multiple jobs for this pass
@@ -167,7 +170,6 @@ private:
     std::shared_ptr<FrameResources> next_frame_resources;
 
     std::vector<std::shared_ptr<Semaphore>> render_finished_semaphores;
-    std::vector<std::shared_ptr<Fence>>     render_finished_fences;
 
     ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>> dependencies;
     std::shared_ptr<CustomPassList>                                                      custom_passes;
@@ -175,7 +177,7 @@ private:
     glm::uvec2 viewport_res{0, 0};
     glm::uvec2 current_resolution{0, 0};
     RenderNode definition;
-    uint32_t   current_image = 0;
+    SwapchainImageId current_swapchain_image = 0;
 };
 
 class CustomPassList

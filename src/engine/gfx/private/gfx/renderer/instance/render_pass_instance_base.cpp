@@ -56,7 +56,7 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.render_pass_ref));
 
     prepared      = true;
-    current_image = swapchain_image;
+    current_swapchain_image = swapchain_image;
 
     // @TODO : parallelize
     for_each_dependency(
@@ -122,14 +122,9 @@ std::weak_ptr<Buffer> RenderPassInstanceBase::get_buffer_resource(const std::str
     return {};
 }
 
-const Fence* RenderPassInstanceBase::get_render_finished_fence(DeviceImageId device_image) const
-{
-    return render_finished_fences[device_image].get();
-}
-
 VkSemaphore RenderPassInstanceBase::get_render_finished_semaphore() const
 {
-    return render_finished_semaphores[current_image]->raw();
+    return render_finished_semaphores[current_swapchain_image]->raw();
 }
 
 std::shared_ptr<ImageView> RenderPassInstanceBase::create_view_for_attachment(const std::string& attachment_name)
@@ -212,11 +207,8 @@ FrameResources* RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewp
     if (render_finished_semaphores.size() != get_image_count())
     {
         render_finished_semaphores.resize(get_image_count());
-        render_finished_fences.resize(get_image_count());
         for (auto& semaphore : render_finished_semaphores)
             semaphore = Semaphore::create(std::format("Render finished semaphore : {}", definition.render_pass_ref), device());
-        for (auto& fence : render_finished_fences)
-            fence = Fence::create(std::format("Render fence semaphore : {}", definition.render_pass_ref), device());
     }
 
     if (!b_force && desired_resolution == current_resolution && frame_resources)

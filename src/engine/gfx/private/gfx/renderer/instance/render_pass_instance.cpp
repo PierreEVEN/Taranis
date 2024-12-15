@@ -7,6 +7,7 @@
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
+#include "gfx/vulkan/fence.hpp"
 
 namespace Eng::Gfx
 {
@@ -33,12 +34,14 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Re
     }
 }
 
-void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId device_image)
+void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image)
 {
-    const auto*    framebuffer = get_current_framebuffer();
+    const auto* framebuffer = get_current_framebuffer(swapchain_image);
     if (!framebuffer)
         return;
-    CommandBuffer& global_cmd  = framebuffer->begin();
+    if (get_render_finished_fence(swapchain_image))
+        LOG_DEBUG("Will begin with fence = {:x}", (size_t)get_render_finished_fence(swapchain_image)->raw());
+    CommandBuffer& global_cmd = framebuffer->begin();
     global_cmd.begin_debug_marker("BeginRenderPass_" + get_definition().render_pass_ref.to_string(), {1, 0, 0, 1});
 
     // Begin draw pass
@@ -121,7 +124,6 @@ void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId device_
     }
     {
         PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", get_definition().render_pass_ref));
-        LOG_WARNING("submit {}", get_definition().render_pass_ref);
         // Submit current_thread (wait children completion using children_semaphores)
         std::vector<VkSemaphore>          children_semaphores = get_semaphores_to_wait(device_image);
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -137,15 +139,17 @@ void RenderPassInstance::render_internal(SwapchainImageId, DeviceImageId device_
             .signalSemaphoreCount = 1,
             .pSignalSemaphores = &render_finished_semaphore_ptr,
         };
-        global_cmd.submit(submit_infos, get_render_finished_fence(static_cast<DeviceImageId>(get_current_image())));
+        if (get_render_finished_fence(get_current_swapchain_image()))
+            LOG_DEBUG("Submit FENCE = {:x}", (size_t)get_render_finished_fence(get_current_swapchain_image())->raw());
+        global_cmd.submit(submit_infos, get_render_finished_fence(get_current_swapchain_image()));
     }
 }
 
 void RenderPassInstance::fill_command_buffer(CommandBuffer& cmd, size_t group_index) const
 {
     cmd.set_viewport({
-        .y      = static_cast<float>(resolution().y),
-        .width  = static_cast<float>(resolution().x),
+        .y = static_cast<float>(resolution().y),
+        .width = static_cast<float>(resolution().x),
         .height = -static_cast<float>(resolution().y),
     });
     cmd.set_scissor({0, 0, resolution().x, resolution().y});
