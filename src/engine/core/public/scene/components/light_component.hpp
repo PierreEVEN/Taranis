@@ -50,7 +50,7 @@ protected:
     }
 
     glm::vec3                                    color              = glm::vec3(1, 1, 1);
-    uint32_t                                     shadow_resolution  = 2048;
+    uint32_t                                     shadow_resolution  = 2048 * 8;
     float                                        orthographic_width = 5000;
     float                                        z_far              = 5000;
     float                                        z_near             = -5000;

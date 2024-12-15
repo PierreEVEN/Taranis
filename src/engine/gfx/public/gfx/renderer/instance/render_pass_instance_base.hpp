@@ -13,6 +13,7 @@
 
 namespace Eng::Gfx
 {
+class SecondaryCommandBuffer;
 class Buffer;
 class IRenderPass;
 class CommandBuffer;
@@ -42,6 +43,14 @@ public:
 
     std::vector<std::shared_ptr<Framebuffer>> framebuffers;
 };
+
+struct FrameCommandBuffers
+{
+    std::shared_ptr<CommandBuffer>                                                         command_buffer;
+    ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
+    CommandBuffer&                                                                         get_this_thread_command_buffer(const Framebuffer& framebuffer) const;
+};
+
 
 class RenderPassInstanceBase : public DeviceResource
 {
@@ -103,6 +112,8 @@ public:
     // Get usable buffer resource resulting this render pass
     std::weak_ptr<Buffer> get_buffer_resource(const std::string& resource_name) const;
 
+    std::vector<std::string> get_image_resources() const;
+
     void set_resize_callback(const RenderNode::ResizeCallback& in_callback)
     {
         definition.resize_callback(in_callback);
@@ -144,7 +155,7 @@ protected:
         return nullptr;
     }
 
-    VkSemaphore  get_render_finished_semaphore() const;
+    VkSemaphore get_render_finished_semaphore() const;
 
     // Are drawcalls split in multiple jobs for this pass
     bool enable_parallel_rendering() const
@@ -162,6 +173,8 @@ protected:
 
     virtual void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
 
+    const FrameCommandBuffers& get_this_frame_command_buffer(DeviceImageId device_image) const;
+
 private:
     bool prepared  = false;
     bool submitted = false;
@@ -171,12 +184,14 @@ private:
 
     std::vector<std::shared_ptr<Semaphore>> render_finished_semaphores;
 
+    std::vector<FrameCommandBuffers> command_buffers;
+
     ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>> dependencies;
     std::shared_ptr<CustomPassList>                                                      custom_passes;
 
-    glm::uvec2 viewport_res{0, 0};
-    glm::uvec2 current_resolution{0, 0};
-    RenderNode definition;
+    glm::uvec2       viewport_res{0, 0};
+    glm::uvec2       current_resolution{0, 0};
+    RenderNode       definition;
     SwapchainImageId current_swapchain_image = 0;
 };
 

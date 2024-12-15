@@ -69,11 +69,11 @@ public:
 
     struct Light
     {
-        alignas(16) glm::mat4 shadow_matrix;
-        alignas(16) glm::vec3 dir;
-        alignas(16) glm::vec3 pos;
-        alignas(4) uint32_t   type;
-        alignas(0) bool       has_shadows;
+        glm::mat4 shadow_matrix;
+        alignas(8) glm::vec3 dir;
+        alignas(8) glm::vec3 pos;
+        alignas(4) uint32_t  has_shadows;
+        alignas(4) uint32_t type;
     };
 
     void init(const Gfx::RenderPassInstanceBase&) override
@@ -110,10 +110,17 @@ public:
             {
                 if (comp.get_shadow_pass())
                 {
-                    auto light_mat = comp.get_shadow_view()->get_projection_view_matrix();
+                    auto resource = comp.get_shadow_pass()->get_image_resource("depth");
 
-                    lights.emplace_back(light_mat, comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, true);
-                    shadow_maps.emplace_back(comp.get_shadow_pass()->get_image_resource("depth"));
+                    if (!resource.lock())
+                    {
+                        LOG_WARNING("bah ?");
+                        return;
+                    }
+                    auto light_mat = comp.get_shadow_view()->get_projection_view_matrix();
+                    lights.emplace_back(light_mat, comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, 1);
+
+                    shadow_maps.emplace_back(resource);
                 }
             });
 
@@ -122,7 +129,7 @@ public:
             {
                 if (!comp.get_shadow_pass())
                 {
-                    lights.emplace_back(glm::identity<glm::mat4>(), comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, false);
+                    lights.emplace_back(glm::identity<glm::mat4>(), comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 0, 1);
                 }
             });
 
@@ -272,7 +279,7 @@ public:
         camera->activate();
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        //directional_light->enable_shadow(ELightType::Movable);
+        directional_light->enable_shadow(ELightType::Movable);
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
 
         /*
@@ -291,7 +298,6 @@ public:
                 scene->merge(std::move(new_scene));
             });
 
-        /*
          engine.jobs().schedule(
             [&, importer]
             {
@@ -307,7 +313,7 @@ public:
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
-            });*/
+            });
 
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
@@ -398,9 +404,9 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
     Config config;
-    config.gfx.enable_validation_layers = true;
+    config.gfx.enable_validation_layers = false;
     config.gfx.v_sync                   = true;
-    config.auto_update_materials        = true;
+    config.auto_update_materials        = false;
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

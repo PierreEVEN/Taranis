@@ -10,6 +10,7 @@
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
 #include "gfx/vulkan/semaphore.hpp"
+#include "jobsys/job_sys.hpp"
 
 namespace Eng::Gfx
 {
@@ -33,6 +34,15 @@ void RenderPassInstanceBase::init()
         render_pass_interface = definition.render_pass_initializer->construct();
         render_pass_interface->init(*this);
     }
+
+    command_buffers.resize(device().lock()->get_image_count());
+    for (auto& cmd : command_buffers)
+    {
+        cmd.command_buffer = CommandBuffer::create(name() + "_cmd", device(), QueueSpecialization::Graphic);
+        if (enable_parallel_rendering())
+            for (const auto& worker : JobSystem::get().get_workers())
+                cmd.secondary_command_buffers.emplace(worker->thread_id(), SecondaryCommandBuffer::create(get_definition().render_pass_ref.to_string() + "_sec_cmd", cmd.command_buffer, worker->thread_id()));
+    }
 }
 
 RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& id) : DeviceResource(id, std::move(in_device)), definition(renderer.get_node(id))
@@ -55,7 +65,7 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
         return;
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.render_pass_ref));
 
-    prepared      = true;
+    prepared                = true;
     current_swapchain_image = swapchain_image;
 
     // @TODO : parallelize
@@ -122,6 +132,16 @@ std::weak_ptr<Buffer> RenderPassInstanceBase::get_buffer_resource(const std::str
     return {};
 }
 
+std::vector<std::string> RenderPassInstanceBase::get_image_resources() const
+{
+    std::vector<std::string> image_resources;
+    if (!frame_resources)
+        return image_resources;
+    for (const auto& key : frame_resources->images | std::views::keys)
+        image_resources.emplace_back(key);
+    return image_resources;
+}
+
 VkSemaphore RenderPassInstanceBase::get_render_finished_semaphore() const
 {
     return render_finished_semaphores[current_swapchain_image]->raw();
@@ -156,6 +176,21 @@ void RenderPassInstanceBase::fill_command_buffer(CommandBuffer& cmd, size_t grou
     }
 }
 
+const FrameCommandBuffers& RenderPassInstanceBase::get_this_frame_command_buffer(DeviceImageId device_image) const
+{
+    return command_buffers[device_image];
+}
+
+CommandBuffer& FrameCommandBuffers::get_this_thread_command_buffer(const Framebuffer& framebuffer) const
+{
+    if (auto found = secondary_command_buffers.find(std::this_thread::get_id()); found != secondary_command_buffers.end())
+    {
+        found->second->set_framebuffer(&framebuffer);
+        return *found->second;
+    }
+    return *command_buffer;
+}
+
 std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref)
 {
     auto node = renderer.get_node(rp_ref);
@@ -174,8 +209,10 @@ void RenderPassInstanceBase::reset_for_next_frame()
     prepared = false;
 
     for_each_dependency(
-        [](const std::shared_ptr<RenderPassInstanceBase>& dep)
+        [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
         {
+            if (!dep->frame_resources)
+                dep->create_or_resize(viewport_resolution(), resolution(), false);
             dep->reset_for_next_frame();
         });
 
@@ -231,7 +268,7 @@ FrameResources* RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewp
 
 std::shared_ptr<RenderPassInstanceBase> CustomPassList::add_custom_pass(const std::vector<RenderPassGenericId>& targets, const Renderer& renderer)
 {
-    const auto           new_rp = RenderPassInstanceBase::create(device, renderer);
+    const auto           new_rp = RenderPassInstanceBase::create(device, renderer.compile(ColorFormat::UNDEFINED, device));
     const RenderPassRef& ref    = new_rp->get_definition().render_pass_ref;
     for (const auto& target : targets)
         temporary_dependencies.emplace(target, ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>>{}).first->second.emplace(ref, new_rp);

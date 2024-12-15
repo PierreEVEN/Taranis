@@ -7,7 +7,6 @@
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
-#include "gfx/vulkan/fence.hpp"
 
 namespace Eng::Gfx
 {
@@ -16,7 +15,7 @@ FrameResources* RenderPassInstance::create_or_resize(const glm::uvec2& viewport,
     if (auto* resources = RenderPassInstanceBase::create_or_resize(viewport, parent, b_force))
     {
         for (uint8_t i = 0; i < get_image_count(); ++i)
-            resources->framebuffers.push_back(Framebuffer::create(device(), *this, i, *resources, enable_parallel_rendering()));
+            resources->framebuffers.push_back(Framebuffer::create(device(), *this, i, *resources));
         return resources;
     }
     return nullptr;
@@ -39,9 +38,9 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
     const auto* framebuffer = get_current_framebuffer(swapchain_image);
     if (!framebuffer)
         return;
-    if (get_render_finished_fence(swapchain_image))
-        LOG_DEBUG("Will begin with fence = {:x}", (size_t)get_render_finished_fence(swapchain_image)->raw());
-    CommandBuffer& global_cmd = framebuffer->begin();
+    const FrameCommandBuffers& frame_cmds = get_this_frame_command_buffer(device_image);
+    CommandBuffer&             global_cmd = *frame_cmds.command_buffer;
+    global_cmd.begin(false);
     global_cmd.begin_debug_marker("BeginRenderPass_" + get_definition().render_pass_ref.to_string(), {1, 0, 0, 1});
 
     // Begin draw pass
@@ -91,9 +90,9 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
         {
             handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
-                [this, &framebuffer, i]()
+                [this, &frame_cmds, &framebuffer, i]()
                 {
-                    auto& cmd = framebuffer->current_cmd();
+                    auto& cmd = frame_cmds.get_this_thread_command_buffer(*framebuffer);
                     cmd.begin(false);
                     fill_command_buffer(cmd, i);
                     return &cmd;
@@ -139,9 +138,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
             .signalSemaphoreCount = 1,
             .pSignalSemaphores = &render_finished_semaphore_ptr,
         };
-        if (get_render_finished_fence(get_current_swapchain_image()))
-            LOG_DEBUG("Submit FENCE = {:x}", (size_t)get_render_finished_fence(get_current_swapchain_image())->raw());
-        global_cmd.submit(submit_infos, get_render_finished_fence(get_current_swapchain_image()));
+        global_cmd.submit(submit_infos, get_render_finished_fence(device_image));
     }
 }
 

@@ -8,12 +8,12 @@
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx/vulkan/device.hpp"
 #include "gfx/vulkan/fence.hpp"
-#include "gfx/vulkan/framebuffer.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
 #include "gfx/vulkan/compute_pipeline.hpp"
+#include "gfx/vulkan/framebuffer.hpp"
 #include "gfx/vulkan/pipeline_layout.hpp"
 
 namespace Eng::Gfx
@@ -28,8 +28,8 @@ CommandBuffer::CommandBuffer(std::string in_name, std::weak_ptr<Device> in_devic
     pool_mtx        = allocation.second;
 }
 
-SecondaryCommandBuffer::SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& in_parent, const std::weak_ptr<Framebuffer>& in_framebuffer, std::thread::id thread_id)
-    : CommandBuffer(name, in_parent.lock()->get_device(), in_parent.lock()->get_specialization(), thread_id, true), framebuffer(in_framebuffer), parent(in_parent)
+SecondaryCommandBuffer::SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& in_parent, std::thread::id thread_id)
+    : CommandBuffer(name, in_parent.lock()->get_device(), in_parent.lock()->get_specialization(), thread_id, true), parent(in_parent)
 {
 }
 
@@ -272,8 +272,8 @@ void SecondaryCommandBuffer::begin(bool)
     is_recording      = true;
     VkCommandBufferInheritanceInfo inheritance{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-        .renderPass = framebuffer.lock()->get_render_pass_resource().lock()->raw(),
-        .framebuffer = framebuffer.lock()->raw(),
+        .renderPass = framebuffer->get_render_pass_resource().lock()->raw(),
+        .framebuffer = framebuffer->raw(),
     };
 
     const VkCommandBufferBeginInfo beginInfo = {

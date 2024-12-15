@@ -13,8 +13,6 @@ namespace Eng::Gfx
 Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstance& render_pass, uint32_t in_image_index, const FrameResources& resources)
     : DeviceResource(render_pass.get_definition().render_pass_ref.to_string() , std::move(in_device)), image_index(in_image_index)
 {
-    command_buffer = CommandBuffer::create(name() + "_cmd", device(), QueueSpecialization::Graphic);
-
     std::vector<VkImageView> views;
     for (const auto& attachment : render_pass.get_definition().attachments_sorted)
         views.emplace_back(resources.images.find(attachment.name)->second->raw()[image_index]);
@@ -37,32 +35,13 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     device().lock()->debug_set_object_name(name() + "_fb", ptr);
 }
 
-std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, uint32_t image_index, const FrameResources& resources, bool require_secondary)
+std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, uint32_t image_index, const FrameResources& resources)
 {
-    auto fb = std::shared_ptr<Framebuffer>(new Framebuffer(std::move(device), render_pass, image_index, resources));
-    if (require_secondary)
-        for (const auto& worker : JobSystem::get().get_workers())
-            fb->secondary_command_buffers.emplace(worker->thread_id(), SecondaryCommandBuffer::create(render_pass.get_definition().render_pass_ref.to_string() + "_sec_cmd", fb->command_buffer, fb, worker->thread_id()));
-    return fb;
+    return std::shared_ptr<Framebuffer>(new Framebuffer(std::move(device), render_pass, image_index, resources));
 }
 
 Framebuffer::~Framebuffer()
 {
     vkDestroyFramebuffer(device().lock()->raw(), ptr, nullptr);
-}
-
-CommandBuffer& Framebuffer::begin() const
-{
-    command_buffer->begin(false);
-    return *command_buffer;
-}
-
-CommandBuffer& Framebuffer::current_cmd() const
-{
-    if (auto found = secondary_command_buffers.find(std::this_thread::get_id()); found != secondary_command_buffers.end())
-    {
-        return *found->second;
-    }
-    return *command_buffer;
 }
 } // namespace Eng::Gfx

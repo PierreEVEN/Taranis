@@ -58,7 +58,7 @@ struct Viewport
 
 class CommandBuffer
 {
-  public:
+public:
     static std::shared_ptr<CommandBuffer> create(const std::string& name, std::weak_ptr<Device> device, QueueSpecialization type)
     {
         return std::shared_ptr<CommandBuffer>(new CommandBuffer(name, std::move(device), type, std::this_thread::get_id()));
@@ -116,15 +116,15 @@ class CommandBuffer
         return render_pass_name;
     }
 
-  protected:
+protected:
     RenderPassRef render_pass_name;
     friend class SecondaryCommandBuffer;
-    void                                                        reset_stats();
-    std::mutex                                                  secondary_vector_mtx;
+    void                                                                  reset_stats();
+    std::mutex                                                            secondary_vector_mtx;
     ankerl::unordered_dense::set<std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
-    std::unique_ptr<PoolLockGuard>                              pool_lock;
+    std::unique_ptr<PoolLockGuard>                                        pool_lock;
 
-  private:
+private:
     CommandBuffer(std::string name, std::weak_ptr<Device> device, QueueSpecialization type, std::thread::id thread_id, bool secondary = false);
     VkCommandBuffer           ptr = VK_NULL_HANDLE;
     CommandPool::Mutex        pool_mtx;
@@ -139,18 +139,23 @@ class CommandBuffer
 
 class SecondaryCommandBuffer : public CommandBuffer, public std::enable_shared_from_this<SecondaryCommandBuffer>
 {
-  public:
-    static std::shared_ptr<SecondaryCommandBuffer> create(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer, std::thread::id thread_id)
+public:
+    static std::shared_ptr<SecondaryCommandBuffer> create(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, std::thread::id thread_id)
     {
-        return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(name, parent, framebuffer, thread_id));
+        return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(name, parent, thread_id));
     }
 
-    void begin(bool one_time) override;
+    void begin(bool one_time);
     void end() override;
 
-  private:
-    SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, const std::weak_ptr<Framebuffer>& framebuffer, std::thread::id thread_id);
-    std::weak_ptr<Framebuffer>   framebuffer;
+    void set_framebuffer(const Framebuffer* in_framebuffer)
+    {
+        framebuffer = std::move(in_framebuffer);
+    }
+
+private:
+    const Framebuffer* framebuffer = nullptr;
+    SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, std::thread::id thread_id);
     std::weak_ptr<CommandBuffer> parent;
 };
 

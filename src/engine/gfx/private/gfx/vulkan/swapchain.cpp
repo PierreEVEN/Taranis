@@ -186,7 +186,6 @@ bool Swapchain::render_internal()
     {
         PROFILER_SCOPE(WaitSwapchainImageAvailable);
         in_flight_fences[current_frame]->wait();
-        LOG_DEBUG("Wait on fence {:x} / F{}", (size_t)in_flight_fences[current_frame]->raw(), current_frame);
     }
     device().lock()->flush_resources();
     reset_for_next_frame();
@@ -202,8 +201,7 @@ bool Swapchain::render_internal()
 
     if (current_frame >= in_flight_fences.size())
         in_flight_fences.resize(current_frame + 1, nullptr);
-    in_flight_fences[current_frame] = get_render_finished_fence(static_cast<SwapchainImageId>(swapchain_image));
-    LOG_WARNING("Store fence {:x} / F{}", (size_t)in_flight_fences[current_frame]->raw(), swapchain_image);
+    in_flight_fences[current_frame] = get_render_finished_fence(current_frame);
 
     render(static_cast<uint8_t>(swapchain_image), current_frame);
 

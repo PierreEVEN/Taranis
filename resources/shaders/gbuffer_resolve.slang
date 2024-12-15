@@ -71,8 +71,8 @@ struct LightData {
     float4x4 light_mat;
     float3 dir;
     float3 pos;
+    uint32_t has_shadows;
     uint32_t type;
-    bool has_shadows;
 }
 StructuredBuffer<LightData> light_buffer;
 
@@ -151,7 +151,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
         float shadow = 1;
 
-        if (light.has_shadows) {
+        if (light.has_shadows == 1) {
             float4 projectedEyeDir = mul(light.light_mat, float4(-worldPosition, 1));
             projectedEyeDir = projectedEyeDir / projectedEyeDir.w;
 
