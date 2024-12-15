@@ -63,17 +63,41 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
     // Ensure our pass is not called twice. Use reset_for_next_frame() before each frame
     if (prepared)
         return;
-    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Prepare command buffer for draw pass {}", definition.render_pass_ref));
 
+    PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Render pass {}", get_definition().render_pass_ref));
     prepared                = true;
     current_swapchain_image = swapchain_image;
 
-    // @TODO : parallelize
+    std::vector<std::pair<RenderPassGenericId, JobHandle<void>>> render_jobs;
+
+    std::vector<std::shared_ptr<RenderPassInstanceBase>> dependencies;
+
     for_each_dependency(
         [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
         {
-            dep->render(device_image, device_image);
+            dependencies.emplace_back(dep);
         });
+
+    if (dependencies.size() > 1)
+    {
+        for (const auto& dep : dependencies)
+            render_jobs.emplace_back(std::pair{dep->get_definition().render_pass_ref.generic_id(), JobSystem::get().schedule<void>(
+                                                   [dep, device_image]
+                                                                                                       {
+                                                       dep->render(device_image, device_image);
+                                                   })});
+
+        for (const auto& task : render_jobs)
+        {
+            PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Wait child pass '{}' finished rendering", task.first));
+            task.second.await();
+        }
+    }
+    else
+    {
+        for (const auto& dep : dependencies)
+            dep->render(device_image, device_image);
+    }
 
     render_internal(swapchain_image, device_image);
 }
