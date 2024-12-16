@@ -7,6 +7,7 @@
 #include "gfx/vulkan/vk_render_pass.hpp"
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
+#include "gfx/vulkan/image.hpp"
 
 namespace Eng::Gfx
 {
@@ -38,8 +39,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
     const auto* framebuffer = get_current_framebuffer(swapchain_image);
     if (!framebuffer)
         return;
-    const FrameCommandBuffers& frame_cmds = get_this_frame_command_buffer(device_image);
-    CommandBuffer&             global_cmd = *frame_cmds.command_buffer;
+    CommandBuffer&             global_cmd = command_buffers->begin_primary(device_image);
     global_cmd.begin(false);
     global_cmd.begin_debug_marker("BeginRenderPass_" + get_definition().render_pass_ref.to_string(), {1, 0, 0, 1});
 
@@ -90,10 +90,9 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
         {
             handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
-                [this, &frame_cmds, &framebuffer, i]()
+                [this, &framebuffer, i, device_image]()
                 {
-                    auto& cmd = frame_cmds.get_this_thread_command_buffer(*framebuffer);
-                    cmd.begin(false);
+                    auto& cmd = command_buffers->begin_secondary(device_image, *framebuffer);
                     fill_command_buffer(cmd, i);
                     return &cmd;
                 }));

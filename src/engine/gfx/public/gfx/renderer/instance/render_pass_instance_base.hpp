@@ -10,6 +10,8 @@
 #include <memory>
 #include "gfx/renderer/instance/render_pass_instance_base.gen.hpp"
 
+#include <shared_mutex>
+
 
 namespace Eng::Gfx
 {
@@ -44,11 +46,24 @@ public:
     std::vector<std::shared_ptr<Framebuffer>> framebuffers;
 };
 
-struct FrameCommandBuffers
+class PassCommandPool : public DeviceResource
 {
-    std::shared_ptr<CommandBuffer>                                                         command_buffer;
-    ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
-    CommandBuffer&                                                                         get_this_thread_command_buffer(const Framebuffer& framebuffer) const;
+public:
+    PassCommandPool(std::weak_ptr<Device> in_device, const std::string& name);
+
+    CommandBuffer& begin_primary(DeviceImageId image);
+    CommandBuffer& begin_secondary(DeviceImageId image, const Framebuffer& framebuffer);
+
+private:
+    CommandBuffer& get_primary(DeviceImageId image);
+    struct FrameCommands
+    {
+        ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<CommandBuffer>>          primary_command_buffers;
+        ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffer;
+    };
+
+    std::mutex                 lock;
+    std::vector<FrameCommands> per_frame_data;
 };
 
 
@@ -173,7 +188,7 @@ protected:
 
     virtual void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
 
-    const FrameCommandBuffers& get_this_frame_command_buffer(DeviceImageId device_image) const;
+    std::unique_ptr<PassCommandPool> command_buffers;
 
 private:
     bool prepared  = false;
@@ -183,8 +198,6 @@ private:
     std::shared_ptr<FrameResources> next_frame_resources;
 
     std::vector<std::shared_ptr<Semaphore>> render_finished_semaphores;
-
-    std::vector<FrameCommandBuffers> command_buffers;
 
     ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>> dependencies;
     std::shared_ptr<CustomPassList>                                                      custom_passes;

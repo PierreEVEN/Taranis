@@ -28,8 +28,8 @@ CommandBuffer::CommandBuffer(std::string in_name, std::weak_ptr<Device> in_devic
     pool_mtx        = allocation.second;
 }
 
-SecondaryCommandBuffer::SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& in_parent, std::thread::id thread_id)
-    : CommandBuffer(name, in_parent.lock()->get_device(), in_parent.lock()->get_specialization(), thread_id, true), parent(in_parent)
+SecondaryCommandBuffer::SecondaryCommandBuffer(std::string name, std::weak_ptr<Device> in_device, QueueSpecialization in_type, std::thread::id thread_id)
+    : CommandBuffer(std::move(name), std::move(in_device), std::move(in_type), thread_id, true)
 {
 }
 
@@ -285,7 +285,7 @@ void SecondaryCommandBuffer::begin(bool)
     pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(raw(), &beginInfo), "failed to begin secondary command buffer");
 
-    render_pass_name = parent.lock()->render_pass_name;
+    render_pass_name = parent->render_pass_name;
 
     get_device().lock()->debug_set_object_name(get_name(), raw());
     reset_stats();
@@ -297,8 +297,8 @@ void SecondaryCommandBuffer::end()
         return;
     CommandBuffer::end();
     b_wait_submission = false;
-    std::lock_guard lk(parent.lock()->secondary_vector_mtx);
-    parent.lock()->secondary_command_buffers.insert(shared_from_this());
+    std::lock_guard lk(parent->secondary_vector_mtx);
+    parent->secondary_command_buffers.insert(shared_from_this());
 }
 
 } // namespace Eng::Gfx

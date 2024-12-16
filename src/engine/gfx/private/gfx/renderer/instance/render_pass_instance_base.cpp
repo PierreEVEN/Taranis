@@ -34,21 +34,14 @@ void RenderPassInstanceBase::init()
         render_pass_interface = definition.render_pass_initializer->construct();
         render_pass_interface->init(*this);
     }
-
-    command_buffers.resize(device().lock()->get_image_count());
-    for (auto& cmd : command_buffers)
-    {
-        cmd.command_buffer = CommandBuffer::create(name() + "_cmd", device(), QueueSpecialization::Graphic);
-        if (enable_parallel_rendering())
-            for (const auto& worker : JobSystem::get().get_workers())
-                cmd.secondary_command_buffers.emplace(worker->thread_id(), SecondaryCommandBuffer::create(get_definition().render_pass_ref.to_string() + "_sec_cmd", cmd.command_buffer, worker->thread_id()));
-    }
 }
 
 RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& id) : DeviceResource(id, std::move(in_device)), definition(renderer.get_node(id))
 {
     assert(renderer.compiled());
     custom_passes = renderer.get_custom_passes();
+
+    command_buffers = std::make_unique<PassCommandPool>(device(), get_definition().render_pass_ref.generic_id());
 
     // Init draw pass tree
     for (const auto& dependency : definition.dependencies)
@@ -70,20 +63,19 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
 
     std::vector<std::pair<RenderPassGenericId, JobHandle<void>>> render_jobs;
 
-    std::vector<std::shared_ptr<RenderPassInstanceBase>> dependencies;
-
+    std::vector<std::shared_ptr<RenderPassInstanceBase>> found_dependencies;
     for_each_dependency(
         [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
         {
-            dependencies.emplace_back(dep);
+            found_dependencies.emplace_back(dep);
         });
 
-    if (dependencies.size() > 1)
+    if (found_dependencies.size() > 1)
     {
-        for (const auto& dep : dependencies)
+        for (const auto& dep : found_dependencies)
             render_jobs.emplace_back(std::pair{dep->get_definition().render_pass_ref.generic_id(), JobSystem::get().schedule<void>(
                                                    [dep, device_image]
-                                                                                                       {
+                                                   {
                                                        dep->render(device_image, device_image);
                                                    })});
 
@@ -95,7 +87,7 @@ void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImag
     }
     else
     {
-        for (const auto& dep : dependencies)
+        for (const auto& dep : found_dependencies)
             dep->render(device_image, device_image);
     }
 
@@ -200,19 +192,45 @@ void RenderPassInstanceBase::fill_command_buffer(CommandBuffer& cmd, size_t grou
     }
 }
 
-const FrameCommandBuffers& RenderPassInstanceBase::get_this_frame_command_buffer(DeviceImageId device_image) const
+PassCommandPool::PassCommandPool(std::weak_ptr<Device> in_device, const std::string& name) : DeviceResource(std::move(name), std::move(in_device))
 {
-    return command_buffers[device_image];
 }
 
-CommandBuffer& FrameCommandBuffers::get_this_thread_command_buffer(const Framebuffer& framebuffer) const
+CommandBuffer& PassCommandPool::begin_primary(DeviceImageId image)
 {
-    if (auto found = secondary_command_buffers.find(std::this_thread::get_id()); found != secondary_command_buffers.end())
+    auto& primary = get_primary(image);
+    primary.begin(false);
+    return primary;
+}
+
+CommandBuffer& PassCommandPool::begin_secondary(DeviceImageId image, const Framebuffer& framebuffer)
+{
+    auto&           primary = get_primary(image);
+    std::lock_guard lk(lock);
+
+    auto& frame_data = per_frame_data[image];
+    if (auto found = frame_data.secondary_command_buffer.find(std::this_thread::get_id()); found != frame_data.secondary_command_buffer.end())
     {
-        found->second->set_framebuffer(&framebuffer);
+        found->second->set_context(&framebuffer, &primary);
+        found->second->begin(false);
         return *found->second;
     }
-    return *command_buffer;
+    auto& found = *frame_data.secondary_command_buffer.emplace(std::this_thread::get_id(), SecondaryCommandBuffer::create(name() + "_primary", device(), QueueSpecialization::Graphic)).first->second;
+    found.set_context(&framebuffer, &primary);
+    found.begin(false);
+    return found;
+}
+
+CommandBuffer& PassCommandPool::get_primary(DeviceImageId image)
+{
+    std::lock_guard lk(lock);
+    if (image >= per_frame_data.size())
+        per_frame_data.resize(image + 1);
+
+    auto& frame_data = per_frame_data[image];
+    if (auto found = frame_data.primary_command_buffers.find(std::this_thread::get_id()); found != frame_data.primary_command_buffers.end())
+        return *found->second;
+    return *frame_data.primary_command_buffers.emplace(std::this_thread::get_id(), CommandBuffer::create(name() + "_primary", device(), QueueSpecialization::Graphic)).first->second;
 }
 
 std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref)

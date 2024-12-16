@@ -140,23 +140,24 @@ private:
 class SecondaryCommandBuffer : public CommandBuffer, public std::enable_shared_from_this<SecondaryCommandBuffer>
 {
 public:
-    static std::shared_ptr<SecondaryCommandBuffer> create(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, std::thread::id thread_id)
+    static std::shared_ptr<SecondaryCommandBuffer> create(std::string name, std::weak_ptr<Device> in_device, QueueSpecialization in_type, std::thread::id thread_id = std::this_thread::get_id())
     {
-        return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(name, parent, thread_id));
+        return std::shared_ptr<SecondaryCommandBuffer>(new SecondaryCommandBuffer(std::move(name), std::move(in_device), in_type, thread_id));
     }
 
-    void begin(bool one_time);
+    void begin(bool one_time) override;
     void end() override;
 
-    void set_framebuffer(const Framebuffer* in_framebuffer)
+    void set_context(const Framebuffer* in_framebuffer, CommandBuffer* parent_command_buffer)
     {
-        framebuffer = std::move(in_framebuffer);
+        framebuffer = in_framebuffer;
+        parent      = parent_command_buffer;
     }
 
 private:
-    const Framebuffer* framebuffer = nullptr;
-    SecondaryCommandBuffer(const std::string& name, const std::weak_ptr<CommandBuffer>& parent, std::thread::id thread_id);
-    std::weak_ptr<CommandBuffer> parent;
+    const Framebuffer*           framebuffer = nullptr;
+    CommandBuffer* parent;
+    SecondaryCommandBuffer(std::string name, std::weak_ptr<Device> in_device, QueueSpecialization in_type, std::thread::id thread_id);
 };
 
 } // namespace Eng::Gfx
