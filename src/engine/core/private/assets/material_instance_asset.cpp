@@ -36,25 +36,37 @@ std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resour
 {
     {
         std::shared_lock lk(descriptor_lock);
-        if (auto found = descriptors.find(render_pass_id); found != descriptors.end() && found->second.descriptor)
-            return found->second.descriptor;
+        if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
+            return found->second;
     }
     std::unique_lock lk(descriptor_lock);
     if (auto base_material = get_base_resource(render_pass_id))
     {
-        auto new_descriptor = descriptors.emplace(render_pass_id, PassDescriptorData{}).first->second;
-        new_descriptor.descriptor = Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + render_pass_id.to_string(), Engine::get().get_device(), base_material->get_layout());
+        auto new_descriptor =
+            descriptors.emplace(render_pass_id, Gfx::DescriptorSet::create(std::string(get_name()) + "_descriptors_" + render_pass_id.to_string(), Engine::get().get_device(), base_material->get_layout())).first->second;
 
         for (const auto& sampler : samplers)
-            new_descriptor.descriptor->bind_sampler(sampler.first, sampler.second->get_resource());
+            new_descriptor->bind_sampler(sampler.first, sampler.second->get_resource());
 
         for (const auto& texture : textures)
-            new_descriptor.descriptor->bind_image(texture.first, texture.second->get_view());
+            new_descriptor->bind_image(texture.first, texture.second->get_view());
 
-        for (const auto& buffer : new_descriptor.buffers)
-            new_descriptor.descriptor->bind_buffer(buffer.first, buffer.second.lock());
+        for (const auto& buffer : buffers)
+            new_descriptor->bind_buffer(buffer.first, buffer.second.lock());
 
-        return new_descriptor.descriptor;
+        if (auto found = pass_data.find(render_pass_id); found != pass_data.end())
+        {
+            for (const auto& sampler : found->second.samplers)
+                new_descriptor->bind_sampler(sampler.first, sampler.second->get_resource());
+
+            for (const auto& texture : found->second.textures)
+                new_descriptor->bind_image(texture.first, texture.second->get_view());
+
+            for (const auto& buffer : found->second.buffers)
+                new_descriptor->bind_buffer(buffer.first, buffer.second.lock());
+        }
+
+        return new_descriptor;
     }
     return {};
 }
@@ -64,7 +76,7 @@ void MaterialInstanceAsset::set_sampler(const std::string& binding, const TObjec
     std::unique_lock lk(descriptor_lock);
     samplers.insert_or_assign(binding, sampler);
     for (const auto& desc : descriptors)
-        desc.second.descriptor->bind_sampler(binding, sampler->get_resource());
+        desc.second->bind_sampler(binding, sampler->get_resource());
 }
 
 void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture)
@@ -72,23 +84,23 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
     std::unique_lock lk(descriptor_lock);
     textures.insert_or_assign(binding, texture);
     for (const auto& desc : descriptors)
-        desc.second.descriptor->bind_image(binding, texture->get_view());
+        desc.second->bind_image(binding, texture->get_view());
 }
 
 void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
     std::unique_lock lk(descriptor_lock);
-    auto&            new_descriptor = descriptors.emplace(render_pass_id, PassDescriptorData{}).first->second;
-    if (auto existing = new_descriptor.buffers.find(binding); existing != new_descriptor.buffers.end())
+
+    if (auto existing = buffers.find(binding); existing != buffers.end())
     {
         if (existing->second.lock() == buffer.lock())
             return;
         existing->second = buffer;
     }
     else
-        new_descriptor.buffers.emplace(binding, buffer);
-    if (new_descriptor.descriptor)
-        new_descriptor.descriptor->bind_buffer(binding, buffer.lock());
+        pass_data.emplace(render_pass_id, PassData{}).first->second.buffers.emplace(binding, buffer);
+    if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
+        found->second->bind_buffer(binding, buffer.lock());
 }
 
 void MaterialInstanceAsset::set_scene_data(const Gfx::RenderPassRef& render_pass_id, const std::weak_ptr<Gfx::Buffer>& buffer_data)

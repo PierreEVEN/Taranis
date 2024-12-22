@@ -31,11 +31,7 @@ void SceneView::pre_draw(const Gfx::RenderPassInstanceBase& render_pass)
     glm::mat4 inv_perspective      = inverse(projection_view);
     glm::mat4 inv_perspective_view = inv_view * inv_perspective;
 
-    if (!view_buffer)
-    {
-        view_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
-        LOG_WARNING("CREATE BUFFER {:x} for {}", (size_t)view_buffer.get(), render_pass.get_definition().render_pass_ref);
-    }
+    view_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
     view_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.perspective_view_mat = projection_view,
                                                              .view_mat = view,
                                                              .perspective_mat = projection_view,
@@ -99,22 +95,22 @@ void SceneView::update_matrices(const glm::uvec2& in_resolution, bool reversed_z
         float top    = fov / aspect;
         float bottom = -fov / aspect;
 
-        float h    = 2.f / (top - bottom);
-        float w    = 2.f / (right - left);
-            
+        float h = 2.f / (top - bottom);
+        float w = 2.f / (right - left);
+
         projection = {
             {0, 0, 1.f / (z_far - z_near), 0},
             {-w, 0, 0, 0},
             {0, h, 0, 0},
-            { -(right + left) / (right - left), -(top + bottom) / (top - bottom), -z_near / (z_far - z_near), 1},
+            {-(right + left) / (right - left), -(top + bottom) / (top - bottom), -z_near / (z_far - z_near), 1},
         };
     }
     else
     {
         if (reversed_z)
         {
-            float h     = 1.f / std::tan(glm::radians(fov) * 0.5f);
-            float w     = h / aspect;
+            float h    = 1.f / std::tan(glm::radians(fov) * 0.5f);
+            float w    = h / aspect;
             projection = {
                 {0, 0, 0, 1},
                 {-w, 0, 0, 0},
@@ -126,7 +122,7 @@ void SceneView::update_matrices(const glm::uvec2& in_resolution, bool reversed_z
             float const tan_half_fov = tan(glm::radians(fov) * 0.5f);
             float       h            = 1 / tan_half_fov;
             float       w            = 1 / (aspect * tan_half_fov);
-            projection              = {
+            projection               = {
                 {0, 0, z_far / (z_far - z_near), 1},
                 {-w, 0, 0, 0},
                 {0, h, 0, 0},

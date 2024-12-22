@@ -45,7 +45,6 @@ public:
     void bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
     void bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
     void bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
-    int  test_cnt = 0;
 
   private:
     class Resource : public DeviceResource

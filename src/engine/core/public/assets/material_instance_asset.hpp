@@ -47,20 +47,23 @@ public:
     }
 
 private:
-    struct PassDescriptorData
-    {
-        ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
-        std::shared_ptr<Gfx::DescriptorSet>                                   descriptor;
-    };
-
-    ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>  samplers;
-    ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>  textures;
-
-    TObjectRef<MaterialAsset>                                            base;
-    std::shared_mutex                                                    descriptor_lock;
-    ankerl::unordered_dense::map<Gfx::RenderPassRef, PassDescriptorData> descriptors;
+    TObjectRef<MaterialAsset>                                                             base;
+    std::shared_mutex                                                                     descriptor_lock;
+    ankerl::unordered_dense::map<Gfx::RenderPassRef, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
     Gfx::PermutationDescription        permutation_description;
     std::weak_ptr<MaterialPermutation> permutation;
+
+    struct PassData
+    {
+        ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>   samplers;
+        ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
+        ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
+    };
+    ankerl::unordered_dense::map<Gfx::RenderPassRef, PassData> pass_data;
+
+    ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>   samplers;
+    ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
+    ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
 };
 } // namespace Eng
