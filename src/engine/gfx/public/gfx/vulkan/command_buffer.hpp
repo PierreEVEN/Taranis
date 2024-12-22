@@ -77,8 +77,8 @@ public:
     virtual void end();
     void         submit(VkSubmitInfo submit_infos, const Fence* optional_fence = nullptr);
 
-    void begin_debug_marker(const std::string& name, const std::array<float, 4>& color) const;
-    void end_debug_marker() const;
+    void begin_debug_marker(const std::string& name, const std::array<float, 4>& color);
+    void end_debug_marker();
 
     void draw_procedural(uint32_t vertex_count, uint32_t first_vertex, uint32_t instance_count, uint32_t first_instance) const;
     void bind_pipeline(const std::shared_ptr<Pipeline>& pipeline);
@@ -116,7 +116,11 @@ public:
         return render_pass_name;
     }
 
-protected:
+    void thread_lock();
+
+    void thread_unlock();
+
+  protected:
     RenderPassRef render_pass_name;
     friend class SecondaryCommandBuffer;
     void                                                                  reset_stats();
@@ -124,10 +128,11 @@ protected:
     ankerl::unordered_dense::set<std::shared_ptr<SecondaryCommandBuffer>> secondary_command_buffers;
     std::unique_ptr<PoolLockGuard>                                        pool_lock;
 
+    CommandPool::Mutex pool_mtx;
+
 private:
     CommandBuffer(std::string name, std::weak_ptr<Device> device, QueueSpecialization type, std::thread::id thread_id, bool secondary = false);
     VkCommandBuffer           ptr = VK_NULL_HANDLE;
-    CommandPool::Mutex        pool_mtx;
     QueueSpecialization       type;
     std::weak_ptr<Device>     device;
     std::thread::id           thread_id;

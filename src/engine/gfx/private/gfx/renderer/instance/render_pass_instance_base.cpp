@@ -203,20 +203,19 @@ CommandBuffer& PassCommandPool::begin_primary(DeviceImageId image)
     return primary;
 }
 
-CommandBuffer& PassCommandPool::begin_secondary(DeviceImageId image, const Framebuffer& framebuffer)
+CommandBuffer& PassCommandPool::begin_secondary(DeviceImageId image, const Framebuffer& framebuffer, CommandBuffer& parent)
 {
-    auto&           primary = get_primary(image);
     std::lock_guard lk(lock);
 
     auto& frame_data = per_frame_data[image];
     if (auto found = frame_data.secondary_command_buffer.find(std::this_thread::get_id()); found != frame_data.secondary_command_buffer.end())
     {
-        found->second->set_context(&framebuffer, &primary);
+        found->second->set_context(&framebuffer, &parent);
         found->second->begin(false);
         return *found->second;
     }
     auto& found = *frame_data.secondary_command_buffer.emplace(std::this_thread::get_id(), SecondaryCommandBuffer::create(name() + "_primary", device(), QueueSpecialization::Graphic)).first->second;
-    found.set_context(&framebuffer, &primary);
+    found.set_context(&framebuffer, &parent);
     found.begin(false);
     return found;
 }

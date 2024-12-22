@@ -32,7 +32,7 @@ Framebuffer::Framebuffer(std::weak_ptr<Device> in_device, const RenderPassInstan
     render_pass_resource = render_pass.get_render_pass_resource();
 
     VK_CHECK(vkCreateFramebuffer(device().lock()->raw(), &create_infos, nullptr, &ptr), "Failed to create render pass")
-    device().lock()->debug_set_object_name(name() + "_fb", ptr);
+    device().lock()->debug_set_object_name(name() + "_fb_#" + std::to_string(in_image_index), ptr);
 }
 
 std::shared_ptr<Framebuffer> Framebuffer::create(std::weak_ptr<Device> device, const RenderPassInstance& render_pass, uint32_t image_index, const FrameResources& resources)

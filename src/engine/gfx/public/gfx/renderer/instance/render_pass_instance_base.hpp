@@ -52,7 +52,7 @@ public:
     PassCommandPool(std::weak_ptr<Device> in_device, const std::string& name);
 
     CommandBuffer& begin_primary(DeviceImageId image);
-    CommandBuffer& begin_secondary(DeviceImageId image, const Framebuffer& framebuffer);
+    CommandBuffer& begin_secondary(DeviceImageId image, const Framebuffer& framebuffer, CommandBuffer& parent);
 
 private:
     CommandBuffer& get_primary(DeviceImageId image);

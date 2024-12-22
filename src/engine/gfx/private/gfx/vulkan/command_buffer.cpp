@@ -42,6 +42,8 @@ void CommandBuffer::begin(bool one_time)
 {
     if (b_wait_submission)
         return;
+    assert(!pool_lock);
+    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     assert(!is_recording);
     b_wait_submission                        = true;
     is_recording                             = true;
@@ -50,10 +52,10 @@ void CommandBuffer::begin(bool one_time)
         .flags = one_time ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : static_cast<VkCommandBufferUsageFlags>(0),
     };
 
-    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer")
     device.lock()->debug_set_object_name(name, ptr);
     reset_stats();
+    pool_lock = nullptr;
 }
 
 void CommandBuffer::end()
@@ -61,6 +63,8 @@ void CommandBuffer::end()
     assert(b_wait_submission);
     if (!is_recording)
         return;
+    assert(!pool_lock);
+    pool_lock    = std::make_unique<PoolLockGuard>(pool_mtx);
     is_recording = false;
     vkEndCommandBuffer(ptr);
     pool_lock = nullptr;
@@ -78,16 +82,20 @@ void CommandBuffer::submit(VkSubmitInfo submit_infos = {}, const Fence* optional
     VK_CHECK(device.lock()->get_queues().get_queue(type)->submit(*this, submit_infos, optional_fence), "Failed to submit queue");
 }
 
-void CommandBuffer::begin_debug_marker(const std::string& in_name, const std::array<float, 4>& color) const
+void CommandBuffer::begin_debug_marker(const std::string& in_name, const std::array<float, 4>& color)
 {
     assert(std::this_thread::get_id() == thread_id);
+    thread_lock();
     device.lock()->get_instance().lock()->begin_debug_marker(ptr, in_name, color);
+    thread_unlock();
 }
 
-void CommandBuffer::end_debug_marker() const
+void CommandBuffer::end_debug_marker() 
 {
     assert(std::this_thread::get_id() == thread_id);
+    thread_lock();
     device.lock()->get_instance().lock()->end_debug_marker(ptr);
+    thread_unlock();
 }
 
 void CommandBuffer::draw_procedural(uint32_t vertex_count, uint32_t first_vertex, uint32_t instance_count, uint32_t first_instance) const
@@ -223,8 +231,10 @@ void CommandBuffer::push_constant(EShaderStage stage, const Pipeline& pipeline, 
 
 void CommandBuffer::begin_render_pass(const RenderPassRef& pass_name, const VkRenderPassBeginInfo& begin_infos, bool parallel_rendering)
 {
+    thread_lock();
     vkCmdBeginRenderPass(ptr, &begin_infos, parallel_rendering ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
     render_pass_name = pass_name;
+    thread_unlock();
 }
 
 void CommandBuffer::bind_compute_pipeline(const ComputePipeline& pipeline) const
@@ -245,6 +255,7 @@ void CommandBuffer::dispatch_compute(uint32_t x, uint32_t y, uint32_t z) const
 void CommandBuffer::end_render_pass()
 {
     PROFILER_SCOPE(EndRenderPass);
+    thread_lock();
     if (!secondary_command_buffers.empty())
     {
         PROFILER_SCOPE(ExecuteSecondaryCommandBuffers);
@@ -256,6 +267,7 @@ void CommandBuffer::end_render_pass()
     }
     vkCmdEndRenderPass(ptr);
     render_pass_name = {};
+    thread_unlock();
 }
 
 void CommandBuffer::reset_stats()
@@ -263,8 +275,9 @@ void CommandBuffer::reset_stats()
     last_pipeline = nullptr;
 }
 
-void SecondaryCommandBuffer::begin(bool)
+void SecondaryCommandBuffer::begin(bool one_time)
 {
+    assert(!one_time);
     if (b_wait_submission)
         return;
     assert(!is_recording);
@@ -282,7 +295,6 @@ void SecondaryCommandBuffer::begin(bool)
         .pInheritanceInfo = &inheritance,
     };
 
-    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
     VK_CHECK(vkBeginCommandBuffer(raw(), &beginInfo), "failed to begin secondary command buffer");
 
     render_pass_name = parent->render_pass_name;
@@ -299,6 +311,17 @@ void SecondaryCommandBuffer::end()
     b_wait_submission = false;
     std::lock_guard lk(parent->secondary_vector_mtx);
     parent->secondary_command_buffers.insert(shared_from_this());
+}
+
+void CommandBuffer::thread_lock()
+{
+    assert(!pool_lock);
+    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
+}
+
+void CommandBuffer::thread_unlock()
+{
+    pool_lock = nullptr;
 }
 
 } // namespace Eng::Gfx

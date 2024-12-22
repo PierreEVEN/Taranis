@@ -40,7 +40,6 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
     if (!framebuffer)
         return;
     CommandBuffer&             global_cmd = command_buffers->begin_primary(device_image);
-    global_cmd.begin(false);
     global_cmd.begin_debug_marker("BeginRenderPass_" + get_definition().render_pass_ref.to_string(), {1, 0, 0, 1});
 
     // Begin draw pass
@@ -90,10 +89,12 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
         {
             handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
-                [this, &framebuffer, i, device_image]()
+                [this, &framebuffer, i, &global_cmd, device_image]
                 {
-                    auto& cmd = command_buffers->begin_secondary(device_image, *framebuffer);
+                    auto& cmd = command_buffers->begin_secondary(device_image, *framebuffer, global_cmd);
+                    cmd.thread_lock();
                     fill_command_buffer(cmd, i);
+                    cmd.thread_unlock();
                     return &cmd;
                 }));
         }

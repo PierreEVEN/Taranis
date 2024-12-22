@@ -74,7 +74,7 @@ void DescriptorSet::Resource::update()
         return;
 
     PROFILER_SCOPE(UpdateDescriptorSets);
-
+    LOG_DEBUG("Update {}", name());
     auto     parent_ptr   = parent.lock();
     uint32_t image_count  = 0;
     uint32_t buffer_count = 0;
