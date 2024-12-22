@@ -33,8 +33,8 @@ public:
     std::shared_ptr<Gfx::Pipeline>      get_base_resource(const Gfx::RenderPassRef& render_pass_id);
     std::shared_ptr<Gfx::DescriptorSet> get_descriptor_resource(const Gfx::RenderPassRef& render_pass_id);
 
-    void set_sampler(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
-    void set_texture(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const TObjectRef<TextureAsset>& texture);
+    void set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
+    void set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture);
     void set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
     void set_scene_data(const Gfx::RenderPassRef& render_pass_id, const std::weak_ptr<Gfx::Buffer>& buffer);
 
@@ -49,11 +49,12 @@ public:
 private:
     struct PassDescriptorData
     {
-        ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>   samplers;
-        ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
         ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
         std::shared_ptr<Gfx::DescriptorSet>                                   descriptor;
     };
+
+    ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>  samplers;
+    ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>  textures;
 
     TObjectRef<MaterialAsset>                                            base;
     std::shared_mutex                                                    descriptor_lock;
