@@ -178,7 +178,6 @@ uint8_t Swapchain::get_image_count() const
 bool Swapchain::render_internal()
 {
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
-
     const auto device_reference = device().lock();
     uint8_t    current_frame    = device().lock()->get_current_image();
 

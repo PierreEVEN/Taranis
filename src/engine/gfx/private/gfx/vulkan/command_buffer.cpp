@@ -42,8 +42,7 @@ void CommandBuffer::begin(bool one_time)
 {
     if (b_wait_submission)
         return;
-    assert(!pool_lock);
-    pool_lock = std::make_unique<PoolLockGuard>(pool_mtx);
+    thread_lock();
     assert(!is_recording);
     b_wait_submission                        = true;
     is_recording                             = true;
@@ -55,7 +54,7 @@ void CommandBuffer::begin(bool one_time)
     VK_CHECK(vkBeginCommandBuffer(ptr, &beginInfo), "failed to begin one time command buffer")
     device.lock()->debug_set_object_name(name, ptr);
     reset_stats();
-    pool_lock = nullptr;
+    thread_unlock();
 }
 
 void CommandBuffer::end()
@@ -63,11 +62,10 @@ void CommandBuffer::end()
     assert(b_wait_submission);
     if (!is_recording)
         return;
-    assert(!pool_lock);
-    pool_lock    = std::make_unique<PoolLockGuard>(pool_mtx);
+    thread_lock();
     is_recording = false;
     vkEndCommandBuffer(ptr);
-    pool_lock = nullptr;
+    thread_unlock();
 }
 
 void CommandBuffer::submit(VkSubmitInfo submit_infos = {}, const Fence* optional_fence)
@@ -280,6 +278,7 @@ void SecondaryCommandBuffer::begin(bool one_time)
     assert(!one_time);
     if (b_wait_submission)
         return;
+    thread_lock();
     assert(!is_recording);
     b_wait_submission = true;
     is_recording      = true;
@@ -301,6 +300,7 @@ void SecondaryCommandBuffer::begin(bool one_time)
 
     get_device().lock()->debug_set_object_name(get_name(), raw());
     reset_stats();
+    thread_unlock();
 }
 
 void SecondaryCommandBuffer::end()

@@ -16,8 +16,6 @@ struct Pc
 
 namespace Eng
 {
-
-int  val = 5;
 void MeshComponent::draw(Gfx::CommandBuffer& command_buffer, const SceneView& view)
 {
     if (mesh)

@@ -32,8 +32,10 @@ void SceneView::pre_draw(const Gfx::RenderPassInstanceBase& render_pass)
     glm::mat4 inv_perspective_view = inv_view * inv_perspective;
 
     if (!view_buffer)
+    {
         view_buffer = Gfx::Buffer::create("Scene_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(SceneBufferData), 1);
-
+        LOG_WARNING("CREATE BUFFER {:x} for {}", (size_t)view_buffer.get(), render_pass.get_definition().render_pass_ref);
+    }
     view_buffer->set_data(0, Gfx::BufferData{SceneBufferData{.perspective_view_mat = projection_view,
                                                              .view_mat = view,
                                                              .perspective_mat = projection_view,

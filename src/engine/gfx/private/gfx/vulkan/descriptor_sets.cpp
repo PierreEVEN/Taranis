@@ -57,7 +57,6 @@ std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, co
 
 const VkDescriptorSet& DescriptorSet::raw_current() const
 {
-    std::lock_guard lk(update_lock);
     if (b_static)
     {
         resources[0]->update();
@@ -73,8 +72,8 @@ void DescriptorSet::Resource::update()
     if (!outdated)
         return;
 
+    std::lock_guard lk(parent.lock()->update_lock);
     PROFILER_SCOPE(UpdateDescriptorSets);
-    LOG_DEBUG("Update {}", name());
     auto     parent_ptr   = parent.lock();
     uint32_t image_count  = 0;
     uint32_t buffer_count = 0;
@@ -143,7 +142,12 @@ void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vec
         if (b_static && buffer->raw().size() > 1)
             LOG_ERROR("Cannot bind dynamic buffer '{}' to static descriptors '{}::{}'", buffer->get_name(), name, binding_name);
     }
-    try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers));
+    if (try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers)))
+    {
+        if (test_cnt == 1 && name.find("resolve") == std::string::npos)
+            LOG_FATAL("Update buffer : {} => {} for descriptor {} ({:x})", test_cnt++, binding_name, name, (size_t)in_buffers[0].get());
+        LOG_DEBUG("Update buffer : {} => {} for descriptor {} ({:x})", test_cnt++, binding_name, name, (size_t)in_buffers[0].get());
+    }
 }
 
 void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
@@ -243,6 +247,7 @@ bool DescriptorSet::try_insert(const std::string& binding_name, const std::share
     }
     else
         write_descriptors.emplace(binding_name, descriptor);
+
     for (const auto& resource : resources)
         resource->mark_as_dirty();
     return true;

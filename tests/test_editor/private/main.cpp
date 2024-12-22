@@ -297,7 +297,7 @@ public:
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
-
+        /*
          engine.jobs().schedule(
             [&, importer]
             {
@@ -314,7 +314,7 @@ public:
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
             });
-
+            */
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
             {
