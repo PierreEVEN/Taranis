@@ -35,6 +35,9 @@ public:
 
     void set_sampler(const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
     void set_texture(const std::string& binding, const TObjectRef<TextureAsset>& texture);
+    void set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
+    void set_sampler(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const TObjectRef<SamplerAsset>& sampler);
+    void set_texture(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const TObjectRef<TextureAsset>& texture);
     void set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer);
     void set_scene_data(const Gfx::RenderPassRef& render_pass_id, const std::weak_ptr<Gfx::Buffer>& buffer);
 

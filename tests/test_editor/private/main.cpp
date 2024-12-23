@@ -404,7 +404,7 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
     Config config;
-    config.gfx.enable_validation_layers = true;
+    config.gfx.enable_validation_layers = false;
     config.gfx.v_sync                   = true;
     config.auto_update_materials        = false;
     Engine engine(config);

@@ -113,7 +113,7 @@ void CommandBuffer::bind_pipeline(const std::shared_ptr<Pipeline>& pipeline)
     vkCmdBindPipeline(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->raw());
 }
 
-void CommandBuffer::bind_descriptors(const DescriptorSet& descriptors, const Pipeline& pipeline) const
+void CommandBuffer::bind_descriptors(DescriptorSet& descriptors, const Pipeline& pipeline) const
 {
     assert(std::this_thread::get_id() == thread_id);
     vkCmdBindDescriptorSets(ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_layout()->raw(), 0, 1, &descriptors.raw_current(), 0, nullptr);

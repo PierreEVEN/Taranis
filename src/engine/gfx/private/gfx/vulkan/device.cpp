@@ -43,6 +43,10 @@ void Device::flush_resources()
         }
         resources_copy.clear();
     }
+
+#if _DEBUG
+    DescriptorSet::reset_descriptors_debug();
+#endif
 }
 
 Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_instance, const PhysicalDevice& physical_device, const Surface& surface)

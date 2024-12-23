@@ -6,6 +6,7 @@
 #include "engine.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "object_ptr.hpp"
+#include "profiler.hpp"
 
 namespace Eng
 {
@@ -87,10 +88,52 @@ void MaterialInstanceAsset::set_texture(const std::string& binding, const TObjec
         desc.second->bind_image(binding, texture->get_view());
 }
 
-void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
+void MaterialInstanceAsset::set_buffer(const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
     std::unique_lock lk(descriptor_lock);
+    buffers.insert_or_assign(binding, buffer);
+    for (const auto& desc : descriptors)
+        desc.second->bind_buffer(binding, buffer.lock());
+}
 
+void MaterialInstanceAsset::set_sampler(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const TObjectRef<SamplerAsset>& sampler)
+{
+    std::unique_lock lk(descriptor_lock);
+    if (auto existing = samplers.find(binding); existing != samplers.end())
+    {
+        if (existing->second == sampler)
+            return;
+        existing->second = sampler;
+    }
+    else
+        pass_data.emplace(render_pass_id, PassData{}).first->second.samplers.emplace(binding, sampler);
+    if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
+        found->second->bind_sampler(binding, sampler->get_resource());
+}
+
+void MaterialInstanceAsset::set_texture(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const TObjectRef<TextureAsset>& texture)
+{
+    std::unique_lock lk(descriptor_lock);
+    if (auto existing = textures.find(binding); existing != textures.end())
+    {
+        if (existing->second == texture)
+            return;
+        existing->second = texture;
+    }
+    else
+        pass_data.emplace(render_pass_id, PassData{}).first->second.textures.emplace(binding, texture);
+    if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
+        found->second->bind_image(binding, texture->get_view());
+}
+
+void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
+{
+    std::mutex test;
+
+    std::unique_lock test_lk(test);
+
+    PROFILER_SCOPE(SetBuffer);
+    std::unique_lock lk(descriptor_lock);
     if (auto existing = buffers.find(binding); existing != buffers.end())
     {
         if (existing->second.lock() == buffer.lock())

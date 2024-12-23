@@ -34,6 +34,22 @@ DescriptorSet::Resource::~Resource()
     device().lock()->get_descriptor_pool().free(ptr, *pipeline, pool_index);
 }
 
+#if _DEBUG
+static std::shared_mutex                             this_frame_desc_mutex;
+static ankerl::unordered_dense::set<DeviceResource*> this_frame_descriptors;
+#endif
+
+void DescriptorSet::Resource::mark_as_dirty()
+{
+    outdated = true;
+
+#if _DEBUG
+    std::shared_lock lk(this_frame_desc_mutex);
+    if (this_frame_descriptors.contains(this))
+        LOG_FATAL("Cannot modify descriptor sets {} once used in draw", name());
+#endif
+}
+
 DescriptorSet::~DescriptorSet()
 {
     for (const auto& desc_set : resources)
@@ -55,6 +71,14 @@ std::shared_ptr<DescriptorSet> DescriptorSet::create(const std::string& name, co
     return descriptors;
 }
 
+#if _DEBUG
+void DescriptorSet::reset_descriptors_debug()
+{
+    std::unique_lock lk(this_frame_desc_mutex);
+    this_frame_descriptors.clear();
+}
+#endif
+
 const VkDescriptorSet& DescriptorSet::raw_current() const
 {
     if (b_static)
@@ -67,13 +91,27 @@ const VkDescriptorSet& DescriptorSet::raw_current() const
     return resource->raw();
 }
 
-void DescriptorSet::Resource::update()
+bool DescriptorSet::Resource::update()
 {
+    {
+        std::shared_lock lk(parent.lock()->update_lock);
+        if (!outdated)
+            return false;
+    }
+    std::unique_lock lk(parent.lock()->update_lock);
     if (!outdated)
-        return;
+        return false;
 
-    std::lock_guard lk(parent.lock()->update_lock);
     PROFILER_SCOPE(UpdateDescriptorSets);
+
+    update_cnt++;
+#if _DEBUG
+    {
+        std::unique_lock lk2(this_frame_desc_mutex);
+        this_frame_descriptors.insert(this);
+    }
+#endif
+
     auto     parent_ptr   = parent.lock();
     uint32_t image_count  = 0;
     uint32_t buffer_count = 0;
@@ -93,6 +131,7 @@ void DescriptorSet::Resource::update()
 
     vkUpdateDescriptorSets(device().lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
     outdated = false;
+    return true;
 }
 
 void DescriptorSet::bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images)
@@ -142,7 +181,8 @@ void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vec
         if (b_static && buffer->raw().size() > 1)
             LOG_ERROR("Cannot bind dynamic buffer '{}' to static descriptors '{}::{}'", buffer->get_name(), name, binding_name);
     }
-    try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers));
+    if (try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers)))
+        ;
 }
 
 void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,

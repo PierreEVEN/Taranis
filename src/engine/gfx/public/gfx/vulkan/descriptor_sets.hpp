@@ -2,6 +2,7 @@
 #include "device_resource.hpp"
 
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
@@ -45,6 +46,10 @@ public:
     void bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
     void bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
     void bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
+#define _DEBUG true
+#if _DEBUG
+    static void reset_descriptors_debug();
+#endif
 
   private:
     class Resource : public DeviceResource
@@ -55,13 +60,10 @@ public:
         Resource(Resource&&) = delete;
         ~Resource();
 
-        void mark_as_dirty()
-        {
-            outdated = true;
-        }
+        void mark_as_dirty();
 
-        void update();
-
+        bool update();
+        int                    update_cnt = 0;
         const VkDescriptorSet& raw() const
         {
             return ptr;
@@ -177,7 +179,7 @@ public:
     ankerl::unordered_dense::map<std::string, uint32_t>                    descriptor_bindings;
 
     std::vector<std::shared_ptr<Resource>> resources;
-    mutable std::mutex                     update_lock;
+    mutable std::shared_mutex                     update_lock;
     std::weak_ptr<Device>                  device;
     bool                                   b_static;
     std::string                            name;
