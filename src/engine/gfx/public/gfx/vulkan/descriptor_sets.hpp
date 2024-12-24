@@ -1,5 +1,6 @@
 #pragma once
 #include "device_resource.hpp"
+#include "spinlock.hpp"
 
 #include <memory>
 #include <shared_mutex>
@@ -46,12 +47,12 @@ public:
     void bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images);
     void bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers);
     void bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers);
-#define _DEBUG true
+
 #if _DEBUG
     static void reset_descriptors_debug();
 #endif
 
-  private:
+private:
     class Resource : public DeviceResource
     {
     public:
@@ -63,7 +64,7 @@ public:
         void mark_as_dirty();
 
         bool update();
-        int                    update_cnt = 0;
+
         const VkDescriptorSet& raw() const
         {
             return ptr;
@@ -179,7 +180,7 @@ public:
     ankerl::unordered_dense::map<std::string, uint32_t>                    descriptor_bindings;
 
     std::vector<std::shared_ptr<Resource>> resources;
-    mutable std::shared_mutex                     update_lock;
+    mutable Spinlock                       update_lock;
     std::weak_ptr<Device>                  device;
     bool                                   b_static;
     std::string                            name;

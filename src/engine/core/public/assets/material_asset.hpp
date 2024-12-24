@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_base.hpp"
+#include "spinlock.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "gfx_types/pipeline.hpp"
 
@@ -80,7 +81,7 @@ private:
     std::shared_ptr<ShaderCompiler::Session> compiler_session;
     std::filesystem::path                    shader_virtual_path;
     std::vector<StageInputOutputDescription> vertex_inputs;
-    std::shared_mutex                        pipeline_mutex;
+    Spinlock                                 pipeline_mutex;
     Gfx::PipelineOptions                     options;
 };
 } // namespace Eng

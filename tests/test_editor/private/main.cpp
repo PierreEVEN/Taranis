@@ -5,6 +5,7 @@
 #include "assets/sampler_asset.hpp"
 #include "config.hpp"
 #include "engine.hpp"
+#include "spinlock.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
@@ -403,6 +404,42 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
+
+
+    /*
+    int A = 0;
+
+    int      it = 10000;
+    Spinlock sl;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 32; ++i)
+    {
+        threads.emplace_back(
+            [&]()
+            {
+                for (int i = 0; i < it; ++i)
+                {
+                    std::lock_guard lk(sl);
+                    A += 1;
+                }
+            });
+    }
+
+    for (auto& thr : threads)
+        thr.join();
+
+    LOG_WARNING("A = {} / {} => {}", A, 32 * it, A == 32 * it);
+
+    return -1;
+
+
+
+
+
+
+
+    */
     Config config;
     config.gfx.enable_validation_layers = false;
     config.gfx.v_sync                   = true;

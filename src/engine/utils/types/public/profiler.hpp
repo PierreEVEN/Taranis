@@ -1,8 +1,8 @@
 #pragma once
 
 #include "logger.hpp"
-#include <mutex>
-#include <shared_mutex>
+#include "spinlock.hpp"
+
 #include <thread>
 #include <ankerl/unordered_dense.h>
 #include <vector>
@@ -16,7 +16,6 @@
 #define PROFILER_SCOPE(generic_name)
 #define PROFILER_SCOPE_NAMED(generic_name, string_name)
 #endif
-
 
 class Profiler final
 {
@@ -71,7 +70,7 @@ public:
     class ProfilerFrameData
     {
     public:
-        ProfilerFrameData() : threads_lock(std::make_unique<std::shared_mutex>())
+        ProfilerFrameData() : threads_lock(std::make_unique<Eng::Spinlock>())
         {
             min   = std::chrono::steady_clock::now();
             start = std::chrono::steady_clock::now();
@@ -80,7 +79,7 @@ public:
         std::chrono::steady_clock::time_point                                      start;
         std::chrono::steady_clock::time_point                                      end;
         std::chrono::steady_clock::time_point                                      min;
-        std::unique_ptr<std::shared_mutex>                                         threads_lock;
+        std::unique_ptr<Eng::Spinlock>                                             threads_lock;
         ankerl::unordered_dense::map<std::thread::id, std::shared_ptr<ThreadData>> thread_data;
     };
 
@@ -118,13 +117,15 @@ public:
         Profiler* profiler;
     };
 
-    void         set_record(bool enabled);
-    void         clear();
+    void set_record(bool enabled);
+    void clear();
+
     FrameWrapper frames()
     {
         return {this};
     }
-    void         next_frame();
+
+    void next_frame();
 
     static Profiler& get();
 
@@ -132,7 +133,7 @@ private:
     static ThreadData& get_thread_data();
 
     std::chrono::steady_clock::time_point           record_start;
-    std::mutex                                      global_lock;
+    Eng::Spinlock                                   global_lock;
     bool                                            b_record = false;
     std::vector<std::shared_ptr<ProfilerFrameData>> recorded_frames;
 };

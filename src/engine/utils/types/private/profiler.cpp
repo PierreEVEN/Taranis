@@ -6,13 +6,13 @@ struct LocalDataContainer
     {
     }
 
-    std::mutex                            data_mutex;
+    Eng::Spinlock                         data_mutex;
     std::shared_ptr<Profiler::ThreadData> thread_data;
     std::thread::id                       this_thread;
 };
 
 static Profiler                                         profiler;
-static std::mutex                                       all_threads_lock;
+static Eng::Spinlock                                    all_threads_lock;
 static std::vector<std::shared_ptr<LocalDataContainer>> all_threads;
 static thread_local std::shared_ptr<LocalDataContainer> local_thread_data;
 

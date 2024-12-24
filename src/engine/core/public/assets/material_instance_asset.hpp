@@ -2,6 +2,7 @@
 #include "asset_base.hpp"
 #include "gfx/vulkan/pipeline.hpp"
 #include "object_ptr.hpp"
+#include "spinlock.hpp"
 
 #include "assets/material_instance_asset.gen.hpp"
 #include "gfx/renderer/definition/render_pass_id.hpp"
@@ -51,7 +52,7 @@ public:
 
 private:
     TObjectRef<MaterialAsset>                                                             base;
-    std::shared_mutex                                                                     descriptor_lock;
+    Spinlock                                                                              descriptor_lock;
     ankerl::unordered_dense::map<Gfx::RenderPassRef, std::shared_ptr<Gfx::DescriptorSet>> descriptors;
 
     Gfx::PermutationDescription        permutation_description;
@@ -63,10 +64,14 @@ private:
         ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
         ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
     };
+
     ankerl::unordered_dense::map<Gfx::RenderPassRef, PassData> pass_data;
 
     ankerl::unordered_dense::map<std::string, TObjectRef<SamplerAsset>>   samplers;
     ankerl::unordered_dense::map<std::string, TObjectRef<TextureAsset>>   textures;
     ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
+
+    Spinlock                   test;
+    std::weak_ptr<Gfx::Buffer> last_scene_buffer;
 };
 } // namespace Eng

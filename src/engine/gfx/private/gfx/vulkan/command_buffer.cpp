@@ -275,6 +275,7 @@ void CommandBuffer::reset_stats()
 
 void SecondaryCommandBuffer::begin(bool one_time)
 {
+    (void)one_time;
     assert(!one_time);
     if (b_wait_submission)
         return;

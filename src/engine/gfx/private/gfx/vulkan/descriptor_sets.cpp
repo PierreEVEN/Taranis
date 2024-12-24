@@ -35,7 +35,7 @@ DescriptorSet::Resource::~Resource()
 }
 
 #if _DEBUG
-static std::shared_mutex                             this_frame_desc_mutex;
+static SpinLock                                      this_frame_desc_mutex;
 static ankerl::unordered_dense::set<DeviceResource*> this_frame_descriptors;
 #endif
 
@@ -104,7 +104,6 @@ bool DescriptorSet::Resource::update()
 
     PROFILER_SCOPE(UpdateDescriptorSets);
 
-    update_cnt++;
 #if _DEBUG
     {
         std::unique_lock lk2(this_frame_desc_mutex);
@@ -181,8 +180,7 @@ void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vec
         if (b_static && buffer->raw().size() > 1)
             LOG_ERROR("Cannot bind dynamic buffer '{}' to static descriptors '{}::{}'", buffer->get_name(), name, binding_name);
     }
-    if (try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers)))
-        ;
+    try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers));
 }
 
 void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
