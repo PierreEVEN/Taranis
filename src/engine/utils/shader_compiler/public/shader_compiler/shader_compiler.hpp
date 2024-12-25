@@ -74,6 +74,7 @@ struct TypeReflection
 
 struct StageData
 {
+    ankerl::unordered_dense::map<std::string, bool>                        static_switches;
     std::vector<uint8_t>                                                   compiled_module;
     std::vector<BindingDescription>                                        bindings;
     Eng::Gfx::EShaderStage                                                 stage;

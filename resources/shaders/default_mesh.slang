@@ -1,8 +1,11 @@
 
 import shader_base;
 
-extern static const bool PARAM_NORMAL_TEXTURE = true;
-extern static const bool PARAM_METAL_ROUGHNESS_TEXTURE = true;
+[DefaultEnabled]
+extern static const bool PARAM_NORMAL_TEXTURE;
+
+[DefaultEnabled]
+extern static const bool PARAM_METAL_ROUGHNESS_TEXTURE;
 
 struct VSInput
 {

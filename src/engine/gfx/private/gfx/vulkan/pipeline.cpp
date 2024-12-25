@@ -81,16 +81,21 @@ Pipeline::Pipeline(std::string in_name, std::weak_ptr<Device> in_device, const s
 
     for (const auto& stage : shader_stage)
     {
+        ankerl::unordered_dense::set<uint32_t> used_inputs;
+        for (const auto& input : stage->infos().inputs)
+            used_inputs.insert(input.second.location);
+
         if (stage->infos().stage == EShaderStage::Vertex)
         {
             const auto input = create_infos.vertex_inputs;
             for (const auto& input_property : input)
             {
-                vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
-                    .location = static_cast<uint32_t>(input_property.location),
-                    .format = static_cast<VkFormat>(input_property.format),
-                    .offset = input_property.offset,
-                });
+                if (used_inputs.contains(input_property.location))
+                    vertex_attribute_description.emplace_back(VkVertexInputAttributeDescription{
+                        .location = static_cast<uint32_t>(input_property.location),
+                        .format = static_cast<VkFormat>(input_property.format),
+                        .offset = input_property.offset,
+                    });
 
                 vertex_input_size += get_format_channel_count(input_property.format) * get_format_bytes_per_pixel(input_property.format);
             }

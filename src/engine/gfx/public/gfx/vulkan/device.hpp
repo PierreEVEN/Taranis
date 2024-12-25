@@ -3,10 +3,32 @@
 #include "physical_device.hpp"
 #include "gfx/gfx.hpp"
 #include "gfx/renderer/definition/render_pass_id.hpp"
+#include "gfx/renderer/definition/renderer.hpp"
 
 #include <ankerl/unordered_dense.h>
 
+namespace Eng::Gfx
+{
+struct RenderPassKey;
+}
+
 struct VmaAllocatorWrap;
+
+template <> struct std::hash<Eng::Gfx::RenderPassKey>
+{
+    size_t operator()(const Eng::Gfx::RenderPassKey& val) const noexcept
+    {
+        auto ite = val.attachments.begin();
+        if (ite == val.attachments.end())
+            return 0;
+        size_t hash = std::hash<uint32_t>()(static_cast<uint32_t>(ite->color_format) + 1);
+        for (; ite != val.attachments.end(); ++ite)
+        {
+            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(ite->color_format) + 1) * 13;
+        }
+        return hash;
+    }
+};
 
 namespace Eng::Gfx
 {
