@@ -72,7 +72,6 @@ MaterialPermutation::~MaterialPermutation()
 std::shared_ptr<Gfx::Pipeline> MaterialPermutation::get_resource(const Gfx::RenderPassRef& render_pass)
 {
     {
-        PROFILER_SCOPE(GetResourceDirect);
         std::shared_lock lk(owner->pipeline_mutex);
         if (auto found = passes.find(render_pass); found != passes.end())
             return found->second.pipeline;

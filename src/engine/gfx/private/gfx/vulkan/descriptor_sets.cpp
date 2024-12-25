@@ -35,7 +35,7 @@ DescriptorSet::Resource::~Resource()
 }
 
 #if _DEBUG
-static SpinLock                                      this_frame_desc_mutex;
+static Spinlock                                      this_frame_desc_mutex;
 static ankerl::unordered_dense::set<DeviceResource*> this_frame_descriptors;
 #endif
 

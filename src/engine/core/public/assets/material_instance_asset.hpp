@@ -72,6 +72,6 @@ private:
     ankerl::unordered_dense::map<std::string, std::weak_ptr<Gfx::Buffer>> buffers;
 
     Spinlock                   test;
-    std::weak_ptr<Gfx::Buffer> last_scene_buffer;
+    ankerl::unordered_dense::map<Gfx::RenderPassRef, std::weak_ptr<Gfx::Buffer>> last_scene_buffer;
 };
 } // namespace Eng

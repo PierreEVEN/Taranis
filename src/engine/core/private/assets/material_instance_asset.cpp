@@ -17,11 +17,11 @@ MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& ba
 
 std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const Gfx::RenderPassRef& render_pass_id)
 {
-    PROFILER_SCOPE(GetBaseResource);
     auto perm = permutation.lock();
     if (perm)
         return perm->get_resource(render_pass_id);
 
+    PROFILER_SCOPE(GetBaseResourceFindPermutation);
     permutation = base->get_permutation(permutation_description);
     if (!permutation.lock())
     {
@@ -37,7 +37,6 @@ std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const Gf
 std::shared_ptr<Gfx::DescriptorSet> MaterialInstanceAsset::get_descriptor_resource(const Gfx::RenderPassRef& render_pass_id)
 {
     {
-        PROFILER_SCOPE(GetDescriptorResources);
         std::shared_lock lk(descriptor_lock);
         if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
             return found->second;
@@ -142,9 +141,8 @@ void MaterialInstanceAsset::set_texture(const Gfx::RenderPassRef& render_pass_id
 
 void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
-    PROFILER_SCOPE(SetBufferWithLock);
+    PROFILER_SCOPE_NAMED(SetBufferWithLock, "Set buffer " + buffer.lock()->get_name());
     std::unique_lock         lk(descriptor_lock);
-    PROFILER_SCOPE(SetBufferInternal);
     if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
         found->second->bind_buffer(binding, buffer.lock());
     else
@@ -163,9 +161,9 @@ void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id,
 void MaterialInstanceAsset::set_scene_data(const Gfx::RenderPassRef& render_pass_id, const std::weak_ptr<Gfx::Buffer>& buffer_data)
 {
     std::lock_guard lk(test);
-    if (buffer_data.lock() == last_scene_buffer.lock())
+    if (auto found = last_scene_buffer.find(render_pass_id); found != last_scene_buffer.end() && buffer_data.lock() == found->second.lock())
         return;
-    last_scene_buffer = buffer_data;
+    last_scene_buffer.insert_or_assign(render_pass_id, buffer_data);
     set_buffer(render_pass_id, "scene_data_buffer", buffer_data);
 }
 
