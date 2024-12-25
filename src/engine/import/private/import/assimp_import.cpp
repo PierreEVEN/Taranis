@@ -181,11 +181,11 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
 
     new_mat->set_sampler("sSampler", get_sampler());
     if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
-        new_mat->set_texture("albedo", TextureAsset::get_default_asset());
+        new_mat->set_permutation(new_mat->get_permutation().set("PARAM_ALBEDO_TEXTURE", false));
     if (mat->GetTextureCount(aiTextureType_NORMALS) == 0)
-        new_mat->set_texture("normal_map", default_normal);
+        new_mat->set_permutation(new_mat->get_permutation().set("PARAM_NORMAL_TEXTURE", false));
     if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) == 0)
-        new_mat->set_texture("mr_map", default_mrao);
+        new_mat->set_permutation(new_mat->get_permutation().set("PARAM_METAL_ROUGHNESS_TEXTURE", false));
 
     for (uint32_t i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE);)
     {

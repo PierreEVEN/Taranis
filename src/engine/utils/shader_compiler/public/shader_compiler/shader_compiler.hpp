@@ -97,12 +97,9 @@ struct CompilationResult
 class Session
 {
 public:
-    CompilationResult compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const;
+    CompilationResult compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation);
 
-    Eng::Gfx::PermutationDescription get_default_permutations_description() const
-    {
-        return {permutation_description};
-    }
+    Eng::Gfx::PermutationDescription get_default_permutations_description() const;
 
     ~Session();
 

@@ -2,6 +2,9 @@
 import shader_base;
 
 [DefaultEnabled]
+extern static const bool PARAM_ALBEDO_TEXTURE;
+
+[DefaultEnabled]
 extern static const bool PARAM_NORMAL_TEXTURE;
 
 [DefaultEnabled]
@@ -94,7 +97,10 @@ FsOutput fragment_main(VsToFs input)
 {
     // @TODO handle flipped textures
     input.Uvs = float2(input.Uvs.x, -input.Uvs.y);
-    float4 tex_col = albedo.Sample(sSampler, input.Uvs, 1);
+    float4 tex_col = float4(1, 1, 1, 1);
+
+    if (PARAM_ALBEDO_TEXTURE)
+        tex_col = albedo.Sample(sSampler, input.Uvs, 1);
 
     float2 mr           = float2(0, 1);
     float3 local_normal = float3(0, 0, 1);

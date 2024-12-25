@@ -29,7 +29,6 @@ void MaterialAsset::set_shader_code(const std::filesystem::path& code, const std
             LOG_ERROR("The file {} does not exists", shader_real_path.string());
         last_update = last_write_time(shader_real_path);
     }
-
     default_permutation = compiler_session->get_default_permutations_description();
 }
 

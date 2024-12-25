@@ -50,7 +50,11 @@ public:
         return {0.2, 0.7, 0.3};
     }
 
-private:
+    Gfx::PermutationDescription get_permutation();
+
+    void set_permutation(const Gfx::PermutationDescription& perm);
+
+  private:
     TObjectRef<MaterialAsset>                                                             base;
     Spinlock                                                                              descriptor_lock;
     ankerl::unordered_dense::map<Gfx::RenderPassRef, std::shared_ptr<Gfx::DescriptorSet>> descriptors;

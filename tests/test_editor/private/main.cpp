@@ -403,47 +403,10 @@ public:
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
-
-
-
-    /*
-    int A = 0;
-
-    int      it = 10000;
-    Spinlock sl;
-
-    std::vector<std::thread> threads;
-    for (int i = 0; i < 32; ++i)
-    {
-        threads.emplace_back(
-            [&]()
-            {
-                for (int i = 0; i < it; ++i)
-                {
-                    std::lock_guard lk(sl);
-                    A += 1;
-                }
-            });
-    }
-
-    for (auto& thr : threads)
-        thr.join();
-
-    LOG_WARNING("A = {} / {} => {}", A, 32 * it, A == 32 * it);
-
-    return -1;
-
-
-
-
-
-
-
-    */
     Config config;
-    config.gfx.enable_validation_layers = false;
+    config.gfx.enable_validation_layers = true;
     config.gfx.v_sync                   = true;
-    config.auto_update_materials        = false;
+    config.auto_update_materials        = true;
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

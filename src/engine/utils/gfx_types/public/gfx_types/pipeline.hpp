@@ -1,4 +1,6 @@
 #pragma once
+#include "logger.hpp"
+
 #include <algorithm>
 #include <ranges>
 #include <string>
@@ -111,7 +113,7 @@ class PermutationDescription
         return false;
     }
 
-    void set(const std::string& key, bool value)
+    PermutationDescription& set(const std::string& key, bool value)
     {
         for (size_t i = 0; i < switch_names.size(); ++i)
         {
@@ -121,9 +123,10 @@ class PermutationDescription
                     bit_mask |= 1ull << i;
                 else
                     bit_mask &= ~(1ull << i);
-                return;
+                return *this;
             }
         }
+        return *this;
     }
 
     const std::vector<std::string>& keys() const

@@ -13,6 +13,7 @@ namespace Eng
 
 MaterialInstanceAsset::MaterialInstanceAsset(const TObjectRef<MaterialAsset>& base_material) : base(base_material)
 {
+    permutation_description = base->get_default_permutation();
 }
 
 std::shared_ptr<Gfx::Pipeline> MaterialInstanceAsset::get_base_resource(const Gfx::RenderPassRef& render_pass_id)
@@ -142,7 +143,7 @@ void MaterialInstanceAsset::set_texture(const Gfx::RenderPassRef& render_pass_id
 void MaterialInstanceAsset::set_buffer(const Gfx::RenderPassRef& render_pass_id, const std::string& binding, const std::weak_ptr<Gfx::Buffer>& buffer)
 {
     PROFILER_SCOPE_NAMED(SetBufferWithLock, "Set buffer " + buffer.lock()->get_name());
-    std::unique_lock         lk(descriptor_lock);
+    std::unique_lock lk(descriptor_lock);
     if (auto found = descriptors.find(render_pass_id); found != descriptors.end())
         found->second->bind_buffer(binding, buffer.lock());
     else
@@ -171,5 +172,16 @@ void MaterialInstanceAsset::prepare_for_passes(const Gfx::RenderPassGenericId& r
 {
     for (const auto& pass : Engine::get().get_device().lock()->get_all_pass_of_type(render_pass_id))
         get_base_resource(pass);
+}
+
+Gfx::PermutationDescription MaterialInstanceAsset::get_permutation()
+{
+    return permutation_description;
+}
+
+void MaterialInstanceAsset::set_permutation(const Gfx::PermutationDescription& perm)
+{
+    permutation_description = perm;
+    permutation             = {};
 }
 } // namespace Eng

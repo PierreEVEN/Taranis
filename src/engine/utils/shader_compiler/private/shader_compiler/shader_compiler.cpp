@@ -81,6 +81,38 @@ Session::Session(Compiler* in_compiler, const std::filesystem::path& path) : com
         load_errors.emplace_back(static_cast<const char*>(diagnostics->getBufferPointer()));
         return;
     }
+
+        auto moduleReflection = module->getModuleReflection();
+    for (auto child : moduleReflection->getChildren())
+    {
+        auto type = child->getKind();
+        if (type == slang::DeclReflection::Kind::Variable)
+        {
+            auto asVariable = child->asVariable();
+            bool hasExtern  = asVariable->findModifier(slang::Modifier::Extern) != nullptr;
+            bool hasStatic  = asVariable->findModifier(slang::Modifier::Static) != nullptr;
+            bool hasConst   = asVariable->findModifier(slang::Modifier::Const) != nullptr;
+            if (hasExtern && hasStatic && hasConst && static_cast<SlangScalarType>(asVariable->getType()->getScalarType()) == SLANG_SCALAR_TYPE_BOOL)
+            {
+                if (asVariable->hasDefaultValue())
+                {
+                    load_errors.emplace_back(std::format("{} : Default values are not supported for static switches. Please use [DefaultEnabled] user attribute instead", child->getName()));
+                    break;
+                }
+                bool perm_value = false;
+                for (uint32_t at_i = 0; at_i < asVariable->getUserAttributeCount(); ++at_i)
+                {
+                    auto user_attribute = asVariable->getUserAttributeByIndex(at_i);
+                    if (user_attribute->getName() == std::string("DefaultEnabled"))
+                    {
+                        perm_value = true;
+                        break;
+                    }
+                }
+                permutation_description.permutation_group.emplace(asVariable->getName(), perm_value);
+            }
+        }
+    }
 }
 
 std::optional<std::string> Session::try_register_variable(slang::VariableLayoutReflection* variable, ankerl::unordered_dense::map<std::string, StageInputOutputDescription>& in_outs, slang::IMetadata* metadata)
@@ -96,7 +128,7 @@ std::optional<std::string> Session::try_register_variable(slang::VariableLayoutR
         if (variable->getTypeLayout()->getBindingRangeCount() == 1)
         {
             bool b_used = true;
-            metadata->isParameterLocationUsed((SlangParameterCategory)variable->getCategory(), variable->getBindingSpace(), variable->getBindingIndex(), b_used);
+            metadata->isParameterLocationUsed(static_cast<SlangParameterCategory>(variable->getCategory()), variable->getBindingSpace(), variable->getBindingIndex(), b_used);
             if (b_used)
             {
                 if (in_outs.contains(variable->getName()))
@@ -185,7 +217,7 @@ bool TypeReflection::can_reflect(slang::TypeReflection* slang_var)
 }
 
 
-CompilationResult Session::compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation) const
+CompilationResult Session::compile(const std::string& render_pass, const Eng::Gfx::PermutationDescription& permutation)
 {
     std::lock_guard   lk(session_lock);
     CompilationResult result;
@@ -198,38 +230,10 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
     ankerl::unordered_dense::map<std::string, bool> static_switches_values;
     for (const auto& key : permutation.keys())
         static_switches_values.emplace(key, permutation.get(key));
+    for (const auto& key : permutation_description.permutation_group)
+        static_switches_values.emplace(key.first, key.second);
 
-    auto moduleReflection = module->getModuleReflection();
-    for (auto child : moduleReflection->getChildren())
-    {
-        auto type = child->getKind();
-        if (type == slang::DeclReflection::Kind::Variable)
-        {
-            auto asVariable = child->asVariable();
-            bool hasExtern  = asVariable->findModifier(slang::Modifier::Extern) != nullptr;
-            bool hasStatic  = asVariable->findModifier(slang::Modifier::Static) != nullptr;
-            bool hasConst   = asVariable->findModifier(slang::Modifier::Const) != nullptr;
-            if (hasExtern && hasStatic && hasConst && static_cast<SlangScalarType>(asVariable->getType()->getScalarType()) == SLANG_SCALAR_TYPE_BOOL)
-            {
-                if (static_switches_values.contains(asVariable->getName()))
-                    continue;
 
-                if (asVariable->hasDefaultValue())
-                    return result.push_error(std::format("{} : Default values are not supported for static switches. Please use [DefaultEnabled] user attribute instead", child->getName()));
-                bool perm_value = false;
-                for (uint32_t at_i = 0; at_i < asVariable->getUserAttributeCount(); ++at_i)
-                {
-                    auto user_attribute = asVariable->getUserAttributeByIndex(at_i);
-                    if (user_attribute->getName() == std::string("DefaultEnabled"))
-                    {
-                        perm_value = true;
-                        break;
-                    }
-                }
-                static_switches_values.emplace(child->getName(), perm_value);
-            }
-        }
-    }
 
     for (SlangInt32 ep_i = 0; ep_i < module->getDefinedEntryPointCount(); ++ep_i)
     {
@@ -388,5 +392,10 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         result.stages.emplace(data.stage, data);
     }
     return result;
+}
+
+Eng::Gfx::PermutationDescription Session::get_default_permutations_description() const
+{
+    return {permutation_description};
 }
 } // namespace ShaderCompiler
