@@ -39,9 +39,10 @@ public:
         return layout;
     }
 
-private:
-    ComputePipeline(std::string name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos in_create_infos);
+    ~ComputePipeline() override;
 
+  private:
+    ComputePipeline(std::string name, std::weak_ptr<Device> in_device, const std::shared_ptr<ShaderModule>& shader_stage, CreateInfos in_create_infos);
     std::shared_ptr<PipelineLayout> layout;
     VkPipeline                      ptr;
 };

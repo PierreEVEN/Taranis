@@ -253,6 +253,8 @@ void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
 
 void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout)
 {
+    if (image_layout == new_layout)
+        return;
     VkImageMemoryBarrier barrier = VkImageMemoryBarrier{
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .oldLayout = image_layout,
@@ -286,6 +288,14 @@ void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer,
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         source_stage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (image_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        source_stage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
     else

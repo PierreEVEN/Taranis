@@ -72,9 +72,9 @@ class RenderPassInstanceBase : public DeviceResource
 public:
     REFLECT_BODY()
 
-    static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref);
+    static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref);
 
-    static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, const Renderer& renderer)
+    static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, Renderer& renderer)
     {
         return create(std::move(device), renderer, *renderer.root_node());
     }
@@ -162,7 +162,7 @@ public:
     void init();
 
 protected:
-    RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name);
+    RenderPassInstanceBase(std::weak_ptr<Device> in_device, Renderer& renderer, const RenderPassGenericId& name);
 
     // Retrieve the fence that will be signaled once the image rendering is finished
     virtual const Fence* get_render_finished_fence(DeviceImageId) const
@@ -191,7 +191,7 @@ protected:
     std::unique_ptr<PassCommandPool> command_buffers;
 
 private:
-    bool prepared  = false;
+    std::atomic_flag prepared;
     bool submitted = false;
 
     std::shared_ptr<FrameResources> frame_resources;

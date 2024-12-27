@@ -22,7 +22,7 @@ FrameResources* RenderPassInstance::create_or_resize(const glm::uvec2& viewport,
     return nullptr;
 }
 
-RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : RenderPassInstanceBase(std::move(in_device), renderer, name)
+RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, Renderer& renderer, const RenderPassGenericId& name, bool b_is_present) : RenderPassInstanceBase(std::move(in_device), renderer, name)
 {
     render_pass_resource = device().lock()->declare_render_pass(get_definition().get_key(b_is_present), name);
 
@@ -122,7 +122,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         render_pass_interface->pre_submit(*this);
     }
     {
-        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for draw pass {}", get_definition().render_pass_ref));
+        PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Submit command buffer for render pass {}", get_definition().render_pass_ref));
         // Submit current_thread (wait children completion using children_semaphores)
         std::vector<VkSemaphore>          children_semaphores = get_semaphores_to_wait(device_image);
         std::vector<VkPipelineStageFlags> wait_stage(children_semaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);

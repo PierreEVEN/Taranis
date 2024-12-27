@@ -36,7 +36,7 @@ void RenderPassInstanceBase::init()
     }
 }
 
-RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, const Renderer& renderer, const RenderPassGenericId& id) : DeviceResource(id, std::move(in_device)), definition(renderer.get_node(id))
+RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, Renderer& renderer, const RenderPassGenericId& id) : DeviceResource(id, std::move(in_device)), definition(renderer.get_node(id))
 {
     assert(renderer.compiled());
     custom_passes = renderer.get_custom_passes();
@@ -47,18 +47,16 @@ RenderPassInstanceBase::RenderPassInstanceBase(std::weak_ptr<Device> in_device, 
     for (const auto& dependency : definition.dependencies)
     {
         const auto& dependency_node = renderer.get_node(dependency);
-        dependencies.emplace(dependency_node.render_pass_ref, create(device(), renderer, dependency));
+        dependencies.emplace(dependency_node.render_pass_ref, renderer.render_pass_instance_pool.emplace(dependency_node.render_pass_ref, create(device(), renderer, dependency)).first->second.lock());
     }
 }
 
 void RenderPassInstanceBase::render(SwapchainImageId swapchain_image, DeviceImageId device_image)
 {
     // Ensure our pass is not called twice. Use reset_for_next_frame() before each frame
-    if (prepared)
+    if (prepared.test_and_set(std::memory_order::seq_cst))
         return;
-
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Render pass {}", get_definition().render_pass_ref));
-    prepared                = true;
     current_swapchain_image = swapchain_image;
 
     std::vector<std::pair<RenderPassGenericId, JobHandle<void>>> render_jobs;
@@ -232,7 +230,7 @@ CommandBuffer& PassCommandPool::get_primary(DeviceImageId image)
     return *frame_data.primary_command_buffers.emplace(std::this_thread::get_id(), CommandBuffer::create(name() + "_primary", device(), QueueSpecialization::Graphic)).first->second;
 }
 
-std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref)
+std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref)
 {
     auto node = renderer.get_node(rp_ref);
     if (node.b_is_compute_pass)
@@ -247,8 +245,7 @@ std::shared_ptr<RenderPassInstanceBase> RenderPassInstanceBase::create(std::weak
 
 void RenderPassInstanceBase::reset_for_next_frame()
 {
-    prepared = false;
-
+    prepared.clear(std::memory_order::seq_cst);
     for_each_dependency(
         [&](const std::shared_ptr<RenderPassInstanceBase>& dep)
         {
@@ -309,8 +306,9 @@ FrameResources* RenderPassInstanceBase::create_or_resize(const glm::uvec2& viewp
 
 std::shared_ptr<RenderPassInstanceBase> CustomPassList::add_custom_pass(const std::vector<RenderPassGenericId>& targets, const Renderer& renderer)
 {
-    const auto           new_rp = RenderPassInstanceBase::create(device, renderer.compile(ColorFormat::UNDEFINED, device));
-    const RenderPassRef& ref    = new_rp->get_definition().render_pass_ref;
+    auto                 compiled = renderer.compile(ColorFormat::UNDEFINED, device);
+    const auto           new_rp   = RenderPassInstanceBase::create(device, compiled);
+    const RenderPassRef& ref      = new_rp->get_definition().render_pass_ref;
     for (const auto& target : targets)
         temporary_dependencies.emplace(target, ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>>{}).first->second.emplace(ref, new_rp);
     return new_rp;

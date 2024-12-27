@@ -29,6 +29,7 @@ public:
         LOG_INFO("Compiled cmaa2_edges_color_2x2");
         std::shared_ptr<Eng::Gfx::ShaderModule> sm_cmaa2_edges_color_2x2 = Eng::Gfx::ShaderModule::create(Eng::Engine::get().get_device(), cr_cmaa2_edges_color_2x2.stages.find(Eng::Gfx::EShaderStage::Compute)->second);
         LOG_INFO("Created cmaa2_edges_color_2x2 module");
+
         std::shared_ptr<Eng::Gfx::ComputePipeline> pipeline_cmaa2_edges_color_2x2 = Eng::Gfx::ComputePipeline::create("cmaa2_edges_color_2x2", Eng::Engine::get().get_device(), sm_cmaa2_edges_color_2x2);
         LOG_INFO("Created cmaa2_edges_color_2x2 pipeline");
 
@@ -111,7 +112,7 @@ void Cmaa2::append_to_renderer(Eng::Gfx::Renderer& renderer)
 {
     renderer["cmaa2"]
         .require("gbuffer_resolve")
-        .require("gbuffers")
+        //.require("gbuffers")
         .render_pass<CmaaRenderPass>()
         .compute_pass(true)
         [Eng::Gfx::Attachment::slot("target").format(Eng::Gfx::ColorFormat::R8G8B8A8_UNORM)];

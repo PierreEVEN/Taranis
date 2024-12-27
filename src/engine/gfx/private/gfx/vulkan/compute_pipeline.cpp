@@ -23,5 +23,12 @@ ComputePipeline::ComputePipeline(std::string in_name, std::weak_ptr<Device> in_d
         .layout = layout->raw(),
     };
     vkCreateComputePipelines(device().lock()->raw(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &ptr);
+    device().lock()->debug_set_object_name(name(), ptr);
+}
+
+ComputePipeline::~ComputePipeline()
+{
+    vkDestroyPipeline(device().lock()->raw(), ptr, VK_NULL_HANDLE);
+    ptr = VK_NULL_HANDLE;
 }
 }

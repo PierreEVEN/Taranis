@@ -14,8 +14,8 @@
 
 namespace Eng::Gfx
 {
-Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer)
-    : RenderPassInstance(in_device, renderer.compile(get_swapchain_format(in_device, in_surface), in_device), *renderer.root_node(), true), surface(in_surface)
+Swapchain::Swapchain(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, Renderer& renderer)
+    : RenderPassInstance(in_device, renderer, *renderer.root_node(), true), surface(in_surface)
 {
     create_or_recreate();
 }
@@ -25,6 +25,11 @@ Swapchain::~Swapchain()
     destroy();
     image_view = nullptr;
     swapChainImages.clear();
+}
+
+Renderer Swapchain::compile_renderer(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer)
+{
+    return renderer.compile(get_swapchain_format(in_device, in_surface), in_device);
 }
 
 std::vector<VkSemaphore> Swapchain::get_semaphores_to_wait(DeviceImageId swapchain_image) const

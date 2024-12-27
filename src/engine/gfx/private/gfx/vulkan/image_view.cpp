@@ -7,10 +7,10 @@
 
 namespace Eng::Gfx
 {
-ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image) : device(in_image->get_device()), name(std::move(in_name))
+ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image) : image(in_image), device(in_image->get_device()), name(std::move(in_name))
 {
-    for (size_t i = 0; i < in_image->get_resource().size(); ++i)
-        views.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, in_image->get_resource()[i],
+    for (size_t i = 0; i < in_image->get_resources().size(); ++i)
+        views.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, in_image->get_resources()[i],
                                                       CreateInfos{.format = in_image->get_params().format, .mip_levels = in_image->get_mips_count(), .layer_count = in_image->get_params().array_size}));
 }
 

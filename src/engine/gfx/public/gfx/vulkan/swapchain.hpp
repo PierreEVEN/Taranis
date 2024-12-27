@@ -22,10 +22,10 @@ class Device;
 
 class Swapchain final : public RenderPassInstance
 {
-  public:
+public:
     REFLECT_BODY()
 
-    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, const Renderer& renderer)
+    static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, Renderer& renderer)
     {
         auto inst = std::shared_ptr<Swapchain>(new Swapchain(in_device, surface, renderer));
         inst->init();
@@ -67,6 +67,8 @@ class Swapchain final : public RenderPassInstance
         return swapchain_format;
     }
 
+    static Renderer compile_renderer(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& in_surface, const Renderer& renderer);
+
 protected:
     std::vector<VkSemaphore> get_semaphores_to_wait(DeviceImageId swapchain_image) const override;
 
@@ -75,8 +77,8 @@ protected:
         return render_finished_fences[device_image].get();
     }
 
-  private:
-    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, const Renderer& renderer);
+private:
+    Swapchain(const std::weak_ptr<Device>& device, const std::weak_ptr<Surface>& surface, Renderer& renderer);
 
     std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;
     uint8_t                    get_image_count() const override;

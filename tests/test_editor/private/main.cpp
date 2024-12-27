@@ -230,13 +230,12 @@ public:
     void init(const Gfx::RenderPassInstanceBase& rp) override
     {
         const Gfx::RenderPassInstance* rp_inst = rp.cast<Gfx::RenderPassInstance>();
-
-        rp_inst->imgui()->new_window<Viewport>("Viewport", rp.get_dependencies("gbuffer_resolve")[0], scene);
+        rp_inst->imgui()->new_window<Viewport>("Viewport", rp.get_dependencies("cmaa2")[0], scene);
         rp_inst->imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);
         rp_inst->imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
         rp_inst->imgui()->new_window<ProfilerWindow>("Profiler");
         rp_inst->imgui()->new_window<RenderGraphView>("Render Graph View");
-        rp_inst->imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependencies("gbuffer_resolve")[0]);
+        rp_inst->imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependencies("cmaa2")[0]);
     }
 
     std::shared_ptr<Scene> scene;
@@ -266,11 +265,11 @@ public:
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
-        //Cmaa2 cmaa;
-        //cmaa.append_to_renderer(renderer);
+        Cmaa2 cmaa;
+        cmaa.append_to_renderer(renderer);
 
         renderer["present"]
-            .require("gbuffer_resolve")
+            .require("cmaa2")
             .with_imgui(true, default_window)
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
@@ -280,7 +279,7 @@ public:
         camera->activate();
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        directional_light->enable_shadow(ELightType::Movable);
+        //directional_light->enable_shadow(ELightType::Movable);
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
 
         /*
@@ -298,7 +297,7 @@ public:
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
-
+        /*
          engine.jobs().schedule(
             [&, importer]
             {
@@ -315,7 +314,7 @@ public:
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
             });
-            
+            */
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
             {

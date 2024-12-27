@@ -161,9 +161,14 @@ public:
     bool resize(glm::uvec2 new_size);
     void set_data(glm::uvec2 new_size, const std::vector<BufferData>& mips);
 
-    const std::vector<std::shared_ptr<ImageResource>>& get_resource() const
+    const std::vector<std::shared_ptr<ImageResource>>& get_resources() const
     {
         return images;
+    }
+
+    const std::shared_ptr<ImageResource>& get_resource() const
+    {
+        return images.size() == 1 ? images[0] : images[device.lock()->get_current_image()];
     }
 
     const ImageParameter& get_params() const

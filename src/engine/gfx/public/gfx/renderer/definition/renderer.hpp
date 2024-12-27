@@ -283,6 +283,9 @@ public:
 private:
     std::shared_ptr<CustomPassList> custom_passes;
 
+    friend class RenderPassInstanceBase;
+    ankerl::unordered_dense::map<RenderPassRef, std::weak_ptr<RenderPassInstanceBase>> render_pass_instance_pool;
+
     bool                                                          b_compiled = false;
     ankerl::unordered_dense::map<RenderPassGenericId, RenderNode> nodes;
 };

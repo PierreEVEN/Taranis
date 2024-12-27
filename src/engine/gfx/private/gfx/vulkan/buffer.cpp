@@ -296,6 +296,10 @@ void Buffer::Resource::set_data(size_t start_index, const BufferData& data)
         delete transfer_profiler_event;
 
         Profiler::EventRecorder* transfer_profiler_event2 = new Profiler::EventRecorder("Create command buffer");
+
+        if (data_update_cmd)
+            LOG_FATAL("Failed to transfer data to buffer {} : the previous transfer was not finished", name());
+
         data_update_cmd                                   = CommandBuffer::create("transfer_cmd_" + name(), device(), QueueSpecialization::Transfer);
         delete transfer_profiler_event2;
 

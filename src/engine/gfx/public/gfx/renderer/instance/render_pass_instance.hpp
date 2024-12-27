@@ -18,9 +18,10 @@ class ImageView;
 
 class RenderPassInstance : public RenderPassInstanceBase
 {
-  public:
+public:
     REFLECT_BODY()
-    static std::shared_ptr<RenderPassInstance> create(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present)
+
+    static std::shared_ptr<RenderPassInstance> create(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present)
     {
         auto inst = std::shared_ptr<RenderPassInstance>(new RenderPassInstance(std::move(device), renderer, rp_ref, b_is_present));
         inst->init();
@@ -36,15 +37,17 @@ class RenderPassInstance : public RenderPassInstanceBase
     {
         return imgui_context.get();
     }
+
     FrameResources* create_or_resize(const glm::uvec2& viewport, const glm::uvec2& parent, bool b_force = false) override;
 
 protected:
-    RenderPassInstance(std::weak_ptr<Device> device, const Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present);
+    RenderPassInstance(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present);
 
     void render_internal(SwapchainImageId swapchain_image, DeviceImageId device_image) override;
 
-    virtual void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const;
-  private:
+    void fill_command_buffer(CommandBuffer& cmd, size_t group_index) const override;
+
+private:
     std::weak_ptr<VkRendererPass> render_pass_resource;
     std::unique_ptr<ImGuiWrapper> imgui_context;
 };
