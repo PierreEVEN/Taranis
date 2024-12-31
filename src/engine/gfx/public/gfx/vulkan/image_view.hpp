@@ -14,12 +14,13 @@ class Image;
 
 class ImageView
 {
-  public:
+public:
     struct CreateInfos
     {
         ColorFormat format;
-        uint32_t    mip_levels = 1;
+        uint32_t    mip_levels  = 1;
         uint32_t    layer_count = 1;
+        bool        is_storage  = false;
     };
 
     static std::shared_ptr<ImageView> create(std::string name, const std::shared_ptr<Image>& image)
@@ -51,10 +52,10 @@ class ImageView
         return image;
     }
 
-  private:
+private:
     class Resource : public DeviceResource
     {
-      public:
+    public:
         Resource(std::string name, const std::weak_ptr<Device>& device, const std::shared_ptr<Image::ImageResource>& resource, CreateInfos create_infos);
         Resource(std::string name, const std::weak_ptr<Device>& device, VkImage image, CreateInfos create_infos);
         ~Resource();

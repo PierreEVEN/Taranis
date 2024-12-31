@@ -31,18 +31,6 @@ enum class ETextureTransferCapabilities
     CopyDestination = 0x00002,
 };
 
-enum class ETextureGPUWriteCapabilities
-{
-    None,
-    Enabled,
-};
-
-enum class ETextureGPUReadCapabilities
-{
-    None,
-    Sampling,
-};
-
 struct GenerateMips
 {
     friend class ImageResource;
@@ -85,18 +73,19 @@ private:
 
 struct ImageParameter
 {
-    ColorFormat                  format                 = ColorFormat::R8G8B8A8_UNORM;
-    EImageType                   image_type             = EImageType::Texture_2D;
-    ETextureTransferCapabilities transfer_capabilities  = ETextureTransferCapabilities::CopyDestination;
-    ETextureGPUWriteCapabilities gpu_write_capabilities = ETextureGPUWriteCapabilities::None;
-    ETextureGPUReadCapabilities  gpu_read_capabilities  = ETextureGPUReadCapabilities::Sampling;
-    GenerateMips                 generate_mips          = GenerateMips::none();
-    EBufferType                  buffer_type            = EBufferType::IMMUTABLE;
-    uint32_t                     width                  = 1;
-    uint32_t                     height                 = 1;
-    uint32_t                     depth                  = 1;
-    uint32_t                     array_size             = 1;
-    bool                         read_only              = true;
+    ColorFormat                  format                = ColorFormat::R8G8B8A8_UNORM;
+    EImageType                   image_type            = EImageType::Texture_2D;
+    ETextureTransferCapabilities transfer_capabilities = ETextureTransferCapabilities::CopyDestination;
+    bool                         is_attachment         = false;
+    bool                         can_sample            = true;
+    bool                         is_storage            = false;
+    GenerateMips                 generate_mips         = GenerateMips::none();
+    EBufferType                  buffer_type           = EBufferType::IMMUTABLE;
+    uint32_t                     width                 = 1;
+    uint32_t                     height                = 1;
+    uint32_t                     depth                 = 1;
+    uint32_t                     array_size            = 1;
+    bool                         read_only             = true;
 };
 
 class Image

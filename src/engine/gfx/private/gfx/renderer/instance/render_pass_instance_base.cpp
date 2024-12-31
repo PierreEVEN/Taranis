@@ -169,7 +169,8 @@ std::shared_ptr<ImageView> RenderPassInstanceBase::create_view_for_attachment(co
     return ImageView::create(attachment_name, Image::create(attachment_name, device(),
                                                             ImageParameter{
                                                                 .format = attachment->color_format,
-                                                                .gpu_write_capabilities = ETextureGPUWriteCapabilities::Enabled,
+                                                                .is_attachment = true,
+                                                                .is_storage = definition.b_is_compute_pass,
                                                                 .buffer_type = EBufferType::IMMEDIATE,
                                                                 .width = resolution().x,
                                                                 .height = resolution().y,

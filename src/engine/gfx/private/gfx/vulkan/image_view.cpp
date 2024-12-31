@@ -11,7 +11,8 @@ ImageView::ImageView(std::string in_name, const std::shared_ptr<Image>& in_image
 {
     for (size_t i = 0; i < in_image->get_resources().size(); ++i)
         views.emplace_back(std::make_shared<Resource>(name + "_#" + std::to_string(i), device, in_image->get_resources()[i],
-                                                      CreateInfos{.format = in_image->get_params().format, .mip_levels = in_image->get_mips_count(), .layer_count = in_image->get_params().array_size}));
+                                                      CreateInfos{.format = in_image->get_params().format, .mip_levels = in_image->get_mips_count(), .layer_count = in_image->get_params().array_size,
+                                                                  .is_storage = in_image->get_params().is_storage}));
 }
 
 ImageView::ImageView(std::string in_name, std::weak_ptr<Device> in_device, std::vector<VkImage> raw_image, CreateInfos create_infos) : device(std::move(in_device)), name(std::move(in_name))
@@ -23,10 +24,8 @@ ImageView::ImageView(std::string in_name, std::weak_ptr<Device> in_device, std::
 ImageView::~ImageView()
 {
     if (views.size() != 1)
-    {
         for (size_t i = 0; i < views.size(); ++i)
             device.lock()->drop_resource(views[i], i);
-    }
     else
         for (const auto& resource : views)
             device.lock()->drop_resource(resource);
@@ -87,6 +86,8 @@ ImageView::Resource::Resource(std::string in_name, const std::weak_ptr<Device>& 
         .imageView = ptr,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
+    if (create_infos.is_storage)
+        descriptor_infos.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     device.lock()->debug_set_object_name(name(), ptr);
 }
 

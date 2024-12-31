@@ -18,11 +18,13 @@ VkImageUsageFlags vk_usage(const ImageParameter& texture_parameters)
     if (static_cast<int>(texture_parameters.transfer_capabilities) & static_cast<int>(ETextureTransferCapabilities::CopyDestination))
         usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    if (texture_parameters.gpu_write_capabilities == ETextureGPUWriteCapabilities::Enabled)
+    if (texture_parameters.is_attachment)
         usage_flags |= is_depth_format(texture_parameters.format) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    if (texture_parameters.gpu_read_capabilities == ETextureGPUReadCapabilities::Sampling)
+    if (texture_parameters.can_sample)
         usage_flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (texture_parameters.is_storage)
+        usage_flags |= VK_IMAGE_USAGE_STORAGE_BIT;
 
     return usage_flags;
 }
@@ -166,16 +168,16 @@ Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> i
         image_type = VK_IMAGE_TYPE_3D;
 
     VkImageCreateInfo image_create_infos{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .imageType = image_type,
-        .format = format,
-        .extent = VkExtent3D{params.width, params.height, params.depth},
-        .mipLevels = mip_count,
-        .arrayLayers = params.array_size,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = vk_usage(params),
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType     = image_type,
+        .format        = format,
+        .extent        = VkExtent3D{params.width, params.height, params.depth},
+        .mipLevels     = mip_count,
+        .arrayLayers   = params.array_size,
+        .samples       = VK_SAMPLE_COUNT_1_BIT,
+        .tiling        = VK_IMAGE_TILING_OPTIMAL,
+        .usage         = vk_usage(params),
+        .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
@@ -187,7 +189,17 @@ Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> i
     VK_CHECK(vmaCreateImage(device().lock()->get_allocator().allocator, &image_create_infos, &vma_allocation, &ptr, &vma_alloc, &infos), "failed to create image")
     allocation = std::make_unique<VmaAllocationWrap>(vma_alloc);
     device().lock()->debug_set_object_name(name(), ptr);
-    device().lock()->debug_set_object_name(name() + "_memory", infos.deviceMemory);
+
+    if (params.is_storage)
+    {
+        auto command_buffer = CommandBuffer::create(name() + "_transfer_cmd1", device(), QueueSpecialization::Graphic);
+        command_buffer->begin(true);
+        set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_GENERAL);
+        command_buffer->end();
+        const auto fence = Fence::create(name() + "_fence", device());
+        command_buffer->submit({}, &*fence);
+        fence->wait();
+    }
 }
 
 Image::ImageResource::~ImageResource()
@@ -291,6 +303,22 @@ void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer,
         destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
     else if (image_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        source_stage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (image_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_GENERAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        source_stage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (image_layout == VK_IMAGE_LAYOUT_GENERAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;

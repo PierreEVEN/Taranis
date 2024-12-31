@@ -186,17 +186,23 @@ void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vec
 void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
                                            std::vector<VkDescriptorBufferInfo>&)
 {
-    size_t start = image_descs.size();
-    for (uint32_t i = 0; i < images.size(); ++i)
-        image_descs.emplace_back(images[i]->get_descriptor_infos_current());
+    size_t           start = image_descs.size();
+    VkDescriptorType type  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 
+    for (uint32_t i = 0; i < images.size(); ++i)
+    {
+        if (auto base_image = images[i].get()->get_base_image())
+            if (base_image->get_params().is_storage)
+                type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        image_descs.emplace_back(images[i]->get_descriptor_infos_current());
+    }
     out_sets.emplace_back(VkWriteDescriptorSet{
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .dstSet = dst_set,
         .dstBinding = binding,
         .dstArrayElement = 0,
         .descriptorCount = static_cast<uint32_t>(images.size()),
-        .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .descriptorType = type,
         .pImageInfo = &image_descs[start],
     });
 }
