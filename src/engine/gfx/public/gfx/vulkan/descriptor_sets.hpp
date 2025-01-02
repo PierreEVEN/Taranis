@@ -1,6 +1,7 @@
 #pragma once
 #include "device_resource.hpp"
 #include "spinlock.hpp"
+#include "gfx_types/pipeline.hpp"
 
 #include <memory>
 #include <shared_mutex>
@@ -93,7 +94,7 @@ private:
         }
 
         virtual void get_resources(uint32_t& buffer_count, uint32_t& image_count) = 0;
-        virtual void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) = 0;
+        virtual void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, EBindingType type, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) = 0;
         virtual uint32_t get_type_id() const = 0;
 
     protected:
@@ -112,7 +113,8 @@ private:
             image_count += static_cast<uint32_t>(images.size());
         }
 
-        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, EBindingType type, std::vector<VkDescriptorImageInfo>& image_descs,
+                  std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
         {
@@ -138,7 +140,8 @@ private:
             image_count += static_cast<uint32_t>(samplers.size());
         }
 
-        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, EBindingType type, std::vector<VkDescriptorImageInfo>& image_descs,
+                  std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
         {
@@ -162,7 +165,8 @@ private:
             buffer_count += static_cast<uint32_t>(buffers.size());
         }
 
-        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs, std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
+        void fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, EBindingType type, std::vector<VkDescriptorImageInfo>& image_descs,
+                  std::vector<VkDescriptorBufferInfo>& buffer_descs) override;
 
         uint32_t get_type_id() const override
         {
@@ -176,13 +180,18 @@ private:
 
     bool try_insert(const std::string& binding_name, const std::shared_ptr<Descriptor>& descriptor);
 
-    ankerl::unordered_dense::map<std::string, std::shared_ptr<Descriptor>> write_descriptors;
-    ankerl::unordered_dense::map<std::string, uint32_t>                    descriptor_bindings;
+    struct DescriptorInfos
+    {
+        std::shared_ptr<Descriptor> write_descriptor;
+        uint32_t                    binding;
+        EBindingType                type = EBindingType::MAX;
+    };
 
-    std::vector<std::shared_ptr<Resource>> resources;
-    mutable Spinlock                       update_lock;
-    std::weak_ptr<Device>                  device;
-    bool                                   b_static;
-    std::string                            name;
+    ankerl::unordered_dense::map<std::string, DescriptorInfos> descriptor_infos;
+    std::vector<std::shared_ptr<Resource>>                     resources;
+    mutable Spinlock                                           update_lock;
+    std::weak_ptr<Device>                                      device;
+    bool                                                       b_static;
+    std::string                                                name;
 };
 } // namespace Eng::Gfx

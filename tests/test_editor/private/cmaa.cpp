@@ -20,35 +20,6 @@ public:
     {
     }
 
-    void on_create_framebuffer(const Eng::Gfx::RenderPassInstanceBase& rp) override
-    {
-        auto device                         = Eng::Engine::get().get_device();
-        auto input_image                    = rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resource(rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resources()[0]).lock();
-        auto output_image                   = rp.get_image_resource(rp.get_image_resources()[0]).lock();
-        g_workingDeferredBlendItemListHeads = Eng::Gfx::ImageView::create("g_workingDeferredBlendItemListHeads",
-                                                                          Eng::Gfx::Image::create("g_workingDeferredBlendItemListHeads", device,
-                                                                                                  Eng::Gfx::ImageParameter{
-                                                                                                      .format = Eng::Gfx::ColorFormat::R32_UINT,
-                                                                                                      .is_storage = true,
-                                                                                                      .width = static_cast<uint32_t>(static_cast<float>(rp.resolution().x + 1) / 2.f),
-                                                                                                      .height = static_cast<uint32_t>(static_cast<float>(rp.resolution().y + 1) / 2.f)}));
-        g_workingEdges = Eng::Gfx::ImageView::create("g_workingEdges", Eng::Gfx::Image::create("g_workingEdges", device,
-                                                                                               Eng::Gfx::ImageParameter{.format = Eng::Gfx::ColorFormat::R8_UINT,
-                                                                                                                        .is_storage = true,
-                                                                                                                        .width = static_cast<uint32_t>(static_cast<float>(rp.resolution().x)),
-                                                                                                                        .height = static_cast<uint32_t>(static_cast<float>(rp.resolution().x))}));
-        descriptors_cmaa2_edges_color_2x2->bind_image("g_workingDeferredBlendItemListHeads", g_workingDeferredBlendItemListHeads);
-        descriptors_cmaa2_edges_color_2x2->bind_image("g_workingEdges", g_workingEdges);
-        descriptors_cmaa2_edges_color_2x2->bind_image("g_inoutColorReadonly", input_image);
-
-        descriptors_cmaa2_process_candidates->bind_image("g_inoutColorReadonly", input_image);
-        descriptors_cmaa2_process_candidates->bind_image("g_workingEdges", g_workingEdges);
-        descriptors_cmaa2_process_candidates->bind_image("g_workingDeferredBlendItemListHeads", g_workingDeferredBlendItemListHeads);
-
-        descriptors_cmaa2_debug_draw_edges->bind_image("g_inoutColorWriteonly", output_image);
-        descriptors_cmaa2_debug_draw_edges->bind_image("g_workingEdges", g_workingEdges);
-    }
-
     void init(const Eng::Gfx::RenderPassInstanceBase&) override
     {
         auto device                   = Eng::Engine::get().get_device();
@@ -110,36 +81,131 @@ public:
 
     }
 
+    void on_create_framebuffer(const Eng::Gfx::RenderPassInstanceBase& rp) override
+    {
+        auto device       = Eng::Engine::get().get_device();
+        auto input_image  = rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resource(rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resources()[0]).lock();
+        auto output_image = rp.get_image_resource(rp.get_image_resources()[0]).lock();
+        g_workingDeferredBlendItemListHeads =
+            Eng::Gfx::ImageView::create("g_workingDeferredBlendItemListHeads", Eng::Gfx::Image::create("g_workingDeferredBlendItemListHeads", device,
+                                                                                                       Eng::Gfx::ImageParameter{.format     = Eng::Gfx::ColorFormat::R32_UINT,
+                                                                                                                                .is_storage = true,
+                                                                                                                                .width      = static_cast<uint32_t>(static_cast<float>(rp.resolution().x + 1) / 2.f),
+                                                                                                                                .height     = static_cast<uint32_t>(static_cast<float>(rp.resolution().y + 1) / 2.f)}));
+        g_workingEdges = Eng::Gfx::ImageView::create("g_workingEdges", Eng::Gfx::Image::create("g_workingEdges", device,
+                                                                                               Eng::Gfx::ImageParameter{.format     = Eng::Gfx::ColorFormat::R8_UINT,
+                                                                                                                        .is_storage = true,
+                                                                                                                        .width      = static_cast<uint32_t>(static_cast<float>(rp.resolution().x)),
+                                                                                                                        .height     = static_cast<uint32_t>(static_cast<float>(rp.resolution().y))}));
+
+        int requiredCandidatePixels = rp.resolution().x * rp.resolution().y / 4;
+        g_workingShapeCandidates    = Eng::Gfx::Buffer::create("g_workingShapeCandidates", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
+        g_workingControlBuffer      = Eng::Gfx::Buffer::create("g_workingControlBuffer", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
+        g_workingDeferredBlendLocationList = Eng::Gfx::Buffer::create("g_workingDeferredBlendLocationList", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), 16);
+        g_workingDeferredBlendItemList =
+            Eng::Gfx::Buffer::create("g_workingDeferredBlendItemList", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
+
+        g_workingExecuteIndirectBuffer = Eng::Gfx::Buffer::create("g_workingExecuteIndirectBuffer", device, {Eng::Gfx::EBufferUsage::INDIRECT_DRAW_ARGUMENT, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), 4);
+
+        descriptors_cmaa2_edges_color_2x2->bind_image("g_workingDeferredBlendItemListHeads", g_workingDeferredBlendItemListHeads);
+        descriptors_cmaa2_edges_color_2x2->bind_image("g_workingEdges", g_workingEdges);
+        descriptors_cmaa2_edges_color_2x2->bind_image("g_inoutColorReadonly", input_image);
+        descriptors_cmaa2_edges_color_2x2->bind_buffer("g_workingShapeCandidates", g_workingShapeCandidates);
+        descriptors_cmaa2_edges_color_2x2->bind_buffer("g_workingControlBuffer", g_workingControlBuffer);
+
+        descriptors_cmaa2_compute_dispatch_args->bind_buffer("g_workingControlBuffer", g_workingControlBuffer);
+        descriptors_cmaa2_compute_dispatch_args->bind_buffer("g_workingExecuteIndirectBuffer", g_workingExecuteIndirectBuffer);
+        descriptors_cmaa2_compute_dispatch_args->bind_buffer("g_workingShapeCandidates", g_workingShapeCandidates);
+
+        descriptors_cmaa2_process_candidates->bind_image("g_inoutColorReadonly", input_image);
+        descriptors_cmaa2_process_candidates->bind_image("g_workingEdges", g_workingEdges);
+        descriptors_cmaa2_process_candidates->bind_image("g_workingDeferredBlendItemListHeads", g_workingDeferredBlendItemListHeads);
+        descriptors_cmaa2_process_candidates->bind_buffer("g_workingShapeCandidates", g_workingShapeCandidates);
+        descriptors_cmaa2_process_candidates->bind_buffer("g_workingControlBuffer", g_workingControlBuffer);
+        descriptors_cmaa2_process_candidates->bind_buffer("g_workingDeferredBlendLocationList", g_workingDeferredBlendLocationList);
+        descriptors_cmaa2_process_candidates->bind_buffer("g_workingDeferredBlendItemList", g_workingDeferredBlendItemList);
+
+        descriptors_cmaa2_compute_dispatch_args->bind_buffer("g_workingDeferredBlendLocationList", g_workingDeferredBlendLocationList);
+
+        descriptors_cmaa2_deferred_color_apply2x2->bind_buffer("g_workingControlBuffer", g_workingControlBuffer);
+        descriptors_cmaa2_deferred_color_apply2x2->bind_buffer("g_workingDeferredBlendLocationList", g_workingDeferredBlendLocationList);
+        descriptors_cmaa2_deferred_color_apply2x2->bind_image("g_workingDeferredBlendItemListHeads", g_workingDeferredBlendItemListHeads);
+        descriptors_cmaa2_deferred_color_apply2x2->bind_buffer("g_workingDeferredBlendItemList", g_workingDeferredBlendItemList);
+        descriptors_cmaa2_deferred_color_apply2x2->bind_image("g_inoutColorWriteonly", output_image);
+
+        descriptors_cmaa2_debug_draw_edges->bind_image("g_inoutColorWriteonly", output_image);
+        descriptors_cmaa2_debug_draw_edges->bind_image("g_workingEdges", g_workingEdges);
+    }
+
     void pre_draw(const Eng::Gfx::RenderPassInstanceBase&) override
     {
 
     }
 
-    void draw(const Eng::Gfx::RenderPassInstanceBase&, Eng::Gfx::CommandBuffer& cmd, size_t) override
+    void draw(const Eng::Gfx::RenderPassInstanceBase& rp, Eng::Gfx::CommandBuffer& cmd, size_t) override
     {
-        cmd.bind_compute_pipeline(*pipeline_cmaa2_edges_color_2x2);
-        cmd.bind_descriptors(*descriptors_cmaa2_edges_color_2x2, *pipeline_cmaa2_edges_color_2x2);
-        cmd.dispatch_compute();
 
-        LOG_INFO("AAAA");
-        cmd.bind_compute_pipeline(*pipeline_cmaa2_compute_dispatch_args);
-        cmd.bind_descriptors(*descriptors_cmaa2_compute_dispatch_args, *pipeline_cmaa2_compute_dispatch_args);
-        cmd.dispatch_compute();
+        // We have to clear m_workingControlBufferResource during the first run so just execute second ComputeDispatchArgs that does it anyway,
+        // there are no bad side-effects from this and it saves creating another shader/pso
+        // Reminder: consider using ID3D12CommandList2::WriteBufferImmediate instead.
+        if (b_first_run)
+        {
+            b_first_run = false;
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_compute_dispatch_args);
+            cmd.bind_descriptors(*descriptors_cmaa2_compute_dispatch_args, *pipeline_cmaa2_compute_dispatch_args);
+            cmd.dispatch_compute(2);
+        }
 
-        LOG_INFO("BBBB");
-        cmd.bind_compute_pipeline(*pipeline_cmaa2_process_candidates);
-        cmd.bind_descriptors(*descriptors_cmaa2_process_candidates, *pipeline_cmaa2_process_candidates);
-        cmd.dispatch_compute();
+        // first pass edge detect
+        {
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_edges_color_2x2);
+            cmd.bind_descriptors(*descriptors_cmaa2_edges_color_2x2, *pipeline_cmaa2_edges_color_2x2);
+            constexpr int CMAA2_CS_INPUT_KERNEL_SIZE_X = 16;
+            constexpr int CMAA2_CS_INPUT_KERNEL_SIZE_Y = 16;
+            int           csOutputKernelSizeX          = CMAA2_CS_INPUT_KERNEL_SIZE_X - 2;
+            int           csOutputKernelSizeY          = CMAA2_CS_INPUT_KERNEL_SIZE_Y - 2;
+            int           threadGroupCountX            = (rp.resolution().x + csOutputKernelSizeX * 2 - 1) / (csOutputKernelSizeX * 2);
+            int           threadGroupCountY            = (rp.resolution().y + csOutputKernelSizeY * 2 - 1) / (csOutputKernelSizeY * 2);
+            cmd.dispatch_compute(threadGroupCountX, threadGroupCountY);
+        }
 
-        LOG_INFO("CCCC");
-        cmd.bind_compute_pipeline(*pipeline_cmaa2_deferred_color_apply2x2);
-        cmd.bind_descriptors(*descriptors_cmaa2_deferred_color_apply2x2, *pipeline_cmaa2_deferred_color_apply2x2);
-        cmd.dispatch_compute();
+        // Set up for the first DispatchIndirect
+        {
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_compute_dispatch_args);
+            cmd.bind_descriptors(*descriptors_cmaa2_compute_dispatch_args, *pipeline_cmaa2_compute_dispatch_args);
+            cmd.dispatch_compute(2, 1);
+        }
 
-        LOG_INFO("DDDD");
-        cmd.bind_compute_pipeline(*pipeline_cmaa2_debug_draw_edges);
-        cmd.bind_descriptors(*descriptors_cmaa2_debug_draw_edges, *pipeline_cmaa2_debug_draw_edges);
-        cmd.dispatch_compute();
+        // Process shape candidates DispatchIndirect
+        {
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_process_candidates);
+            cmd.bind_descriptors(*descriptors_cmaa2_process_candidates, *pipeline_cmaa2_process_candidates);
+            cmd.dispatch_compute_indirect(*g_workingExecuteIndirectBuffer);
+        }
+
+        // Set up for the second DispatchIndirect
+        {
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_compute_dispatch_args);
+            cmd.bind_descriptors(*descriptors_cmaa2_compute_dispatch_args, *pipeline_cmaa2_compute_dispatch_args);
+            cmd.dispatch_compute(1, 2);
+        }
+
+        // Resolve & apply blended colors
+        {
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_deferred_color_apply2x2);
+            cmd.bind_descriptors(*descriptors_cmaa2_deferred_color_apply2x2, *pipeline_cmaa2_deferred_color_apply2x2);
+            cmd.dispatch_compute_indirect(*g_workingExecuteIndirectBuffer);
+        }
+
+        if (true)
+        {
+            int tgcX = (rp.resolution().x + 16 - 1) / 16;
+            int tgcY = (rp.resolution().y + 16 - 1) / 16;
+
+            cmd.bind_compute_pipeline(*pipeline_cmaa2_debug_draw_edges);
+            cmd.bind_descriptors(*descriptors_cmaa2_debug_draw_edges, *pipeline_cmaa2_debug_draw_edges);
+            cmd.dispatch_compute(tgcX, tgcY);
+        }
     }
 
     void pre_submit(const Eng::Gfx::RenderPassInstanceBase&) override
@@ -152,7 +218,12 @@ private:
     std::shared_ptr<Eng::Gfx::DescriptorSet>   descriptors_cmaa2_edges_color_2x2;
     std::shared_ptr<Eng::Gfx::ImageView>       g_workingDeferredBlendItemListHeads;
     std::shared_ptr<Eng::Gfx::ImageView>       g_workingEdges;
+    std::shared_ptr<Eng::Gfx::Buffer>          g_workingShapeCandidates;
+    std::shared_ptr<Eng::Gfx::Buffer>          g_workingControlBuffer;
+    std::shared_ptr<Eng::Gfx::Buffer>          g_workingDeferredBlendLocationList;
+    std::shared_ptr<Eng::Gfx::Buffer>          g_workingDeferredBlendItemList;
 
+    std::shared_ptr<Eng::Gfx::Buffer> g_workingExecuteIndirectBuffer;
 
     std::shared_ptr<Eng::Gfx::ComputePipeline> pipeline_cmaa2_compute_dispatch_args;
     std::shared_ptr<Eng::Gfx::DescriptorSet>   descriptors_cmaa2_compute_dispatch_args;
@@ -165,6 +236,8 @@ private:
 
     std::shared_ptr<Eng::Gfx::ComputePipeline> pipeline_cmaa2_debug_draw_edges;
     std::shared_ptr<Eng::Gfx::DescriptorSet>   descriptors_cmaa2_debug_draw_edges;
+
+    bool b_first_run = true;
 };
 
 void Cmaa2::append_to_renderer(Eng::Gfx::Renderer& renderer)

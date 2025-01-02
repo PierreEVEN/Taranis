@@ -17,6 +17,7 @@ class shared_mutex;
 
 namespace Eng::Gfx
 {
+class Buffer;
 class ComputePipeline;
 class SecondaryCommandBuffer;
 class VkRendererPass;
@@ -93,6 +94,7 @@ public:
     void bind_compute_pipeline(const ComputePipeline& pipeline) const;
     void bind_descriptors(const DescriptorSet& descriptors, const ComputePipeline& pipeline) const;
     void dispatch_compute(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) const;
+    void dispatch_compute_indirect(Buffer& buffer) const;
 
     void end_render_pass();
 

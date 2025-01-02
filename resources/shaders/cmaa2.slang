@@ -797,21 +797,24 @@ void ComputeDispatchArgsCS( uint3 groupID : SV_GroupID )
         uint blendLocationCount = g_workingControlBuffer.Load(4*8);
 
         // check for overflow!
+        uint appendBufferMaxCount; uint appendBufferStride;
+        g_workingDeferredBlendLocationList.GetDimensions(appendBufferMaxCount, appendBufferStride);
         { 
-            uint appendBufferMaxCount; uint appendBufferStride;
-            g_workingDeferredBlendLocationList.GetDimensions( appendBufferMaxCount, appendBufferStride );
-            blendLocationCount = min( blendLocationCount, appendBufferMaxCount );
+            //blendLocationCount = min( blendLocationCount, appendBufferMaxCount );
         }
 
         // write dispatch indirect arguments for DeferredColorApply2x2CS
 #if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
-        g_workingExecuteIndirectBuffer.Store( 4*0, 1 );
-        g_workingExecuteIndirectBuffer.Store( 4*1, ( blendLocationCount + CMAA2_DEFERRED_APPLY_NUM_THREADS - 1 ) / CMAA2_DEFERRED_APPLY_NUM_THREADS );
+        g_workingExecuteIndirectBuffer.Store(4 * 0, 1 );
+        g_workingExecuteIndirectBuffer.Store(4 * 1, ( blendLocationCount + CMAA2_DEFERRED_APPLY_NUM_THREADS - 1 ) / CMAA2_DEFERRED_APPLY_NUM_THREADS );
 #else
         g_workingExecuteIndirectBuffer.Store( 4*0, ( blendLocationCount + CMAA2_DEFERRED_APPLY_NUM_THREADS - 1 ) / CMAA2_DEFERRED_APPLY_NUM_THREADS );
         g_workingExecuteIndirectBuffer.Store( 4*1, 1 );
 #endif
         g_workingExecuteIndirectBuffer.Store( 4*2, 1 );
+
+        //g_workingExecuteIndirectBuffer.Store(4 * 0, blendLocationCount);
+        //g_workingExecuteIndirectBuffer.Store(4 * 1, appendBufferMaxCount);
 
         // write actual number of items to process in DeferredColorApply2x2CS
         g_workingControlBuffer.Store( 4*3, blendLocationCount);

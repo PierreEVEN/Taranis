@@ -15,11 +15,13 @@
 
 namespace Eng::Gfx
 {
-DescriptorSet::DescriptorSet(const std::string& in_name, const std::weak_ptr<Device>& in_device, const std::shared_ptr<PipelineLayout>& in_pipeline, bool b_in_static) : device(in_device), b_static(b_in_static),
-    name(in_name)
+DescriptorSet::DescriptorSet(const std::string& in_name, const std::weak_ptr<Device>& in_device, const std::shared_ptr<PipelineLayout>& in_pipeline, bool b_in_static)
+    : device(in_device), b_static(b_in_static), name(in_name)
 {
     for (const auto& binding : in_pipeline->get_bindings())
-        descriptor_bindings.insert_or_assign(binding.name, binding.binding);
+    {
+        descriptor_infos.insert_or_assign(binding.name, DescriptorInfos{nullptr, binding.binding, binding.type});
+    }
 }
 
 DescriptorSet::Resource::Resource(std::string in_name, const std::weak_ptr<Device>& in_device, const std::weak_ptr<DescriptorSet>& in_parent, const std::shared_ptr<PipelineLayout>& in_pipeline)
@@ -114,19 +116,20 @@ bool DescriptorSet::Resource::update()
     auto     parent_ptr   = parent.lock();
     uint32_t image_count  = 0;
     uint32_t buffer_count = 0;
-    for (const auto& val : parent_ptr->write_descriptors)
-        if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
-            val.second->get_resources(buffer_count, image_count);
-
+    for (const auto& val : parent_ptr->descriptor_infos)
+        if (val.second.write_descriptor)
+            val.second.write_descriptor->get_resources(buffer_count, image_count);
+        else
+            LOG_ERROR("Descriptor {} is not set in descriptor set {}", val.first, name());
     std::vector<VkDescriptorImageInfo>  image_descs;
     std::vector<VkDescriptorBufferInfo> buffer_descs;
     image_descs.reserve(image_count);
     buffer_descs.reserve(buffer_count);
 
     std::vector<VkWriteDescriptorSet> desc_sets;
-    for (const auto& val : parent_ptr->write_descriptors)
-        if (auto found = parent_ptr->descriptor_bindings.find(val.first); found != parent_ptr->descriptor_bindings.end())
-            val.second->fill(desc_sets, ptr, found->second, image_descs, buffer_descs);
+    for (const auto& val : parent_ptr->descriptor_infos)
+        if (val.second.write_descriptor)
+            val.second.write_descriptor->fill(desc_sets, ptr, val.second.binding, val.second.type, image_descs, buffer_descs);
 
     vkUpdateDescriptorSets(device().lock()->raw(), static_cast<uint32_t>(desc_sets.size()), desc_sets.data(), 0, nullptr);
     outdated = false;
@@ -135,11 +138,6 @@ bool DescriptorSet::Resource::update()
 
 void DescriptorSet::bind_images(const std::string& binding_name, const std::vector<std::shared_ptr<ImageView>>& in_images)
 {
-    if (in_images.empty())
-    {
-        LOG_ERROR("Empty image array for binding {}", binding_name);
-        return;
-    }
     for (const auto& image : in_images)
     {
         if (!image)
@@ -153,11 +151,6 @@ void DescriptorSet::bind_images(const std::string& binding_name, const std::vect
 
 void DescriptorSet::bind_samplers(const std::string& binding_name, const std::vector<std::shared_ptr<Sampler>>& in_samplers)
 {
-    if (in_samplers.empty())
-    {
-        LOG_ERROR("Empty sampler array for binding {}", binding_name);
-        return;
-    }
     for (const auto& sampler : in_samplers)
         if (!sampler)
             LOG_FATAL("Invalid sampler provided to descriptors");
@@ -167,11 +160,6 @@ void DescriptorSet::bind_samplers(const std::string& binding_name, const std::ve
 
 void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vector<std::shared_ptr<Buffer>>& in_buffers)
 {
-    if (in_buffers.empty())
-    {
-        LOG_ERROR("Empty buffer array for binding {}", binding_name);
-        return;
-    }
     for (const auto& buffer : in_buffers)
     {
         if (!buffer)
@@ -183,26 +171,41 @@ void DescriptorSet::bind_buffers(const std::string& binding_name, const std::vec
     try_insert(binding_name, std::make_shared<BufferDescriptor>(in_buffers));
 }
 
-void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
+void DescriptorSet::ImagesDescriptor::fill(std::vector<VkWriteDescriptorSet>&  out_sets,
+                                           VkDescriptorSet                     dst_set,
+                                           uint32_t                            binding,
+                                           EBindingType                        type,
+                                           std::vector<VkDescriptorImageInfo>& image_descs,
                                            std::vector<VkDescriptorBufferInfo>&)
 {
-    size_t           start = image_descs.size();
-    VkDescriptorType type  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    if (images.empty())
+        return;
+    size_t start = image_descs.size();
+
+    VkDescriptorType descriptor_type;
+
+    switch (type)
+    {
+    case EBindingType::SAMPLED_IMAGE:
+        descriptor_type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        break;
+    case EBindingType::STORAGE_IMAGE:
+        descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        break;
+    default:
+        LOG_FATAL("Unhandled descriptor type : {}", static_cast<int>(type))
+    }
 
     for (uint32_t i = 0; i < images.size(); ++i)
-    {
-        if (auto base_image = images[i].get()->get_base_image())
-            if (base_image->get_params().is_storage)
-                type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         image_descs.emplace_back(images[i]->get_descriptor_infos_current());
-    }
+
     out_sets.emplace_back(VkWriteDescriptorSet{
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .dstSet = dst_set,
         .dstBinding = binding,
         .dstArrayElement = 0,
         .descriptorCount = static_cast<uint32_t>(images.size()),
-        .descriptorType = type,
+        .descriptorType = descriptor_type,
         .pImageInfo = &image_descs[start],
     });
 }
@@ -216,12 +219,17 @@ bool DescriptorSet::ImagesDescriptor::equals(const Descriptor& other) const
         if (images[i] != other_ptr->images[i])
             return false;
     return true;
-
 }
 
-void DescriptorSet::SamplerDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>& image_descs,
+void DescriptorSet::SamplerDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets,
+                                            VkDescriptorSet                    dst_set,
+                                            uint32_t                           binding,
+                                            EBindingType,
+                                            std::vector<VkDescriptorImageInfo>& image_descs,
                                             std::vector<VkDescriptorBufferInfo>&)
 {
+    if (samplers.empty())
+        return;
     size_t start = image_descs.size();
     for (uint32_t i = 0; i < samplers.size(); ++i)
         image_descs.emplace_back(samplers[i]->get_descriptor_infos());
@@ -247,9 +255,15 @@ bool DescriptorSet::SamplerDescriptor::equals(const Descriptor& other) const
     return true;
 }
 
-void DescriptorSet::BufferDescriptor::fill(std::vector<VkWriteDescriptorSet>&   out_sets, VkDescriptorSet dst_set, uint32_t binding, std::vector<VkDescriptorImageInfo>&,
+void DescriptorSet::BufferDescriptor::fill(std::vector<VkWriteDescriptorSet>& out_sets,
+                                           VkDescriptorSet                    dst_set,
+                                           uint32_t                           binding,
+                                           EBindingType,
+                                           std::vector<VkDescriptorImageInfo>&,
                                            std::vector<VkDescriptorBufferInfo>& buffer_descs)
 {
+    if (buffers.empty())
+        return;
     size_t start = buffer_descs.size();
     for (uint32_t i = 0; i < buffers.size(); ++i)
         buffer_descs.emplace_back(buffers[i]->get_descriptor_infos_current());
@@ -278,14 +292,15 @@ bool DescriptorSet::BufferDescriptor::equals(const Descriptor& other) const
 bool DescriptorSet::try_insert(const std::string& binding_name, const std::shared_ptr<Descriptor>& descriptor)
 {
     std::lock_guard lk(update_lock);
-    if (auto existing = write_descriptors.find(binding_name); existing != write_descriptors.end())
+    if (auto existing = descriptor_infos.find(binding_name); existing != descriptor_infos.end())
     {
-        if (*descriptor == *existing->second)
+        if (existing->second.write_descriptor && *descriptor == *existing->second.write_descriptor)
             return false;
-        existing->second = descriptor;
+        existing->second.write_descriptor = descriptor;
     }
     else
-        write_descriptors.emplace(binding_name, descriptor);
+        return false;
+        //descriptor_infos.emplace(binding_name, DescriptorInfos{}).first->second.write_descriptor = descriptor;
 
     for (const auto& resource : resources)
         resource->mark_as_dirty();

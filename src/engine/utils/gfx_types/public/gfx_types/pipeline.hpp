@@ -23,7 +23,8 @@ enum class EBindingType
     STORAGE_BUFFER,
     UNIFORM_BUFFER_DYNAMIC,
     STORAGE_BUFFER_DYNAMIC,
-    INPUT_ATTACHMENT
+    INPUT_ATTACHMENT,
+    MAX
 };
 
 enum class EShaderStage

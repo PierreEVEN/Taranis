@@ -250,6 +250,11 @@ void CommandBuffer::dispatch_compute(uint32_t x, uint32_t y, uint32_t z) const
     vkCmdDispatch(ptr, x, y, z);
 }
 
+void CommandBuffer::dispatch_compute_indirect(Buffer& buffer) const
+{
+    vkCmdDispatchIndirect(ptr, buffer.raw_current(), VkDeviceSize{0});
+}
+
 void CommandBuffer::end_render_pass()
 {
     PROFILER_SCOPE(EndRenderPass);

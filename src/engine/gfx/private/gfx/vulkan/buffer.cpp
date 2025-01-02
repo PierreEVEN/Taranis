@@ -218,7 +218,7 @@ Buffer::Resource::Resource(const std::string& in_name, std::weak_ptr<Device> in_
         vk_usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         break;
     case EBufferUsage::INDIRECT_DRAW_ARGUMENT:
-        vk_usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        vk_usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         break;
     case EBufferUsage::TRANSFER_MEMORY:
         vk_usage     = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;

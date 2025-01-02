@@ -114,10 +114,7 @@ public:
                     auto resource = comp.get_shadow_pass()->get_image_resource("depth");
 
                     if (!resource.lock())
-                    {
-                        LOG_WARNING("bah ?");
                         return;
-                    }
                     auto light_mat = comp.get_shadow_view()->get_projection_view_matrix();
                     lights.emplace_back(light_mat, comp.get_relative_rotation() * glm::vec3{-1, 0, 0}, comp.get_relative_position(), 1, 1);
 
@@ -135,8 +132,7 @@ public:
             });
 
         auto desc_resource = material->get_descriptor_resource(render_pass.get_definition().render_pass_ref);
-        if (!shadow_maps.empty())
-            desc_resource->bind_images("shadow_maps", shadow_maps);
+        desc_resource->bind_images("shadow_maps", shadow_maps);
         light_buffer->set_data(0, Gfx::BufferData(lights));
     }
 

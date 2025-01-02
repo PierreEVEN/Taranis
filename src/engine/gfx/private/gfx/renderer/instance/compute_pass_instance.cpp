@@ -30,7 +30,7 @@ void ComputePassInstance::render_internal(SwapchainImageId, DeviceImageId device
     {
         auto resource = get_image_resource(attachment).lock();
         assert(resource->get_base_image());
-        resource->get_base_image()->get_resource()->set_image_layout(global_cmd, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        resource->get_base_image()->get_resource()->set_image_layout(global_cmd, VK_IMAGE_LAYOUT_GENERAL);
     }
 
     global_cmd.end_debug_marker();
