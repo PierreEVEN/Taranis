@@ -800,7 +800,7 @@ void ComputeDispatchArgsCS( uint3 groupID : SV_GroupID )
         uint appendBufferMaxCount; uint appendBufferStride;
         g_workingDeferredBlendLocationList.GetDimensions(appendBufferMaxCount, appendBufferStride);
         { 
-            //blendLocationCount = min( blendLocationCount, appendBufferMaxCount );
+            blendLocationCount = min( blendLocationCount, appendBufferMaxCount );
         }
 
         // write dispatch indirect arguments for DeferredColorApply2x2CS

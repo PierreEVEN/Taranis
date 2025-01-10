@@ -75,6 +75,7 @@ PipelineLayout::PipelineLayout(std::string in_name, std::weak_ptr<Device> in_dev
                 LOG_ERROR("Bindless descriptors are not supported yet");
                 flags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
             }
+            LOG_DEBUG("{} : {}", name(), binding.name);
         }
     }
 
