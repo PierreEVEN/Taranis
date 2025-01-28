@@ -89,9 +89,9 @@ Instance::Instance(GfxConfig& config)
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pApplicationName = config.app_name.c_str(),
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "Ashwga",
+        .pEngineName = "Taranis",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_3,
+        .apiVersion = VK_API_VERSION_1_4,
     };
 
     uint32_t     glfw_extension_count = 0;

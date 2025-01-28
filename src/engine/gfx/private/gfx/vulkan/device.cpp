@@ -97,7 +97,7 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
         .shaderInt16 = true,
     };
 
-    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features {
+    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
         .rayQuery = true
     };
@@ -113,6 +113,8 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
         .runtimeDescriptorArray = true,
         .timelineSemaphore = true,
         .bufferDeviceAddress = true,
+        .vulkanMemoryModel = true,
+        .vulkanMemoryModelDeviceScope = true,
     };
 
     auto extensions = get_device_extensions(config);
@@ -122,7 +124,7 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
         .pNext = &device_features_12,
         .queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),
         .pQueueCreateInfos = queues_info.data(),
-        .enabledExtensionCount   = static_cast<uint32_t>(extensions.size()),
+        .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
         .ppEnabledExtensionNames = extensions.data(),
         .pEnabledFeatures = &deviceFeatures,
     };
