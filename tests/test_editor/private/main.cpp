@@ -261,7 +261,7 @@ public:
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
-        Cmaa2 cmaa;
+        //Cmaa2 cmaa;
         //cmaa.append_to_renderer(renderer);
 
         renderer["present"]
@@ -309,8 +309,7 @@ public:
                 for (const auto& root : new_scene.get_nodes())
                     root->set_position({-4600, -370, 0});
                 scene->merge(std::move(new_scene));
-            });
-            */
+            });*/
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
             {
@@ -400,7 +399,7 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
     Config config;
     config.gfx.enable_validation_layers     = true;
-    config.gfx.aggressive_validation_layers = true;
+    config.gfx.aggressive_validation_layers = false;
     config.gfx.v_sync                       = true;
     config.auto_update_materials            = true;
     Engine engine(config);

@@ -83,28 +83,30 @@ public:
 
     void on_create_framebuffer(const Eng::Gfx::RenderPassInstanceBase& rp) override
     {
-        auto device       = Eng::Engine::get().get_device();
-        auto input_image  = rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resource(rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resources()[0]).lock();
-        auto output_image = rp.get_image_resource(rp.get_image_resources()[0]).lock();
+        auto device                         = Eng::Engine::get().get_device();
+        auto input_image                    = rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resource(rp.get_dependencies("gbuffer_resolve")[0].lock()->get_image_resources()[0]).lock();
+        auto output_image                   = rp.get_image_resource(rp.get_image_resources()[0]).lock();
         g_workingDeferredBlendItemListHeads =
             Eng::Gfx::ImageView::create("g_workingDeferredBlendItemListHeads", Eng::Gfx::Image::create("g_workingDeferredBlendItemListHeads", device,
-                                                                                                       Eng::Gfx::ImageParameter{.format     = Eng::Gfx::ColorFormat::R32_UINT,
+                                                                                                       Eng::Gfx::ImageParameter{.format = Eng::Gfx::ColorFormat::R32_UINT,
                                                                                                                                 .is_storage = true,
-                                                                                                                                .width      = static_cast<uint32_t>(static_cast<float>(rp.resolution().x + 1) / 2.f),
-                                                                                                                                .height     = static_cast<uint32_t>(static_cast<float>(rp.resolution().y + 1) / 2.f)}));
+                                                                                                                                .width = static_cast<uint32_t>(static_cast<float>(rp.resolution().x + 1) / 2.f),
+                                                                                                                                .height = static_cast<uint32_t>(static_cast<float>(rp.resolution().y + 1) / 2.f)}));
         g_workingEdges = Eng::Gfx::ImageView::create("g_workingEdges", Eng::Gfx::Image::create("g_workingEdges", device,
-                                                                                               Eng::Gfx::ImageParameter{.format     = Eng::Gfx::ColorFormat::R8_UINT,
+                                                                                               Eng::Gfx::ImageParameter{.format = Eng::Gfx::ColorFormat::R8_UINT,
                                                                                                                         .is_storage = true,
-                                                                                                                        .width      = static_cast<uint32_t>(static_cast<float>(rp.resolution().x)),
-                                                                                                                        .height     = static_cast<uint32_t>(static_cast<float>(rp.resolution().y))}));
+                                                                                                                        .width = static_cast<uint32_t>(static_cast<float>(rp.resolution().x)),
+                                                                                                                        .height = static_cast<uint32_t>(static_cast<float>(rp.resolution().y))}));
 
         int requiredCandidatePixels = rp.resolution().x * rp.resolution().y / 4;
-        g_workingShapeCandidates    = Eng::Gfx::Buffer::create("g_workingShapeCandidates", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
-        g_workingControlBuffer      = Eng::Gfx::Buffer::create("g_workingControlBuffer", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
-        g_workingDeferredBlendLocationList = Eng::Gfx::Buffer::create("g_workingDeferredBlendLocationList", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), 16);
-        g_workingDeferredBlendItemList =
-            Eng::Gfx::Buffer::create("g_workingDeferredBlendItemList", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
-
+        int requiredDeferredColorApplyBuffer = rp.resolution().x * rp.resolution().y / 2;
+        int requiredListHeadsPixels = (rp.resolution().x * rp.resolution().y + 3) / 6;
+        g_workingShapeCandidates = Eng::Gfx::Buffer::create("g_workingShapeCandidates", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), requiredCandidatePixels);
+        g_workingControlBuffer = Eng::Gfx::Buffer::create("g_workingControlBuffer", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), 16);
+        g_workingDeferredBlendLocationList = Eng::Gfx::Buffer::create("g_workingDeferredBlendLocationList", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t),
+                                                                      requiredListHeadsPixels);
+        g_workingDeferredBlendItemList = Eng::Gfx::Buffer::create("g_workingDeferredBlendItemList", device, {Eng::Gfx::EBufferUsage::GPU_MEMORY, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t),
+                                                                  requiredDeferredColorApplyBuffer);
         g_workingExecuteIndirectBuffer = Eng::Gfx::Buffer::create("g_workingExecuteIndirectBuffer", device, {Eng::Gfx::EBufferUsage::INDIRECT_DRAW_ARGUMENT, Eng::Gfx::EBufferType::IMMEDIATE}, sizeof(uint32_t), 4);
 
         descriptors_cmaa2_edges_color_2x2->bind_image("g_workingDeferredBlendItemListHeads", g_workingDeferredBlendItemListHeads);
@@ -169,12 +171,24 @@ public:
             cmd.dispatch_compute(threadGroupCountX, threadGroupCountY);
         }
 
+        VkBufferMemoryBarrier barrier = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+            .srcQueueFamilyIndex = rp.device().lock()->get_queues().get_queue(Eng::Gfx::QueueSpecialization::Graphic)->index(),
+            .dstQueueFamilyIndex = rp.device().lock()->get_queues().get_queue(Eng::Gfx::QueueSpecialization::Graphic)->index(),
+            .buffer = g_workingControlBuffer->raw_current(),
+            .size = g_workingControlBuffer->get_byte_size(),
+        };
+        vkCmdPipelineBarrier(cmd.raw(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+
         // Set up for the first DispatchIndirect
         {
             cmd.bind_compute_pipeline(*pipeline_cmaa2_compute_dispatch_args);
             cmd.bind_descriptors(*descriptors_cmaa2_compute_dispatch_args, *pipeline_cmaa2_compute_dispatch_args);
             cmd.dispatch_compute(2, 1);
         }
+        vkCmdPipelineBarrier(cmd.raw(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
 
         // Process shape candidates DispatchIndirect
         {
@@ -182,6 +196,7 @@ public:
             cmd.bind_descriptors(*descriptors_cmaa2_process_candidates, *pipeline_cmaa2_process_candidates);
             cmd.dispatch_compute_indirect(*g_workingExecuteIndirectBuffer);
         }
+        vkCmdPipelineBarrier(cmd.raw(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
 
         // Set up for the second DispatchIndirect
         {
@@ -189,6 +204,7 @@ public:
             cmd.bind_descriptors(*descriptors_cmaa2_compute_dispatch_args, *pipeline_cmaa2_compute_dispatch_args);
             cmd.dispatch_compute(1, 2);
         }
+        vkCmdPipelineBarrier(cmd.raw(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
 
         // Resolve & apply blended colors
         {
