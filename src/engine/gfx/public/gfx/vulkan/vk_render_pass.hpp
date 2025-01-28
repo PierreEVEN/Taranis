@@ -43,7 +43,7 @@ class VkRendererPass
     }
 
   private:
-    VkRendererPass(const std::string& name, const std::weak_ptr<Device>& device, RenderPassKey key);
+    VkRendererPass(std::string name, const std::weak_ptr<Device>& device, RenderPassKey key);
     std::string           name;
     RenderPassKey         key;
     std::weak_ptr<Device> device;

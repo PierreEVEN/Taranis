@@ -62,9 +62,9 @@ public:
         return physical_device;
     }
 
-    static const std::vector<const char*>& get_device_extensions();
-    std::weak_ptr<VkRendererPass>          declare_render_pass(const RenderPassKey& key, const RenderPassGenericId& name);
-    std::weak_ptr<VkRendererPass>          get_render_pass(const RenderPassGenericId& name) const;
+    static std::vector<const char*> get_device_extensions(const GfxConfig& config);
+    std::weak_ptr<VkRendererPass>   declare_render_pass(const RenderPassKey& key, const RenderPassGenericId& name);
+    std::weak_ptr<VkRendererPass>   get_render_pass(const RenderPassGenericId& name) const;
 
     ankerl::unordered_dense::set<RenderPassRef> get_all_pass_of_type(const RenderPassGenericId& name) const
     {

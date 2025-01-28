@@ -17,13 +17,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverity
     const std::string message     = callback_data->pMessage;
     const auto        message_ids = stringutils::split(message, {'|'});
 
-    if (message_ids.size() == 3)
+    if (message_ids.size() >= 3)
     {
         const auto message_id_vect = stringutils::split(message_ids[1], {'='});
 
-        context      = message_ids[0];
-        message_id   = message_id_vect.size() == 2 ? message_id_vect[1] : "FAILED TO PARSE MESSAGE ID";
-        message_text = message_ids[2];
+        context    = message_ids[0];
+        message_id = message_id_vect.size() == 2 ? message_id_vect[1] : "FAILED TO PARSE MESSAGE ID";
+        message_text = "";
+        for (size_t i = 2; i < message_ids.size(); ++i)
+        {
+            message_text += message_ids[i];
+            if (i != message_ids.size() - 1)
+                message_text += "|";
+        }
     }
     else
     {
@@ -93,7 +99,10 @@ Instance::Instance(GfxConfig& config)
 
     VkInstanceCreateInfo instance_infos{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pApplicationInfo = &appInfo, .enabledExtensionCount = glfw_extension_count, .ppEnabledExtensionNames = glfw_extensions};
 
-    VkDebugUtilsMessengerCreateInfoEXT debug_messenger_infos = {};
+    VkDebugUtilsMessengerCreateInfoEXT debug_messenger_infos     = {};
+    VkValidationFeaturesEXT            additional_features       = {};
+    std::array                         enabled_validation_layers = {VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT, VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+
     if (config.enable_validation_layers)
     {
         instance_infos.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
@@ -108,13 +117,22 @@ Instance::Instance(GfxConfig& config)
             .pfnUserCallback = debug_callback,
             .pUserData = nullptr, // Optional
         };
-        instance_infos.pNext = &debug_messenger_infos;
+
+        if (config.aggressive_validation_layers)
+        {
+            additional_features.sType                         = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+            additional_features.enabledValidationFeatureCount = static_cast<uint32_t>(enabled_validation_layers.size());
+            additional_features.pEnabledValidationFeatures    = enabled_validation_layers.data();
+            additional_features.pNext                         = &debug_messenger_infos;
+            instance_infos.pNext                              = &additional_features;
+        }
+        else
+            instance_infos.pNext = &debug_messenger_infos;
     }
 
     auto extensions                        = get_required_extensions(config);
     instance_infos.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
     instance_infos.ppEnabledExtensionNames = extensions.data();
-
     VK_CHECK(vkCreateInstance(&instance_infos, nullptr, &ptr), "Failed to create instance")
 
     if (config.enable_validation_layers)

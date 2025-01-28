@@ -99,7 +99,7 @@ public:
         ImageResource(std::string name, std::weak_ptr<Device> device, ImageParameter params, uint32_t mip_count);
         ImageResource(ImageResource&&) = delete;
         ImageResource(ImageResource&)  = delete;
-        ~ImageResource();
+        ~ImageResource() override;
         void set_data(const std::vector<BufferData>& mips);
         void set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout);
         void generate_mipmaps(uint32_t mipLevels, const CommandBuffer& command_buffer) const;

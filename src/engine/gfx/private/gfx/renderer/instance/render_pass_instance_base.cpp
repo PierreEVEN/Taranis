@@ -213,7 +213,7 @@ CommandBuffer& PassCommandPool::begin_secondary(DeviceImageId image, const Frame
         found->second->begin(false);
         return *found->second;
     }
-    auto& found = *frame_data.secondary_command_buffer.emplace(std::this_thread::get_id(), SecondaryCommandBuffer::create(name() + "_primary", device(), QueueSpecialization::Graphic)).first->second;
+    auto& found = *frame_data.secondary_command_buffer.emplace(std::this_thread::get_id(), SecondaryCommandBuffer::create(name() + "_secondary", device(), QueueSpecialization::Graphic)).first->second;
     found.set_context(&framebuffer, &parent);
     found.begin(false);
     return found;

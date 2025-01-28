@@ -70,11 +70,11 @@ public:
 
     struct Light
     {
-        glm::mat4 shadow_matrix;
+        glm::mat4            shadow_matrix;
         alignas(8) glm::vec3 dir;
         alignas(8) glm::vec3 pos;
         alignas(4) uint32_t  has_shadows;
-        alignas(4) uint32_t type;
+        alignas(4) uint32_t  type;
     };
 
     void init(const Gfx::RenderPassInstanceBase&) override
@@ -226,12 +226,12 @@ public:
     void init(const Gfx::RenderPassInstanceBase& rp) override
     {
         const Gfx::RenderPassInstance* rp_inst = rp.cast<Gfx::RenderPassInstance>();
-        rp_inst->imgui()->new_window<Viewport>("Viewport", rp.get_dependencies("cmaa2")[0], scene);
+        rp_inst->imgui()->new_window<Viewport>("Viewport", rp.get_dependencies("gbuffer_resolve")[0], scene);
         rp_inst->imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);
         rp_inst->imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
         rp_inst->imgui()->new_window<ProfilerWindow>("Profiler");
         rp_inst->imgui()->new_window<RenderGraphView>("Render Graph View");
-        rp_inst->imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependencies("cmaa2")[0]);
+        rp_inst->imgui()->add_main_menu_item<GlobalMainMenu>(scene, rp.get_dependencies("gbuffer_resolve")[0]);
     }
 
     std::shared_ptr<Scene> scene;
@@ -262,10 +262,10 @@ public:
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
         Cmaa2 cmaa;
-        cmaa.append_to_renderer(renderer);
+        //cmaa.append_to_renderer(renderer);
 
         renderer["present"]
-            .require("cmaa2")
+            .require("gbuffer_resolve")
             .with_imgui(true, default_window)
             .render_pass<PresentPass>(scene)
             [Gfx::Attachment::slot("target")];
@@ -399,9 +399,10 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
     Config config;
-    config.gfx.enable_validation_layers = true;
-    config.gfx.v_sync                   = true;
-    config.auto_update_materials        = true;
+    config.gfx.enable_validation_layers     = true;
+    config.gfx.aggressive_validation_layers = true;
+    config.gfx.v_sync                       = true;
+    config.auto_update_materials            = true;
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

@@ -90,7 +90,7 @@ Result<int32_t> PhysicalDevice::rate_device(const GfxConfig& config, const Surfa
     if (config.allow_integrated_gpus && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         return Result<int32_t>::Error("This device is an integrated GPU but integrated gpu are not currently allowed");
 
-    if (!check_extension_support())
+    if (!check_extension_support(config))
         return Result<int32_t>::Error("This device doesn't support required extensions");
 
     SwapChainSupportDetails swapChainSupport = query_swapchain_support(surface);
@@ -115,7 +115,7 @@ std::string PhysicalDevice::get_device_name() const
     return deviceProperties.deviceName;
 }
 
-bool PhysicalDevice::check_extension_support()
+bool PhysicalDevice::check_extension_support(const GfxConfig& config)
 {
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(ptr, nullptr, &extensionCount, nullptr);
@@ -123,7 +123,8 @@ bool PhysicalDevice::check_extension_support()
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(ptr, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(Device::get_device_extensions().begin(), Device::get_device_extensions().end());
+    auto                  extensions = Device::get_device_extensions(config);
+    std::set<std::string> requiredExtensions(extensions.begin(), extensions.end());
 
     for (const auto& extension : availableExtensions)
     {

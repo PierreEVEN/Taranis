@@ -38,7 +38,7 @@ class PhysicalDevice
     }
 
   private:
-    bool check_extension_support();
+    bool check_extension_support(const GfxConfig& config);
 
     VkPhysicalDevice ptr = VK_NULL_HANDLE;
 };

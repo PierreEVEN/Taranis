@@ -192,6 +192,18 @@ VkResult QueueFamily::submit(const CommandBuffer& cmd, VkSubmitInfo submit_infos
     return result;
 }
 
+void QueueFamily::wait()
+{
+    PROFILER_SCOPE(WaitQueue);
+    std::lock_guard lk(queue_mutex);
+    {
+        PROFILER_SCOPE(WaitQueueAvailable);
+        queue_global_lock->lock_shared();
+    }
+    vkQueueWaitIdle(ptr);
+    queue_global_lock->unlock_shared();
+}
+
 auto Queues::find_best_suited_queue_family(const ankerl::unordered_dense::map<uint32_t, std::shared_ptr<QueueFamily>>& available, VkQueueFlags required_flags, bool require_present,
                                            const std::vector<VkQueueFlags>& desired_queue_flags) -> std::shared_ptr<QueueFamily>
 {

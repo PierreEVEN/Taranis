@@ -16,8 +16,6 @@
 
 namespace Eng::Gfx
 {
-const std::vector device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
 void Device::next_frame()
 {
     glfwPollEvents();
@@ -92,24 +90,40 @@ Device::Device(const GfxConfig& in_config, const std::weak_ptr<Instance>& in_ins
     VkPhysicalDeviceFeatures deviceFeatures{
         .fillModeNonSolid = true,
         .samplerAnisotropy = true,
+        .vertexPipelineStoresAndAtomics = true,
+
+        .fragmentStoresAndAtomics = true,
+        .shaderInt64 = true,
         .shaderInt16 = true,
     };
 
-    VkPhysicalDeviceVulkan12Features device_features_12{
+    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+        .rayQuery = true
+    };
+
+    VkPhysicalDeviceVulkan12Features device_features_12
+    {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = config.enable_validation_layers && config.aggressive_validation_layers ? &ray_query_features : nullptr,
+        .uniformAndStorageBuffer8BitAccess = true,
         .shaderFloat16 = true,
         .descriptorBindingPartiallyBound = true,
         .descriptorBindingVariableDescriptorCount = true,
         .runtimeDescriptorArray = true,
+        .timelineSemaphore = true,
+        .bufferDeviceAddress = true,
     };
+
+    auto extensions = get_device_extensions(config);
 
     VkDeviceCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pNext = &device_features_12,
         .queueCreateInfoCount = static_cast<uint32_t>(queues_info.size()),
         .pQueueCreateInfos = queues_info.data(),
-        .enabledExtensionCount = static_cast<uint32_t>(device_extensions.size()),
-        .ppEnabledExtensionNames = device_extensions.data(),
+        .enabledExtensionCount   = static_cast<uint32_t>(extensions.size()),
+        .ppEnabledExtensionNames = extensions.data(),
         .pEnabledFeatures = &deviceFeatures,
     };
 
@@ -163,9 +177,18 @@ const VmaAllocatorWrap& Device::get_allocator() const
     return *allocator;
 }
 
-const std::vector<const char*>& Device::get_device_extensions()
+std::vector<const char*> Device::get_device_extensions(const GfxConfig& config)
 {
-    return device_extensions;
+    std::vector extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+    if (config.enable_validation_layers && config.aggressive_validation_layers)
+    {
+        extensions.emplace_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+        extensions.emplace_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+        extensions.emplace_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+    }
+
+    return extensions;
 }
 
 std::weak_ptr<VkRendererPass> Device::declare_render_pass(const RenderPassKey& key, const RenderPassGenericId& name)

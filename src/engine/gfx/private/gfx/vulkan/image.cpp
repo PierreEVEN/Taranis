@@ -261,6 +261,7 @@ void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
     command_buffer->end();
     command_buffer->submit({}, &*fence);
     fence->wait();
+    device().lock()->get_queues().get_queue(QueueSpecialization::Graphic)->wait();
 }
 
 void Image::ImageResource::set_image_layout(const CommandBuffer& command_buffer, VkImageLayout new_layout)

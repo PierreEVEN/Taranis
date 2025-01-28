@@ -62,6 +62,8 @@ class QueueFamily
         name = in_name;
     }
 
+    void wait();
+
   private:
     std::mutex queue_mutex;
 
