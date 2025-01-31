@@ -30,15 +30,6 @@ struct VsToFs
     float3 WorldBiTangents;
 };
 
-struct SceneBufferData
-{
-    float4x4 perspective_view_mat;
-    float4x4 view_mat;
-    float4x4 perspective_mat;
-    float4x4 inv_perspective_view_mat;
-    float4x4 in_view_mat;
-    float4x4 inv_perspective_mat;
-};
 StructuredBuffer<SceneBufferData> scene_data_buffer;
 
 SamplerState                      sSampler;

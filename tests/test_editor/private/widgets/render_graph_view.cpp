@@ -64,9 +64,9 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
         offset->second += stage.size.y + group_padding.y * 2.f;
     }
 
-    if (ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + ImGui::GetContentRegionAvail()) || !initialized)
+    if (ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + ImGui::GetContentRegionAvail()) || initialized > 0)
     {
-        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || desired_zoom || !initialized)
+        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || desired_zoom || initialized > 0)
         {
             auto& io       = ImGui::GetIO();
             float old_zoom = zoom;
@@ -80,7 +80,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
             ImVec2 min_zoom = ImGui::GetContentRegionAvail() / (total_size + group_padding * 4.f);
             if (min_zoom.x < 0 || min_zoom.y < 0)
                 return;
-            initialized = true;
+            --initialized;
             if (zoom < std::min(min_zoom.x, min_zoom.y))
                 zoom = std::min(min_zoom.x, min_zoom.y);
 

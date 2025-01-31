@@ -1,5 +1,5 @@
 #pragma once
-#include "scene_component.hpp"
+#include "primitive_component.hpp"
 
 #include "scene/components/mesh_component.gen.hpp"
 
@@ -22,14 +22,14 @@ class MeshAsset;
 namespace Eng
 {
 
-class MeshComponent : public SceneComponent
+class MeshComponent : public PrimitiveComponent
 {
     REFLECT_BODY();
 
   public:
     MeshComponent(const TObjectRef<MeshAsset>& in_mesh = {}) : mesh(in_mesh){};
 
-    void draw(Gfx::CommandBuffer& command_buffer, const SceneView& view);
+    virtual void draw(Gfx::CommandBuffer& command_buffer, const SceneView& view) override;
 
     TObjectRef<MeshAsset> mesh;
 };

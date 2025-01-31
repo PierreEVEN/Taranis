@@ -13,6 +13,7 @@
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
+#include "procedural_planet/planet_component.hpp"
 #include "widgets/profiler.hpp"
 #include "scene/components/camera_component.hpp"
 #include "scene/components/mesh_component.hpp"
@@ -240,7 +241,7 @@ public:
 class TestApp : public Application
 {
 public:
-    void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
+    void init(Engine&, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
 
@@ -261,9 +262,6 @@ public:
             .render_pass<GBufferResolveInterface>(scene)
             [Gfx::Attachment::slot("target").format(Gfx::ColorFormat::R8G8B8A8_UNORM)];
 
-        //Cmaa2 cmaa;
-        //cmaa.append_to_renderer(renderer);
-
         renderer["present"]
             .require("gbuffer_resolve")
             .with_imgui(true, default_window)
@@ -275,14 +273,12 @@ public:
         camera->activate();
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
-        //directional_light->enable_shadow(ELightType::Movable);
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
 
+
+        TObjectRef<PlanetComponent> planet_0 = scene->add_component<PlanetComponent>("Planet0");
+
         /*
-        auto directional_light2 = scene->add_component<DirectionalLightComponent>("Directional light");
-        directional_light2->enable_shadow(ELightType::Movable);
-        directional_light2->set_rotation(glm::vec3{0, 1.8f, -1.2f});
-        */
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
         engine.jobs().schedule(
             [&, importer]
@@ -293,7 +289,6 @@ public:
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
-        /*
          engine.jobs().schedule(
             [&, importer]
             {

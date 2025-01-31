@@ -31,23 +31,17 @@ void MeshComponent::draw(Gfx::CommandBuffer& command_buffer, const SceneView& vi
                 continue;
             if (section.material)
             {
-                //PROFILER_SCOPE_NAMED(DrawMeshSection, "Draw mesh section" + section.mesh->get_name());
                 section.material->set_scene_data(command_buffer.render_pass(), view.get_view_buffer());
 
-                //PROFILER_SCOPE(DrawMeshSectionA);
                 auto pipeline = section.material->get_base_resource(command_buffer.render_pass());
                 if (!pipeline)
                     return;
-                //PROFILER_SCOPE(DrawMeshSectionB);
                 command_buffer.bind_pipeline(pipeline);
                 command_buffer.push_constant(Gfx::EShaderStage::Vertex, *pipeline, Gfx::BufferData(Pc{.model = get_world_transform()}));
 
-                //PROFILER_SCOPE(DrawMeshSectionC);
                 auto resources = section.material->get_descriptor_resource(command_buffer.render_pass());
-                //PROFILER_SCOPE(DrawMeshSectionC1);
                 assert(resources);
                 command_buffer.bind_descriptors(*resources, *pipeline);
-                //PROFILER_SCOPE(DrawMeshSectionD);
                 command_buffer.draw_mesh(*section.mesh);
             }
         }

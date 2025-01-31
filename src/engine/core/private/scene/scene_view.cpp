@@ -53,8 +53,8 @@ void SceneView::pre_submit() const
 void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstanceBase&, Gfx::CommandBuffer& command_buffer, size_t idx, size_t num_threads) const
 {
     PROFILER_SCOPE(SceneDraw);
-    scene.for_each_part<MeshComponent>(
-        [&command_buffer, this](MeshComponent& object)
+    scene.for_each_part<PrimitiveComponent>(
+        [&command_buffer, this](PrimitiveComponent& object)
         {
             object.draw(command_buffer, *this);
         },

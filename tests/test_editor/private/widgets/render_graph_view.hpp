@@ -67,7 +67,7 @@ protected:
     float                 last_scroll   = 0;
     float                 last_scroll_y = 0;
     float                 zoom          = 0;
-    bool                  initialized   = false;
+    int                   initialized   = 2;
 
     static void add_pass_content(Eng::Gfx::ImGuiWrapper& ctx, const std::shared_ptr<Eng::Gfx::RenderPassInstanceBase>& pass, Content& content, int current_stage);
 };
