@@ -19,6 +19,12 @@ struct PlanetSectionVertex
     glm::vec3 norm;
 };
 
+struct PlanetPoint
+{
+    float altitude;
+
+};
+
 static float make_noise(const glm::vec3& source, const FastNoise& noise)
 {
     return noise.GetSimplex(source.x * 1000.f, source.y * 1000.f, source.z * 1000.f) * 0.4f
@@ -33,19 +39,26 @@ PlanetSection::PlanetSection(PlanetComponent& in_root, int in_level, const glm::
     std::vector<uint32_t>            indices;
     generate_square_section(vertices, indices, res);
     auto rot = glm::mat3(in_transform);
+
+    std::vector<PlanetPoint> points;
+    points.reserve(res * res);
+
     for (auto& vertex : vertices)
     {
         vertex.pos = rot * vertex.pos;
 
         const float z = make_noise(vertex.pos, *root.fast_noise);
+        points.emplace_back(z);
         vertex.pos    = sphere_mapping(vertex.pos) * (100 + z);
     }
     generate_normals(vertices, res);
 
     auto device = Eng::Engine::get().get_device().lock();
 
-    Eng::Gfx::BufferData index_buffer(indices);
-    section_mesh = Eng::Gfx::Mesh::create("PlanetSection", device, Eng::Gfx::EBufferType::IMMUTABLE, Eng::Gfx::BufferData(vertices), &index_buffer);
+    terrain_data = Eng::Gfx::Buffer::create("SectionData", device, {.usage = Eng::Gfx::EBufferUsage::GPU_MEMORY, .type = Eng::Gfx::EBufferType::IMMUTABLE}, Eng::Gfx::BufferData(points));
+    material     = Eng::Engine::get().asset_registry().create<Eng::MaterialInstanceAsset>("PlanetMaterialInst", root.base_material);
+    material->set_buffer("data", terrain_data);
+
 }
 
 void PlanetSection::generate_square_section(std::vector<PlanetSectionVertex>& vertices, std::vector<uint32_t>& indices, uint32_t res)
@@ -84,7 +97,10 @@ void PlanetSection::draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::Sce
             child.draw(command_buffer, view);
     else
     {
-        command_buffer.draw_mesh(*section_mesh);
+        material->set_scene_data(command_buffer.render_pass(), view.get_view_buffer());
+        command_buffer.push_constant(Eng::Gfx::EShaderStage::Vertex, *root.base_material, Eng::Gfx::BufferData(glm::identity<glm::mat4>()));
+        command_buffer.bind_descriptors(*material->get_descriptor_resource(command_buffer.render_pass()), *root.base_material);
+        command_buffer.draw_mesh(*root.base_mesh);
     }
 }
 
@@ -122,13 +138,15 @@ PlanetComponent::PlanetComponent()
     fast_noise = std::make_shared<FastNoise>();
 
     auto device   = Eng::Engine::get().get_device().lock();
-    auto base_mat = Eng::Engine::get().asset_registry().create<Eng::MaterialAsset>("PlanetMaterial");
-    base_mat->set_shader_code("planet_mat", std::vector{
+    base_material = Eng::Engine::get().asset_registry().create<Eng::MaterialAsset>("PlanetMaterial");
+    base_material->set_shader_code("planet_mat", std::vector{
                                   StageInputOutputDescription{0, 0, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                                   StageInputOutputDescription{1, 12, Eng::Gfx::ColorFormat::R32G32_SFLOAT},
                                   StageInputOutputDescription{2, 20, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                               });
-    base_material = Eng::Engine::get().asset_registry().create<Eng::MaterialInstanceAsset>("PlanetMaterialInst", base_mat);
+
+    Eng::Gfx::BufferData index_buffer(indices);
+    base_mesh = Eng::Gfx::Mesh::create("PlanetSection", device, Eng::Gfx::EBufferType::IMMUTABLE, Eng::Gfx::BufferData(vertices), &index_buffer);
 
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat4_cast(glm::quat(glm::vec3(0.f, 0.f, 0.f)))));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat4_cast(glm::quat(glm::vec3(std::numbers::pi, 0.f, 0.f)))));
@@ -141,11 +159,17 @@ PlanetComponent::PlanetComponent()
 
 void PlanetComponent::draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::SceneView& view)
 {
-    base_material->set_scene_data(command_buffer.render_pass(), view.get_view_buffer());
-    auto mat = base_material->get_base_resource(command_buffer.render_pass());
+    auto mat = base_material->get_permutation(base_material->get_default_permutation()).lock()->get_resource(command_buffer.render_pass());
     command_buffer.bind_pipeline(mat);
-    command_buffer.push_constant(Eng::Gfx::EShaderStage::Vertex, *mat, Eng::Gfx::BufferData(glm::identity<glm::mat4>()));
-    command_buffer.bind_descriptors(*base_material->get_descriptor_resource(command_buffer.render_pass()), *mat);
+
+    uint32_t                         res = 200;
+    std::vector<PlanetSectionVertex> vertices;
+    std::vector<uint32_t>            indices;
+    PlanetSection::generate_square_section(vertices, indices, res);
+    auto rot = glm::mat3(in_transform);
+
+    std::vector<PlanetPoint> points;
+    points.reserve(res * res);
 
     for (auto& root : roots)
         root->draw(command_buffer, view);

@@ -59,7 +59,7 @@ void RenderGraphView::draw(Eng::Gfx::ImGuiWrapper& ctx)
     ankerl::unordered_dense::map<int, float> stage_y_offsets;
     for (auto& stage : content.passes | std::views::values)
     {
-        auto offset           = stage_y_offsets.emplace(stage.stage, -group_padding.y).first;
+        auto offset    = stage_y_offsets.emplace(stage.stage, -group_padding.y).first;
         stage.y_offset = offset->second;
         offset->second += stage.size.y + group_padding.y * 2.f;
     }
