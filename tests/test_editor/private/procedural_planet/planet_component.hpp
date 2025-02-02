@@ -21,23 +21,33 @@ class SceneView;
 class PlanetSection
 {
 public:
-    PlanetSection(PlanetComponent& in_root, int in_level, const glm::mat4& in_transform);
+    PlanetSection(PlanetComponent& in_root, uint32_t in_level, const glm::dmat3& in_transform, const glm::dvec2& in_offset);
 
     void draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::SceneView& view);
 
-    static void      generate_square_section(std::vector<PlanetSectionVertex>& vertices, std::vector<uint32_t>& indices, uint32_t res);
-    static void      generate_normals(std::vector<PlanetSectionVertex>& vertices, uint32_t res);
-    static glm::vec3 sphere_mapping(const glm::vec3& source);
+    static glm::dvec3 sphere_mapping(const glm::dvec3& source)
+    {
+        auto x2 = source.x * source.x;
+        auto y2 = source.y * source.y;
+        auto z2 = source.z * source.z;
+
+        return {source.x * std::sqrt(1 - (y2 + z2) / 2 + y2 * z2 / 3),
+                source.y * std::sqrt(1 - (x2 + z2) / 2 + x2 * z2 / 3),
+                source.z * std::sqrt(1 - (y2 + x2) / 2 + y2 * x2 / 3)};
+    }
+
+    void subdivide();
 
 private:
-    std::vector<PlanetSection> children;
+    std::vector<std::shared_ptr<PlanetSection>> children;
 
-    glm::mat4        transform;
+    glm::dmat3       transform;
+    glm::dvec2       offset;
     PlanetComponent& root;
-    int              level = 0;
+    uint32_t         level = 0;
+    uint32_t           my_index = 0;
 
-    std::shared_ptr<Eng::Gfx::Buffer>      terrain_data;
-    TObjectRef<Eng::MaterialInstanceAsset> material;
+    std::shared_ptr<Eng::Gfx::Mesh> mesh;
 };
 
 class PlanetComponent : public Eng::PrimitiveComponent
@@ -49,8 +59,8 @@ public:
 
     void draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::SceneView& view) override;
 
-    TObjectRef<Eng::MaterialAsset>  base_material;
-    std::shared_ptr<Eng::Gfx::Mesh> base_mesh;
+    TObjectRef<Eng::MaterialAsset>         base_material;
+    TObjectRef<Eng::MaterialInstanceAsset> base_material_instance;
 
     std::shared_ptr<FastNoise> fast_noise;
 

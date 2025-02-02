@@ -271,6 +271,7 @@ public:
         scene->set_pass_list(default_window.lock()->set_renderer(renderer));
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
+        camera->set_position({-500, 0, 0});
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
@@ -393,7 +394,7 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
     Config config;
-    config.gfx.enable_validation_layers     = true;
+    config.gfx.enable_validation_layers     = false;
     config.gfx.aggressive_validation_layers = false;
     config.gfx.v_sync                       = true;
     config.auto_update_materials            = true;
