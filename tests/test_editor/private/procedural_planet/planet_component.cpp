@@ -1,6 +1,7 @@
 #include "procedural_planet/planet_component.hpp"
 
 #include "engine.hpp"
+#include "precomputed_planet_data.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
@@ -9,8 +10,6 @@
 #include "scene/scene_view.hpp"
 #include "scene/components/camera_component.hpp"
 
-#include "third_party/fastnoise/FastNoise.h"
-
 #include <numbers>
 
 struct PlanetSectionVertex
@@ -18,14 +17,11 @@ struct PlanetSectionVertex
     glm::vec3 pos;
     glm::vec2 uv;
     glm::vec3 norm;
+    glm::vec2 weather;
+    glm::vec2 tectonic;
+    glm::vec3 rivers;
+    glm::vec3 biomes;
 };
-
-static double make_noise(const glm::dvec3& source, const FastNoise& noise)
-{
-    return noise.GetSimplex(source.x * 1000.0, source.y * 1000.0, source.z * 1000.0) * 0.4
-           + noise.GetSimplex(source.x * 200.0, source.y * 200.0, source.z * 200.0) * 0.7
-           + (pow(noise.GetSimplex(source.x * 100.0, source.y * 100.0, source.z * 100.0), 12)) * 18.2;
-}
 
 uint32_t global_sec = 0;
 
@@ -33,7 +29,7 @@ PlanetSection::PlanetSection(PlanetComponent& in_root, uint32_t in_level, const 
 {
     constexpr size_t res      = 20;
     size_t           real_res = res + 2;
-    constexpr double radius   = 100;
+    const double     radius   = in_root.planet_data->radius();
 
     const glm::dmat3 rot = glm::dmat3(in_transform);
 
@@ -69,10 +65,23 @@ PlanetSection::PlanetSection(PlanetComponent& in_root, uint32_t in_level, const 
                                                 (y - 1.0) * scale / static_cast<double>(res - 1) - 1.0 + in_offset.y,
                                                 1});
 
-            const double z = make_noise(pos, *root.fast_noise);
-            pos            = pos * (radius + z);
+            const double height   = root.planet_data->get_height_at_location(pos);
+            auto         weather  = root.planet_data->get_weather_at_location(pos);
+            auto         tectonic = root.planet_data->get_tectonic_plate_data_at_location(pos);
+            auto         rivers   = root.planet_data->get_river_data_at_location(pos);
+            auto         biomes   = root.planet_data->get_biome_data_at_location(pos);
 
-            vertices.emplace_back(PlanetSectionVertex{pos, {x, y}, {0, 0, 1}});
+            pos = pos * (radius + height);
+
+            vertices.emplace_back(PlanetSectionVertex{
+                .pos = pos,
+                .uv = {x, y},
+                .norm = {0, 0, 1},
+                .weather = {weather.humidity, weather.temperature},
+                .tectonic = {tectonic.plate_layer, tectonic.mountain_layer},
+                .rivers = {rivers.river_width, rivers.river_altitude, rivers.distance_to_river},
+                .biomes = {biomes.biome_cursor, 0, 0}
+            });
         }
     }
 
@@ -107,19 +116,19 @@ PlanetSection::PlanetSection(PlanetComponent& in_root, uint32_t in_level, const 
 
 void PlanetSection::draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::SceneView& view)
 {
-    double scale         = 1.0 / (1 << level);
-    auto   center = glm::dvec2{-1, -1} + offset + glm::dvec2(scale, scale);
-    auto   sphere_center = sphere_mapping(transform * glm::dvec3{center, 1});
-    const double z            = make_noise(sphere_center, *root.fast_noise);
-    sphere_center *= (100.0 + z);
-    double sphere_scale  = scale * 100.0;
+    double       scale         = 1.0 / (1 << level);
+    auto         center        = glm::dvec2{-1, -1} + offset + glm::dvec2(scale, scale);
+    auto         sphere_center = sphere_mapping(transform * glm::dvec3{center, 1});
+    const double z             = root.planet_data->get_height_at_location(sphere_center);
+    sphere_center *= root.planet_data->radius() + z;
+    double sphere_scale = scale * root.planet_data->radius();
 
     uint32_t desired_level = 0;
 
     root.get_scene().for_each<Eng::CameraComponent>(
         [&](const Eng::CameraComponent& camera)
         {
-            auto d = distance(static_cast<glm::dvec3>(camera.get_relative_position()), sphere_center);
+            auto d        = distance(static_cast<glm::dvec3>(camera.get_relative_position()), sphere_center);
             desired_level = d < sphere_scale * 5 ? level + 1 : level;
         });
 
@@ -153,7 +162,7 @@ void PlanetSection::subdivide()
 
 PlanetComponent::PlanetComponent()
 {
-    fast_noise = std::make_shared<FastNoise>();
+    planet_data = std::make_shared<PrecomputedPlanetData>();
 
     auto device   = Eng::Engine::get().get_device().lock();
     base_material = Eng::Engine::get().asset_registry().create<Eng::MaterialAsset>("PlanetMaterial");
@@ -161,6 +170,10 @@ PlanetComponent::PlanetComponent()
                                        StageInputOutputDescription{0, 0, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                                        StageInputOutputDescription{1, 12, Eng::Gfx::ColorFormat::R32G32_SFLOAT},
                                        StageInputOutputDescription{2, 20, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                       StageInputOutputDescription{3, 32, Eng::Gfx::ColorFormat::R32G32_SFLOAT},
+                                       StageInputOutputDescription{4, 40, Eng::Gfx::ColorFormat::R32G32_SFLOAT},
+                                       StageInputOutputDescription{5, 48, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
+                                       StageInputOutputDescription{6, 60, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                                    });
     base_material_instance = Eng::Engine::get().asset_registry().create<Eng::MaterialInstanceAsset>("PlanetMaterialInst", base_material);
 

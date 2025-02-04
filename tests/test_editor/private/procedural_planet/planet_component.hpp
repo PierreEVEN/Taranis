@@ -2,6 +2,7 @@
 #include "scene/components/primitive_component.hpp"
 #include "procedural_planet/planet_component.gen.hpp"
 
+class PlanetData;
 struct PlanetSectionVertex;
 class FastNoise;
 
@@ -62,7 +63,7 @@ public:
     TObjectRef<Eng::MaterialAsset>         base_material;
     TObjectRef<Eng::MaterialInstanceAsset> base_material_instance;
 
-    std::shared_ptr<FastNoise> fast_noise;
+    std::shared_ptr<PlanetData> planet_data;
 
 private:
     std::vector<std::shared_ptr<PlanetSection>> roots;

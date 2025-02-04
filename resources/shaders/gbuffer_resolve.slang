@@ -111,6 +111,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     }
 
     float3 albedo   = albedo_m.rgb;
+
     float  metallic = albedo_m.a;
 
     float3 normal    = normalize((normal_r.rgb - 0.5) * 2);
@@ -209,5 +210,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     // gamma correct
     color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 
-    return float4(color, 1);
+    return float4(albedo, 1);
+
+    //return float4(color, 1);
 }

@@ -6,6 +6,11 @@ struct VSInput
     float3 pos;
     float2 uv;
     float3 normal;
+
+    float2 weather;
+    float2 tectonic;
+    float3 rivers;
+    float3 biomes;
 };
 
 struct VsToFs
@@ -47,7 +52,14 @@ VsToFs vertex_main(VSInput input, uniform PushConsts pc)
     Out.Pos = mul(scene_data_buffer.Load(0).perspective_view_mat, float4(Out.WorldPosition, 1));
     Out.Uvs = input.uv;
     Out.WorldNormals = input.normal;
-    Out.color = float4(HSVtoRGB(float3(fmod(pc.test * 0.08789, 1), 1, 0.3)) + float3(0.5, 0.3, 0.6), 1.0);
+    Out.color = float4(/*HSVtoRGB(float3(fmod(pc.test * 0.08789, 1), 1, 0.3)) + */float3(0.5, 0.3, 0.6), 1.0);
+
+    // Out.color = input.weather.x; // humidity
+    // Out.color = input.weather.y / 100 + 0.5; // temperature
+    Out.color = input.tectonic.x * 0.5 + 0.5; // plates
+    // Out.color = input.tectonic.y * 0.5 + 0.5; // rift-mountains
+    // Out.color = input.biomes.x; // biome-TODO
+
     return Out;
 }
 [shader("vertex")]
