@@ -8,6 +8,12 @@ PrecomputedPlanetData::PrecomputedPlanetData()
 {
     noise2.SetCellularReturnType(FastNoise::Distance);
     noise3.SetCellularReturnType(FastNoise::CellValue);
+
+    planet_map = std::make_shared<PlanetMap>();
+
+    // Pre-generate terrain
+    //planet_map
+
 }
 
 PlanetData::WeatherData PrecomputedPlanetData::get_weather_at_location(const glm::dvec3& location)

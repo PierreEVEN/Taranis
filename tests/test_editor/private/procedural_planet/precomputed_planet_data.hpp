@@ -1,6 +1,8 @@
 #pragma once
+#include "planet_map.hpp"
 #include "planet_noise_generator_base.hpp"
 
+#include <memory>
 #include <third_party/fastnoise/FastNoise.h>
 
 class PrecomputedPlanetData : public PlanetData
@@ -22,5 +24,7 @@ private:
     FastNoise noise;
     FastNoise noise2;
     FastNoise noise3;
+
+    std::shared_ptr<PlanetMap> planet_map;
 
 };
