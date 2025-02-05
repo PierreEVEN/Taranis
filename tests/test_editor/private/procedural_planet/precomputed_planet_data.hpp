@@ -25,6 +25,11 @@ private:
     FastNoise noise2;
     FastNoise noise3;
 
-    std::shared_ptr<PlanetMap> planet_map;
+    struct PlanetPixel
+    {
+        double test_val;
+    };
+
+    PlanetMap<PlanetPixel> planet_map;
 
 };
