@@ -15,104 +15,75 @@ inline static glm::dvec3 cube_to_sphere(const glm::dvec3& cube)
     return {cube.x * std::sqrt(1 - (y2 + z2) / 2 + y2 * z2 / 3), cube.y * std::sqrt(1 - (x2 + z2) / 2 + x2 * z2 / 3), cube.z * std::sqrt(1 - (y2 + x2) / 2 + y2 * x2 / 3)};
 }
 
+inline glm::dvec3 cubify(const glm::dvec3& s)
+{
+    const double inv_sqrt_2 = 1.0 / std::sqrt(2.0);
+
+    double xx2 = s.x * s.x * 2.0;
+    double yy2 = s.y * s.y * 2.0;
+
+    glm::dvec2 v = glm::dvec2(xx2 - yy2, yy2 - xx2);
+
+    double ii = v.y - 3.f;
+    ii *= ii;
+
+    double isqrt = -std::sqrt(ii - 12.0 * xx2) + 3.0;
+
+    v = glm::dvec2(std::sqrt(v.x + isqrt), std::sqrt(v.y + isqrt));
+    v *= inv_sqrt_2;
+
+    return sign(s) * glm::dvec3(v, 1.0);
+}
+
+inline glm::dvec3 sphere_to_cube(const glm::dvec3 sphere)
+{
+    glm::dvec3 f = glm::abs(sphere);
+
+    if (f.y >= f.x && f.y >= f.z)
+    {
+        const auto res = cubify(glm::dvec3(sphere.x, sphere.z, sphere.y));
+        return {res.x, res.z, res.y};
+    }
+    if (f.x >= f.z)
+    {
+        const auto res = cubify(glm::dvec3(sphere.y, sphere.z, sphere.x));
+        return {res.y, res.z, res.x};
+    }
+    return cubify(sphere);
+}
+
 enum Face
 {
-    Front = 0,
-    Back = 1,
-    Right = 2,
-    Left = 3,
-    Top = 4,
+    Front  = 0,
+    Back   = 1,
+    Right  = 2,
+    Left   = 3,
+    Top    = 4,
     Bottom = 5
 };
 
-struct PlanetMapPosition
+struct CubeFacePosition
 {
-    glm::dvec2 uv;
     Face       face;
+    glm::dvec2 uv;
 };
 
-inline static PlanetMapPosition sphere_to_cube(const glm::dvec3& sphere)
+inline CubeFacePosition sphere_to_cube_face(const glm::dvec3 sphere)
 {
-    double x = sphere.x;
-    double y = sphere.y;
-    double z = sphere.z;
+    glm::dvec3 f = glm::abs(sphere);
 
-    double fx = glm::abs(x);
-    double fy = glm::abs(y);
-    double fz = glm::abs(z);
-
-    constexpr double inv_sqrt_2 = 1.0 / std::numbers::sqrt2;
-
-    // +y or -y
-    if (fy >= fx && fy >= fz)
+    if (f.y >= f.x && f.y >= f.z)
     {
-        double a2         = x * x * 2.0;
-        double b2         = z * z * 2.0;
-        double inner      = -a2 + b2 - 3;
-        double inner_sqrt = -std::sqrt((inner * inner) - 12.0 * a2);
-
-        if (x < 0)
-            x = -std::sqrt(inner_sqrt + a2 - b2 + 3.0) * inv_sqrt_2;
-        else if (x > 0)
-            x = std::sqrt(inner_sqrt + a2 - b2 + 3.0) * inv_sqrt_2;
-
-        if (z < 0)
-            z = -std::sqrt(inner_sqrt - a2 + b2 + 3.0) * inv_sqrt_2;
-        else if (z > 0)
-            z = std::sqrt(inner_sqrt - a2 + b2 + 3.0) * inv_sqrt_2;
-
-        return {
-            .uv = {x, z},
-            .face = y > 0 ? Right : Left,
-        };
+        const auto res = cubify(glm::dvec3(sphere.x, sphere.z, sphere.y));
+        return {.face = f.y > 0 ? Face::Right : Face::Left, .uv = {res.x, res.z}};
     }
-
-    // +x or -x
-    if (fx >= fy && fx >= fz)
+    if (f.x >= f.z)
     {
-        double a2         = y * y * 2.0;
-        double b2         = z * z * 2.0;
-        double inner      = -a2 + b2 - 3;
-        double inner_sqrt = -std::sqrt((inner * inner) - 12.0 * a2);
-
-        if (y < 0)
-            y = -std::sqrt(inner_sqrt + a2 - b2 + 3.0) * inv_sqrt_2;
-        else if (y > 0)
-            y = std::sqrt(inner_sqrt + a2 - b2 + 3.0) * inv_sqrt_2;
-
-        if (z < 0)
-            z = -std::sqrt(inner_sqrt - a2 + b2 + 3.0) * inv_sqrt_2;
-        else if (z > 0)
-            z = std::sqrt(inner_sqrt - a2 + b2 + 3.0) * inv_sqrt_2;
-
-        return {
-            .uv = {y, z},
-            .face = x > 0 ? Right : Left,
-        };
+        const auto res = cubify(glm::dvec3(sphere.y, sphere.z, sphere.x));
+        return {.face = f.x > 0 ? Face::Front : Face::Back, .uv = {res.y, res.z}};
     }
-
-    // +z or -z
-    {
-        double a2         = x * x * 2.0;
-        double b2         = y * y * 2.0;
-        double inner      = -a2 + b2 - 3;
-        double inner_sqrt = -std::sqrt((inner * inner) - 12.0 * a2);
-
-        if (x < 0)
-            x = -std::sqrt(inner_sqrt - a2 + b2 + 3.0) * inv_sqrt_2;
-        else if (x > 0)
-            x = std::sqrt(inner_sqrt - a2 + b2 + 3.0) * inv_sqrt_2;
-
-        if (y < 0)
-            y = -std::sqrt(inner_sqrt + a2 - b2 + 3.0) * inv_sqrt_2;
-        else if (y > 0)
-            y = std::sqrt(inner_sqrt + a2 - b2 + 3.0) * inv_sqrt_2;
-
-        return {
-            .uv = {x, y},
-            .face = z > 0 ? Right : Left,
-        };
-    }
+    const auto res = cubify(sphere);
+    return {.face = f.z > 0 ? Face::Top : Face::Bottom, .uv = {res.x, res.y}};
 }
 
 template <typename Pixel_T>
@@ -185,7 +156,7 @@ public:
         float  v1, v2, v3, v4;
     };
 
-    SampleValues sample(const PlanetMapPosition& linear_coords)
+    SampleValues sample(const CubeFacePosition& linear_coords)
     {
         glm::dvec2 scaled = (linear_coords.uv / 2.0 + 0.5) * static_cast<double>(res - 1);
 
