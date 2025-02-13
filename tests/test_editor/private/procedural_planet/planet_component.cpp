@@ -80,7 +80,7 @@ PlanetSection::PlanetSection(PlanetComponent& in_root, uint32_t in_level, const 
                 .weather = {weather.humidity, weather.temperature},
                 .tectonic = {tectonic.plate_layer, tectonic.mountain_layer},
                 .rivers = {rivers.river_width, rivers.river_altitude, rivers.distance_to_river},
-                                                      .biomes   = tectonic.test
+                                                      .biomes   = {biomes.biome_cursor, 0, 0}
             });
         }
     }

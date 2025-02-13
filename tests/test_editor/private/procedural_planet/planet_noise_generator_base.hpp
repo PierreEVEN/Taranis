@@ -26,7 +26,6 @@ public:
         float plate_layer;
         // [-1, 0] is rift, [0, 1] is mountains
         float mountain_layer;
-        glm::vec3 test;
     };
     virtual TectonicData get_tectonic_plate_data_at_location(const glm::dvec3& location) = 0;
 

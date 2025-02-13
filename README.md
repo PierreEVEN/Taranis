@@ -15,7 +15,7 @@ This engine is built around vulkan. Other backends may be implemented later if n
 
 - install the [vulkan sdk](https://vulkan.lunarg.com/) (1.3.296 or later) 
 - install the [xmake build system](https://xmake.io/#/)
-- configure xmake `xmake f --build-tests=y` _(currently the only executable targets are test targets)_
+- configure xmake `xmake f --build-tests=y --debugger=render_doc` _(currently the only executable targets are test targets)_
 - build `xmake build test_editor` 
 - run `xmake run test_editor`
 

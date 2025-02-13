@@ -28,7 +28,6 @@ private:
     struct PlanetPixel
     {
         double test_val;
-        glm::dvec3 test_rgb;
     };
 
     PlanetMap<PlanetPixel> planet_map;
