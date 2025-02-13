@@ -57,8 +57,8 @@ VsToFs vertex_main(VSInput input, uniform PushConsts pc)
     // Out.color = input.weather.x; // humidity
     // Out.color = input.weather.y / 100 + 0.5; // temperature
     // Out.color = input.tectonic.x * 0.5 + 0.5; // plates
-    Out.color = input.tectonic.y * 0.5 + 0.5; // rift-mountains
-    // Out.color = input.biomes.x; // biome-TODO
+    //Out.color = input.tectonic.y * 0.5 + 0.5; // rift-mountains
+     Out.color = float4(input.biomes, 1); // biome-TODO
 
     return Out;
 }

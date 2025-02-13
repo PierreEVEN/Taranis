@@ -22,6 +22,7 @@ inline glm::dvec3 cubify(const glm::dvec3& s)
     double xx2 = s.x * s.x * 2.0;
     double yy2 = s.y * s.y * 2.0;
 
+
     glm::dvec2 v = glm::dvec2(xx2 - yy2, yy2 - xx2);
 
     double ii = v.y - 3.f;
@@ -29,7 +30,7 @@ inline glm::dvec3 cubify(const glm::dvec3& s)
 
     double isqrt = -std::sqrt(ii - 12.0 * xx2) + 3.0;
 
-    v = glm::dvec2(std::sqrt(v.x + isqrt), std::sqrt(v.y + isqrt));
+    v = glm::dvec2(std::sqrt(std::max(0.0, v.x + isqrt)), std::sqrt(std::max(0.0, v.y + isqrt)));
     v *= inv_sqrt_2;
 
     return sign(s) * glm::dvec3(v, 1.0);
@@ -158,7 +159,7 @@ public:
 
     SampleValues sample(const CubeFacePosition& linear_coords)
     {
-        glm::dvec2 scaled = (linear_coords.uv / 2.0 + 0.5) * static_cast<double>(res - 1);
+        glm::dvec2 scaled = (glm::clamp(linear_coords.uv, {-1, -1}, {1, 1}) / 2.0 + 0.5) * static_cast<double>(res - 1);
 
         glm::uvec2 p1 = {
             std::floor(scaled.x),
