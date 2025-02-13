@@ -66,5 +66,7 @@ public:
     std::shared_ptr<PlanetData> planet_data;
 
 private:
+    std::shared_ptr<Eng::Gfx::Mesh> test_mesh;
+
     std::vector<std::shared_ptr<PlanetSection>> roots;
 };

@@ -16,69 +16,7 @@ PrecomputedPlanetData::PrecomputedPlanetData()
 
     planet_map = PlanetMap<PlanetPixel>(RES);
 
-    for (float x = 0; x <= 1; x += 0.25f)
-        for (float y = 0; y <= 1; y += 0.25f)
-        {
-            glm::vec3 cubf = {x, y, 1};
-
-            auto sph = (glm::vec3)cube_to_sphere(cubf);
-
-            auto cubf2 = (glm::vec3)cubify({sph.x, sph.y, sph.z});
-
-            auto delta = cubf2 - cubf;
-        }
-
-    /*
-    for (int x = -25; x <= 25; ++x)
-    {
-        for (int y = -25; y < -24; ++y)
-        {
-            // [0 - 0.2]
-            auto pos_cube = glm::dvec2{x, y} / (5.0 / 2.0) / (double)RES;
-
-            auto sphere_pos = cube_to_sphere({pos_cube, 25});
-
-            auto cube_2 = sphere_to_cube(sphere_pos);
-
-            LOG_DEBUG("{} - {} - {}", pos_cube.x, sphere_pos.x, cube_2.x);
-
-
-
-            // [5 - 6]
-            glm::dvec2 scaled = (clamp(pos_cube, {-1.0, -1.0}, {1.0, 1.0}) / 2.0 + 0.5) * static_cast<double>(RES - 1);
-
-            float x1 = (scaled.x - std::floor(scaled.x));
-            float y2 = (scaled.y - std::floor(scaled.y));
-
-            double v1 = (1 - x1) * (1 - y2),
-                   v2 = x1 * (1 - y2),
-                   v3 = x1 * y2,
-                   v4 = (1 - x1) * y2;
-
-            glm::uvec2 p1 = {
-                std::floor(scaled.x),
-                std::floor(scaled.y),
-            };
-            glm::uvec2 p2 = {
-                std::ceil(scaled.x),
-                std::floor(scaled.y),
-            };
-            glm::uvec2 p3 = {
-                std::ceil(scaled.x),
-                std::ceil(scaled.y),
-            };
-            glm::uvec2 p4 = {
-                std::floor(scaled.x),
-                std::ceil(scaled.y),
-            };
-
-            auto sample_data = planet_map.sample({Face::Front, pos_cube});
-
-            //LOG_WARNING("{} {} => {} {}\n\t{} {} {}\n\t{} {} {}\n\t{} {} {}\n\t{} {} {}", pos_cube.x, pos_cube.y, x1, y2, p1.x, p1.y, v1, p2.x, p2.y, v2, p3.x, p3.y, v3, p4.x, p4.y, v4);
-
-        }
-    }*/
-
+    // Precompute
     for (Face f = static_cast<Face>(0); static_cast<uint32_t>(f) < 6; f = static_cast<Face>(static_cast<uint32_t>(f) + 1))
     {
         for (size_t px = 0; px < RES * RES; ++px)

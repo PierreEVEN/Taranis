@@ -1,6 +1,7 @@
 #include "procedural_planet/planet_component.hpp"
 
 #include "engine.hpp"
+#include "planet_sample_mesh.hpp"
 #include "precomputed_planet_data.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/material_asset.hpp"
@@ -80,7 +81,7 @@ PlanetSection::PlanetSection(PlanetComponent& in_root, uint32_t in_level, const 
                 .weather = {weather.humidity, weather.temperature},
                 .tectonic = {tectonic.plate_layer, tectonic.mountain_layer},
                 .rivers = {rivers.river_width, rivers.river_altitude, rivers.distance_to_river},
-                                                      .biomes   = {biomes.biome_cursor, 0, 0}
+                .biomes = {biomes.biome_cursor, 0, 0}
             });
         }
     }
@@ -177,13 +178,23 @@ PlanetComponent::PlanetComponent()
                                    });
     base_material_instance = Eng::Engine::get().asset_registry().create<Eng::MaterialInstanceAsset>("PlanetMaterialInst", base_material);
 
+    PlanetSampleMesh sm(50);
+    std::vector<PlanetSectionVertex> vertices;
+    for (const auto vertex : sm.get_vertices())
+        vertices.emplace_back(PlanetSampleMesh::sphere_to_rect_coords(vertex.coord) * 6000.0);
+    auto triangles = sm.get_triangle_indices();
+    Eng::Gfx::BufferData index_buffer(triangles);
+    test_mesh = Eng::Gfx::Mesh::create("PlanetSection", device, Eng::Gfx::EBufferType::IMMUTABLE, Eng::Gfx::BufferData(vertices), &index_buffer);
+
+
+    return;
+    
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(0.f, 0.f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(std::numbers::pi, 0.f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(0.f, std::numbers::pi * -0.5f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(0.f, std::numbers::pi * 0.5f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(std::numbers::pi * -0.5f, 0.f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(std::numbers::pi * 0.5f, 0.f, 0.f))), glm::dvec2{}));
-
 }
 
 void PlanetComponent::draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::SceneView& view)
@@ -192,6 +203,9 @@ void PlanetComponent::draw(Eng::Gfx::CommandBuffer& command_buffer, const Eng::S
     command_buffer.bind_pipeline(mat);
     base_material_instance->set_scene_data(command_buffer.render_pass(), view.get_view_buffer());
     command_buffer.bind_descriptors(*base_material_instance->get_descriptor_resource(command_buffer.render_pass()), *mat);
+
+    command_buffer.push_constant(Eng::Gfx::EShaderStage::Vertex, *base_material->get_permutation(base_material->get_default_permutation()).lock()->get_resource(command_buffer.render_pass()), 0);
+    command_buffer.draw_mesh(*test_mesh);
 
     for (auto& root : roots)
         root->draw(command_buffer, view);
