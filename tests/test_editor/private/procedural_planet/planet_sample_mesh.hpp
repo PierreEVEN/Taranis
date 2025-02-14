@@ -1,4 +1,6 @@
 #pragma once
+#include "tools/debug_draw.hpp"
+
 #include <numbers>
 #include <vector>
 #include <glm/vec2.hpp>
@@ -25,12 +27,16 @@ public:
     PlanetSampleMesh(size_t n_points)
     {
         for (size_t i = 0; i < n_points; ++i)
-            vertices.emplace_back(PointInfo{
-                .coord = sphere_to_rect_coords({acos(1 - 2.0 * static_cast<double>(i) / static_cast<double>(n_points)),
-                                                std::fmod((2 * std::numbers::pi * static_cast<double>(i) / std::numbers::phi), 2.0 * std::numbers::pi)}),
-                .triangles = {}});
+        {
 
-        test_delaunay();
+            vertices.emplace_back(PointInfo{.coord = sphere_to_rect_coords({acos(1 - 2.0 * static_cast<double>(i) / static_cast<double>(n_points)),
+                                                                            std::fmod((2 * std::numbers::pi * static_cast<double>(i) / std::numbers::phi), 2.0 * std::numbers::pi)}),
+                                            .triangles = {}});
+
+            Eng::DebugDraw::get().add_segment({0, 0, 0}, vertices.back().coord * 6500.0, {0, 0, 1}, 100);
+        }
+
+        triangulate();
     }
 
     std::vector<uint32_t> get_triangle_indices() const
@@ -61,40 +67,64 @@ public:
     }
 
 private:
-    static double sign(const SphereCoord& p1, const SphereCoord& p2, const SphereCoord& p3)
+    static double signed_volume(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& c, const glm::dvec3& d)
     {
-        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+        return 1 / 6.0 * dot(cross(b - a, c - a), d - a);
     }
 
     static bool point_in_triangle(const glm::dvec3& P, glm::dvec3 A, glm::dvec3 B, glm::dvec3 C)
     {
-        LOG_WARNING("T");
+        const glm::dvec3 AB = B - A;
+        const glm::dvec3 AC = C - A;
+        const glm::dvec3 N     = cross(normalize(P), AC);
+        const double     a     = dot(AB, N);
+        if (a > -std::numeric_limits<double>::epsilon() && a < std::numeric_limits<double>::epsilon())
+            return false;
 
-        return dot(C - B, P - B) > 0 && dot(A - C, P - C) > 0 && dot(B - A, P - A) > 0;
+        double     f = 1.0 / a;
+        glm::dvec3 s = -A;
+        double     u = f * dot(s, N);
+        if (u < 0.0 || u > 1.0)
+            return false;
+        glm::dvec3 q = cross(s, AB);
+        double     v = f * dot(normalize(P), q);
+        if (v < 0.0 || u + v > 1.0)
+            return false;
 
-        auto AC = C - A;
-
-        auto AB = B - A;
-
-        auto AP = P - A;
-
-        // Compute dot products
-        auto dot00 = dot(AC, AC);
-        auto dot01 = dot(AC, AB);
-        auto dot02 = dot(AC, AP);
-        auto dot11 = dot(AB, AB);
-        auto dot12 = dot(AB, AP);
-
-        // Compute barycentric coordinates
-        auto invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-        auto u        = (dot11 * dot02 - dot01 * dot12) * invDenom;
-        auto v        = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-        // Check if point is in triangle
-        return (u >= 0) && (v >= 0) && (u + v < 1);
+        double t = f * dot(AC, q);
+        if (t > std::numeric_limits<double>::epsilon())
+            return true;
+        return false;
     }
 
-    void test_delaunay()
+    bool test_delaunay(size_t t, size_t v1, size_t v2) const
+    {
+        const Triangle& tri = triangles[t];
+
+        auto AB = tri.B - tri.A;
+        auto AC = tri.C - tri.A;
+
+        glm::dvec3 G = cross(AB, AC) / (length(AB) * length(AC));
+
+        for (const auto& t1 : vertices[v1].triangles)
+            for (const auto& t2 : vertices[v2].triangles)
+                if (t1 == t2 && t1 != t)
+                {
+                    const Triangle& tri_opp = triangles[t1];
+                    const auto&     N       = (tri_opp.a == v1 || tri_opp.a == v2) ? (tri_opp.b == v1 || tri_opp.b == v2) ? tri_opp.C : tri_opp.B : tri_opp.A;
+                    if (length(G - tri.A) > length(G - N))
+                    {
+                        // @TODO : flip edge
+                        Eng::DebugDraw::get().add_segment({}, G * 6000.0, {1, 0, 0}, 100);
+                        return true;
+                    }
+                    return false;
+                }
+
+        LOG_FATAL("Unhandled case");
+    }
+
+    void triangulate()
     {
         // Initialize with octahedron triangles
         const size_t octahedron_start = vertices.size();
@@ -115,49 +145,63 @@ private:
             make_triangle(octahedron_start + 4, octahedron_start + 1, octahedron_start + 5),
         };
 
-        for (size_t p = 20; p < vertices.size() && p < 27; ++p)
+        for (size_t p = 20; p < vertices.size(); ++p)
         {
             // Search the concerned triangle and split it
             for (size_t t = 0; t < triangles.size(); ++t)
             {
-                glm::dvec3 Pr = sphere_to_rect_coords(vertices[p].coord);
-                glm::dvec3 Ar = sphere_to_rect_coords(triangles[t].A);
-                glm::dvec3 Br = sphere_to_rect_coords(triangles[t].B);
-                glm::dvec3 Cr = sphere_to_rect_coords(triangles[t].C);
+                const glm::dvec3 P = vertices[p].coord;
 
                 // Break-insert
-                if (point_in_triangle(Pr, Ar, Br, Cr))
+                if (point_in_triangle(P, triangles[t].A, triangles[t].B, triangles[t].C))
                 {
-                    LOG_WARNING("ah ??");
-                    Triangle old = triangles[t];
-
-                    const glm::dvec3 P = vertices[p].coord;
+                    Triangle old_triangle = triangles[t];
 
                     // Update / add new adjacent triangles
-                    vertices[old.a].triangles.emplace_back(triangles.size() + 1);
-                    vertices[old.b].triangles.emplace_back(triangles.size());
-                    vertices[old.c].triangles.emplace_back(triangles.size());
-                    *std::ranges::find(vertices[old.a].triangles, t) = triangles.size() + 1;
 
-                    //triangles.erase(triangles.begin() + t);
+                    // Update A (Keep T1)
+                    vertices[old_triangle.a].triangles.emplace_back(triangles.size() + 1); // Add T3
+                    // Update B (Keep T1)
+                    vertices[old_triangle.b].triangles.emplace_back(triangles.size()); // Add T2
+                    // Update C
+                    vertices[old_triangle.c].triangles.emplace_back(triangles.size());                // Add T2
+                    *std::ranges::find(vertices[old_triangle.c].triangles, t) = triangles.size() + 1; // Unset T1 / Set T3
 
                     // Update / generate triangles
-                    triangles[t] = Triangle{.A = old.A, .B = P, .C = old.C, .a = old.a, .b = p, .c = old.c};
-                    triangles.emplace_back(Triangle{.A = old.B, .B = P, .C = old.C, .a = old.b, .b = p, .c = old.a});
-                    triangles.emplace_back(Triangle{.A = old.C, .B = P, .C = old.B, .a = old.c, .b = p, .c = old.b});
+                    triangles[t] = Triangle{.A = old_triangle.B, .B = P, .C = old_triangle.A, .a = old_triangle.b, .b = p, .c = old_triangle.a};          // T1
+                    triangles.emplace_back(Triangle{.A = old_triangle.C, .B = P, .C = old_triangle.B, .a = old_triangle.c, .b = p, .c = old_triangle.b}); // T2
+                    triangles.emplace_back(Triangle{.A = old_triangle.A, .B = P, .C = old_triangle.C, .a = old_triangle.a, .b = p, .c = old_triangle.c}); // T3
+
+                    if (test_delaunay(t, old_triangle.a, old_triangle.b))
+                    {
+                    }
+
+                    if (test_delaunay(triangles.size() - 2, old_triangle.b, old_triangle.c))
+                    {
+                    }
+                    if (test_delaunay(triangles.size() - 1, old_triangle.c, old_triangle.a))
+                    {
+                    }
 
                     break;
                 }
             }
 
-            //break; // @todo : remove this
+            break; // @todo : remove this
+        }
+
+        for (const auto& triangle : triangles)
+        {
+            Eng::DebugDraw::get().add_segment(triangle.A * 6000.0, triangle.B * 6000.0, {1, 1, 0}, 100);
+            Eng::DebugDraw::get().add_segment(triangle.A * 6000.0, triangle.C * 6000.0, {1, 1, 0}, 100);
+            Eng::DebugDraw::get().add_segment(triangle.C * 6000.0, triangle.B * 6000.0, {1, 1, 0}, 100);
         }
     }
 
     struct Triangle
     {
         glm::dvec3 A, B, C;
-        size_t      a, b, c;
+        size_t     a, b, c;
     };
 
     bool test_delaunay(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& C, const glm::dvec3& D)

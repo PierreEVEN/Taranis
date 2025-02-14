@@ -20,6 +20,7 @@
 #include "scene/scene.hpp"
 #include "scene/scene_view.hpp"
 #include "scene/components/directional_light_component.hpp"
+#include "tools/debug_draw.hpp"
 #include "widgets/content_browser.hpp"
 #include "widgets/render_graph_view.hpp"
 #include "widgets/scene_outliner.hpp"

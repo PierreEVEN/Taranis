@@ -12,6 +12,7 @@
 #include "gfx/window.hpp"
 #include "profiler.hpp"
 #include "assets/material_asset.hpp"
+#include "tools/debug_draw.hpp"
 
 #if _WIN32
 #include <Windows.h>
@@ -40,6 +41,7 @@ Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::m
 
 Engine::~Engine()
 {
+    DebugDraw::get().destroy();
     job_system = nullptr;
     windows.clear();
     app                   = nullptr;
@@ -102,6 +104,7 @@ void Engine::run_internal()
         for (const auto& window : windows)
             window.second->reset_events();
         gfx_device->next_frame();
+        DebugDraw::get().flush();
         Profiler::get().next_frame();
     }
 }

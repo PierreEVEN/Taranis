@@ -42,6 +42,9 @@ Mesh::Mesh(std::string in_name, const std::weak_ptr<Device>& in_device, size_t i
 
 void Mesh::reserve_vertices(size_t vertex_count)
 {
+    if (vertex_count == 0)
+        return;
+
     if (!vertex_buffer)
     {
         vertex_buffer = Buffer::create(name + "_buff_vtx", device,
@@ -61,7 +64,7 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
 {
     index_type = in_index_buffer_type;
 
-    size_t size = 0;
+    size_t size;
     switch (index_type)
     {
     case IndexBufferType::Uint8:
@@ -95,7 +98,8 @@ void Mesh::reserve_indices(size_t index_count, IndexBufferType in_index_buffer_t
 void Mesh::set_vertices(size_t start_vertex, const BufferData& vertex_data)
 {
     reserve_vertices(start_vertex + vertex_data.get_element_count());
-    vertex_buffer->set_data_and_wait(start_vertex, vertex_data);
+    if (vertex_buffer)
+        vertex_buffer->set_data_and_wait(start_vertex, vertex_data);
 }
 
 void Mesh::set_indexed_vertices(size_t start_vertex, const BufferData& vertex_data, size_t start_index, const BufferData& index_data)

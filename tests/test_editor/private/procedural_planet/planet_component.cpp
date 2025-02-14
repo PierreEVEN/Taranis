@@ -10,6 +10,7 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "scene/scene_view.hpp"
 #include "scene/components/camera_component.hpp"
+#include "tools/debug_draw.hpp"
 
 #include <numbers>
 
@@ -181,11 +182,10 @@ PlanetComponent::PlanetComponent()
     PlanetSampleMesh sm(50);
     std::vector<PlanetSectionVertex> vertices;
     for (const auto vertex : sm.get_vertices())
-        vertices.emplace_back(PlanetSampleMesh::sphere_to_rect_coords(vertex.coord) * 6000.0);
+        vertices.emplace_back(vertex.coord * 6000.0);
     auto triangles = sm.get_triangle_indices();
     Eng::Gfx::BufferData index_buffer(triangles);
     test_mesh = Eng::Gfx::Mesh::create("PlanetSection", device, Eng::Gfx::EBufferType::IMMUTABLE, Eng::Gfx::BufferData(vertices), &index_buffer);
-
 
     return;
     

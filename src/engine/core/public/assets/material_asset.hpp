@@ -6,8 +6,6 @@
 
 #include <filesystem>
 
-#include <shared_mutex>
-
 #include "assets/material_asset.gen.hpp"
 
 namespace ShaderCompiler

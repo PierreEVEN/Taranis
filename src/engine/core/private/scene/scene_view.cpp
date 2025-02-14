@@ -5,6 +5,7 @@
 #include "gfx/renderer/instance/render_pass_instance_base.hpp"
 #include "gfx/vulkan/buffer.hpp"
 #include "scene/components/mesh_component.hpp"
+#include "tools/debug_draw.hpp"
 
 #include <glm/ext/matrix_float4x4.hpp>
 
@@ -59,6 +60,8 @@ void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstanceBase&, Gfx
             object.draw(command_buffer, *this);
         },
         idx, std::max(1llu, num_threads));
+
+    DebugDraw::get().draw(command_buffer, *this);
 }
 
 void SceneView::set_position(const glm::vec3& in_position)
