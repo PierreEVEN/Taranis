@@ -17,7 +17,7 @@ class PlanetSampleMesh
 public:
     struct PointInfo
     {
-        SphereCoord         coord;
+        glm::dvec3          coord;
         std::vector<size_t> triangles;
         // Point_T             data;
     };
@@ -26,7 +26,8 @@ public:
     {
         for (size_t i = 0; i < n_points; ++i)
             vertices.emplace_back(PointInfo{
-                .coord = {acos(1 - 2.0 * static_cast<double>(i) / static_cast<double>(n_points)), std::fmod((2 * std::numbers::pi * static_cast<double>(i) / std::numbers::phi), 2.0 * std::numbers::pi)},
+                .coord = sphere_to_rect_coords({acos(1 - 2.0 * static_cast<double>(i) / static_cast<double>(n_points)),
+                                                std::fmod((2 * std::numbers::pi * static_cast<double>(i) / std::numbers::phi), 2.0 * std::numbers::pi)}),
                 .triangles = {}});
 
         test_delaunay();
@@ -71,7 +72,6 @@ private:
 
         return dot(C - B, P - B) > 0 && dot(A - C, P - C) > 0 && dot(B - A, P - A) > 0;
 
-
         auto AC = C - A;
 
         auto AB = B - A;
@@ -98,12 +98,12 @@ private:
     {
         // Initialize with octahedron triangles
         const size_t octahedron_start = vertices.size();
-        vertices.push_back(PointInfo{.coord = rect_to_sphere_coords({0, 0, 1}), .triangles = {0, 1, 2, 3}});
-        vertices.push_back(PointInfo{.coord = rect_to_sphere_coords({0, 1, 0}), .triangles = {0, 3, 4, 7}});
-        vertices.push_back(PointInfo{.coord = rect_to_sphere_coords({1, 0, 0}), .triangles = {0, 1, 4, 5}});
-        vertices.push_back(PointInfo{.coord = rect_to_sphere_coords({0, -1, 0}), .triangles = {1, 2, 5, 6}});
-        vertices.push_back(PointInfo{.coord = rect_to_sphere_coords({-1, 0, 0}), .triangles = {2, 3, 6, 7}});
-        vertices.push_back(PointInfo{.coord = rect_to_sphere_coords({0, 0, -1}), .triangles = {4, 5, 6, 7}});
+        vertices.push_back(PointInfo{.coord = {0, 0, 1}, .triangles = {0, 1, 2, 3}});
+        vertices.push_back(PointInfo{.coord = {0, 1, 0}, .triangles = {0, 3, 4, 7}});
+        vertices.push_back(PointInfo{.coord = {1, 0, 0}, .triangles = {0, 1, 4, 5}});
+        vertices.push_back(PointInfo{.coord = {0, -1, 0}, .triangles = {1, 2, 5, 6}});
+        vertices.push_back(PointInfo{.coord = {-1, 0, 0}, .triangles = {2, 3, 6, 7}});
+        vertices.push_back(PointInfo{.coord = {0, 0, -1}, .triangles = {4, 5, 6, 7}});
         triangles = {
             make_triangle(octahedron_start + 0, octahedron_start + 2, octahedron_start + 1),
             make_triangle(octahedron_start + 0, octahedron_start + 3, octahedron_start + 2),
@@ -131,7 +131,7 @@ private:
                     LOG_WARNING("ah ??");
                     Triangle old = triangles[t];
 
-                    const SphereCoord P = vertices[p].coord;
+                    const glm::dvec3 P = vertices[p].coord;
 
                     // Update / add new adjacent triangles
                     vertices[old.a].triangles.emplace_back(triangles.size() + 1);
@@ -156,7 +156,7 @@ private:
 
     struct Triangle
     {
-        SphereCoord A, B, C;
+        glm::dvec3 A, B, C;
         size_t      a, b, c;
     };
 
