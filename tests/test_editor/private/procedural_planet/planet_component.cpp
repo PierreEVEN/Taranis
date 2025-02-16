@@ -179,16 +179,20 @@ PlanetComponent::PlanetComponent()
                                    });
     base_material_instance = Eng::Engine::get().asset_registry().create<Eng::MaterialInstanceAsset>("PlanetMaterialInst", base_material);
 
-    PlanetSampleMesh sm(50);
-    std::vector<PlanetSectionVertex> vertices;
-    for (const auto vertex : sm.get_vertices())
-        vertices.emplace_back(vertex.coord * 6000.0);
-    auto triangles = sm.get_triangle_indices();
+    PlanetSampleMesh                                   sm(50);
+    std::vector<HalfEdgeMeshStructure::PublicMeshData> vertices;
+    std::vector<PlanetSectionVertex>                   vs;
+    std::vector<uint32_t>                              triangles;
+    sm.compile_mesh_data(vertices, triangles);
+    vs.reserve(vertices.size());
+    for (const auto& vertex : vertices)
+        vs.emplace_back(vertex.position * 6000.0);
+
     Eng::Gfx::BufferData index_buffer(triangles);
-    test_mesh = Eng::Gfx::Mesh::create("PlanetSection", device, Eng::Gfx::EBufferType::IMMUTABLE, Eng::Gfx::BufferData(vertices), &index_buffer);
+    test_mesh = Eng::Gfx::Mesh::create("PlanetSection", device, Eng::Gfx::EBufferType::IMMUTABLE, Eng::Gfx::BufferData(vs), &index_buffer);
 
     return;
-    
+
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(0.f, 0.f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(std::numbers::pi, 0.f, 0.f))), glm::dvec2{}));
     roots.emplace_back(std::make_shared<PlanetSection>(*this, 0, mat3_cast(glm::quat(glm::vec3(0.f, std::numbers::pi * -0.5f, 0.f))), glm::dvec2{}));
