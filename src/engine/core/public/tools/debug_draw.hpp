@@ -28,10 +28,6 @@ public:
         stored_segments.emplace_back(WireframePoint{b, color}, duration);
     }
 
-    void add_sphere(const glm::vec3& a, const glm::vec3& color = {1, 0, 0}, float radius = 100, int sub_x = 5, int sub_y = 12)
-    {
-    }
-
     void draw(Gfx::CommandBuffer& command_buffer, const SceneView& view);
 
 private:

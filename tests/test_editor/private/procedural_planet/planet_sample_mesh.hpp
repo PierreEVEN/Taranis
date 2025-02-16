@@ -8,14 +8,27 @@
 
 using SphereCoord = glm::dvec2;
 
+template <> struct std::formatter<glm::dvec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const glm::dvec3& p, std::format_context& ctx) const
+    {
+        return std::format_to(ctx.out(), "({}, {}, {})", p.x, p.y, p.z);
+    }
+};
+
 
 class HalfEdgeMeshStructure
 {
-public:
     class Vertex_V;
     class HalfEdge_V;
     class Face_V;
 
+public:
     using Vertex   = Vertex_V*;
     using HalfEdge = HalfEdge_V*;
     using Face     = Face_V*;
@@ -24,7 +37,7 @@ public:
     {
         for (const auto& vertex : vertices)
             delete vertex;
-        for (const auto& hedge : hedge)
+        for (const auto& hedge : hedges)
             delete hedge;
         for (const auto& face : faces)
             delete face;
@@ -57,16 +70,13 @@ public:
             current->previous = new_hedge[(i + new_hedge.size() - 1) % new_hedge.size()];
             current->next     = new_hedge[(i + 1) % new_hedge.size()];
 
-            // Iterate over all the half hedge of the next point            
-            LOG_DEBUG("Start");
+            // Iterate over all the half hedges of the next point
             for (const auto& next_h : current->next->origin->half_edges)
             {
                 if (next_h->next->origin == current->origin)
                 {
-                    LOG_WARNING("conf : Vert {:x} => Hedge {:x} => Vert {:x} : {:x}/{:x}", (size_t)next_h->origin, (size_t)next_h->next, (size_t)next_h->next->origin, (size_t)next_h->next->previous, (size_t)next_h);
-
                     // If we're going back to the first edge origin, it's our twin
-                    //assert(!current->twin); // Note : we should never find multiple twins half edges
+                    assert(!current->twin); // Note : we should never find multiple twins half edges
                     current->twin = next_h;
                     next_h->twin  = current;
                 }
@@ -122,7 +132,7 @@ public:
 
     const std::vector<HalfEdge>& get_hedges() const
     {
-        return hedge;
+        return hedges;
     }
 
     struct PublicMeshData
@@ -147,7 +157,7 @@ public:
 
 private:
     std::vector<Vertex>   vertices;
-    std::vector<HalfEdge> hedge;
+    std::vector<HalfEdge> hedges;
     std::vector<Face>     faces;
 
     void register_vertex(Vertex v)
@@ -200,25 +210,25 @@ private:
 
     void register_hedge(HalfEdge e)
     {
-        e->index = hedge.size();
-        hedge.emplace_back(e);
+        e->index = hedges.size();
+        hedges.emplace_back(e);
     }
 
     void unregister_hedge(HalfEdge e)
     {
         assert(e->index != UINT64_MAX);
-        assert(e->index < hedge.size());
+        assert(e->index < hedges.size());
 
-        if (hedge.size() == 1)
+        if (hedges.size() == 1)
         {
-            hedge.clear();
+            hedges.clear();
             return;
         }
 
         // Swap back
-        hedge[e->index]        = hedge.back();
-        hedge[e->index]->index = e->index;
-        hedge.pop_back();
+        hedges[e->index]        = hedges.back();
+        hedges[e->index]->index = e->index;
+        hedges.pop_back();
         e->index = UINT64_MAX;
     }
 
@@ -226,14 +236,14 @@ private:
     {
         friend class HalfEdgeMeshStructure;
 
-      public:
+    public:
         HalfEdge twin     = nullptr;
         HalfEdge next     = nullptr;
         HalfEdge previous = nullptr;
         Vertex   origin   = nullptr;
         Face     face     = nullptr;
 
-      private:
+    private:
         HalfEdge_V() = default;
         size_t index = SIZE_MAX;
     };
@@ -251,12 +261,6 @@ private:
 
         void add_hedge(HalfEdge h)
         {
-//#ifdef NDEBUG
-            for (const auto& o : half_edges)
-                if (h->next)
-                    ;
-            //assert(o->next->origin != h->next->origin);
-            //#endif
             half_edges.emplace_back(h);
         }
 
@@ -302,7 +306,7 @@ public:
             glm::dvec3 pos =
                 sphere_to_rect_coords({acos(1 - 2.0 * static_cast<double>(i) / static_cast<double>(n_points)), std::fmod(2 * std::numbers::pi * static_cast<double>(i) / std::numbers::phi, 2.0 * std::numbers::pi)});
 
-            Eng::DebugDraw::get().add_segment({0, 0, 0}, pos * 6500.0, {0, 0, 1}, 100);
+            Eng::DebugDraw::get().add_segment(pos * 6000.0, pos * 6500.0, {0, 0, 1}, 100);
             mesh.add_vertex(pos);
         }
 
@@ -355,45 +359,51 @@ private:
         return false;
     }
 
-    /*
-    bool test_delaunay(size_t t, size_t v1, size_t v2) const
+    bool test_delaunay(HalfEdgeMeshStructure::Face f)
     {
-        const Triangle& tri = triangles[t];
+        auto A = f->hedge->origin;
+        auto B = f->hedge->next->origin;
+        auto C = f->hedge->previous->origin;
 
-        auto AB = tri.B - tri.A;
-        auto AC = tri.C - tri.A;
+        auto ABprime = f->hedge->twin;
+
+        auto N = ABprime->previous->origin;
+
+        auto AB = B->position - A->position;
+        auto AC = C->position - A->position;
 
         glm::dvec3 G = cross(AB, AC) / (length(AB) * length(AC));
 
-        for (const auto& t1 : vertices[v1].triangles)
-            for (const auto& t2 : vertices[v2].triangles)
-                if (t1 == t2 && t1 != t)
-                {
-                    const Triangle& tri_opp = triangles[t1];
-                    const auto&     N       = (tri_opp.a == v1 || tri_opp.a == v2) ? (tri_opp.b == v1 || tri_opp.b == v2) ? tri_opp.C : tri_opp.B : tri_opp.A;
-                    if (length(G - tri.A) > length(G - N))
-                    {
-                        // @TODO : flip edge
-                        Eng::DebugDraw::get().add_segment({}, G * 6000.0, {1, 0, 0}, 100);
-                        return true;
-                    }
-                    return false;
-                }
+        if (length(G - A->position) > length(G - N->position))
+        {
+            Eng::DebugDraw::get().add_segment(A->position * 6000.0, B->position * 6000.0, {0, 1, 1}, 100);
+            mesh.remove_face(f);
+            mesh.remove_face(ABprime->face);
+            auto F1 = mesh.add_face({N, C, A});
+            auto F2 = mesh.add_face({C, N, B});
 
-        LOG_FATAL("Unhandled case");
-    }*/
+            /*
+            if (!test_delaunay(F1->hedge->next->twin->face))
+                ;//if (!test_delaunay(F1->hedge->previous->twin->face))
+                    ;/*
+                    if (!test_delaunay(F2->hedge->next->twin->face))
+                        if (!test_delaunay(F2->hedge->previous->twin->face))
+                            ;*/
+            return true;
+        }
+        return false;
+    }
 
     void triangulate()
     {
+        size_t vertex_count = mesh.get_vertices().size();
         // Initialize with octahedron triangles
-
         auto V0 = mesh.add_vertex({0, 0, 1});
         auto V1 = mesh.add_vertex({0, 1, 0});
         auto V2 = mesh.add_vertex({1, 0, 0});
         auto V3 = mesh.add_vertex({0, -1, 0});
         auto V4 = mesh.add_vertex({-1, 0, 0});
         auto V5 = mesh.add_vertex({0, 0, -1});
-
         mesh.add_face({V0, V2, V1});
         mesh.add_face({V0, V3, V2});
         mesh.add_face({V0, V4, V3});
@@ -403,10 +413,9 @@ private:
         mesh.add_face({V3, V4, V5});
         mesh.add_face({V4, V1, V5});
 
-        for (size_t i = 20; i < mesh.get_vertices().size(); ++i)
+        for (size_t i = 0; i < vertex_count; ++i)
         {
             const auto& P = mesh.get_vertices()[i];
-
             // Search the concerned triangle and split it
             for (const auto& face : mesh.get_faces())
             {
@@ -417,11 +426,13 @@ private:
                 // Break-insert
                 if (point_in_triangle(P->position, A->position, B->position, C->position))
                 {
-                    LOG_WARNING("info ?");
                     mesh.remove_face(face);
-                    mesh.add_face({A, B, P});
-                    mesh.add_face({B, C, P});
-                    mesh.add_face({C, A, P});
+                    auto F1 = mesh.add_face({A, B, P});
+                    auto F2 = mesh.add_face({B, C, P});
+                    auto F3 = mesh.add_face({C, A, P});
+                    test_delaunay(F1);
+                    test_delaunay(F2);
+                    test_delaunay(F3);
                     break;
                 }
             }
@@ -430,8 +441,8 @@ private:
         for (const auto& triangle : mesh.get_faces())
         {
             auto a = triangle->hedge;
-            for (int i = 0; i < 3; ++i)
-                Eng::DebugDraw::get().add_segment(a->origin->position * 6000.0, a->next->origin->position * 6000.0, {1, 1, 0}, 100);
+            for (int i = 0; i < 3; ++i, a = a->next)
+                Eng::DebugDraw::get().add_segment(a->origin->position * 6005.0, a->next->origin->position * 6005.0, {1, 1, 0}, 100);
         }
     }
 
