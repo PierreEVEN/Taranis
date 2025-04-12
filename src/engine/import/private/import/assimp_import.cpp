@@ -42,7 +42,10 @@ Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
     const aiScene* scene = importer->ReadFile(path.string(), 0);
     if (!scene)
     {
-        LOG_ERROR("Failed to load scene from path {}", path.string());
+        if (auto error = importer->GetErrorString())
+            LOG_ERROR("Failed to load scene from path {} : {}", path.string(), importer->GetErrorString());
+        else
+            LOG_ERROR("Failed to load scene from path {}", path.string());
         return output_scene;
     }
     SceneLoader loader(path, scene, output_scene);
@@ -51,7 +54,15 @@ Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
 
 void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneComponent> parent, Scene& output_scene)
 {
+    if (!node)
+        return;
     TObjectRef<SceneComponent> this_component;
+
+    aiVector3t<float> pScaling;
+    aiVector3t<float> pRotation;
+    aiVector3t<float> pPosition;
+    node->mTransformation.Decompose(pScaling, pRotation, pPosition);
+
     if (node->mNumMeshes > 0)
     {
         auto new_mesh = Engine::get().asset_registry().create<MeshAsset>(node->mName.C_Str());
@@ -81,6 +92,13 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
         {
             this_component = output_scene.add_component<SceneComponent>(node->mName.C_Str());
         }
+    }
+
+    if (this_component)
+    {
+        this_component->set_position(glm::vec3(pPosition.x, pPosition.y, pPosition.z));
+        this_component->set_scale(glm::vec3(pScaling.x, pScaling.y, pScaling.z));
+        this_component->set_rotation(glm::quat(glm::vec3(pRotation.x, pRotation.y, pRotation.z)));
     }
 
     for (size_t i = 0; i < node->mNumChildren; ++i)
@@ -125,7 +143,8 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
         }
         else
         {
-            LOG_FATAL("Failed to load texture {}", fs_path.string());
+            LOG_ERROR("Failed to load texture {}", fs_path.string());
+            return TObjectRef<TextureAsset>();
         }
 
         auto new_tex = ImageImport::load_from_path(fs_path);
@@ -147,19 +166,10 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load material instance {}", id));
     auto mat = scene->mMaterials[id];
 
-    MaterialType type = MaterialType::Opaque_Albedo;
+    const aiMaterialProperty* two_sided;
+    aiGetMaterialProperty(mat, AI_MATKEY_TWOSIDED, &two_sided);
 
-    if (mat->GetTextureCount(aiTextureType_NORMALS) > 0)
-    {
-        if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
-            type = MaterialType::Opaque_NormalMR;
-        else
-            type = MaterialType::Opaque_Normal;
-    }
-    else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
-        type = MaterialType::Opaque_MR;
-
-    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>(std::string("MaterialInstance_") + mat->GetName().C_Str() + "_" + std::to_string(id), find_or_load_material(type));
+    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>(std::string("MaterialInstance_") + mat->GetName().C_Str() + "_" + std::to_string(id), find_or_load_material({.two_sided = two_sided ? true : false}));
 
     if (!default_normal)
     {
@@ -180,6 +190,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     }
 
     new_mat->set_sampler("sSampler", get_sampler());
+
     if (mat->GetTextureCount(aiTextureType_DIFFUSE) == 0)
         new_mat->set_permutation(new_mat->get_permutation().set("PARAM_ALBEDO_TEXTURE", false));
     if (mat->GetTextureCount(aiTextureType_NORMALS) == 0)
@@ -226,7 +237,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     return materials.emplace(id, new_mat).first->second;
 }
 
-TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(MaterialType type)
+TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(const MaterialMetaData& type)
 {
     if (auto found = materials_base.find(type); found != materials_base.end())
         return found->second;
@@ -234,24 +245,8 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(Mat
     PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load material"));
     std::vector<std::string> features;
 
-    switch (type)
-    {
-    case MaterialType::Opaque_Albedo:
-        break;
-    case MaterialType::Opaque_Normal:
-        features.emplace_back("FEAT_NORMAL");
-        break;
-    case MaterialType::Opaque_NormalMR:
-        features.emplace_back("FEAT_NORMAL");
-        features.emplace_back("FEAT_MR");
-        break;
-    case MaterialType::Opaque_MR:
-        features.emplace_back("FEAT_MR");
-        break;
-    case MaterialType::Translucent:
-        break;
-    }
     auto mat = Engine::get().asset_registry().create<MaterialAsset>("default_mesh");
+    mat->update_options(Gfx::PipelineOptions{.culling = type.two_sided ? Gfx::ECulling::None : Gfx::ECulling::Back});
     mat->set_shader_code("default_mesh", std::vector{
                              StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
                              StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32_SFLOAT},

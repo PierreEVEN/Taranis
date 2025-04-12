@@ -87,7 +87,7 @@ float4 UnpackBc5NormalMap(float4 TextureSample)
 FsOutput fragment_main(VsToFs input)
 {
     // @TODO handle flipped textures
-    input.Uvs = float2(input.Uvs.x, -input.Uvs.y);
+    input.Uvs = float2(input.Uvs.x, input.Uvs.y);
     float4 tex_col = float4(1, 1, 1, 1);
 
     if (PARAM_ALBEDO_TEXTURE)

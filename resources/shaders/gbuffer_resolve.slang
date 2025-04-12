@@ -210,7 +210,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     // gamma correct
     color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 
-    return float4(albedo, 1);
+    //return float4(albedo, 1);
 
-    //return float4(color, 1);
+    return float4(color, 1);
 }

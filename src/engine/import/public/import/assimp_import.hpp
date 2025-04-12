@@ -22,6 +22,40 @@ class path;
 
 namespace Eng
 {
+
+struct MaterialMetaData
+{
+    bool two_sided = false;
+
+    bool operator==(const MaterialMetaData& other) const
+    {
+        return other.two_sided == two_sided;
+    }
+};
+
+} // namespace Eng
+
+namespace std
+{
+template <class T> void hash_combine(::size_t& s, const T& v)
+{
+    ::std::hash<T> h;
+    s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
+}
+
+template <> struct hash<Eng::MaterialMetaData>
+{
+    size_t operator()(const Eng::MaterialMetaData& c) const noexcept
+    {
+        size_t result = 0;
+        hash_combine(result, c.two_sided);
+        return result;
+    }
+};
+} // namespace std
+
+namespace Eng {
+
 class Scene;
 
 class SamplerAsset;
@@ -39,14 +73,6 @@ class BufferData;
 class AssimpImporter
 {
   public:
-    enum class MaterialType
-    {
-        Opaque_Albedo,
-        Opaque_Normal,
-        Opaque_NormalMR,
-        Opaque_MR,
-        Translucent
-    };
 
     AssimpImporter();
 
@@ -66,7 +92,7 @@ class AssimpImporter
 
         TObjectRef<TextureAsset>          find_or_load_texture(const std::string& path);
         TObjectRef<MaterialInstanceAsset> find_or_load_material_instance(int id);
-        TObjectRef<MaterialAsset>         find_or_load_material(MaterialType type);
+        TObjectRef<MaterialAsset>         find_or_load_material(const MaterialMetaData& type);
         std::shared_ptr<MeshSection>      find_or_load_mesh(int id);
         TObjectRef<SamplerAsset>          get_sampler();
 
@@ -75,7 +101,7 @@ class AssimpImporter
         ankerl::unordered_dense::map<int, std::shared_ptr<MeshSection>>       meshes;
         TObjectRef<SamplerAsset>                                    sampler;
         const aiScene*                                              scene;
-        ankerl::unordered_dense::map<MaterialType, TObjectRef<MaterialAsset>> materials_base;
+        ankerl::unordered_dense::map<MaterialMetaData, TObjectRef<MaterialAsset>> materials_base;
         std::filesystem::path                                       file_path;
     };
 

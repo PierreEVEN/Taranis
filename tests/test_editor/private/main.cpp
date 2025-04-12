@@ -242,7 +242,7 @@ public:
 class TestApp : public Application
 {
 public:
-    void init(Engine&, const std::weak_ptr<Gfx::Window>& in_default_window) override
+    void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
 
@@ -272,13 +272,53 @@ public:
         scene->set_pass_list(default_window.lock()->set_renderer(renderer));
         camera = scene->add_component<FpsCameraComponent>("test_cam");
         camera->activate();
-        camera->set_position({-500, 0, 6000});
+        camera->set_position({-10, 0, 0});
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
 
 
-        TObjectRef<PlanetComponent> planet_0 = scene->add_component<PlanetComponent>("Planet0");
+        std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
+        engine.jobs().schedule(
+            [&, importer]
+            {
+                auto  new_scene = importer->load_from_path("./resources/models/fir_tree_01_4k/fir_tree_01_4k.gltf");
+                float pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+        engine.jobs().schedule(
+            [&, importer]
+            {
+                auto  new_scene = importer->load_from_path("./resources/models/fir_sapling_medium_4k/fir_sapling_medium_4k.gltf");
+                float pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+        /*
+        engine.jobs().schedule(
+            [&, importer]
+            {
+                auto  new_scene = importer->load_from_path("./resources/models/pine_sapling_medium_4k/pine_sapling_medium_4k.gltf");
+                float pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });*/
+        /*engine.jobs().schedule(
+            [&, importer]
+            {
+                auto  new_scene = importer->load_from_path("./resources/models/pine_tree_01_4k/pine_tree_01_4k.gltf");
+                float pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });*/
+
+
+        //TObjectRef<PlanetComponent> planet_0 = scene->add_component<PlanetComponent>("Planet0");
 
         /*
         std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
