@@ -25,8 +25,22 @@ class FileReader;
 
 struct TypeDefinition
 {
+private:
     std::string                 name;
     std::vector<TypeDefinition> template_args;
+public:
+    std::string full_name_string() const
+    {
+        std::string full_name = name;
+        if (!template_args.empty())
+        {
+            full_name += "<";
+            for (size_t i = 0; i < template_args.size(); ++i)
+                full_name += i == template_args.size() - 1 ? template_args[i].full_name_string() : template_args[i].full_name_string() + ", ";
+            full_name += ">";
+        }
+        return full_name;
+    }
 
     std::optional<Llp::ParserError> try_parse(Llp::Parser& parser);
 };

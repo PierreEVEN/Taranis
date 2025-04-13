@@ -23,13 +23,14 @@ public:
     template <typename Typename> static Type* register_type()
     {
         static_assert(StaticTypeInfos<Typename>::value, "Failed to register type : not a reflected type.");
-        Type* new_type = new Type(StaticTypeInfos<Typename>::name, sizeof(Typename), make_type_id<Typename>());
+        Type* new_type = new Type(StaticTypeInfos<Typename>::name, sizeof(Typename));
         register_type_internal(new_type);
         return new_type;
     }
 
     template <typename T> static TypeId make_type_id()
     {
+        static_assert(StaticTypeInfos<T>::value, "Cannot get type id : this type is not a reflected type.");
         return make_type_id(StaticTypeInfos<T>::name);
     }
 

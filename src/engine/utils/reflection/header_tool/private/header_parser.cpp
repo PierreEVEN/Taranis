@@ -9,8 +9,15 @@
 
 std::optional<Llp::ParserError> TypeDefinition::try_parse(Llp::Parser& parser)
 {
-    if (auto found_name = parser.consume<Llp::WordToken>())
-        name            = found_name->word;
+    // Ignore first "::"
+    parser.consume<Llp::SymbolToken>(':');
+    parser.consume<Llp::SymbolToken>(':');
+
+    do
+    {
+        if (auto found_name = parser.consume<Llp::WordToken>())
+            name += name.empty() ? found_name->word : "::" + found_name->word;
+    } while (parser.consume<Llp::SymbolToken>(':') && parser.consume<Llp::SymbolToken>(':'));
 
     if (parser.consume<Llp::SymbolToken>('<'))
     {
@@ -217,12 +224,12 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                 if (auto error = type.try_parse(parser))
                     return error;
 
-                if (context.class_stack.back()->properties.contains(type.name))
-                    return Llp::ParserError{parser.current_location(), std::format("Duplicated property ", type.name)};
-
                 auto type_name = parser.consume<Llp::WordToken>();
                 if (!type_name)
                     return Llp::ParserError{parser.current_location(), "Expected property name"};
+
+                if (context.class_stack.back()->properties.contains(type_name->word))
+                    return Llp::ParserError{parser.current_location(), std::format("Duplicated property ", type_name->word)};
 
                 context.class_stack.back()->properties.emplace(type_name->word, type);
             }

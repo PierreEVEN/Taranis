@@ -104,10 +104,15 @@ public:
 
     static ankerl::unordered_dense::map<TypeId, Class*>& get_classes()
     {
-        return get_classes();
+        return get_classes_internal();
     }
 
-private:
+    const std::unordered_map<std::string, Property*>& get_properties() const
+    {
+        return properties;
+    }
+
+  private:
     static bool is_base_of(const Class* base, const Class* t);
 
     void on_register_parent_class(Class* new_class);

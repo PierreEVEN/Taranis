@@ -260,7 +260,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     float3 color = ambient + Lo;
 
     // HDR tonemapping
-    color = tonemap_reinhard(color);
+    color = ACESFitted(color);
     // gamma correct
     //color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 

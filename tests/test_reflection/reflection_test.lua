@@ -1,6 +1,6 @@
 declare_module("test_reflection",
     {
-        deps = {"reflection"},
+        deps = {"reflection", "types"},
         packages = {},
         is_executable = true,
         enable_reflection = true

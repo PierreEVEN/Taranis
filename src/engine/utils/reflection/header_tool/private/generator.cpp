@@ -146,7 +146,7 @@ void Generator::generate(size_t                       timestamp, const std::file
                 }
 
                 for (const auto& property : gen_class.second.properties())
-                    source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}));", gen_class.second.sanitized_class_path(), property.first, property.second.name, gen_class.second.class_path(), property.first));
+                    source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}));", gen_class.second.sanitized_class_path(), property.first, property.second.full_name_string(), gen_class.second.class_path(), property.first));
             }
             source.unindent();
             source.write_line("}");

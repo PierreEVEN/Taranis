@@ -23,6 +23,11 @@ public:
         return type;
     }
 
+    const size_t get_offset() const
+    {
+        return offset;
+    }
+
     template <typename T = void> T* read(void* object_ptr)
     {
         return reinterpret_cast<T*>(reinterpret_cast<size_t>(object_ptr) + offset);
