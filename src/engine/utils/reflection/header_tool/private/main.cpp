@@ -37,7 +37,9 @@ int main(int argc, char** argv)
         while (std::getline(header_file, line))
         {
             if (line_index == *include_to_add)
+            {
                 data += "#include \"" + generated_include_path.string() + "\"\n";
+            }
             data += line + "\n";
             line_index++;
         }

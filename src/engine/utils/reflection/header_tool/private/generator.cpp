@@ -60,7 +60,7 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 {
 }
 
-void Generator::generate(size_t timestamp, const std::filesystem::path& source_path, const std::filesystem::path& header_path, const std::filesystem::path& base_header_path,
+void Generator::generate(size_t                       timestamp, const std::filesystem::path& source_path, const std::filesystem::path& header_path, const std::filesystem::path& base_header_path,
                          const std::filesystem::path& generated_header_include_path) const
 {
     create_directories(source_path.parent_path());
@@ -141,9 +141,12 @@ void Generator::generate(size_t timestamp, const std::filesystem::path& source_p
                 source.write_line(std::format("_Static_Item_Class_{} = REFL_REGISTER_CLASS({});", gen_class.second.sanitized_class_path(), class_name));
                 for (const auto& parent : gen_class.second.get_parent_paths())
                 {
-                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(\"{}\");", gen_class.second.sanitized_class_path(), parent));
+                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Type::make_type_id(\"{}\"));", gen_class.second.sanitized_class_path(), parent));
                     source.write_line(std::format("_Static_Item_Class_{}->add_cast_function<{},{}>();", gen_class.second.sanitized_class_path(), class_name, parent));
                 }
+
+                for (const auto& property : gen_class.second.properties())
+                    source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}));", gen_class.second.sanitized_class_path(), property.first, property.second.name, gen_class.second.class_path(), property.first));
             }
             source.unindent();
             source.write_line("}");

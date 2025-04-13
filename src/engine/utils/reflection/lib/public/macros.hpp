@@ -14,7 +14,7 @@
 #define CONCAT_MACRO_SIX_PARAMS(u, v, w, x, y, z)  CONCAT_MACRO_SIX_PARAMS_(u, v, w, x, y, z)
 
 #define REFL_DECLARE_TYPENAME(Type)                       \
-    template <> struct Reflection::StaticClassInfos<Type> \
+    template <> struct Reflection::StaticTypeInfos<Type> \
     {                                                     \
         constexpr static bool        value = true;        \
         constexpr static const char* name  = #Type;       \
@@ -28,20 +28,20 @@
     virtual const Reflection::Class* get_class() const;                                              \
     template <typename T> T*         cast()                                                          \
     {                                                                                                \
-        if constexpr (Reflection::StaticClassInfos<T>::value)                                        \
+        if constexpr (Reflection::StaticTypeInfos<T>::value)                                        \
             return reinterpret_cast<T*>(get_class()->cast_to(T::static_class(), this));              \
         else                                                                                         \
             return nullptr;                                                                          \
     }                                                                                                \
-    template <typename T> const T* cast() const                                                \
+    template <typename T> const T* cast() const                                                      \
     {                                                                                                \
-        if constexpr (Reflection::StaticClassInfos<T>::value)                                        \
+        if constexpr (Reflection::StaticTypeInfos<T>::value)                                        \
             return reinterpret_cast<const T*>(get_class()->cast_to_const(T::static_class(), this));  \
         else                                                                                         \
             return nullptr;                                                                          \
     }
 
-#define REFL_REGISTER_CLASS(ClassName) Reflection::Class::RegisterClass<ClassName>(#ClassName);
+#define REFL_REGISTER_CLASS(ClassName) Reflection::Class::register_class<ClassName>();
 
 #define REFLECT(...)
 #define RPROPERTY(...)

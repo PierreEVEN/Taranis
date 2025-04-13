@@ -17,7 +17,7 @@ option("build-tests", { default = false })
 option("build-monolithic", { default = true })
 
 if is_mode("debug") then
-    --set_optimize("fastest")
+    set_optimize("fastest")
 end
 
 if is_mode("release") then

@@ -7,6 +7,11 @@
 
 namespace Llp
 {
+class Parser;
+}
+
+namespace Llp
+{
 struct ParserError;
 class Block;
 }
@@ -18,19 +23,29 @@ class path;
 
 class FileReader;
 
+struct TypeDefinition
+{
+    std::string                 name;
+    std::vector<TypeDefinition> template_args;
+
+    std::optional<Llp::ParserError> try_parse(Llp::Parser& parser);
+};
+
 struct ClassDefinition
 {
-    std::string              name;
-    std::vector<std::string> parents;
+    std::string                                               name;
+    std::vector<std::string>                                  parents;
+    ankerl::unordered_dense::map<std::string, TypeDefinition> properties;
 };
+
 
 class HeaderParser
 {
 public:
     struct ParserContext
     {
-        std::vector<std::string>     namespace_stack;
-        std::vector<ClassDefinition> class_stack;
+        std::vector<std::string>                      namespace_stack;
+        std::vector<std::shared_ptr<ClassDefinition>> class_stack;
 
         ParserContext push_namespace(const std::string& last_namespace) const
         {
@@ -42,7 +57,7 @@ public:
         ParserContext push_class(const ClassDefinition& last_class) const
         {
             ParserContext copy = *this;
-            copy.class_stack.push_back(last_class);
+            copy.class_stack.push_back(std::make_shared<ClassDefinition>(last_class));
             return copy;
         }
     };
@@ -58,7 +73,13 @@ public:
         std::string              sanitized_class_path() const;
         std::vector<std::string> get_parent_paths() const;
         std::string              class_name() const;
-        std::string              namespace_path() const;
+        std::string                                               namespace_path() const;
+        ankerl::unordered_dense::map<std::string, TypeDefinition> properties() const
+        {
+            if (context.class_stack.empty())
+                return {};
+            return context.class_stack.back()->properties;
+        }
     };
 
     std::optional<size_t> get_include_line_to_add() const
@@ -80,6 +101,6 @@ private:
     std::filesystem::path                                     generated_header_include_path;
     std::filesystem::path                                     header_path;
     ankerl::unordered_dense::map<std::string, ReflectedClass> reflected_classes;
-    size_t                                                    line_after_last_include = 0;
+    size_t                                                    line_after_last_include = 1;
     bool                                                      b_found_include         = false;
 };
