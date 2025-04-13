@@ -97,11 +97,11 @@ void LightComponent::build_outliner(Gfx::ImGuiWrapper& ctx)
 
     if (shadow_view)
     {
-        if (ImGui::SliderFloat("Width", &orthographic_width, 10, 50000))
+        if (ImGui::SliderFloat("Width", &orthographic_width, 1, 500))
             shadow_view->set_orthographic_width(orthographic_width);
-        if (ImGui::SliderFloat("Z near", &z_near, -50000, 0))
+        if (ImGui::SliderFloat("Z near", &z_near, -500, 0))
             shadow_view->set_z_near(z_near);
-        if (ImGui::SliderFloat("Z far", &z_far, 0, 50000))
+        if (ImGui::SliderFloat("Z far", &z_far, 0, 500))
             shadow_view->set_z_far(z_far);
     }
 }

@@ -276,12 +276,68 @@ public:
 
         auto directional_light = scene->add_component<DirectionalLightComponent>("Directional light");
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
+        directional_light->enable_shadow(ELightType::Movable, true);
 
-
-        std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
+        
         engine.jobs().schedule(
-            [&, importer]
+            [&]
             {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
+                auto                            new_scene = importer->load_from_path("./resources/models/plane/plane.glb");
+                float                           pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+        
+        engine.jobs().schedule(
+            [&]
+            {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
+                auto                            new_scene = importer->load_from_path("./resources/models/searsia_lucida_4k/searsia_lucida_4k.gltf");
+                float                           pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+
+        engine.jobs().schedule(
+            [&]
+            {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
+                auto                            new_scene = importer->load_from_path("./resources/models/jacaranda_tree_4k/jacaranda_tree_4k.gltf");
+                float                           pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+
+        engine.jobs().schedule(
+            [&]
+            {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
+                auto                            new_scene = importer->load_from_path("./resources/models/island_tree_03_4k/island_tree_03_4k.gltf");
+                float                           pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+
+        engine.jobs().schedule(
+            [&]
+            {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
+                auto                            new_scene = importer->load_from_path("./resources/models/othonna_cerarioides_4k/othonna_cerarioides_4k.gltf");
+                float                           pi        = std::numbers::pi_v<float>;
+                for (const auto& root : new_scene.get_nodes())
+                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
+                scene->merge(std::move(new_scene));
+            });
+
+        engine.jobs().schedule(
+            [&]
+            {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
                 auto  new_scene = importer->load_from_path("./resources/models/fir_tree_01_4k/fir_tree_01_4k.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
@@ -289,34 +345,37 @@ public:
                 scene->merge(std::move(new_scene));
             });
         engine.jobs().schedule(
-            [&, importer]
+            [&]
             {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
                 auto  new_scene = importer->load_from_path("./resources/models/fir_sapling_medium_4k/fir_sapling_medium_4k.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
             });
-        /*
+        
         engine.jobs().schedule(
-            [&, importer]
+            [&]
             {
-                auto  new_scene = importer->load_from_path("./resources/models/pine_sapling_medium_4k/pine_sapling_medium_4k.gltf");
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
+                auto  new_scene = importer->load_from_path("./resources/models/pine_sapling_medium_4k_2/pine_sapling_medium_4k_2.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
-            });*/
-        /*engine.jobs().schedule(
-            [&, importer]
+            });
+        
+        engine.jobs().schedule(
+            [&]
             {
+                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
                 auto  new_scene = importer->load_from_path("./resources/models/pine_tree_01_4k/pine_tree_01_4k.gltf");
                 float pi        = std::numbers::pi_v<float>;
                 for (const auto& root : new_scene.get_nodes())
                     root->set_rotation(glm::quat({pi / 2, 0, 0}));
                 scene->merge(std::move(new_scene));
-            });*/
-
+            });
 
         //TObjectRef<PlanetComponent> planet_0 = scene->add_component<PlanetComponent>("Planet0");
 

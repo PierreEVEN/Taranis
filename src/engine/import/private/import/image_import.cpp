@@ -78,7 +78,8 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
                 .height = image.height,
                 .depth = image.depth,
                 .format = static_cast<Gfx::ColorFormat>(dds::getVulkanFormat(image.format, image.supportsAlpha)),
-                .array_size = image.arraySize
+                .generate_mips = Gfx::GenerateMips::max(),
+                .array_size = image.arraySize,
             });
 
         return text;
@@ -114,7 +115,8 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
                                                                               TextureAsset::CreateInfos{
                                                                                   .width = x,
                                                                                   .height = y,
-                                                                                  .format = Gfx::ColorFormat::R8G8B8A8_UNORM
+                                                                                  .format = Gfx::ColorFormat::R8G8B8A8_UNORM,
+                                                                                  .generate_mips = Gfx::GenerateMips::max(),
                                                                               });
 
         FreeImage_Unload(converted);

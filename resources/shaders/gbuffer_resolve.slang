@@ -96,6 +96,59 @@ VsToFsStruct vs_main(uint vertex_index : SV_VertexID)
     return output;
 }
 
+// Applies the filmic curve from John Hable's presentation
+float3 ToneMapFilmicALU(in float3 color)
+{
+    color = max(0, color - 0.004f);
+    color = (color * (6.2f * color + 0.5f)) / (color * (6.2f * color + 1.7f) + 0.06f);
+    return color;
+}
+
+static const float3x3 ACESInputMat =
+{
+    {0.59719, 0.35458, 0.04823},
+    {0.07600, 0.90834, 0.01566},
+    {0.02840, 0.13383, 0.83777}
+};
+
+// ODT_SAT => XYZ => D60_2_D65 => sRGB
+static const float3x3 ACESOutputMat =
+{
+    { 1.60475, -0.53108, -0.07367},
+    {-0.10208,  1.10813, -0.00605},
+    {-0.00327, -0.07276,  1.07602}
+};
+
+float3 RRTAndODTFit(float3 v)
+{
+    float3 a = v * (v + 0.0245786f) - 0.000090537f;
+    float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+    return a / b;
+}
+
+float3 ACESFitted(float3 color)
+{
+    color = mul(ACESInputMat, color);
+
+    // Apply RRT and ODT
+    color = RRTAndODTFit(color);
+
+    color = mul(ACESOutputMat, color);
+
+    // Clamp to [0, 1]
+    color = saturate(color);
+
+    return color;
+}
+
+#define TONEMAP_GAMMA 2.2
+
+// Reinhard Tonemapper
+float3 tonemap_reinhard(in float3 color)
+{
+    return color = color / (1 + color);
+}
+
 [shader("fragment")]
 [RenderPass("gbuffer_resolve")]
 float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
@@ -107,7 +160,8 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     float4 normal_r = gbuffer_normal_r.Sample(sSampler, input.Uv);
 
     if (length(worldPosition) == 0) {
-        return float4(0.5, 0.7, 1, 1);
+        float3 sky = float3(0.5, 0.7, 1) * 0.8;
+        return float4(sky, 1);
     }
 
     float3 albedo   = albedo_m.rgb;
@@ -120,7 +174,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     float4 cm_dir = mul(scene_buffer_data.view_mat, float4(0, 0, 0, 1));
     float3 cam_pos = pc.cam_position;
 
-    float3 ambiant_intensity = float3(0.1, 0.1, 0.1) * 0.1;
+    float3 ambiant_intensity = float3(0.1, 0.1, 0.1) * 2;
     float3 light_color       = float3(1, 1, 1);
 
     //float ao = texture(aoMap, TexCoords).r;
@@ -149,7 +203,7 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
 
             float2 textureCoordinates = projectedEyeDir.xy * float2(-0.5, 0.5) + float2(0.5, 0.5);
 
-            const float bias = 0.0001;
+            const float bias = -0.01;
 
             shadow = 0.0;
             float current_depth = 1 - projectedEyeDir.z;
@@ -206,9 +260,9 @@ float4 fs_main(VsToFsStruct input, uniform PushConsts pc)
     float3 color = ambient + Lo;
 
     // HDR tonemapping
-    color = color / (color + float3(1, 1, 1));
+    color = tonemap_reinhard(color);
     // gamma correct
-    color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
+    //color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 
     //return float4(albedo, 1);
 

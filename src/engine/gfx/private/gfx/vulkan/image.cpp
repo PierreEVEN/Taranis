@@ -158,7 +158,7 @@ Image::ImageResource::ImageResource(std::string in_name, std::weak_ptr<Device> i
     is_depth   = is_depth_format(params.format);
     depth      = params.depth;
     res        = {params.width, params.height};
-
+    generate_mips = params.generate_mips;
     mip_count = in_mip_count;
 
     VkImageType image_type = VK_IMAGE_TYPE_2D;
@@ -255,6 +255,7 @@ void Image::ImageResource::set_data(const std::vector<BufferData>& mips)
     command_buffer = nullptr;
     command_buffer = CommandBuffer::create(name() + "_transfer_cmd2", device(), QueueSpecialization::Graphic);
     command_buffer->begin(true);
+
     if (generate_mips.does_generates())
         generate_mipmaps(mip_count, *command_buffer);
     set_image_layout(*command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -363,7 +364,12 @@ void Image::ImageResource::generate_mipmaps(uint32_t mipLevels, const CommandBuf
         barrier.srcAccessMask                 = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask                 = VK_ACCESS_TRANSFER_READ_BIT;
 
-        vkCmdPipelineBarrier(command_buffer.raw(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        vkCmdPipelineBarrier(command_buffer.raw(), 
+            VK_PIPELINE_STAGE_TRANSFER_BIT, 
+            VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 
+            0, nullptr,
+            0, nullptr, 
+            1, &barrier);
 
         VkImageBlit blit{};
         blit.srcOffsets[0]                 = {0, 0, 0};
@@ -386,7 +392,12 @@ void Image::ImageResource::generate_mipmaps(uint32_t mipLevels, const CommandBuf
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-        vkCmdPipelineBarrier(command_buffer.raw(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        vkCmdPipelineBarrier(command_buffer.raw(), 
+            VK_PIPELINE_STAGE_TRANSFER_BIT, 
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 
+            0, nullptr, 0, 
+            nullptr, 
+            1, &barrier);
 
         if (mipWidth > 1)
             mipWidth /= 2;

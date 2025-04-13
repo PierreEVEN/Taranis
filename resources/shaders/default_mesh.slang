@@ -128,7 +128,7 @@ FsOutput fragment_main(VsToFs input)
     output.position = float4(input.WorldPosition, 1);
     output.albedo_m = float4(tex_col.rgb, mr.r);
     output.normal_r = float4(world_normal / 2 + 0.5, mr.g);
-    if (tex_col.a < 0.25)
+    if (tex_col.a < 0)
         discard;
     return output;
 }

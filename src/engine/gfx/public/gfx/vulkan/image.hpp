@@ -58,7 +58,7 @@ struct GenerateMips
         return mipmaps > -1;
     }
 
-    uint32_t desired_mip_count() const
+    int32_t desired_mip_count() const
     {
         return mipmaps;
     }
