@@ -189,8 +189,8 @@ public:
             return it->second;
 
         auto alias = get_types_aliases_internal().find(type_id);
-        if (it != get_types_aliases_internal().end())
-            return it->second;
+        if (alias != get_types_aliases_internal().end())
+            return alias->second;
 
         return nullptr;
     }

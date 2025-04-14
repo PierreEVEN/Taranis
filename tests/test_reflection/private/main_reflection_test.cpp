@@ -2,9 +2,13 @@
 #include "logger.hpp"
 #include "property.hpp"
 
+Reflection::NativeTypeRecorder native_type_recorder;
+
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
+
+    //native_type_recorder = new Reflection::NativeTypeRecorder();
 
     LOG_INFO("{} types registered :", Reflection::Type::get_types().size());
     for (const auto& type : Reflection::Type::get_types())
@@ -42,7 +46,7 @@ int main()
         LOG_INFO("\t- {} : {}b", type.second->name(), type.second->stride());
         LOG_INFO("\t\tProperties :");
         for (const auto& property : type.second->get_properties())
-            LOG_INFO("\t\t- {} {} ({}+{}b)", property.second->display_type(), property.second->get_name(), property.second->get_offset(), property.second->get_type()->stride());
+            LOG_INFO("\t\t- {} {} ({}+{}b)", property.second.get_type_instance().display(), property.second.get_name(), property.second.get_offset(), property.second.get_type_instance().stride());
     }
 
     MyTestClass test_class;

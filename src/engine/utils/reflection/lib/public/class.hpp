@@ -1,11 +1,15 @@
 #pragma once
+#include "property.hpp"
 #include "type.hpp"
 #include <iostream>
 
 namespace Reflection
 {
-class Property;
+class TypeInstance;
+}
 
+namespace Reflection
+{
 class Class : public Type
 {
 
@@ -89,7 +93,7 @@ public:
 
     void add_parent(const TypeId& parent);
 
-    void register_property(const std::string& name, TypeId type_id, size_t offset, bool is_const, bool is_ref, uint8_t ptr_indirections);
+    void register_property(const std::string& name, size_t offset, const TypeInstance& type);
 
     template <typename Base, typename T> static bool is_base_of()
     {
@@ -107,12 +111,12 @@ public:
         return get_classes_internal();
     }
 
-    const std::unordered_map<std::string, Property*>& get_properties() const
+    const ankerl::unordered_dense::map<std::string, Property>& get_properties() const
     {
         return properties;
     }
 
-  private:
+private:
     static bool is_base_of(const Class* base, const Class* t);
 
     void on_register_parent_class(Class* new_class);
@@ -124,7 +128,7 @@ public:
     static void register_class_internal(Class* inClass);
 
     std::vector<Class*>                                   parents = {};
-    std::unordered_map<std::string, Property*>            properties;
+    ankerl::unordered_dense::map<std::string, Property>   properties;
     ankerl::unordered_dense::map<TypeId, CastFuncWrapper> cast_functions;
 
     static ankerl::unordered_dense::map<TypeId, std::vector<Class*>>& get_class_waiting_type_registration();
@@ -138,8 +142,5 @@ public:
         std::string name;
         size_t      offset = 0;
     };
-
-    static ankerl::unordered_dense::map<TypeId, std::vector<PropertyWaitingTypeRegistration>>& get_properties_waiting_type_registration();
-    static ankerl::unordered_dense::map<TypeId, std::vector<PropertyWaitingTypeRegistration>>* properties_waiting_type_registration;
 };
 } // namespace Reflection

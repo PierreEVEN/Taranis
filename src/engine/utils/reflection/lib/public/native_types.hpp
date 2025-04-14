@@ -18,3 +18,13 @@ REFL_DECLARE_TYPENAME(double)
 
 REFL_DECLARE_TYPENAME(std::string)
 REFL_DECLARE_TYPENAME_TEMPLATE(std::vector)
+
+namespace Reflection
+{
+
+class NativeTypeRecorder
+{
+  public:
+    NativeTypeRecorder();
+};
+} // namespace Reflection

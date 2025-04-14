@@ -162,9 +162,39 @@ void Generator::generate(size_t                       timestamp, const std::file
                 for (const auto& property : gen_class.second.properties())
                 {
                     unpack_template_args(source, property.second);
-                    source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}), {}, {}, {});", gen_class.second.sanitized_class_path(),
-                                                  property.first, property.second.full_name_string(), gen_class.second.class_path(), property.first, property.second.is_const, property.second.is_ref,
-                                                  property.second.ptr_indirections));
+
+                    std::string args;
+                    if (property.second.is_const)
+                        args += ".set_const()";
+                    if (property.second.is_ref)
+                        args += ".set_ref()";
+                    if (property.second.ptr_indirections > 0)
+                        args += std::format(".set_ptr_indirections({})", property.second.ptr_indirections);
+
+                    if (!property.second.get_template_args().empty())
+                    {
+                        std::string sub_types = "{";
+                        auto        it = property.second.get_template_args().begin();
+                        while (it != property.second.get_template_args().end())
+                        {
+                            sub_types += std::format("Reflection::Type::make_type_id<{}>()", it->full_name_string());
+                            ++it;
+                            if (it != property.second.get_template_args().end())
+                                sub_types += ", ";
+                        }
+                        sub_types += '}';
+                        args += std::format(".set_template_specialization(Reflection::TypeSpecializationDescription({}))", sub_types);
+                    }
+
+                    source.write_line(std::format(
+                        "_Static_Item_Class_{}->register_property("
+                        "\"{}\", "
+                        "offsetof({}, {}), "
+                        "Reflection::TypeInstance(Reflection::Type::get_type(Reflection::Type::make_type_id<{}>()), sizeof({}::{})){});",
+                        gen_class.second.sanitized_class_path(),
+                        property.first,
+                        class_name, property.first,
+                        property.second.full_name_string(), class_name, property.first, args));
                 }
             }
             source.unindent();
