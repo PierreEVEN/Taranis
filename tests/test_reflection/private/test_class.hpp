@@ -1,21 +1,12 @@
 #pragma once
 #include "test_class.gen.hpp"
 
-REFL_DECLARE_TYPENAME(float)
-
-REFL_DECLARE_TYPENAME(bool)
-
-REFL_DECLARE_TYPENAME(char)
-
-REFL_DECLARE_TYPENAME(std::string)
-
-REFL_DECLARE_TYPENAME_ARGS(std::vector)
+#include "native_types.hpp"
 
 class TestChild : public std::vector<float>
 {
     REFLECT_BODY()
 };
-
 
 class MyTestClass
 {
@@ -27,6 +18,9 @@ public:
 
     RPROPERTY()
     std::vector<float> test_vector_float;
+
+    RPROPERTY()
+    std::vector<std::vector<float>> test_vector_vector_float;
 
     RPROPERTY()
     std::string test_string;

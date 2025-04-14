@@ -20,7 +20,7 @@
         constexpr static bool        is_class = false;    \
         constexpr static const char* name     = #Type;    \
     };
-#define REFL_DECLARE_TYPENAME_ARGS(Type)                                          \
+#define REFL_DECLARE_TYPENAME_TEMPLATE(Type)                                      \
     template <typename... Args> struct Reflection::StaticTypeInfos<Type<Args...>> \
     {                                                                             \
         constexpr static bool        value    = true;                             \
@@ -35,7 +35,7 @@
         constexpr static bool        is_class = true;    \
         constexpr static const char* name     = #Type;   \
     };
-#define REFL_DECLARE_CLASS_TYPENAME_ARGS(Type)                                    \
+#define REFL_DECLARE_CLASS_TYPENAME_TEMPLATE(Type)                                \
     template <typename... Args> struct Reflection::StaticTypeInfos<Type<Args...>> \
     {                                                                             \
         constexpr static bool        value    = true;                             \

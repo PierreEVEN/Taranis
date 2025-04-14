@@ -66,7 +66,7 @@ void Class::register_property(const std::string& property_name, TypeId property_
     }
     else
     {
-        std::cout << "TODO : handle class waiting for registration \n";
+        std::cout << "TODO : handle type waiting for registration : " << property_name << "\n";
         get_properties_waiting_type_registration().insert_or_assign(property_type_id, std::vector<PropertyWaitingTypeRegistration>()).first->second.emplace_back(
             PropertyWaitingTypeRegistration{this, property_name, offset});
     }

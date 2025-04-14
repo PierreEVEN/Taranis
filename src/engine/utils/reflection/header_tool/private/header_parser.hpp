@@ -34,6 +34,16 @@ public:
     bool     is_ref           = false;
     uint32_t ptr_indirections = 0;
 
+    const std::string& name_short() const
+    {
+        return name;
+    }
+
+    const std::vector<TypeDefinition>& get_template_args() const
+    {
+        return template_args;
+    }
+
     std::string full_name_string() const
     {
         std::string full_name = name;

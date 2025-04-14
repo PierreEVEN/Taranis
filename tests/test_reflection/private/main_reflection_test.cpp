@@ -9,11 +9,27 @@ int main()
     LOG_INFO("{} types registered :", Reflection::Type::get_types().size());
     for (const auto& type : Reflection::Type::get_types())
     {
-        if (!type.second->temp_specializations.empty())
+        if (type.second->is_template_type())
         {
             std::string templates = "available specializations : ";
-            for (const auto& tmp : type.second->temp_specializations)
-                templates += tmp + " ";
+
+            auto it = type.second->get_specializations().begin();
+            while (it != type.second->get_specializations().end())
+            {
+                std::string args_str = "<";
+                auto        arg      = it->second.get_args().begin();
+                while (arg != it->second.get_args().end())
+                {
+                    args_str += (*arg)->name();
+                    ++arg;
+                    if (arg != it->second.get_args().end())
+                        args_str += ", ";
+                }
+                templates += args_str + ">(" + std::to_string(it->second.stride()) + "b)";
+                ++it;
+                if (it != type.second->get_specializations().end())
+                    templates += ", ";
+            }
             LOG_INFO("\t- {} : {}b | {}", type.second->name(), type.second->stride(), templates);
         }
         else

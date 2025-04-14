@@ -60,6 +60,20 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 {
 }
 
+static void unpack_template_args(Generator::Writer& source, const TypeDefinition& type)
+{
+    std::string args;
+    for (size_t i = 0; i < type.get_template_args().size(); ++i)
+    {
+        auto& arg = type.get_template_args()[i];
+        unpack_template_args(source, arg);
+        args += i >= type.get_template_args().size() - 1 ? arg.full_name_string() : arg.full_name_string() + ", ";
+    }
+
+    if (!args.empty())
+        source.write_line(std::format("Reflection::Type::register_type_template<{}, {}>();", type.full_name_string(), args));
+}
+
 void Generator::generate(size_t                       timestamp, const std::filesystem::path& source_path, const std::filesystem::path& header_path, const std::filesystem::path& base_header_path,
                          const std::filesystem::path& generated_header_include_path) const
 {
@@ -104,7 +118,7 @@ void Generator::generate(size_t                       timestamp, const std::file
                 header.write_line("}");
             }
             header.write_line(
-                std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // forward declaration", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
+                std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // class body content", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
             header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", class_name, class_name));
             header.new_line(2);
         }
@@ -146,9 +160,12 @@ void Generator::generate(size_t                       timestamp, const std::file
                 }
 
                 for (const auto& property : gen_class.second.properties())
+                {
+                    unpack_template_args(source, property.second);
                     source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}), {}, {}, {});", gen_class.second.sanitized_class_path(),
                                                   property.first, property.second.full_name_string(), gen_class.second.class_path(), property.first, property.second.is_const, property.second.is_ref,
                                                   property.second.ptr_indirections));
+                }
             }
             source.unindent();
             source.write_line("}");

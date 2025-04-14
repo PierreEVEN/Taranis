@@ -9,7 +9,8 @@ class Type;
 class Property
 {
 public:
-    Property(std::string in_name, const Type* in_type, const size_t in_offset, const bool in_is_const, const bool in_is_ref, const uint8_t in_ptr_indirections) : property_is_const(in_is_const), property_is_ref(in_is_ref), property_ptr_indirections(in_ptr_indirections), name(std::move(in_name)), type(in_type), offset(in_offset)
+    Property(std::string in_name, const Type* in_type, const size_t in_offset, const bool in_is_const, const bool in_is_ref, const uint8_t in_ptr_indirections) : property_is_const(in_is_const),
+        property_is_ref(in_is_ref), property_ptr_indirections(in_ptr_indirections), name(std::move(in_name)), type(in_type), offset(in_offset)
     {
     }
 
@@ -68,11 +69,12 @@ public:
     }
 
 private:
-    const bool        property_is_const         = false;
-    const bool        property_is_ref           = false;
-    const uint8_t     property_ptr_indirections = 0;
-    const std::string name;
-    const Type*       type   = nullptr;
-    const size_t      offset = 0;
+    const TypeSpecializationDescription specialization;
+    const bool                          property_is_const         = false;
+    const bool                          property_is_ref           = false;
+    const uint8_t                       property_ptr_indirections = 0;
+    const std::string                   name;
+    const Type*                         type   = nullptr;
+    const size_t                        offset = 0;
 };
 } // namespace Reflection
