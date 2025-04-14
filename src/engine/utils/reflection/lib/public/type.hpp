@@ -8,7 +8,8 @@ namespace Reflection
 {
 template <typename RClass> struct StaticTypeInfos
 {
-    constexpr static bool value = false;
+    constexpr static bool value    = false;
+    constexpr static bool is_class = false;
 };
 
 using TypeId = size_t;
@@ -27,6 +28,43 @@ public:
         register_type_internal(new_type);
         return new_type;
     }
+
+    template <typename Typename, typename... Args> static Type* register_type_template()
+    {
+        auto  it = get_types_internal().find(make_type_id(StaticTypeInfos<Typename>::name));
+        Type* new_type;
+        if (it == get_types_internal().end())
+        {
+            static_assert(StaticTypeInfos<Typename>::value, "Failed to register type : not a reflected type.");
+            new_type = new Type(StaticTypeInfos<Typename>::name, sizeof(Typename));
+            register_type_internal(new_type);
+        }
+        else
+        {
+            new_type = it->second;
+        }
+        new_type->register_template_args<Args...>();
+        return new_type;
+    }
+
+    /// TODO
+  private:
+    template <typename FirstArg> void register_template_args()
+    {
+        static_assert(StaticTypeInfos<FirstArg>::value, "Template typename of reflected types should also be reflected types.");
+        temp_specializations.emplace_back(StaticTypeInfos<FirstArg>::name);
+    }
+    template <typename FirstArg, typename SecondArg, typename... Args> void register_template_args()
+    {
+        register_template_args<FirstArg>();
+        register_template_args<SecondArg, Args...>();
+    }
+
+  public:
+
+    std::vector<std::string> temp_specializations;
+
+    /// TODO
 
     template <typename T> static TypeId make_type_id()
     {

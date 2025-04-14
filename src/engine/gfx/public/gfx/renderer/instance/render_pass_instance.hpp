@@ -18,8 +18,8 @@ class ImageView;
 
 class RenderPassInstance : public RenderPassInstanceBase
 {
-public:
     REFLECT_BODY()
+  public:
 
     static std::shared_ptr<RenderPassInstance> create(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref, bool b_is_present)
     {

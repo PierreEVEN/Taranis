@@ -9,6 +9,9 @@
 
 std::optional<Llp::ParserError> TypeDefinition::try_parse(Llp::Parser& parser)
 {
+    if (parser.consume<Llp::WordToken>("const"))
+        is_const = true;
+
     // Ignore first "::"
     parser.consume<Llp::SymbolToken>(':');
     parser.consume<Llp::SymbolToken>(':');
@@ -31,6 +34,11 @@ std::optional<Llp::ParserError> TypeDefinition::try_parse(Llp::Parser& parser)
         if (!parser.consume<Llp::SymbolToken>('>'))
             return Llp::ParserError{parser.current_location(), "'>' expected"};
     }
+    while (parser.consume<Llp::SymbolToken>('*'))
+        ++ptr_indirections;
+    if (parser.consume<Llp::SymbolToken>('&'))
+        is_ref = true;
+
     return {};
 }
 
@@ -146,6 +154,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
 
                                         if (parser.consume<Llp::SymbolToken>('<'))
                                         {
+                                            parent += '<';
                                             size_t template_level = 1;
                                             do
                                             {

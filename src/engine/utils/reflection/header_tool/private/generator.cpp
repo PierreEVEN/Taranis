@@ -105,7 +105,7 @@ void Generator::generate(size_t                       timestamp, const std::file
             }
             header.write_line(
                 std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // forward declaration", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
-            header.write_line(std::format("REFL_DECLARE_TYPENAME({}); // declare type name for {}", class_name, class_name));
+            header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", class_name, class_name));
             header.new_line(2);
         }
         header.unindent();
@@ -141,12 +141,14 @@ void Generator::generate(size_t                       timestamp, const std::file
                 source.write_line(std::format("_Static_Item_Class_{} = REFL_REGISTER_CLASS({});", gen_class.second.sanitized_class_path(), class_name));
                 for (const auto& parent : gen_class.second.get_parent_paths())
                 {
-                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Type::make_type_id(\"{}\"));", gen_class.second.sanitized_class_path(), parent));
+                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Reflection::Type::make_type_id(\"{}\"));", gen_class.second.sanitized_class_path(), parent));
                     source.write_line(std::format("_Static_Item_Class_{}->add_cast_function<{},{}>();", gen_class.second.sanitized_class_path(), class_name, parent));
                 }
 
                 for (const auto& property : gen_class.second.properties())
-                    source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}));", gen_class.second.sanitized_class_path(), property.first, property.second.full_name_string(), gen_class.second.class_path(), property.first));
+                    source.write_line(std::format("_Static_Item_Class_{}->register_property(\"{}\", Reflection::Type::make_type_id<{}>(), offsetof({}, {}), {}, {}, {});", gen_class.second.sanitized_class_path(),
+                                                  property.first, property.second.full_name_string(), gen_class.second.class_path(), property.first, property.second.is_const, property.second.is_ref,
+                                                  property.second.ptr_indirections));
             }
             source.unindent();
             source.write_line("}");

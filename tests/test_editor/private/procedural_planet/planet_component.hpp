@@ -53,8 +53,9 @@ private:
 
 class PlanetComponent : public Eng::PrimitiveComponent
 {
-public:
     REFLECT_BODY();
+
+  public:
 
     PlanetComponent();
 

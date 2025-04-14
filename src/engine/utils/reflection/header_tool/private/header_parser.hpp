@@ -28,7 +28,12 @@ struct TypeDefinition
 private:
     std::string                 name;
     std::vector<TypeDefinition> template_args;
+
 public:
+    bool     is_const         = false;
+    bool     is_ref           = false;
+    uint32_t ptr_indirections = 0;
+
     std::string full_name_string() const
     {
         std::string full_name = name;
@@ -87,7 +92,8 @@ public:
         std::string              sanitized_class_path() const;
         std::vector<std::string> get_parent_paths() const;
         std::string              class_name() const;
-        std::string                                               namespace_path() const;
+        std::string              namespace_path() const;
+
         ankerl::unordered_dense::map<std::string, TypeDefinition> properties() const
         {
             if (context.class_stack.empty())

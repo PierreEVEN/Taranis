@@ -6,9 +6,9 @@ namespace Eng::Gfx
 {
 class ComputePassInstance : public RenderPassInstanceBase
 {
-public:
     REFLECT_BODY()
 
+  public:
     static std::shared_ptr<ComputePassInstance> create(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref)
     {
         auto inst = std::shared_ptr<ComputePassInstance>(new ComputePassInstance(std::move(device), renderer, rp_ref));

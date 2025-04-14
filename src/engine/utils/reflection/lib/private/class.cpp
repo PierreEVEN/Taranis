@@ -54,11 +54,11 @@ void Class::add_parent(const TypeId& parent)
         get_class_waiting_type_registration().insert_or_assign(parent, std::vector<Class*>{}).first->second.push_back(this);
 }
 
-void Class::register_property(const std::string& property_name, TypeId property_type_id, size_t offset)
+void Class::register_property(const std::string& property_name, TypeId property_type_id, size_t offset, bool is_const, bool is_ref, uint8_t ptr_indirections)
 {
     if (const Type* type = get_type(property_type_id))
     {
-        if (!properties.emplace(property_name, new Property(property_name, type, offset)).second)
+        if (!properties.emplace(property_name, new Property(property_name, type, offset, is_const, is_ref, ptr_indirections)).second)
         {
             std::cerr << "Failed to register class property '" << property_name << "' for " << name() << "\n";
             exit(-1);

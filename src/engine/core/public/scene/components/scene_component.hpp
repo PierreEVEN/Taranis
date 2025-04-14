@@ -19,14 +19,13 @@ class Scene;
 class SceneComponent
 {
     REFLECT_BODY();
-
+public:
     friend class Scene;
     SceneComponent(SceneComponent&)  = delete;
     SceneComponent(SceneComponent&&) = delete;
 
     void internal_tick(double delta_second);
 
-public:
     virtual ~SceneComponent()
     {
         assert(name);

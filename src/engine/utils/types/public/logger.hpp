@@ -129,7 +129,7 @@ class Logger
     void disable_logs(uint32_t log_level);
 
     /**
-     * Append a log to the list of logs to display
+     * Append a log to the list of logs to display_type
      */
     void print(const LogItem& in_log);
 

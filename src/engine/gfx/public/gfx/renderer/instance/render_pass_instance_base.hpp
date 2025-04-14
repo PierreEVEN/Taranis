@@ -69,8 +69,8 @@ private:
 
 class RenderPassInstanceBase : public DeviceResource
 {
-public:
     REFLECT_BODY()
+  public:
 
     static std::shared_ptr<RenderPassInstanceBase> create(std::weak_ptr<Device> device, Renderer& renderer, const RenderPassGenericId& rp_ref);
 

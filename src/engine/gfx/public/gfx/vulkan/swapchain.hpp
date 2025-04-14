@@ -22,8 +22,8 @@ class Device;
 
 class Swapchain final : public RenderPassInstance
 {
-public:
     REFLECT_BODY()
+  public:
 
     static std::shared_ptr<Swapchain> create(const std::weak_ptr<Device>& in_device, const std::weak_ptr<Surface>& surface, Renderer& renderer)
     {

@@ -8,7 +8,7 @@ namespace Eng
 class DirectionalLightComponent : public LightComponent
 {
     REFLECT_BODY()
-
+public:
     DirectionalLightComponent();
 };
 }

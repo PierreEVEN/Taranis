@@ -7,7 +7,7 @@
 class ParentA
 {
     REFLECT_BODY();
-
+public:
     ParentA(int val) : a(val)
     {
     }
@@ -23,6 +23,8 @@ class ParentA
 class ParentB
 {
     REFLECT_BODY();
+
+  public:
     int b = 2;
 
     virtual void my_func2()
@@ -35,6 +37,8 @@ class ParentB
 class TestChildA : public ParentA, public ParentB
 {
     REFLECT_BODY();
+
+  public:
     int c = 3;
 
     virtual void my_func() override
@@ -49,6 +53,8 @@ class TestChildA : public ParentA, public ParentB
 class TestChildChild : public TestChildA
 {
     REFLECT_BODY();
+
+  public:
     int d = 4;
 
     virtual void my_func() override

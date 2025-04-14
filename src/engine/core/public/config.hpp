@@ -9,9 +9,9 @@ namespace Eng
 {
 class Config
 {
-public:
-
     REFLECT_BODY()
+  public:
+
 
     Gfx::GfxConfig gfx;
 

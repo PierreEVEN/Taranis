@@ -22,7 +22,7 @@ enum class ELightType
 class LightComponent : public SceneComponent
 {
     REFLECT_BODY()
-
+public:
     LightComponent();
 
 

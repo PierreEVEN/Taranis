@@ -42,7 +42,7 @@ public:
      */
     template <typename ThisClass, typename ParentClass> void add_cast_function()
     {
-        if constexpr (StaticTypeInfos<ParentClass>::value)
+        if constexpr (StaticTypeInfos<ParentClass>::is_class)
         {
             cast_functions.insert_or_assign(Type::make_type_id<ParentClass>(),
                                             CastFuncWrapper{[](const Class* desired_class, void* from_ptr) -> void* {
@@ -89,7 +89,7 @@ public:
 
     void add_parent(const TypeId& parent);
 
-    void register_property(const std::string& name, TypeId type_id, size_t offset);
+    void register_property(const std::string& name, TypeId type_id, size_t offset, bool is_const, bool is_ref, uint8_t ptr_indirections);
 
     template <typename Base, typename T> static bool is_base_of()
     {
