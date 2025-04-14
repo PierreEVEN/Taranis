@@ -8,11 +8,25 @@ namespace Reflection
 {
 class Property;
 
+class ObjectMember
+{
+    friend class Archive;
+
+  public:
+    ObjectMember(void* in_object, const Property& in_property) : object(in_object), property(in_property)
+    {
+    }
+
+private:
+    void*     object;
+    const Property& property;
+};
+
 class Archive
 {
 public:
     template <typename T> Archive& operator<=>(T& alloc);
-    inline Archive&                operator<=>(const Property& property);
+    inline Archive&                operator<=>(ObjectMember property);
 
 private:
     bool load_archive = false;
@@ -21,6 +35,8 @@ private:
 class Serializer
 {
 public:
+    virtual                                                        ~Serializer() = default;
+
     template <typename BaseClass, typename Serializer> static void register_serializer()
     {
         serializers->emplace(Type::make_type_id<BaseClass>(), new Serializer{});
@@ -61,20 +77,19 @@ template <typename T> Archive& Archive::operator<=>(T& alloc)
     return *this;
 }
 
-Archive& Archive::operator<=>(const Property& property)
+Archive& Archive::operator<=>(ObjectMember member)
 {
-    Serializer* serializer = Serializer::get(property.get_type_instance().base()->id());
+    Serializer* serializer = Serializer::get(member.property.get_type_instance().base()->id());
     if (!serializer)
     {
-        std::cerr << "No serializer for " << property.get_type_instance().base()->name() << "\n";
+        std::cerr << "No serializer for " << member.property.get_type_instance().base()->name() << "\n";
         return *this;
     }
 
-    std::cout << "todo" << std::endl;
     if (load_archive)
-        ;// serializer->deserialize(*this, property.ptr(object));
+        serializer->deserialize(*this, member.property.ptr(member.object));
     else
-        ;//serializer->serialize(*this, property.ptr(object));
+        serializer->serialize(*this, member.property.ptr(member.object));
 
     return *this;
 }

@@ -72,3 +72,8 @@
 #define RCONSTRUCTOR(...)
 #define RFUNCTION(...)
 #define REFLECT_BODY() CONCAT_MACRO_FOUR_PARAMS(_REFLECTION_BODY_, _REFL_FILE_UNIQUE_ID_, _LINE_, __LINE__)
+
+/* Macro flags */
+
+// Don't serialize this item
+#define Transient

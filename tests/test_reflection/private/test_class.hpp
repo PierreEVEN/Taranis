@@ -24,6 +24,9 @@ public:
     RPROPERTY()
     float test_float;
 
+    RPROPERTY(Transient)
+    float test_float_transient;
+
     RPROPERTY()
     std::vector<float> test_vector_float;
 
@@ -44,9 +47,21 @@ private:
     bool test_bool;
 };
 
+
+class TestSerializer : public Reflection::Serializer {
+public:
+    void serialize(Reflection::Archive& archive, const void* alloc) override
+    {
+    }
+    void deserialize(Reflection::Archive& archive, const void* alloc) override
+    {
+    }
+};
+
 inline void serialize()
 {
     MyTestClass test_instance;
+
 
     Reflection::Archive out_archive;
 
@@ -54,7 +69,5 @@ inline void serialize()
     out_archive <=> test_prop;
 
     for (const auto& prop : test_instance.get_class()->get_properties())
-    {
-        out_archive <=> prop.second;
-    }
+        out_archive <=> Reflection::ObjectMember(&test_instance, prop.second);
 }
