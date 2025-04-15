@@ -1,5 +1,6 @@
 #pragma once
 #include "property.hpp"
+#include "serialization.hpp"
 #include "type.hpp"
 
 #include <ankerl/unordered_dense.h>
@@ -25,6 +26,13 @@ private:
 class Archive
 {
 public:
+    static Archive from_file(const std::filesystem::path& path);
+    static Archive from_bytes(const uint8_t* bytes, size_t length);
+
+    Archive& operator<=>(const std::string& property);
+    Archive& operator<=>();
+
+
     template <typename T> Archive& operator<=>(T& alloc);
     inline Archive&                operator<=>(ObjectMember property);
 
@@ -53,10 +61,16 @@ public:
     virtual void serialize(Archive& archive, const void* alloc) = 0;
     virtual void deserialize(Archive& archive, const void* alloc) = 0;
 
+    virtual void serialize_network(Archive& archive, const void* alloc)
+    {
+        return serialize(archive, alloc);
+    }
+
 private:
     static ankerl::unordered_dense::map<TypeId, Serializer*>& get_serializers_internal();
     static ankerl::unordered_dense::map<TypeId, Serializer*>* serializers;
 };
+
 
 template <typename T> Archive& Archive::operator<=>(T& alloc)
 {
@@ -93,4 +107,23 @@ Archive& Archive::operator<=>(ObjectMember member)
 
     return *this;
 }
+
+class FloatSerializer : public Serializer
+{
+  public:
+    void serialize(Archive& archive, const void* alloc) override
+    {
+        archive <=>
+    }
+
+    void deserialize(Archive& archive, const void* alloc) override
+    {
+    }
+};
+
+inline void test()
+{
+    Serializer::register_serializer<float, FloatSerializer>();
+}
+
 }
