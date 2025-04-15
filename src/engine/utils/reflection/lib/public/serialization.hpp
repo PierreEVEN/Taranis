@@ -1,7 +1,7 @@
 #pragma once
 #include "property.hpp"
-#include "serialization.hpp"
 #include "type.hpp"
+#include <filesystem>
 
 #include <ankerl/unordered_dense.h>
 
@@ -13,25 +13,53 @@ class ObjectMember
 {
     friend class Archive;
 
-  public:
+public:
     ObjectMember(void* in_object, const Property& in_property) : object(in_object), property(in_property)
     {
     }
 
 private:
-    void*     object;
+    void*           object;
     const Property& property;
+};
+
+class DataStream
+{
+    
+};
+
+class FileDataStream : public DataStream
+{
+    FileDataStream(const std::filesystem::path& source_file)
+    {
+    }
+};
+
+class MemoryDataStream : public DataStream
+{
+    MemoryDataStream(uint8_t* source, size_t source_size)
+    {
+    }
 };
 
 class Archive
 {
 public:
-    static Archive from_file(const std::filesystem::path& path);
-    static Archive from_bytes(const uint8_t* bytes, size_t length);
+    Archive from_file(const std::filesystem::path& path)
+    {
+        Archive archive;
+        archive.load_archive = true;
+        return archive;
+    }
 
-    Archive& operator<=>(const std::string& property);
-    Archive& operator<=>();
+    Archive from_bytes(const uint8_t* bytes, size_t length)
+    {
+        Archive archive;
+        archive.load_archive = true;
+        return archive;
+    }
 
+    virtual void archive_raw(const uint8_t* string, size_t size);
 
     template <typename T> Archive& operator<=>(T& alloc);
     inline Archive&                operator<=>(ObjectMember property);
@@ -43,7 +71,7 @@ private:
 class Serializer
 {
 public:
-    virtual                                                        ~Serializer() = default;
+    virtual ~Serializer() = default;
 
     template <typename BaseClass, typename Serializer> static void register_serializer()
     {
@@ -58,10 +86,9 @@ public:
         return nullptr;
     }
 
-    virtual void serialize(Archive& archive, const void* alloc) = 0;
-    virtual void deserialize(Archive& archive, const void* alloc) = 0;
+    virtual void serialize(Archive& archive, void* alloc) = 0;
 
-    virtual void serialize_network(Archive& archive, const void* alloc)
+    virtual void serialize_network(Archive& archive, void* alloc)
     {
         return serialize(archive, alloc);
     }
@@ -83,10 +110,7 @@ template <typename T> Archive& Archive::operator<=>(T& alloc)
         return *this;
     }
 
-    if (load_archive)
-        serializer->deserialize(*this, &alloc);
-    else
-        serializer->serialize(*this, &alloc);
+    serializer->serialize(*this, &alloc);
 
     return *this;
 }
@@ -100,30 +124,28 @@ Archive& Archive::operator<=>(ObjectMember member)
         return *this;
     }
 
-    if (load_archive)
-        serializer->deserialize(*this, member.property.ptr(member.object));
-    else
-        serializer->serialize(*this, member.property.ptr(member.object));
+    serializer->serialize(*this, member.property.ptr(member.object));
 
     return *this;
 }
 
-class FloatSerializer : public Serializer
+template <typename T> class RawSerializer : public Serializer
 {
-  public:
-    void serialize(Archive& archive, const void* alloc) override
+public:
+    void serialize(Archive& archive, void* alloc) override
     {
-        archive <=>
-    }
-
-    void deserialize(Archive& archive, const void* alloc) override
-    {
+        archive.archive_raw(static_cast<uint8_t*>(alloc), sizeof(T));
     }
 };
 
-inline void test()
+template <typename T> class ClassSerializer : public Serializer
 {
-    Serializer::register_serializer<float, FloatSerializer>();
-}
+public:
+    void serialize(Archive& archive, void* alloc) override
+    {
+        for (const auto& property : static_cast<T*>(alloc)->get_class()->get_properties())
+            archive <=> ObjectMember{alloc, property.second};
+    }
+};
 
 }

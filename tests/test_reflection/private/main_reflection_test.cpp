@@ -4,6 +4,33 @@
 
 Reflection::NativeTypeRecorder native_type_recorder;
 
+static void test_serializer()
+{
+    Reflection::Serializer::register_serializer<uint8_t, Reflection::RawSerializer<uint8_t>>();
+    Reflection::Serializer::register_serializer<uint16_t, Reflection::RawSerializer<uint16_t>>();
+    Reflection::Serializer::register_serializer<uint32_t, Reflection::RawSerializer<uint32_t>>();
+    Reflection::Serializer::register_serializer<uint64_t, Reflection::RawSerializer<uint64_t>>();
+    Reflection::Serializer::register_serializer<int8_t, Reflection::RawSerializer<int8_t>>();
+    Reflection::Serializer::register_serializer<int16_t, Reflection::RawSerializer<int16_t>>();
+    Reflection::Serializer::register_serializer<int32_t, Reflection::RawSerializer<int32_t>>();
+    Reflection::Serializer::register_serializer<int64_t, Reflection::RawSerializer<int64_t>>();
+    Reflection::Serializer::register_serializer<bool, Reflection::RawSerializer<bool>>();
+    Reflection::Serializer::register_serializer<float, Reflection::RawSerializer<float>>();
+    Reflection::Serializer::register_serializer<double, Reflection::RawSerializer<double>>();
+
+    Reflection::Serializer::register_serializer<MyTestClass, Reflection::ClassSerializer<MyTestClass>>();
+
+    MyTestClass test_instance;
+
+    Reflection::Archive out_archive;
+
+    float test_prop = 5;
+    out_archive <=> test_prop;
+
+    out_archive <=> test_instance;
+}
+
+
 int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);

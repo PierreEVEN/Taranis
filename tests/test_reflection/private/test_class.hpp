@@ -2,7 +2,6 @@
 #include "test_class.gen.hpp"
 
 #include "native_types.hpp"
-#include "property.hpp"
 #include "serialization.hpp"
 
 class TestChild : public std::vector<float>
@@ -46,28 +45,3 @@ private:
     RPROPERTY()
     bool test_bool;
 };
-
-
-class TestSerializer : public Reflection::Serializer {
-public:
-    void serialize(Reflection::Archive& archive, const void* alloc) override
-    {
-    }
-    void deserialize(Reflection::Archive& archive, const void* alloc) override
-    {
-    }
-};
-
-inline void serialize()
-{
-    MyTestClass test_instance;
-
-
-    Reflection::Archive out_archive;
-
-    float test_prop = 5;
-    out_archive <=> test_prop;
-
-    for (const auto& prop : test_instance.get_class()->get_properties())
-        out_archive <=> Reflection::ObjectMember(&test_instance, prop.second);
-}
