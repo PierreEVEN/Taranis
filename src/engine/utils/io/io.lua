@@ -1,12 +1,12 @@
 declare_module(
-    "reflection", 
+    "io",
     {
-        deps = {"io"},
+        deps = {}, 
         packages = {
             {name = "unordered_dense", public = true}
         },
     }
 )
 
-target("reflection")
-    set_group("utils")
+target("types")
+    set_group("engine")

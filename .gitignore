@@ -40,3 +40,4 @@ vsxmake*
 build/
 resources/models
 doxyfile
+saved/

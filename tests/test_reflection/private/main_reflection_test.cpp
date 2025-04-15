@@ -1,6 +1,8 @@
 #include "test_class.hpp"
 #include "logger.hpp"
 #include "property.hpp"
+#include "serialization.hpp"
+#include "stream.hpp"
 
 Reflection::NativeTypeRecorder native_type_recorder;
 
@@ -20,14 +22,24 @@ static void test_serializer()
 
     Reflection::Serializer::register_serializer<MyTestClass, Reflection::ClassSerializer<MyTestClass>>();
 
-    MyTestClass test_instance;
+    std::filesystem::create_directories("./saved/assets/");
+    {
+        MyTestClass test_instance;
+        float       test_prop = 5;
 
-    Reflection::Archive out_archive;
+        Reflection::Archive out_archive = Reflection::Archive::create<Io::FileStream>(Io::Stream::Mode::Output, "./saved/assets/test.asset");
+        out_archive <=> test_prop;
+        out_archive <=> test_instance;
+    }
 
-    float test_prop = 5;
-    out_archive <=> test_prop;
+    {
+        MyTestClass test_instance;
+        float       test_prop;
 
-    out_archive <=> test_instance;
+        Reflection::Archive in_archive = Reflection::Archive::create<Io::FileStream>(Io::Stream::Mode::Input, "./saved/assets/test.asset");
+        in_archive <=> test_prop;
+        in_archive <=> test_instance;
+    }
 }
 
 
@@ -78,4 +90,6 @@ int main()
 
     MyTestClass test_class;
     LOG_INFO("Test instance class is {} (Static class is {})", test_class.get_class()->name(), MyTestClass::static_class()->name());
+
+    test_serializer();
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "property.hpp"
+#include "stream.hpp"
 #include "type.hpp"
 #include <filesystem>
 
@@ -9,63 +10,18 @@ namespace Reflection
 {
 class Property;
 
-class ObjectMember
+class Field
 {
     friend class Archive;
 
 public:
-    ObjectMember(void* in_object, const Property& in_property) : object(in_object), property(in_property)
+    Field(void* in_object, const Property& in_property) : object(in_object), property(in_property)
     {
     }
 
 private:
     void*           object;
     const Property& property;
-};
-
-class DataStream
-{
-    
-};
-
-class FileDataStream : public DataStream
-{
-    FileDataStream(const std::filesystem::path& source_file)
-    {
-    }
-};
-
-class MemoryDataStream : public DataStream
-{
-    MemoryDataStream(uint8_t* source, size_t source_size)
-    {
-    }
-};
-
-class Archive
-{
-public:
-    Archive from_file(const std::filesystem::path& path)
-    {
-        Archive archive;
-        archive.load_archive = true;
-        return archive;
-    }
-
-    Archive from_bytes(const uint8_t* bytes, size_t length)
-    {
-        Archive archive;
-        archive.load_archive = true;
-        return archive;
-    }
-
-    virtual void archive_raw(const uint8_t* string, size_t size);
-
-    template <typename T> Archive& operator<=>(T& alloc);
-    inline Archive&                operator<=>(ObjectMember property);
-
-private:
-    bool load_archive = false;
 };
 
 class Serializer
@@ -75,13 +31,13 @@ public:
 
     template <typename BaseClass, typename Serializer> static void register_serializer()
     {
-        serializers->emplace(Type::make_type_id<BaseClass>(), new Serializer{});
+        get_serializers_internal().emplace(Type::make_type_id<BaseClass>(), new Serializer{});
     }
 
     static Serializer* get(const TypeId& type)
     {
-        auto it = serializers->find(type);
-        if (it != serializers->end())
+        auto it = get_serializers_internal().find(type);
+        if (it != get_serializers_internal().end())
             return it->second;
         return nullptr;
     }
@@ -99,35 +55,57 @@ private:
 };
 
 
-template <typename T> Archive& Archive::operator<=>(T& alloc)
+class Archive final
 {
-    static_assert(StaticTypeInfos<T>::value, "This type is not a reflected type");
+  public:
 
-    Serializer* serializer = Serializer::get(Type::make_type_id<T>());
-    if (!serializer)
+    template<typename T, typename...Args> static Archive create(Args&&... args)
     {
-        std::cerr << "No serializer for " << StaticTypeInfos<T>::name << "\n";
+        Archive archive;
+        archive.stream       = std::make_unique<T>(std::forward<Args>(args)...);
+        return archive;
+    }
+
+    void archive_raw(uint8_t* data, size_t size) const
+    {
+        assert(size == stream->stream_bytes(data, size));
+    }
+
+    template <typename T> Archive& operator<=>(T& alloc)
+    {
+        static_assert(StaticTypeInfos<T>::value, "This type is not a reflected type");
+
+        Serializer* serializer = Serializer::get(Type::make_type_id<T>());
+        if (!serializer)
+        {
+            std::cerr << "No serializer for " << Reflection::StaticTypeInfos<T>::name << "\n";
+            return *this;
+        }
+
+        serializer->serialize(*this, &alloc);
+
         return *this;
     }
 
-    serializer->serialize(*this, &alloc);
-
-    return *this;
-}
-
-Archive& Archive::operator<=>(ObjectMember member)
-{
-    Serializer* serializer = Serializer::get(member.property.get_type_instance().base()->id());
-    if (!serializer)
+    Archive& operator<=>(Field member)
     {
-        std::cerr << "No serializer for " << member.property.get_type_instance().base()->name() << "\n";
+        Serializer* serializer = Serializer::get(member.property.get_type_instance().base()->id());
+        if (!serializer)
+        {
+            std::cerr << "No serializer for " << member.property.get_type_instance().base()->name() << "\n";
+            return *this;
+        }
+
+        serializer->serialize(*this, member.property.ptr(member.object));
+
         return *this;
     }
 
-    serializer->serialize(*this, member.property.ptr(member.object));
+  private:
+    Archive() = default;
 
-    return *this;
-}
+    std::unique_ptr<Io::Stream> stream;
+};
 
 template <typename T> class RawSerializer : public Serializer
 {
@@ -143,9 +121,10 @@ template <typename T> class ClassSerializer : public Serializer
 public:
     void serialize(Archive& archive, void* alloc) override
     {
-        for (const auto& property : static_cast<T*>(alloc)->get_class()->get_properties())
-            archive <=> ObjectMember{alloc, property.second};
+        T* object = static_cast<T*>(alloc);
+
+        for (const auto& property : object->get_class()->get_properties())
+            archive <=> Field{alloc, property.second};
     }
 };
-
 }

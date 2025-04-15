@@ -2,7 +2,6 @@
 #include "test_class.gen.hpp"
 
 #include "native_types.hpp"
-#include "serialization.hpp"
 
 class TestChild : public std::vector<float>
 {
