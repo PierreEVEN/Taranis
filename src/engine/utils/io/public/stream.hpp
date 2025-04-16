@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 
 namespace Io
@@ -17,9 +18,10 @@ public:
     Stream(Mode in_mode) : mode(in_mode)
     {
     }
+    virtual ~Stream() = default;
 
-    constexpr static bool is_input = false;
     virtual size_t        stream_bytes(uint8_t* bytes, size_t count) = 0;
+    virtual void          flush()                                    = 0;
 
     Mode get_mode() const
     {
@@ -38,11 +40,19 @@ public:
         switch (get_mode())
         {
         case Mode::Input:
+        {
             input_stream = std::ifstream(source_file);
+            if (!input_stream.is_open())
+                std::cerr << "Cannot open " << source_file.generic_string() << " for reading\n";
             break;
+        }
         case Mode::Output:
+        {
             output_stream = std::ofstream(source_file);
+            if (!output_stream.is_open())
+                std::cerr << "Cannot open " << source_file.generic_string() << " for writing\n";
             break;
+        }
         }
     }
 
@@ -63,6 +73,29 @@ public:
         }
         }
         return 0;
+    }
+
+    void flush() override
+    {
+        if (get_mode() == Mode::Output)
+            output_stream.flush();
+    }
+
+    virtual ~FileStream()
+    {
+        switch (get_mode())
+        {
+        case Mode::Input:
+        {
+            input_stream.close();
+            break;
+        }
+        case Mode::Output:
+        {
+            output_stream.close();
+            break;
+        }
+        }
     }
 
 private:

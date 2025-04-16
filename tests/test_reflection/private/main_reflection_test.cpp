@@ -6,6 +6,55 @@
 
 Reflection::NativeTypeRecorder native_type_recorder;
 
+class StringSerializer : public Reflection::Serializer
+{
+public:
+    void serialize(Reflection::Archive& archive, void* alloc) override
+    {
+        std::string& data   = *static_cast<std::string*>(alloc);
+        size_t       length = data.size();
+        archive <=> length;
+        if (length == 0)
+            return;
+        if (archive.is_reading())
+            data.resize(length);
+        archive.archive_raw(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.c_str())), length);
+    }
+};
+
+template <typename T> class VectorSerializer : public Reflection::Serializer
+{
+public:
+    void serialize(Reflection::Archive& archive, void* alloc) override
+    {
+        Serializer* serializer = Serializer::get(Reflection::Type::make_type_id<T>());
+        if (!serializer)
+        {
+            std::cerr << "There is no serializer for type " << Reflection::StaticTypeInfos<T>::name << "\n";
+            return;
+        }
+
+        std::vector<T>& data   = *static_cast<std::vector<T>*>(alloc);
+        size_t          length = data.size();
+        archive <=> length;
+        if (length == 0)
+            return;
+        if (archive.is_reading())
+        {
+            data.reserve(length);
+            for (size_t i = 0; i < length; ++i)
+            {
+                T item;
+                serializer->serialize(archive, &item);
+                data.emplace_back(std::move(item));
+            }
+        }
+        else
+            for (size_t i = 0; i < length; ++i)
+                serializer->serialize(archive, &data[i]);
+    }
+};
+
 static void test_serializer()
 {
     Reflection::Serializer::register_serializer<uint8_t, Reflection::RawSerializer<uint8_t>>();
@@ -19,8 +68,14 @@ static void test_serializer()
     Reflection::Serializer::register_serializer<bool, Reflection::RawSerializer<bool>>();
     Reflection::Serializer::register_serializer<float, Reflection::RawSerializer<float>>();
     Reflection::Serializer::register_serializer<double, Reflection::RawSerializer<double>>();
+    Reflection::Serializer::register_serializer<std::string, StringSerializer>();
+    Reflection::Serializer::register_serializer<std::vector<float>, VectorSerializer<float>>();
+    Reflection::Serializer::register_serializer<std::vector<std::vector<float>>, VectorSerializer<std::vector<float>>>();
 
     Reflection::Serializer::register_serializer<MyTestClass, Reflection::ClassSerializer<MyTestClass>>();
+    Reflection::Serializer::register_serializer<TestChild, Reflection::ClassSerializer<TestChild>>();
+
+    std::ifstream test_input("./saved/assets/test.asset", std::ios::binary);
 
     std::filesystem::create_directories("./saved/assets/");
     {

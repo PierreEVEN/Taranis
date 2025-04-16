@@ -57,18 +57,35 @@ private:
 
 class Archive final
 {
-  public:
-
-    template<typename T, typename...Args> static Archive create(Args&&... args)
+public:
+    template <typename T, typename... Args> static Archive create(Args&&... args)
     {
         Archive archive;
-        archive.stream       = std::make_unique<T>(std::forward<Args>(args)...);
+        archive.stream = std::make_unique<T>(std::forward<Args>(args)...);
         return archive;
+    }
+
+    Archive(Archive&)  = delete;
+    Archive(Archive&&) = default;
+
+    ~Archive()
+    {
+        stream->flush();
+    }
+
+    bool is_reading() const
+    {
+        return stream->get_mode() == Io::Stream::Mode::Input;
     }
 
     void archive_raw(uint8_t* data, size_t size) const
     {
-        assert(size == stream->stream_bytes(data, size));
+        size_t serialized = stream->stream_bytes(data, size);
+        if (size != serialized)
+        {
+            std::cerr << "Failed to serialize property : expected " << size << ", got " << serialized
+                << " bytes\n";
+        }
     }
 
     template <typename T> Archive& operator<=>(T& alloc)
@@ -89,10 +106,24 @@ class Archive final
 
     Archive& operator<=>(Field member)
     {
-        Serializer* serializer = Serializer::get(member.property.get_type_instance().base()->id());
+        auto& type = member.property.get_type_instance();
+
+        Serializer* serializer = Serializer::get(type.base()->id());
         if (!serializer)
         {
-            std::cerr << "No serializer for " << member.property.get_type_instance().base()->name() << "\n";
+            std::cerr << "No serializer for " << type.base()->name() << "\n";
+            return *this;
+        }
+
+        if (type.get_ptr_indirections() > 0)
+        {
+            std::cerr << "Cannot serialize pointer types " << type.display() << "\n";
+            return *this;
+        }
+
+        if (type.is_ref())
+        {
+            std::cerr << "Cannot serialize reference types " << type.display() << "\n";
             return *this;
         }
 
@@ -101,9 +132,13 @@ class Archive final
         return *this;
     }
 
-  private:
-    Archive() = default;
+    void flush() const
+    {
+        stream->flush();
+    }
 
+private:
+    Archive() = default;
     std::unique_ptr<Io::Stream> stream;
 };
 

@@ -17,13 +17,13 @@ public:
 
     TypeInstance& set_const()
     {
-        is_const = true;
+        b_is_const = true;
         return *this;
     }
 
     TypeInstance& set_ref()
     {
-        is_ref = true;
+        b_is_ref = true;
         return *this;
     }
 
@@ -44,6 +44,21 @@ public:
         return size;
     }
 
+    bool is_const() const
+    {
+        return b_is_const;
+    }
+
+    bool is_ref() const
+    {
+        return b_is_ref;
+    }
+
+    uint8_t get_ptr_indirections() const
+    {
+        return ptr_indirections;
+    }
+
     const Type* base() const
     {
         return base_type;
@@ -52,7 +67,7 @@ public:
     std::string display() const
     {
         std::string text;
-        if (is_const)
+        if (b_is_const)
             text += "const ";
         text += base_type->name();
 
@@ -72,14 +87,14 @@ public:
 
         for (uint8_t i = 0; i < ptr_indirections; ++i)
             text += '*';
-        if (is_ref)
+        if (b_is_ref)
             text += '&';
         return text;
     }
 
 private:
-    bool                                         is_const         = false;
-    bool                                         is_ref           = false;
+    bool                                         b_is_const         = false;
+    bool                                         b_is_ref           = false;
     uint8_t                                      ptr_indirections = 0;
     std::optional<TypeSpecializationDescription> template_specialization;
     size_t                                       size      = 0;

@@ -7,11 +7,11 @@ class TestChild : public std::vector<float>
 {
     REFLECT_BODY()
 
-    float untracked_value;
+public:
+    float untracked_value = 0.05f;
 
     RPROPERTY()
-    std::vector<std::string> string_vector;
-
+    std::vector<std::string> string_vector = {"VAL_A", "VAL_B", "VAL_C"};
 };
 
 class MyTestClass
@@ -20,19 +20,19 @@ class MyTestClass
 
 public:
     RPROPERTY()
-    float test_float;
+    float test_float = 8;
 
     RPROPERTY(Transient)
-    float test_float_transient;
+    float test_float_transient = 22.5f;
 
     RPROPERTY()
-    std::vector<float> test_vector_float;
+    std::vector<float> test_vector_float = {1, 2, 3, 3.5f, 6};
 
     RPROPERTY()
-    std::vector<std::vector<double>> test_vector_vector_float;
+    std::vector<std::vector<double>> test_vector_vector_float = {{25.8}, {987.8}, {74.8}};
 
     RPROPERTY()
-    std::string test_string;
+    std::string test_string = "caca";
 
 private:
     RPROPERTY()
@@ -42,5 +42,5 @@ private:
     TestChild child_value;
 
     RPROPERTY()
-    bool test_bool;
+    bool test_bool = true;
 };
