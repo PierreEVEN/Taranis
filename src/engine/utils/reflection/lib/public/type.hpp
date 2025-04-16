@@ -1,8 +1,11 @@
 #pragma once
+#include "type_id.hpp"
+#include "type_instance.hpp"
+#include "type_specialization.hpp"
+
 #include <assert.h>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <vector>
 #include <ankerl/unordered_dense.h>
 
@@ -10,103 +13,15 @@ namespace Reflection
 {
 class Type;
 
-template <typename RClass> struct StaticTypeInfos
-{
-    constexpr static bool value    = false;
-    constexpr static bool is_class = false;
-};
-
-using TypeId = size_t;
-
-class TypeSpecializationDescription
-{
-public:
-    TypeSpecializationDescription() = default;
-
-    TypeSpecializationDescription(std::initializer_list<TypeId> in_types) : types(in_types)
-    {
-    }
-
-    void push(TypeId type)
-    {
-        types.emplace_back(type);
-    }
-
-    bool operator==(const TypeSpecializationDescription& other) const
-    {
-        auto ita = other.types.begin();
-        auto itb = types.begin();
-        for (; ita != other.types.end() && itb != types.end(); ++ita, ++itb)
-            if (*ita != *itb)
-                return false;
-        return ita == other.types.end() && itb == types.end();
-    }
-
-    const std::vector<TypeId>& get_types() const
-    {
-        return types;
-    }
-
-private:
-    std::vector<TypeId> types;
-};
-} // namespace Reflection
-
-namespace std
-{
-template <class T> void hash_combine(::size_t& s, const T& v)
-{
-    hash<T> h;
-    s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
-}
-
-template <> struct hash<Reflection::TypeSpecializationDescription>
-{
-    size_t operator()(const Reflection::TypeSpecializationDescription& c) const noexcept
-    {
-        size_t result = 0;
-        for (const auto& type : c.get_types())
-            hash_combine(result, type);
-        return result;
-    }
-};
-} // namespace std
-
-namespace Reflection
-{
-
-class TypeSpecialization
-{
-public:
-    template <typename T> void push();
-
-    TypeSpecialization() = default;
-
-    //@TODO : HANDLE TYPE SPECIALIZATION (we should be able to handle Type<Type<>> recursively
-    TypeSpecialization(size_t in_size)
-        : size(in_size)
-    {
-    }
-
-    size_t stride() const
-    {
-        return size;
-    }
-
-    const std::vector<Type*>& get_args() const
-    {
-        return arguments;
-    }
-
-private:
-    size_t             size = 0;
-    std::vector<Type*> arguments;
-};
-
 class Type
 {
 public:
-    Type(std::string in_type_name, size_t in_type_size) : type_name(std::move(in_type_name)), type_size(in_type_size), type_id(std::hash<std::string>{}(type_name))
+    static TypeId make_type_id(const char* type_name)
+    {
+        return TypeId::create(type_name);
+    }
+
+    Type(const char* in_type_name, uint32_t in_type_size) : type_size(in_type_size), type_id(make_type_id(in_type_name))
     {
     }
 
@@ -151,6 +66,11 @@ public:
         return new_type;
     }
 
+    template<typename T, typename...Args> void set_serializer(Args&&...)
+    {
+
+    }
+
 private:
     template <typename FirstArg> void register_template_args(TypeSpecializationDescription& description, TypeSpecialization& specialization)
     {
@@ -170,11 +90,6 @@ public:
     {
         static_assert(StaticTypeInfos<T>::value, "Cannot get type id : this type is not a reflected type.");
         return make_type_id(StaticTypeInfos<T>::name);
-    }
-
-    static TypeId make_type_id(const char* type_name)
-    {
-        return std::hash<std::string>{}(type_name);
     }
 
     template <typename T> static Type* get_type()
@@ -197,7 +112,7 @@ public:
 
     const char* name() const
     {
-        return type_name.c_str();
+        return type_id.name();
     }
 
     const ankerl::unordered_dense::map<TypeSpecializationDescription, TypeSpecialization>& get_specializations() const
@@ -215,7 +130,7 @@ public:
         return type_id;
     }
 
-    size_t stride() const
+    uint32_t stride() const
     {
         return type_size;
     }
@@ -229,12 +144,17 @@ protected:
     static void register_type_internal(Type* in_type);
 
 private:
+    struct InstanceData
+    {
+        class Serializer* serializers;
+    };
+
     bool                                                                            template_type = false;
     ankerl::unordered_dense::map<TypeSpecializationDescription, TypeSpecialization> template_specializations;
+    ankerl::unordered_dense::map<TypeInstance, InstanceData>                        instances;
 
-    std::string type_name;
-    size_t      type_size = 0;
-    TypeId      type_id   = 0;
+    uint32_t    type_size = 0;
+    TypeId      type_id;
 
     static ankerl::unordered_dense::map<TypeId, Type*>& get_types_internal();
     static ankerl::unordered_dense::map<TypeId, Type*>* types;

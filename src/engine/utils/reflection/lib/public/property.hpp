@@ -1,105 +1,11 @@
 #pragma once
 #include "type.hpp"
 
-#include <optional>
 #include <string>
 
 namespace Reflection
 {
 class Type;
-
-class TypeInstance
-{
-public:
-    TypeInstance(const Type* in_base, size_t in_size) : size(in_size), base_type(in_base)
-    {
-    }
-
-    TypeInstance& set_const()
-    {
-        b_is_const = true;
-        return *this;
-    }
-
-    TypeInstance& set_ref()
-    {
-        b_is_ref = true;
-        return *this;
-    }
-
-    TypeInstance& set_ptr_indirections(uint8_t indirections)
-    {
-        ptr_indirections = indirections;
-        return *this;
-    }
-
-    TypeInstance& set_template_specialization(const TypeSpecializationDescription& specialization)
-    {
-        template_specialization = specialization;
-        return *this;
-    }
-
-    size_t stride() const
-    {
-        return size;
-    }
-
-    bool is_const() const
-    {
-        return b_is_const;
-    }
-
-    bool is_ref() const
-    {
-        return b_is_ref;
-    }
-
-    uint8_t get_ptr_indirections() const
-    {
-        return ptr_indirections;
-    }
-
-    const Type* base() const
-    {
-        return base_type;
-    }
-
-    std::string display() const
-    {
-        std::string text;
-        if (b_is_const)
-            text += "const ";
-        text += base_type->name();
-
-        if (template_specialization)
-        {
-            text += '<';
-            auto it = template_specialization->get_types().begin();
-            while (it != template_specialization->get_types().end())
-            {
-                text += Type::get_type(*it)->name();
-                ++it;
-                if (it != template_specialization->get_types().end())
-                    text += ", ";
-            }
-            text += '>';
-        }
-
-        for (uint8_t i = 0; i < ptr_indirections; ++i)
-            text += '*';
-        if (b_is_ref)
-            text += '&';
-        return text;
-    }
-
-private:
-    bool                                         b_is_const         = false;
-    bool                                         b_is_ref           = false;
-    uint8_t                                      ptr_indirections = 0;
-    std::optional<TypeSpecializationDescription> template_specialization;
-    size_t                                       size      = 0;
-    const Type*                                  base_type = nullptr;
-};
 
 class Property
 {

@@ -121,7 +121,7 @@ private:
 
     void on_register_parent_class(Class* new_class);
 
-    Class(std::string in_type_name, size_t in_type_size) : Type(std::move(in_type_name), in_type_size)
+    Class(const char* in_type_name, uint32_t in_type_size) : Type(in_type_name, in_type_size)
     {
     }
 

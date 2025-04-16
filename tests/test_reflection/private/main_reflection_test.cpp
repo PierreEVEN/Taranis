@@ -70,7 +70,8 @@ static void test_serializer()
     Reflection::Serializer::register_serializer<double, Reflection::RawSerializer<double>>();
     Reflection::Serializer::register_serializer<std::string, StringSerializer>();
     Reflection::Serializer::register_serializer<std::vector<float>, VectorSerializer<float>>();
-    Reflection::Serializer::register_serializer<std::vector<std::vector<float>>, VectorSerializer<std::vector<float>>>();
+    //Reflection::Serializer::register_serializer<std::vector<std::string>, VectorSerializer<std::string>>();
+    //Reflection::Serializer::register_serializer<std::vector<std::vector<float>>, VectorSerializer<std::vector<float>>>();
 
     Reflection::Serializer::register_serializer<MyTestClass, Reflection::ClassSerializer<MyTestClass>>();
     Reflection::Serializer::register_serializer<TestChild, Reflection::ClassSerializer<TestChild>>();

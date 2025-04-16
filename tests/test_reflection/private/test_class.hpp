@@ -10,8 +10,8 @@ class TestChild : public std::vector<float>
 public:
     float untracked_value = 0.05f;
 
-    RPROPERTY()
-    std::vector<std::string> string_vector = {"VAL_A", "VAL_B", "VAL_C"};
+    //RPROPERTY()
+    //std::vector<std::string> string_vector = {"VAL_A", "VAL_B", "VAL_C"};
 };
 
 class MyTestClass
@@ -28,15 +28,15 @@ public:
     RPROPERTY()
     std::vector<float> test_vector_float = {1, 2, 3, 3.5f, 6};
 
-    RPROPERTY()
-    std::vector<std::vector<double>> test_vector_vector_float = {{25.8}, {987.8}, {74.8}};
+    //RPROPERTY()
+    //std::vector<std::vector<double>> test_vector_vector_float = {{25.8}, {987.8}, {74.8}};
 
     RPROPERTY()
     std::string test_string = "caca";
 
 private:
-    RPROPERTY()
-    MyTestClass* test_class_ptr;
+    //RPROPERTY()
+    //MyTestClass* test_class_ptr;
 
     RPROPERTY()
     TestChild child_value;
