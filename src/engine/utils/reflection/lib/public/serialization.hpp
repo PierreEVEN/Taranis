@@ -2,7 +2,7 @@
 #include "property.hpp"
 #include "stream.hpp"
 #include "type.hpp"
-#include <filesystem>
+#include "type_instance.hpp"
 
 #include <ankerl/unordered_dense.h>
 
@@ -29,12 +29,12 @@ class Serializer
 public:
     virtual ~Serializer() = default;
 
-    template <typename BaseClass, typename Serializer> static void register_serializer()
+    template <typename Serializer> static void register_serializer(const TypeInstance& type_instance)
     {
-        get_serializers_internal().emplace(Type::make_type_id<BaseClass>(), new Serializer{});
+        get_serializers_internal().insert_or_assign(type_instance, new Serializer{});
     }
 
-    static Serializer* get(const TypeId& type)
+    static Serializer* get(const TypeInstance& type)
     {
         auto it = get_serializers_internal().find(type);
         if (it != get_serializers_internal().end())
@@ -50,8 +50,8 @@ public:
     }
 
 private:
-    static ankerl::unordered_dense::map<TypeId, Serializer*>& get_serializers_internal();
-    static ankerl::unordered_dense::map<TypeId, Serializer*>* serializers;
+    static ankerl::unordered_dense::map<TypeInstance, Serializer*>& get_serializers_internal();
+  static ankerl::unordered_dense::map<TypeInstance, Serializer*>* serializers;
 };
 
 
@@ -108,7 +108,7 @@ public:
     {
         auto& type = member.property.get_type_instance();
 
-        Serializer* serializer = Serializer::get(type.base()->id());
+        Serializer* serializer = Serializer::get(type);
         if (!serializer)
         {
             std::cerr << "No serializer for " << type.base()->name() << "\n";

@@ -1,7 +1,6 @@
 #pragma once
 #include "type_id.hpp"
 #include "type_instance.hpp"
-#include "type_specialization.hpp"
 
 #include <assert.h>
 #include <iostream>
@@ -66,7 +65,7 @@ public:
         return new_type;
     }
 
-    template<typename T, typename...Args> void set_serializer(Args&&...)
+    template <typename T, typename... Args> void set_serializer(Args&&...)
     {
 
     }
@@ -90,6 +89,12 @@ public:
     {
         static_assert(StaticTypeInfos<T>::value, "Cannot get type id : this type is not a reflected type.");
         return make_type_id(StaticTypeInfos<T>::name);
+    }
+
+    template <typename T> static TypeInstance make_type_instance()
+    {
+        static_assert(StaticTypeInfos<T>::value, "Cannot get type id : this type is not a reflected type.");
+        return TypeInstance(get_type(make_type_id<T>()), sizeof(T));
     }
 
     template <typename T> static Type* get_type()
@@ -151,10 +156,9 @@ private:
 
     bool                                                                            template_type = false;
     ankerl::unordered_dense::map<TypeSpecializationDescription, TypeSpecialization> template_specializations;
-    ankerl::unordered_dense::map<TypeInstance, InstanceData>                        instances;
 
-    uint32_t    type_size = 0;
-    TypeId      type_id;
+    uint32_t type_size = 0;
+    TypeId   type_id;
 
     static ankerl::unordered_dense::map<TypeId, Type*>& get_types_internal();
     static ankerl::unordered_dense::map<TypeId, Type*>* types;
@@ -170,5 +174,4 @@ template <typename T> void TypeSpecialization::push()
     assert(type && "TODO : handle delayed registered type for template specializations");
     arguments.emplace_back(type);
 }
-
 } // namespace Reflection

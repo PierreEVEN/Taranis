@@ -57,24 +57,28 @@ public:
 
 static void test_serializer()
 {
-    Reflection::Serializer::register_serializer<uint8_t, Reflection::RawSerializer<uint8_t>>();
-    Reflection::Serializer::register_serializer<uint16_t, Reflection::RawSerializer<uint16_t>>();
-    Reflection::Serializer::register_serializer<uint32_t, Reflection::RawSerializer<uint32_t>>();
-    Reflection::Serializer::register_serializer<uint64_t, Reflection::RawSerializer<uint64_t>>();
-    Reflection::Serializer::register_serializer<int8_t, Reflection::RawSerializer<int8_t>>();
-    Reflection::Serializer::register_serializer<int16_t, Reflection::RawSerializer<int16_t>>();
-    Reflection::Serializer::register_serializer<int32_t, Reflection::RawSerializer<int32_t>>();
-    Reflection::Serializer::register_serializer<int64_t, Reflection::RawSerializer<int64_t>>();
-    Reflection::Serializer::register_serializer<bool, Reflection::RawSerializer<bool>>();
-    Reflection::Serializer::register_serializer<float, Reflection::RawSerializer<float>>();
-    Reflection::Serializer::register_serializer<double, Reflection::RawSerializer<double>>();
-    Reflection::Serializer::register_serializer<std::string, StringSerializer>();
-    Reflection::Serializer::register_serializer<std::vector<float>, VectorSerializer<float>>();
-    //Reflection::Serializer::register_serializer<std::vector<std::string>, VectorSerializer<std::string>>();
-    //Reflection::Serializer::register_serializer<std::vector<std::vector<float>>, VectorSerializer<std::vector<float>>>();
 
-    Reflection::Serializer::register_serializer<MyTestClass, Reflection::ClassSerializer<MyTestClass>>();
-    Reflection::Serializer::register_serializer<TestChild, Reflection::ClassSerializer<TestChild>>();
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint8_t>>(Reflection::Type::make_type_instance<uint8_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint16_t>>(Reflection::Type::make_type_instance<uint16_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint32_t>>(Reflection::Type::make_type_instance<uint32_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint64_t>>(Reflection::Type::make_type_instance<uint64_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int8_t>>(Reflection::Type::make_type_instance<int8_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int16_t>>(Reflection::Type::make_type_instance<int16_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int32_t>>(Reflection::Type::make_type_instance<int32_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int64_t>>(Reflection::Type::make_type_instance<int64_t>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<bool>>(Reflection::Type::make_type_instance<bool>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<float>>(Reflection::Type::make_type_instance<float>());
+    Reflection::Serializer::register_serializer<Reflection::RawSerializer<double>>(Reflection::Type::make_type_instance<double>());
+    Reflection::Serializer::register_serializer<StringSerializer>(Reflection::Type::make_type_instance<std::string>());
+    Reflection::Serializer::register_serializer<VectorSerializer<float>>(
+        Reflection::Type::make_type_instance<std::vector<float>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<float>()})));
+    Reflection::Serializer::register_serializer<VectorSerializer<std::string>>(
+        Reflection::Type::make_type_instance<std::vector<std::string>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<std::string>()})));
+    Reflection::Serializer::register_serializer<VectorSerializer<std::vector<float>>>(Reflection::Type::make_type_instance<std::vector<std::vector<float>>>().set_template_specialization(Reflection::TypeSpecializationDescription(
+            {Reflection::Type::make_type_instance<std::vector<float>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<float>()}))})));
+
+    Reflection::Serializer::register_serializer<Reflection::ClassSerializer<MyTestClass>>(Reflection::Type::make_type_instance<MyTestClass>());
+    Reflection::Serializer::register_serializer<Reflection::ClassSerializer<TestChild>>(Reflection::Type::make_type_instance<TestChild>());
 
     std::ifstream test_input("./saved/assets/test.asset", std::ios::binary);
 
@@ -119,7 +123,7 @@ int main()
                 auto        arg      = it->second.get_args().begin();
                 while (arg != it->second.get_args().end())
                 {
-                    args_str += (*arg)->name();
+                    args_str += arg->display();
                     ++arg;
                     if (arg != it->second.get_args().end())
                         args_str += ", ";

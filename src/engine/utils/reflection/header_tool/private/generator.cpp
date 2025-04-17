@@ -177,7 +177,7 @@ void Generator::generate(size_t                       timestamp, const std::file
                         auto        it = property.second.get_template_args().begin();
                         while (it != property.second.get_template_args().end())
                         {
-                            sub_types += std::format("Reflection::Type::make_type_id<{}>()", it->full_name_string());
+                            sub_types += std::format("Reflection::Type::make_type_instance<{}>()", it->full_name_string());
                             ++it;
                             if (it != property.second.get_template_args().end())
                                 sub_types += ", ";
@@ -190,11 +190,11 @@ void Generator::generate(size_t                       timestamp, const std::file
                         "_Static_Item_Class_{}->register_property("
                         "\"{}\", "
                         "offsetof({}, {}), "
-                        "Reflection::TypeInstance(Reflection::Type::get_type(Reflection::Type::make_type_id<{}>()), sizeof({}::{})){});",
+                        "Reflection::Type::make_type_instance<{}>(){});",
                         gen_class.second.sanitized_class_path(),
                         property.first,
                         class_name, property.first,
-                        property.second.full_name_string(), class_name, property.first, args));
+                        property.second.full_name_string(), args));
                 }
             }
             source.unindent();

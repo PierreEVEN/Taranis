@@ -18,6 +18,7 @@ class MyTestClass
 {
     REFLECT_BODY()
 
+
 public:
     RPROPERTY()
     float test_float = 8;

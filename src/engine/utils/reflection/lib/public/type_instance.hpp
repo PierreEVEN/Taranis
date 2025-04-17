@@ -1,14 +1,66 @@
 #pragma once
 
 #include "type_id.hpp"
-#include "type_specialization.hpp"
 
+#include <cassert>
 #include <optional>
 #include <vector>
 
 namespace Reflection
 {
+class TypeInstance;
 class Type;
+
+class TypeSpecializationDescription
+{
+  public:
+    TypeSpecializationDescription() = default;
+
+    TypeSpecializationDescription(std::initializer_list<TypeInstance> in_types) : types(in_types)
+    {
+    }
+
+    void push(const TypeInstance& type)
+    {
+        types.push_back(type);
+    }
+
+    bool operator==(const TypeSpecializationDescription& other) const;
+
+    const std::vector<TypeInstance>& get_types() const
+    {
+        return types;
+    }
+
+  private:
+    std::vector<TypeInstance> types;
+};
+
+class TypeSpecialization
+{
+  public:
+    template <typename T> void push();
+
+    TypeSpecialization() = default;
+
+    TypeSpecialization(size_t in_size) : size(in_size)
+    {
+    }
+
+    size_t stride() const
+    {
+        return size;
+    }
+
+    const std::vector<TypeInstance>& get_args() const
+    {
+        return arguments;
+    }
+
+  private:
+    size_t                    size = 0;
+    std::vector<TypeInstance> arguments;
+};
 
 class TypeInstance
 {
@@ -17,9 +69,10 @@ class TypeInstance
     static constexpr uint8_t FLAG_IS_CONST = 1 << 0;
     static constexpr uint8_t FLAG_IS_REF   = 1 << 1;
 
-public:
+  public:
     TypeInstance(const Type* in_base, uint32_t in_size) : size(in_size), base_type(in_base)
     {
+        assert(base_type);
     }
 
     TypeInstance& set_const()
@@ -75,22 +128,33 @@ public:
 
     bool operator==(const TypeInstance& o) const
     {
-        return
-            flags == o.flags &&
-            size == o.size &&
-            base_type == o.base_type &&
-            template_specialization == o.template_specialization;
+        return flags == o.flags && size == o.size && base_type == o.base_type && template_specialization == o.template_specialization;
     }
 
-private:
+    bool operator!=(const TypeInstance& o) const
+    {
+        return !operator==(o);
+    }
+
+  private:
     // 4 last bytes are the number of ptr indirections
     uint8_t                                      flags     = 0;
     uint32_t                                     size      = 0;
     const Type*                                  base_type = nullptr;
     std::optional<TypeSpecializationDescription> template_specialization;
 };
-} // namespace std
+} // namespace Reflection
 
+template <> struct std::hash<Reflection::TypeSpecializationDescription>
+{
+    size_t operator()(const Reflection::TypeSpecializationDescription& c) const noexcept
+    {
+        size_t result = 0;
+        for (const auto& type : c.get_types())
+            hash_combine(result, type);
+        return result;
+    }
+};
 
 template <> struct std::hash<Reflection::TypeInstance>
 {
