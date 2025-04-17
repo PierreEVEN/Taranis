@@ -27,7 +27,7 @@ template <typename T> class VectorSerializer : public Reflection::Serializer
 public:
     void serialize(Reflection::Archive& archive, void* alloc) override
     {
-        Serializer* serializer = Serializer::get(Reflection::Type::make_type_id<T>());
+        Serializer* serializer = Serializer::get(Reflection::Type::make_type_instance<T>());
         if (!serializer)
         {
             std::cerr << "There is no serializer for type " << Reflection::StaticTypeInfos<T>::name << "\n";

@@ -60,17 +60,13 @@ public:
         }
         TypeSpecializationDescription description;
         TypeSpecialization            specialization(sizeof(Typename));
-        new_type->register_template_args<Args...>(description, specialization);
+        //new_type->register_template_args<Args...>(description, specialization);
         new_type->template_specializations.emplace(description, specialization);
         return new_type;
     }
 
-    template <typename T, typename... Args> void set_serializer(Args&&...)
-    {
-
-    }
-
 private:
+    /*
     template <typename FirstArg> void register_template_args(TypeSpecializationDescription& description, TypeSpecialization& specialization)
     {
         static_assert(StaticTypeInfos<FirstArg>::value, "Template typename of reflected types should also be reflected types.");
@@ -82,7 +78,7 @@ private:
     {
         register_template_args<FirstArg>(description, specialization);
         register_template_args<SecondArg, Args...>(description, specialization);
-    }
+    }*/
 
 public:
     template <typename T> static TypeId make_type_id()
@@ -102,7 +98,7 @@ public:
         return get_type(make_type_id<T>());
     }
 
-    static Type* get_type(TypeId type_id)
+    static Type* get_type(const TypeId& type_id)
     {
         auto it = get_types_internal().find(type_id);
         if (it != get_types_internal().end())

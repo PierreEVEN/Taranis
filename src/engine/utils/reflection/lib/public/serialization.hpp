@@ -92,7 +92,7 @@ public:
     {
         static_assert(StaticTypeInfos<T>::value, "This type is not a reflected type");
 
-        Serializer* serializer = Serializer::get(Type::make_type_id<T>());
+        Serializer* serializer = Serializer::get(Type::make_type_instance<T>());
         if (!serializer)
         {
             std::cerr << "No serializer for " << Reflection::StaticTypeInfos<T>::name << "\n";
