@@ -48,37 +48,16 @@ public:
     template <typename Typename, typename... Args> static Type* register_type_template()
     {
         static_assert(StaticTypeInfos<Typename>::value, "Failed to register type : not a reflected type.");
-        auto  it = get_types_internal().find(make_type_id(StaticTypeInfos<Typename>::name));
-        Type* new_type;
-        if (it != get_types_internal().end())
-            new_type = it->second;
-        else
+        auto it = get_types_internal().find(make_type_id(StaticTypeInfos<Typename>::name));
+        if (it == get_types_internal().end())
         {
-            new_type                = new Type(StaticTypeInfos<Typename>::name, 0);
+            Type* new_type          = new Type(StaticTypeInfos<Typename>::name, 0);
             new_type->template_type = true;
             register_type_internal(new_type);
+            return new_type;
         }
-        TypeSpecializationDescription description;
-        TypeSpecialization            specialization(sizeof(Typename));
-        //new_type->register_template_args<Args...>(description, specialization);
-        new_type->template_specializations.emplace(description, specialization);
-        return new_type;
+        return nullptr;
     }
-
-private:
-    /*
-    template <typename FirstArg> void register_template_args(TypeSpecializationDescription& description, TypeSpecialization& specialization)
-    {
-        static_assert(StaticTypeInfos<FirstArg>::value, "Template typename of reflected types should also be reflected types.");
-        description.push(make_type_id<FirstArg>());
-        specialization.push<FirstArg>();
-    }
-
-    template <typename FirstArg, typename SecondArg, typename... Args> void register_template_args(TypeSpecializationDescription& description, TypeSpecialization& specialization)
-    {
-        register_template_args<FirstArg>(description, specialization);
-        register_template_args<SecondArg, Args...>(description, specialization);
-    }*/
 
 public:
     template <typename T> static TypeId make_type_id()
@@ -116,11 +95,6 @@ public:
         return type_id.name();
     }
 
-    const ankerl::unordered_dense::map<TypeSpecializationDescription, TypeSpecialization>& get_specializations() const
-    {
-        return template_specializations;
-    }
-
     bool is_template_type() const
     {
         return template_type;
@@ -150,8 +124,7 @@ private:
         class Serializer* serializers;
     };
 
-    bool                                                                            template_type = false;
-    ankerl::unordered_dense::map<TypeSpecializationDescription, TypeSpecialization> template_specializations;
+    bool template_type = false;
 
     uint32_t type_size = 0;
     TypeId   type_id;

@@ -25,12 +25,16 @@ public:
 template <typename T> class VectorSerializer : public Reflection::Serializer
 {
 public:
+    VectorSerializer(Reflection::TypeInstance in_type_instance) : type_instance(std::move(in_type_instance))
+    {
+    }
+
     void serialize(Reflection::Archive& archive, void* alloc) override
     {
-        Serializer* serializer = Serializer::get(Reflection::Type::make_type_instance<T>());
+        Serializer* serializer = get(type_instance);
         if (!serializer)
         {
-            std::cerr << "There is no serializer for type " << Reflection::StaticTypeInfos<T>::name << "\n";
+            std::cerr << "There is no serializer for type " << type_instance.display() << "\n";
             return;
         }
 
@@ -41,6 +45,7 @@ public:
             return;
         if (archive.is_reading())
         {
+            data.clear();
             data.reserve(length);
             for (size_t i = 0; i < length; ++i)
             {
@@ -53,6 +58,9 @@ public:
             for (size_t i = 0; i < length; ++i)
                 serializer->serialize(archive, &data[i]);
     }
+
+private:
+    Reflection::TypeInstance type_instance;
 };
 
 static void test_serializer()
@@ -71,11 +79,24 @@ static void test_serializer()
     Reflection::Serializer::register_serializer<Reflection::RawSerializer<double>>(Reflection::Type::make_type_instance<double>());
     Reflection::Serializer::register_serializer<StringSerializer>(Reflection::Type::make_type_instance<std::string>());
     Reflection::Serializer::register_serializer<VectorSerializer<float>>(
-        Reflection::Type::make_type_instance<std::vector<float>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<float>()})));
+        Reflection::Type::make_type_instance<std::vector<float>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<float>()})),
+        Reflection::Type::make_type_instance<float>()
+        );
+
+    Reflection::Serializer::register_serializer<VectorSerializer<double>>(
+        Reflection::Type::make_type_instance<std::vector<double>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<double>()})),
+        Reflection::Type::make_type_instance<double>());
+
     Reflection::Serializer::register_serializer<VectorSerializer<std::string>>(
-        Reflection::Type::make_type_instance<std::vector<std::string>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<std::string>()})));
-    Reflection::Serializer::register_serializer<VectorSerializer<std::vector<float>>>(Reflection::Type::make_type_instance<std::vector<std::vector<float>>>().set_template_specialization(Reflection::TypeSpecializationDescription(
-            {Reflection::Type::make_type_instance<std::vector<float>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<float>()}))})));
+        Reflection::Type::make_type_instance<std::vector<std::string>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<std::string>()})),
+        Reflection::Type::make_type_instance<std::string>()
+        );
+
+    Reflection::Serializer::register_serializer<VectorSerializer<std::vector<double>>>(
+        Reflection::Type::make_type_instance<std::vector<std::vector<double>>>().set_template_specialization(Reflection::TypeSpecializationDescription(
+            {Reflection::Type::make_type_instance<std::vector<double>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<double>()}))})),
+        Reflection::Type::make_type_instance<std::vector<double>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<double>()}))
+        );
 
     Reflection::Serializer::register_serializer<Reflection::ClassSerializer<MyTestClass>>(Reflection::Type::make_type_instance<MyTestClass>());
     Reflection::Serializer::register_serializer<Reflection::ClassSerializer<TestChild>>(Reflection::Type::make_type_instance<TestChild>());
@@ -84,8 +105,8 @@ static void test_serializer()
 
     std::filesystem::create_directories("./saved/assets/");
     {
-        MyTestClass test_instance;
-        float       test_prop = 5;
+        MyTestClass test_instance = MyTestClass::make_special();
+        float       test_prop     = 5;
 
         Reflection::Archive out_archive = Reflection::Archive::create<Io::FileStream>(Io::Stream::Mode::Output, "./saved/assets/test.asset");
         out_archive <=> test_prop;
@@ -99,6 +120,10 @@ static void test_serializer()
         Reflection::Archive in_archive = Reflection::Archive::create<Io::FileStream>(Io::Stream::Mode::Input, "./saved/assets/test.asset");
         in_archive <=> test_prop;
         in_archive <=> test_instance;
+
+        Reflection::Archive out_archive = Reflection::Archive::create<Io::FileStream>(Io::Stream::Mode::Output, "./saved/assets/test_after.asset");
+        out_archive <=> test_prop;
+        out_archive <=> test_instance;
     }
 }
 
@@ -114,26 +139,7 @@ int main()
     {
         if (type.second->is_template_type())
         {
-            std::string templates = "available specializations : ";
-
-            auto it = type.second->get_specializations().begin();
-            while (it != type.second->get_specializations().end())
-            {
-                std::string args_str = "<";
-                auto        arg      = it->second.get_args().begin();
-                while (arg != it->second.get_args().end())
-                {
-                    args_str += arg->display();
-                    ++arg;
-                    if (arg != it->second.get_args().end())
-                        args_str += ", ";
-                }
-                templates += args_str + ">(" + std::to_string(it->second.stride()) + "b)";
-                ++it;
-                if (it != type.second->get_specializations().end())
-                    templates += ", ";
-            }
-            LOG_INFO("\t- {} : {}b | {}", type.second->name(), type.second->stride(), templates);
+            LOG_INFO("\t- {}<> : {}b", type.second->name(), type.second->stride());
         }
         else
             LOG_INFO("\t- {} : {}b", type.second->name(), type.second->stride());

@@ -29,9 +29,9 @@ class Serializer
 public:
     virtual ~Serializer() = default;
 
-    template <typename Serializer> static void register_serializer(const TypeInstance& type_instance)
+    template <typename Serializer, typename... Args> static void register_serializer(const TypeInstance& type_instance, Args&&... args)
     {
-        get_serializers_internal().insert_or_assign(type_instance, new Serializer{});
+        get_serializers_internal().insert_or_assign(type_instance, new Serializer(std::forward<Args>(args)...));
     }
 
     static Serializer* get(const TypeInstance& type)
@@ -51,7 +51,7 @@ public:
 
 private:
     static ankerl::unordered_dense::map<TypeInstance, Serializer*>& get_serializers_internal();
-  static ankerl::unordered_dense::map<TypeInstance, Serializer*>* serializers;
+    static ankerl::unordered_dense::map<TypeInstance, Serializer*>* serializers;
 };
 
 
@@ -95,7 +95,7 @@ public:
         Serializer* serializer = Serializer::get(Type::make_type_instance<T>());
         if (!serializer)
         {
-            std::cerr << "No serializer for " << Reflection::StaticTypeInfos<T>::name << "\n";
+            std::cerr << "No serializer for raw type " << StaticTypeInfos<T>::name << "\n";
             return *this;
         }
 
@@ -111,7 +111,7 @@ public:
         Serializer* serializer = Serializer::get(type);
         if (!serializer)
         {
-            std::cerr << "No serializer for " << type.base()->name() << "\n";
+            std::cerr << "No serializer for " << type.display() << "\n";
             return *this;
         }
 

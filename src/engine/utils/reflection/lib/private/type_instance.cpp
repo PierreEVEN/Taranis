@@ -35,7 +35,7 @@ std::string TypeInstance::display() const
         text += '>';
     }
 
-    for (uint8_t i = 0; i < flags; ++i)
+    for (uint8_t i = 0; i < get_ptr_indirections(); ++i)
         text += '*';
     if (is_ref())
         text += '&';

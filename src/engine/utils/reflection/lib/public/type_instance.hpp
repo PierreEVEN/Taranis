@@ -160,7 +160,7 @@ template <> struct std::hash<Reflection::TypeInstance>
 {
     size_t operator()(const Reflection::TypeInstance& val) const noexcept
     {
-        size_t hash;
+        size_t hash = 0;
         hash_combine(hash, val.flags);
         hash_combine(hash, val.size);
         hash_combine(hash, val.base_type);

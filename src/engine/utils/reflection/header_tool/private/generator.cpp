@@ -74,7 +74,38 @@ static void unpack_template_args(Generator::Writer& source, const TypeDefinition
         source.write_line(std::format("Reflection::Type::register_type_template<{}, {}>();", type.full_name_string(), args));
 }
 
-void Generator::generate(size_t                       timestamp, const std::filesystem::path& source_path, const std::filesystem::path& header_path, const std::filesystem::path& base_header_path,
+static std::string make_type_instance(const TypeDefinition& type)
+{
+    std::string base = std::format("Reflection::Type::make_type_instance<{}>()", type.full_name_string());
+    if (type.is_const)
+        base += ".set_const()";
+    if (type.is_ref)
+        base += ".set_ref()";
+    if (type.ptr_indirections > 0)
+        for (size_t i = 0; i < type.ptr_indirections; ++i)
+            base += std::format(".set_ptr_indirections({})", type.ptr_indirections);
+    if (!type.get_template_args().empty())
+    {
+        base += ".set_template_specialization(Reflection::TypeSpecializationDescription({";
+
+        auto it = type.get_template_args().begin();
+        while (it != type.get_template_args().end())
+        {
+            base += make_type_instance(*it);
+            ++it;
+            if (it != type.get_template_args().end())
+                base += ", ";
+        }
+        base += "}))";
+
+    }
+    return base;
+}
+
+void Generator::generate(size_t                       timestamp,
+                         const std::filesystem::path& source_path,
+                         const std::filesystem::path& header_path,
+                         const std::filesystem::path& base_header_path,
                          const std::filesystem::path& generated_header_include_path) const
 {
     create_directories(source_path.parent_path());
@@ -162,39 +193,15 @@ void Generator::generate(size_t                       timestamp, const std::file
                 for (const auto& property : gen_class.second.properties())
                 {
                     unpack_template_args(source, property.second);
-
-                    std::string args;
-                    if (property.second.is_const)
-                        args += ".set_const()";
-                    if (property.second.is_ref)
-                        args += ".set_ref()";
-                    if (property.second.ptr_indirections > 0)
-                        args += std::format(".set_ptr_indirections({})", property.second.ptr_indirections);
-
-                    if (!property.second.get_template_args().empty())
-                    {
-                        std::string sub_types = "{";
-                        auto        it = property.second.get_template_args().begin();
-                        while (it != property.second.get_template_args().end())
-                        {
-                            sub_types += std::format("Reflection::Type::make_type_instance<{}>()", it->full_name_string());
-                            ++it;
-                            if (it != property.second.get_template_args().end())
-                                sub_types += ", ";
-                        }
-                        sub_types += '}';
-                        args += std::format(".set_template_specialization(Reflection::TypeSpecializationDescription({}))", sub_types);
-                    }
-
                     source.write_line(std::format(
                         "_Static_Item_Class_{}->register_property("
                         "\"{}\", "
                         "offsetof({}, {}), "
-                        "Reflection::Type::make_type_instance<{}>(){});",
+                        "{});",
                         gen_class.second.sanitized_class_path(),
                         property.first,
                         class_name, property.first,
-                        property.second.full_name_string(), args));
+                        make_type_instance(property.second)));
                 }
             }
             source.unindent();
