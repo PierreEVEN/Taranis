@@ -57,7 +57,7 @@ PlanetData::TectonicData PrecomputedPlanetData::get_tectonic_plate_data_at_locat
     double c = 1.0 - noise2.GetCellular(location.x * 200, location.y * 200, location.z * 200);
 
     double c2 = noise2.GetCellular(location.x * 178, location.y * 178, location.z * 178);
-    double c3 = noise3.GetCellular(location.x * 178, location.y * 178, location.z * 178);
+    //double c3 = noise3.GetCellular(location.x * 178, location.y * 178, location.z * 178);
 
     auto cube_loc    = sphere_to_cube_face(location);
     auto sample_data = planet_map.sample(cube_loc);
@@ -85,5 +85,5 @@ PlanetData::BiomeDataAtLocation PrecomputedPlanetData::get_biome_data_at_locatio
 
 float PrecomputedPlanetData::get_height_at_location(const glm::dvec3& location)
 {
-    return noise.GetSimplex(location.x * 100, location.y * 100, location.z * 100) * 200;
+    return static_cast<float>(noise.GetSimplex(location.x * 100, location.y * 100, location.z * 100)) * 200;
 }

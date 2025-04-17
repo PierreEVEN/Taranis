@@ -379,8 +379,8 @@ private:
             Eng::DebugDraw::get().add_segment(A->position * 6000.0, B->position * 6000.0, {0, 1, 1}, 100);
             mesh.remove_face(f);
             mesh.remove_face(ABprime->face);
-            auto F1 = mesh.add_face({N, C, A});
-            auto F2 = mesh.add_face({C, N, B});
+            //auto F1 = mesh.add_face({N, C, A});
+            //auto F2 = mesh.add_face({C, N, B});
 
             /*
             if (!test_delaunay(F1->hedge->next->twin->face))

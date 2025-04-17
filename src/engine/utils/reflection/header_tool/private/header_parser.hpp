@@ -46,14 +46,19 @@ public:
 
     std::string full_name_string() const
     {
-        std::string full_name = name;
+        std::string full_name = name; // is_const ? "const " + name : name;
         if (!template_args.empty())
         {
-            full_name += "<";
+            full_name += '<';
             for (size_t i = 0; i < template_args.size(); ++i)
                 full_name += i == template_args.size() - 1 ? template_args[i].full_name_string() : template_args[i].full_name_string() + ", ";
-            full_name += ">";
+            full_name += '>';
         }
+        /*
+        for (size_t i = 0; i < ptr_indirections; ++i)
+            full_name += '*';
+        if (is_ref)
+            full_name += '&';*/
         return full_name;
     }
 
