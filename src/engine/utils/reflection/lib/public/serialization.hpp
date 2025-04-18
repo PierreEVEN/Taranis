@@ -2,8 +2,8 @@
 #include "property.hpp"
 #include "stream.hpp"
 #include "type.hpp"
-#include "type_instance.hpp"
 
+#include <iostream>
 #include <ankerl/unordered_dense.h>
 
 namespace Reflection
@@ -29,12 +29,17 @@ class Serializer
 public:
     virtual ~Serializer() = default;
 
-    template <typename Serializer, typename... Args> static void register_serializer(const TypeInstance& type_instance, Args&&... args)
+    template <typename T, typename Serializer, typename... Args> static void register_serializer(Args&&... args)
+    {
+        get_serializers_internal().insert_or_assign(TypeId::create<T>(), new Serializer(std::forward<Args>(args)...));
+    }
+
+    template <typename Serializer, typename... Args> static void register_serializer(const TypeId& type_instance, Args&&... args)
     {
         get_serializers_internal().insert_or_assign(type_instance, new Serializer(std::forward<Args>(args)...));
     }
 
-    static Serializer* get(const TypeInstance& type)
+    static Serializer* get(const TypeId& type)
     {
         auto it = get_serializers_internal().find(type);
         if (it != get_serializers_internal().end())
@@ -50,10 +55,9 @@ public:
     }
 
 private:
-    static ankerl::unordered_dense::map<TypeInstance, Serializer*>& get_serializers_internal();
-    static ankerl::unordered_dense::map<TypeInstance, Serializer*>* serializers;
+    static ankerl::unordered_dense::map<TypeId, Serializer*>& get_serializers_internal();
+    static ankerl::unordered_dense::map<TypeId, Serializer*>* serializers;
 };
-
 
 class Archive final
 {
@@ -90,12 +94,10 @@ public:
 
     template <typename T> Archive& operator<=>(T& alloc)
     {
-        static_assert(StaticTypeInfos<T>::value, "This type is not a reflected type");
-
-        Serializer* serializer = Serializer::get(Type::make_type_instance<T>());
+        Serializer* serializer = Serializer::get(TypeId::create<T>());
         if (!serializer)
         {
-            std::cerr << "No serializer for raw type " << StaticTypeInfos<T>::name << "\n";
+            std::cerr << "No serializer for raw type " << TypeId::create<T>().name() << "\n";
             return *this;
         }
 
@@ -108,16 +110,10 @@ public:
     {
         auto& type = member.property.get_type_instance();
 
-        Serializer* serializer = Serializer::get(type);
+        Serializer* serializer = Serializer::get(type.id());
         if (!serializer)
         {
             std::cerr << "No serializer for " << type.display() << "\n";
-            return *this;
-        }
-
-        if (type.get_ptr_indirections() > 0)
-        {
-            std::cerr << "Cannot serialize pointer types " << type.display() << "\n";
             return *this;
         }
 
@@ -148,6 +144,56 @@ public:
     void serialize(Archive& archive, void* alloc) override
     {
         archive.archive_raw(static_cast<uint8_t*>(alloc), sizeof(T));
+    }
+};
+
+class StringSerializer : public Serializer
+{
+  public:
+    void serialize(Archive& archive, void* alloc) override
+    {
+        std::string& data   = *static_cast<std::string*>(alloc);
+        size_t       length = data.size();
+        archive <=> length;
+        if (length == 0)
+            return;
+        if (archive.is_reading())
+            data.resize(length);
+        archive.archive_raw(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.c_str())), length);
+    }
+};
+
+template <typename T> class VectorSerializer : public Serializer
+{
+  public:
+    void serialize(Archive& archive, void* alloc) override
+    {
+        Serializer* serializer = get(TypeId::create<T>());
+        if (!serializer)
+        {
+            std::cerr << "There is no serializer for type " << TypeId::create<T>().name() << "\n";
+            return;
+        }
+
+        std::vector<T>& data   = *static_cast<std::vector<T>*>(alloc);
+        size_t          length = data.size();
+        archive <=> length;
+        if (length == 0)
+            return;
+        if (archive.is_reading())
+        {
+            data.clear();
+            data.reserve(length);
+            for (size_t i = 0; i < length; ++i)
+            {
+                T item;
+                serializer->serialize(archive, &item);
+                data.emplace_back(std::move(item));
+            }
+        }
+        else
+            for (size_t i = 0; i < length; ++i)
+                serializer->serialize(archive, &data[i]);
     }
 };
 

@@ -1,11 +1,7 @@
 #pragma once
 #include "type_id.hpp"
-#include "type_instance.hpp"
 
 #include <assert.h>
-#include <iostream>
-#include <memory>
-#include <vector>
 #include <ankerl/unordered_dense.h>
 
 namespace Reflection
@@ -17,7 +13,6 @@ class Type
 public:
     template <typename Typename> static Type* register_type()
     {
-        static_assert(StaticTypeInfos<Typename>::value, "Failed to register type : not a reflected type.");
         Type* new_type = new Type(TypeId::create<Typename>(), sizeof(Typename));
         register_type_internal(new_type);
         return new_type;
@@ -25,21 +20,15 @@ public:
 
     template <typename Base, typename Alias> static void register_type_alias()
     {
-        static_assert(StaticTypeInfos<Base>::value, "Failed to register type : not a reflected type.");
-        static_assert(StaticTypeInfos<Alias>::value, "Failed to register type : not a reflected type.");
-        get_types_aliases_internal().emplace(TypeId::create<Alias>(), get_type(TypeId::create<Base>()));
+        Type* base = get_type(TypeId::create<Base>());
+        assert(base && "Cannot register type alias : base type is not a reflected type");
+        get_types_aliases_internal().emplace(TypeId::create<Alias>(), base);
     }
 
     template <typename Base, typename First, typename Second, typename... Next> static void register_type_alias()
     {
         register_type_alias<Base, First>();
         register_type_alias<Base, Second, Next...>();
-    }
-
-public:
-    template <typename T> static TypeInstance make_type_instance()
-    {
-        return TypeInstance(get_type(TypeId::create<T>()), sizeof(T));
     }
 
     template <typename T> static Type* get_type()

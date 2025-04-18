@@ -255,8 +255,8 @@ template <typename T> class TObjectPtr final : public IObject
 
     template <typename V> TObjectRef<V> cast() const
     {
-        static_assert(Reflection::StaticTypeInfos<T>::name, "Cast of non reflected object is not allowed");
-        static_assert(Reflection::StaticTypeInfos<V>::name, "Cast of non reflected object is not allowed");
+        static_assert(Reflection::StaticTypeInfos<T>::value, "Cast of non reflected object is not allowed");
+        static_assert(Reflection::StaticTypeInfos<V>::value, "Cast of non reflected object is not allowed");
 
         if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
             return TObjectRef<V>(allocation);
@@ -421,8 +421,8 @@ template <typename T> class TObjectRef final : public IObject
 
     template <typename V> TObjectRef<V> cast() const
     {
-        static_assert(Reflection::StaticTypeInfos<T>::name, "Cast of non reflected object is not allowed");
-        static_assert(Reflection::StaticTypeInfos<V>::name, "Cast of non reflected object is not allowed");
+        static_assert(Reflection::StaticTypeInfos<T>::value, "Cast of non reflected object is not allowed");
+        static_assert(Reflection::StaticTypeInfos<V>::value, "Cast of non reflected object is not allowed");
 
         if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
             return TObjectRef<V>(allocation);

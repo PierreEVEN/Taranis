@@ -4,101 +4,68 @@
 #include "serialization.hpp"
 #include "stream.hpp"
 
-Reflection::NativeTypeRecorder native_type_recorder;
-
-class StringSerializer : public Reflection::Serializer
+template <typename T> class InPlacePtrSerializer : public Reflection::Serializer
 {
 public:
     void serialize(Reflection::Archive& archive, void* alloc) override
     {
-        std::string& data   = *static_cast<std::string*>(alloc);
-        size_t       length = data.size();
-        archive <=> length;
-        if (length == 0)
-            return;
-        if (archive.is_reading())
-            data.resize(length);
-        archive.archive_raw(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.c_str())), length);
-    }
-};
-
-template <typename T> class VectorSerializer : public Reflection::Serializer
-{
-public:
-    VectorSerializer(Reflection::TypeInstance in_type_instance) : type_instance(std::move(in_type_instance))
-    {
-    }
-
-    void serialize(Reflection::Archive& archive, void* alloc) override
-    {
-        Serializer* serializer = get(type_instance);
+        Reflection::TypeId class_ref_type = Reflection::TypeId::create<T>();
+        Serializer*        serializer     = get(class_ref_type);
         if (!serializer)
         {
-            std::cerr << "There is no serializer for type " << type_instance.display() << "\n";
+            std::cerr << "There is no serializer for type " << class_ref_type.name() << "\n";
             return;
         }
 
-        std::vector<T>& data   = *static_cast<std::vector<T>*>(alloc);
-        size_t          length = data.size();
-        archive <=> length;
-        if (length == 0)
+        T*&  data       = *static_cast<T**>(alloc);
+        bool b_is_valid = data != nullptr;
+        archive <=> b_is_valid;
+        if (!b_is_valid)
+        {
+            data = nullptr;
             return;
+        }
         if (archive.is_reading())
         {
-            data.clear();
-            data.reserve(length);
-            for (size_t i = 0; i < length; ++i)
-            {
-                T item;
-                serializer->serialize(archive, &item);
-                data.emplace_back(std::move(item));
-            }
+            if (!data)
+                data = new T();
+            serializer->serialize(archive, data);
         }
         else
-            for (size_t i = 0; i < length; ++i)
-                serializer->serialize(archive, &data[i]);
+            serializer->serialize(archive, data);
     }
-
-private:
-    Reflection::TypeInstance type_instance;
 };
+
 
 static void test_serializer()
 {
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint8_t>>(Reflection::Type::make_type_instance<uint8_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint16_t>>(Reflection::Type::make_type_instance<uint16_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint32_t>>(Reflection::Type::make_type_instance<uint32_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint64_t>>(Reflection::Type::make_type_instance<uint64_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int8_t>>(Reflection::Type::make_type_instance<int8_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int16_t>>(Reflection::Type::make_type_instance<int16_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int32_t>>(Reflection::Type::make_type_instance<int32_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<int64_t>>(Reflection::Type::make_type_instance<int64_t>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<bool>>(Reflection::Type::make_type_instance<bool>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<float>>(Reflection::Type::make_type_instance<float>());
-    Reflection::Serializer::register_serializer<Reflection::RawSerializer<double>>(Reflection::Type::make_type_instance<double>());
-    Reflection::Serializer::register_serializer<StringSerializer>(Reflection::Type::make_type_instance<std::string>());
-    Reflection::Serializer::register_serializer<VectorSerializer<float>>(
-        Reflection::Type::make_type_instance<std::vector<float>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<float>()})),
-        Reflection::Type::make_type_instance<float>()
-        );
+    Reflection::Serializer::register_serializer<uint8_t, Reflection::RawSerializer<uint8_t>>();
+    Reflection::Serializer::register_serializer<uint16_t, Reflection::RawSerializer<uint16_t>>();
+    Reflection::Serializer::register_serializer<uint32_t, Reflection::RawSerializer<uint32_t>>();
+    Reflection::Serializer::register_serializer<uint64_t, Reflection::RawSerializer<uint64_t>>();
+    Reflection::Serializer::register_serializer<int8_t, Reflection::RawSerializer<int8_t>>();
+    Reflection::Serializer::register_serializer<int16_t, Reflection::RawSerializer<int16_t>>();
+    Reflection::Serializer::register_serializer<int32_t, Reflection::RawSerializer<int32_t>>();
+    Reflection::Serializer::register_serializer<int64_t, Reflection::RawSerializer<int64_t>>();
+    Reflection::Serializer::register_serializer<bool, Reflection::RawSerializer<bool>>();
+    Reflection::Serializer::register_serializer<float, Reflection::RawSerializer<float>>();
+    Reflection::Serializer::register_serializer<double, Reflection::RawSerializer<double>>();
 
-    Reflection::Serializer::register_serializer<VectorSerializer<double>>(
-        Reflection::Type::make_type_instance<std::vector<double>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<double>()})),
-        Reflection::Type::make_type_instance<double>());
+    // String serializers
+    Reflection::Serializer::register_serializer<std::string, Reflection::StringSerializer>();
 
-    Reflection::Serializer::register_serializer<VectorSerializer<std::string>>(
-        Reflection::Type::make_type_instance<std::vector<std::string>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<std::string>()})),
-        Reflection::Type::make_type_instance<std::string>()
-        );
+    // Vector serializers
+    Reflection::Serializer::register_serializer<std::vector<float>, Reflection::VectorSerializer<float>>();
+    Reflection::Serializer::register_serializer<std::vector<double>, Reflection::VectorSerializer<double>>();
+    Reflection::Serializer::register_serializer<std::vector<std::string>, Reflection::VectorSerializer<std::string>>();
+    Reflection::Serializer::register_serializer<std::vector<std::vector<double>>, Reflection::VectorSerializer<std::vector<double>>>();
 
-    Reflection::Serializer::register_serializer<VectorSerializer<std::vector<double>>>(
-        Reflection::Type::make_type_instance<std::vector<std::vector<double>>>().set_template_specialization(Reflection::TypeSpecializationDescription(
-            {Reflection::Type::make_type_instance<std::vector<double>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<double>()}))})),
-        Reflection::Type::make_type_instance<std::vector<double>>().set_template_specialization(Reflection::TypeSpecializationDescription({Reflection::Type::make_type_instance<double>()}))
-        );
+    // Class Serializers
+    Reflection::Serializer::register_serializer<MyTestClass, Reflection::ClassSerializer<MyTestClass>>();
+    Reflection::Serializer::register_serializer<TestChild, Reflection::ClassSerializer<TestChild>>();
 
-    Reflection::Serializer::register_serializer<Reflection::ClassSerializer<MyTestClass>>(Reflection::Type::make_type_instance<MyTestClass>());
-    Reflection::Serializer::register_serializer<Reflection::ClassSerializer<TestChild>>(Reflection::Type::make_type_instance<TestChild>());
+    // Ptr Serializers
+    Reflection::Serializer::register_serializer<MyTestClass*, InPlacePtrSerializer<MyTestClass>>();
 
     std::ifstream test_input("./saved/assets/test.asset", std::ios::binary);
 

@@ -77,29 +77,11 @@ static void unpack_template_args(Generator::Writer& source, const TypeDefinition
 
 static std::string make_type_instance(const TypeDefinition& type)
 {
-    std::string base = std::format("Reflection::Type::make_type_instance<{}>()", type.full_name_string());
+    std::string base = std::format("Reflection::TypeInstance::create<{}>()", type.full_name_string());
     if (type.is_const)
         base += ".set_const()";
     if (type.is_ref)
         base += ".set_ref()";
-    if (type.ptr_indirections > 0)
-        for (size_t i = 0; i < type.ptr_indirections; ++i)
-            base += std::format(".set_ptr_indirections({})", type.ptr_indirections);
-    if (!type.get_template_args().empty())
-    {
-        base += ".set_template_specialization(Reflection::TypeSpecializationDescription({";
-
-        auto it = type.get_template_args().begin();
-        while (it != type.get_template_args().end())
-        {
-            base += make_type_instance(*it);
-            ++it;
-            if (it != type.get_template_args().end())
-                base += ", ";
-        }
-        base += "}))";
-
-    }
     return base;
 }
 
@@ -184,7 +166,7 @@ void Generator::generate(size_t                       timestamp,
             source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", gen_class.second.sanitized_class_path()));
             source.indent();
             {
-                source.write_line(std::format("_Static_Item_Class_{} = REFL_REGISTER_CLASS({});", gen_class.second.sanitized_class_path(), class_name));
+                source.write_line(std::format("_Static_Item_Class_{} = Reflection::Class::register_class<{}>();", gen_class.second.sanitized_class_path(), class_name));
                 for (const auto& parent : gen_class.second.get_parent_paths())
                 {
                     source.write_line(std::format("_Static_Item_Class_{}->add_parent(Reflection::TypeId::create<{}>());", gen_class.second.sanitized_class_path(), parent));

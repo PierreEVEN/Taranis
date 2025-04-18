@@ -1,5 +1,5 @@
 #pragma once
-#include "type.hpp"
+#include "type_instance.hpp"
 
 #include <string>
 
@@ -36,8 +36,7 @@ public:
 
     template <typename T = void> void write(void* object_ptr, T* valuePtr) const
     {
-        T* ptr = reinterpret_cast<T*>(reinterpret_cast<size_t>(object_ptr) + offset);
-        *ptr   = *valuePtr;
+        *ptr<T>(object_ptr) = *valuePtr;
     }
 
 private:

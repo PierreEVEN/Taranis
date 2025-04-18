@@ -1,7 +1,6 @@
 #pragma once
 #include "small_string.hpp"
 
-#include <string>
 #include <typeindex>
 
 namespace Reflection

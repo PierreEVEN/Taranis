@@ -2,75 +2,12 @@
 
 #include "type_id.hpp"
 
-#include <cassert>
-#include <iostream>
-#include <optional>
-#include <vector>
+#include <string>
 
 namespace Reflection
 {
 class TypeInstance;
 class Type;
-
-class TypeSpecializationDescription
-{
-  public:
-    TypeSpecializationDescription() = default;
-
-    TypeSpecializationDescription(std::initializer_list<TypeInstance> in_types) : types(in_types)
-    {
-    }
-
-    void push(const TypeInstance& type)
-    {
-        types.push_back(type);
-    }
-
-    bool operator==(const TypeSpecializationDescription& other) const;
-
-    const std::vector<TypeInstance>& get_types() const
-    {
-        return types;
-    }
-
-  private:
-    std::vector<TypeInstance> types;
-};
-
-class TypeSpecialization
-{
-  public:
-    template <typename T> void push();
-
-    TypeSpecialization() = default;
-
-    TypeSpecialization(size_t in_size) : size(in_size)
-    {
-    }
-
-    size_t stride() const
-    {
-        return size;
-    }
-
-    const std::vector<TypeInstance>& get_args() const
-    {
-        return arguments;
-    }
-
-  private:
-    size_t                    size = 0;
-    std::vector<TypeInstance> arguments;
-};
-
-template <typename T> void TypeSpecialization::push()
-{
-    auto type = Type::get_type(TypeId::create<T>());
-    if (!type)
-        std::cerr << "ask for type : " << StaticTypeInfos<T>::name << "\n";
-    assert(type && "TODO : handle delayed registered type for template specializations");
-    arguments.emplace_back(type);
-}
 
 class TypeInstance
 {
@@ -79,10 +16,10 @@ class TypeInstance
     static constexpr uint8_t FLAG_IS_CONST = 1 << 0;
     static constexpr uint8_t FLAG_IS_REF   = 1 << 1;
 
-  public:
-    TypeInstance(const Type* in_base, uint32_t in_size) : size(in_size), base_type(in_base)
+public:
+    template <typename T> static TypeInstance create()
     {
-        assert(base_type && "Cannot register TypeInstance : base type is null");
+        return TypeInstance(TypeId::create<T>(), sizeof(T));
     }
 
     TypeInstance& set_const()
@@ -100,12 +37,6 @@ class TypeInstance
     TypeInstance& set_ptr_indirections(uint8_t indirections)
     {
         flags = (indirections << 4) + flags & 0xFF;
-        return *this;
-    }
-
-    TypeInstance& set_template_specialization(const TypeSpecializationDescription& specialization)
-    {
-        template_specialization = specialization;
         return *this;
     }
 
@@ -129,16 +60,16 @@ class TypeInstance
         return flags >> 4;
     }
 
-    const Type* base() const
+    const TypeId& id() const
     {
-        return base_type;
+        return base_id;
     }
 
     std::string display() const;
 
     bool operator==(const TypeInstance& o) const
     {
-        return flags == o.flags && size == o.size && base_type == o.base_type && template_specialization == o.template_specialization;
+        return base_id == o.base_id && flags == o.flags && size == o.size;
     }
 
     bool operator!=(const TypeInstance& o) const
@@ -146,25 +77,17 @@ class TypeInstance
         return !operator==(o);
     }
 
-  private:
+private:
+    TypeInstance(TypeId id, uint32_t in_size) : size(in_size), base_id(id)
+    {
+    }
+
     // 4 last bytes are the number of ptr indirections
-    uint8_t                                      flags     = 0;
-    uint32_t                                     size      = 0;
-    const Type*                                  base_type = nullptr;
-    std::optional<TypeSpecializationDescription> template_specialization;
+    uint8_t  flags = 0;
+    uint32_t size  = 0;
+    TypeId   base_id;
 };
 } // namespace Reflection
-
-template <> struct std::hash<Reflection::TypeSpecializationDescription>
-{
-    size_t operator()(const Reflection::TypeSpecializationDescription& c) const noexcept
-    {
-        size_t result = 0;
-        for (const auto& type : c.get_types())
-            hash_combine(result, type);
-        return result;
-    }
-};
 
 template <> struct std::hash<Reflection::TypeInstance>
 {
@@ -173,8 +96,7 @@ template <> struct std::hash<Reflection::TypeInstance>
         size_t hash = 0;
         hash_combine(hash, val.flags);
         hash_combine(hash, val.size);
-        hash_combine(hash, val.base_type);
-        hash_combine(hash, val.template_specialization);
+        hash_combine(hash, val.base_id);
         return hash;
     }
 };

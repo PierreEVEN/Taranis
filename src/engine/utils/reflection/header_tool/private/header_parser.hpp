@@ -54,10 +54,9 @@ public:
                 full_name += i == template_args.size() - 1 ? template_args[i].full_name_string() : template_args[i].full_name_string() + ", ";
             full_name += '>';
         }
-        /*
         for (size_t i = 0; i < ptr_indirections; ++i)
             full_name += '*';
-        if (is_ref)
+        /*if (is_ref)
             full_name += '&';*/
         return full_name;
     }

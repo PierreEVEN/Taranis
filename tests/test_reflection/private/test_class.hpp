@@ -31,13 +31,15 @@ public:
     static MyTestClass make_special()
     {
         MyTestClass cl;
-        cl.test_float               = 98;
-        cl.test_float_transient     = 78.97f;
-        cl.test_vector_float        = {65, 64, 63.5, 63.2f, 62, 61};
-        cl.test_vector_vector_float = {{12, 13, 14}, {28.5, 28.6, 28.7}, {}, {4, 3, 2, 1, 0}};
-        cl.test_string              = "Pas caca";
-        cl.child_value              = TestChild::make_special();
-        cl.test_bool                = true;
+        cl.test_float                  = 98;
+        cl.test_float_transient        = 78.97f;
+        cl.test_vector_float           = {65, 64, 63.5, 63.2f, 62, 61};
+        cl.test_vector_vector_float    = {{12, 13, 14}, {28.5, 28.6, 28.7}, {}, {4, 3, 2, 1, 0}};
+        cl.test_string                 = "Pas caca";
+        cl.child_value                 = TestChild::make_special();
+        cl.test_class_ptr              = new MyTestClass();
+        cl.test_class_ptr->test_string = "CECI EST UN CONTENU DE POINTEUR HAHA";
+        cl.test_bool                   = true;
         return cl;
     }
 
@@ -58,7 +60,7 @@ public:
 
 private:
     RPROPERTY()
-    MyTestClass* test_class_ptr;
+    MyTestClass* test_class_ptr = nullptr;
 
     RPROPERTY()
     TestChild child_value;
