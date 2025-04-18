@@ -2,6 +2,7 @@
 #include "small_string.hpp"
 
 #include <string>
+#include <typeindex>
 
 namespace Reflection
 {
@@ -16,12 +17,15 @@ class TypeId final
     friend struct std::hash<TypeId>;
 
 public:
-    static TypeId create(const char* name)
+    template <typename T> static TypeId create()
     {
-        return {name};
+        return TypeId(typeid(T));
     }
 
-    TypeId()              = default;
+    TypeId() : type_id(typeid(void))
+    {
+    }
+
     TypeId(const TypeId&) = default;
     TypeId(TypeId&&)      = default;
     ~TypeId()             = default;
@@ -31,24 +35,23 @@ public:
 
     bool operator==(const TypeId& other) const
     {
-        return hash == other.hash && raw_name == other.raw_name;
+        return type_id == other.type_id;
     }
 
     operator bool() const
     {
-        return !raw_name.empty();
+        return type_id != typeid(void);
     }
 
     const char* name() const
     {
-        return raw_name.c_str();
+        return type_id.name();
     }
 
 private:
-    size_t      hash = 0;
-    SmallString raw_name;
+    std::type_index type_id;
 
-    TypeId(const char* in_raw_name) : hash(std::hash<SmallString>()(in_raw_name)), raw_name(in_raw_name)
+    TypeId(std::type_index type_index) : type_id(type_index)
     {
     }
 };
@@ -58,6 +61,6 @@ template <> struct std::hash<Reflection::TypeId>
 {
     size_t operator()(const Reflection::TypeId& val) const noexcept
     {
-        return val.hash;
+        return val.type_id.hash_code();
     }
 };

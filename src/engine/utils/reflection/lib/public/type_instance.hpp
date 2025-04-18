@@ -3,6 +3,7 @@
 #include "type_id.hpp"
 
 #include <cassert>
+#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -62,6 +63,15 @@ class TypeSpecialization
     std::vector<TypeInstance> arguments;
 };
 
+template <typename T> void TypeSpecialization::push()
+{
+    auto type = Type::get_type(TypeId::create<T>());
+    if (!type)
+        std::cerr << "ask for type : " << StaticTypeInfos<T>::name << "\n";
+    assert(type && "TODO : handle delayed registered type for template specializations");
+    arguments.emplace_back(type);
+}
+
 class TypeInstance
 {
     friend struct std::hash<TypeInstance>;
@@ -72,7 +82,7 @@ class TypeInstance
   public:
     TypeInstance(const Type* in_base, uint32_t in_size) : size(in_size), base_type(in_base)
     {
-        assert(base_type);
+        assert(base_type && "Cannot register TypeInstance : base type is null");
     }
 
     TypeInstance& set_const()

@@ -14,19 +14,18 @@ class Class : public Type
 {
 
 public:
-    static Class* get(const char* type_name);
     static Class* get(const TypeId& type_id);
 
-    template <typename C> static const Class* get()
+    template <typename C> static Class* get()
     {
         static_assert(StaticTypeInfos<C>::value, "Failed to register class : not a reflected class. Please add the REFLECT_BODY macro to it.");
-        return get(StaticTypeInfos<C>::name);
+        return get(TypeId::create<C>());
     }
 
     template <typename ClassName> static Class* register_class()
     {
         static_assert(StaticTypeInfos<ClassName>::value, "Failed to register class : not a reflected class. Please add the REFLECT_BODY macro to it.");
-        Class* new_class = new Class(StaticTypeInfos<ClassName>::name, sizeof(ClassName));
+        Class* new_class = new Class(TypeId::create<ClassName>(), sizeof(ClassName));
         register_class_internal(new_class);
         register_type_internal(new_class);
         return new_class;
@@ -48,7 +47,7 @@ public:
     {
         if constexpr (StaticTypeInfos<ParentClass>::is_class)
         {
-            cast_functions.insert_or_assign(Type::make_type_id<ParentClass>(),
+            cast_functions.insert_or_assign(TypeId::create<ParentClass>(),
                                             CastFuncWrapper{[](const Class* desired_class, void* from_ptr) -> void* {
                                                                 return ParentClass::static_class()->cast_to(desired_class, reinterpret_cast<void*>(static_cast<ParentClass*>(static_cast<ThisClass*>(from_ptr))));
                                                             },
@@ -121,7 +120,7 @@ private:
 
     void on_register_parent_class(Class* new_class);
 
-    Class(const char* in_type_name, uint32_t in_type_size) : Type(in_type_name, in_type_size)
+    Class(TypeId type_id, uint32_t in_type_size) : Type(type_id, in_type_size)
     {
     }
 

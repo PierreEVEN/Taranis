@@ -65,7 +65,6 @@ private:
 
 static void test_serializer()
 {
-
     Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint8_t>>(Reflection::Type::make_type_instance<uint8_t>());
     Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint16_t>>(Reflection::Type::make_type_instance<uint16_t>());
     Reflection::Serializer::register_serializer<Reflection::RawSerializer<uint32_t>>(Reflection::Type::make_type_instance<uint32_t>());
@@ -137,12 +136,7 @@ int main()
     LOG_INFO("{} types registered :", Reflection::Type::get_types().size());
     for (const auto& type : Reflection::Type::get_types())
     {
-        if (type.second->is_template_type())
-        {
-            LOG_INFO("\t- {}<> : {}b", type.second->name(), type.second->stride());
-        }
-        else
-            LOG_INFO("\t- {} : {}b", type.second->name(), type.second->stride());
+        LOG_INFO("\t- {} : {}b", type.second->name(), type.second->stride());
     }
 
     LOG_INFO("{} classes registered :", Reflection::Class::get_classes().size());

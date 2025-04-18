@@ -24,11 +24,6 @@ ankerl::unordered_dense::map<TypeId, Class*>& Class::get_classes_internal()
     return *classes;
 }
 
-Class* Class::get(const char* type_name)
-{
-    return get(make_type_id(type_name));
-}
-
 Class* Class::get(const TypeId& type_id)
 {
     auto&      classes_ref = get_classes_internal();

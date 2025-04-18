@@ -62,6 +62,7 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 
 static void unpack_template_args(Generator::Writer& source, const TypeDefinition& type)
 {
+    return;
     std::string args;
     for (size_t i = 0; i < type.get_template_args().size(); ++i)
     {
@@ -186,7 +187,7 @@ void Generator::generate(size_t                       timestamp,
                 source.write_line(std::format("_Static_Item_Class_{} = REFL_REGISTER_CLASS({});", gen_class.second.sanitized_class_path(), class_name));
                 for (const auto& parent : gen_class.second.get_parent_paths())
                 {
-                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Reflection::Type::make_type_id(\"{}\"));", gen_class.second.sanitized_class_path(), parent));
+                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Reflection::TypeId::create<{}>());", gen_class.second.sanitized_class_path(), parent));
                     source.write_line(std::format("_Static_Item_Class_{}->add_cast_function<{},{}>();", gen_class.second.sanitized_class_path(), class_name, parent));
                 }
 
