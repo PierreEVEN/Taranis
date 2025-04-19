@@ -8,8 +8,11 @@ set_warnings("allextra")
 set_allowedmodes("debug", "release")
 set_defaultmode("release")
 set_rundir(".")
-set_runtimes(is_mode("debug") and "MTd" or "MT")
-		
+if is_plat("windows") then
+    set_runtimes(is_mode("debug") and "MDd" or "MD")
+end
+
+
 DEBUG = false;
 BUILD_MONOLITHIC = false;
 
@@ -154,6 +157,7 @@ function declare_module(module_name, opts)
     local deps = opts.deps or {}
     local packages = opts.packages or {}
     local is_executable = opts.is_executable or false
+    local is_module = opts.is_module or false
     local enable_reflection = opts.enable_reflection or false
     local allow_shared_build = opts.allow_shared_build or false
     
@@ -198,7 +202,10 @@ function declare_module(module_name, opts)
         for _, file in pairs(os.files("private/**.cpp")) do
             add_files(file)
         end
-        for _, file in pairs(os.files("**.hpp")) do
+        for _, file in pairs(os.files("public/**.hpp")) do
+            add_headerfiles(file)
+        end
+        for _, file in pairs(os.files("private/**.hpp")) do
             add_headerfiles(file)
         end
         
@@ -244,10 +251,12 @@ function declare_module(module_name, opts)
         -- set kind
         if is_executable then
             set_kind("binary")
-        elseif BUILD_MONOLITHIC or not allow_shared_build then
+        elseif BUILD_MONOLITHIC or (not allow_shared_build and not is_module) then
             set_kind("static")
         else
-            add_rules("utils.symbols.export_all", {export_classes = true})
+            if not is_module then
+                add_rules("utils.symbols.export_all", {export_classes = true})
+            end
             set_kind("shared")
         end
     end)

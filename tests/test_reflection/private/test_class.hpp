@@ -1,8 +1,6 @@
 #pragma once
 #include "test_class.gen.hpp"
 
-#include "native_types.hpp"
-
 class TestChild : public std::vector<float>
 {
     REFLECT_BODY()
