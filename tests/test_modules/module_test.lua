@@ -1,4 +1,4 @@
-declare_module("module_test",
+declare_module("test_modules",
     {
         deps = {"module_manager", "types"},
         packages = {},
@@ -7,5 +7,5 @@ declare_module("module_test",
     }
 )
 
-target("module_manager_test")
+target("test_modules")
 set_group("test")
