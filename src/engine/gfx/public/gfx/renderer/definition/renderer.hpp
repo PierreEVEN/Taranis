@@ -1,7 +1,6 @@
 #pragma once
-
 #include "logger.hpp"
-#include "render_pass_id.hpp"
+#include "render_pass_ref.hpp"
 #include "gfx/types.hpp"
 #include "gfx_types/format.hpp"
 

@@ -6,7 +6,7 @@
 
 #include "queue_family.hpp"
 #include "shader_module.hpp"
-#include "gfx/renderer/definition/render_pass_id.hpp"
+#include "gfx/renderer/definition/render_pass_ref.hpp"
 
 #include <ankerl/unordered_dense.h>
 

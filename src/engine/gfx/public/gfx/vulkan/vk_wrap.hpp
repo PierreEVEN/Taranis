@@ -1,3 +1,4 @@
+#pragma once
 #include <vk_mem_alloc.h>
 
 struct VmaAllocatorWrap

@@ -6,6 +6,7 @@
 
 #include "assets/material_instance_asset.gen.hpp"
 #include "gfx/renderer/definition/render_pass_id.hpp"
+#include "gfx/renderer/definition/render_pass_ref.hpp"
 
 namespace Eng
 {
@@ -19,10 +20,10 @@ namespace Gfx
 {
 class Pipeline;
 class DescriptorSet;
-class RenderPassRef;
 class Buffer;
 class BufferData;
 } // namespace Gfx
+
 
 class MaterialInstanceAsset : public AssetBase
 {

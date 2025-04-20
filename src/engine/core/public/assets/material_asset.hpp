@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "assets/material_asset.gen.hpp"
+#include "gfx/renderer/definition/render_pass_ref.hpp"
 
 namespace ShaderCompiler
 {
@@ -15,7 +16,6 @@ class Session;
 
 namespace Eng::Gfx
 {
-class RenderPassRef;
 class DescriptorSet;
 class Pipeline;
 } // namespace Eng::Gfx

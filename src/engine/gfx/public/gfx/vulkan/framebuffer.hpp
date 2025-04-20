@@ -3,7 +3,6 @@
 #include "device_resource.hpp"
 
 #include <memory>
-#include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx
