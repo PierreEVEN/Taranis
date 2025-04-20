@@ -1,4 +1,5 @@
 #pragma once
+#include "gfx/renderer/definition/render_pass_ref.hpp"
 #include "gfx/ui/ui_window.hpp"
 
 #include <imgui.h>
@@ -9,7 +10,6 @@
 namespace Eng::Gfx
 {
 class RenderPassInstanceBase;
-class RenderPassRef;
 }
 
 namespace Eng::Gfx

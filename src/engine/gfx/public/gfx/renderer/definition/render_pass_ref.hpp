@@ -6,48 +6,6 @@
 namespace Eng::Gfx
 {
 
-class RenderPassTestClass
-{
-
-    friend class Renderer;
-    friend class RenderNode;
-
-    RenderPassTestClass(RenderPassGenericId generic_name, RenderPassUid unique_id) : name(std::move(generic_name)), id(unique_id)
-    {
-    }
-
-    RenderPassGenericId name;
-    RenderPassUid       id = 0;
-
-  public:
-    RenderPassTestClass() = default;
-
-    const RenderPassGenericId& generic_id() const
-    {
-        return name;
-    }
-
-    RenderPassUid unique_id() const
-    {
-        return id;
-    }
-
-    std::string to_string() const
-    {
-        return "<" + name + ":" + std::to_string(id) + ">";
-    }
-
-    bool operator==(const RenderPassTestClass& other) const
-    {
-        return id == other.id;
-    }
-
-    friend std::ostream& operator<<(std::ostream& stream, const RenderPassTestClass& ref)
-    {
-        return stream << ref.to_string();
-    }
-};
-
 class RenderPassRef
 {
     friend class Renderer;
@@ -89,14 +47,6 @@ public:
     }
 };
 } // namespace Eng::Gfx
-
-template <> struct std::hash<Eng::Gfx::RenderPassTestClass>
-{
-    size_t operator()(const Eng::Gfx::RenderPassTestClass& ctx) const noexcept
-    {
-        return std::hash<std::string>()(ctx.generic_id());
-    }
-};
 
 template <> struct std::hash<Eng::Gfx::RenderPassRef>
 {
