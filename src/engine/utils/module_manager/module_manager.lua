@@ -8,5 +8,5 @@ declare_module(
     }
 )
 
-target("types")
+target("module_manager")
     set_group("engine")

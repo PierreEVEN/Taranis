@@ -8,5 +8,5 @@ declare_module(
     }
 )
 
-target("types")
+target("io")
     set_group("engine")

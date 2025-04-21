@@ -1,3 +1,4 @@
+#include "class.hpp"
 #include "logger.hpp"
 #include "module_manager.hpp"
 
@@ -9,4 +10,9 @@ int main()
         module->load_module();
     else
         LOG_ERROR("Failed to load module");
+
+    for (const auto& cl : Reflection::Class::get_classes())
+    {
+        std::cout << "classe B : " << cl.first.name() << "\n";
+    }
 }

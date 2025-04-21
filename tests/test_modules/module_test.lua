@@ -1,9 +1,9 @@
 declare_module("test_modules",
     {
-        deps = {"module_manager", "types"},
+        deps = {"module_manager", "types", "reflection"},
         packages = {},
         is_executable = true,
-        enable_reflection = true
+        enable_reflection = false
     }
 )
 
