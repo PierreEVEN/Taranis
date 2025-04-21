@@ -1,8 +1,6 @@
 #pragma once
 
 #include "object_ptr.hpp"
-#include "path.hpp"
-
 #include <glm/vec3.hpp>
 #include "assets/asset_base.gen.hpp"
 
@@ -13,20 +11,6 @@ class ImageView;
 
 namespace Eng
 {
-class Package
-{
-public:
-    static std::shared_ptr<Package> open(const std::string& name, const std::filesystem::path& package_path);
-};
-
-inline void test()
-{
-    auto package = Package::open("Engine", "./resources");
-
-
-}
-
-
 class AssetBase
 {
     REFLECT_BODY()
@@ -67,7 +51,7 @@ private:
     char*                 name;
     AssetRegistry*        registry;
 
-    const std::shared_ptr<Package> package;
-    Path                           asset_path;
+    std::string           package;
+    std::filesystem::path path;
 };
 } // namespace Eng

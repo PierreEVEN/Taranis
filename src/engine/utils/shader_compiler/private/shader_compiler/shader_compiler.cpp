@@ -233,10 +233,8 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
     for (const auto& key : permutation_description.permutation_group)
         static_switches_values.emplace(key.first, key.second);
 
-
-
     for (SlangInt32 ep_i = 0; ep_i < module->getDefinedEntryPointCount(); ++ep_i)
-    {
+        {
         Slang::ComPtr<slang::IEntryPoint> entry_point;
         if (SLANG_FAILED(module->getDefinedEntryPoint(ep_i, entry_point.writeRef())))
             return result.push_error({"Failed to get entry point"});
@@ -267,9 +265,9 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
 
             for (uint32_t arg_i = 0; arg_i < user_attribute->getArgumentCount(); ++arg_i)
             {
-                size_t      size;
+                size_t size;
                 const char* str = user_attribute->getArgumentValueString(arg_i, &size);
-                if (std::string(str, size) == '"' + render_pass + '"')
+                if (std::string(str, size) == render_pass)
                 {
                     b_is_render_pass = true;
                     break;

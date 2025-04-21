@@ -73,7 +73,7 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
 
         const auto text = Engine::get().asset_registry().create<TextureAsset>(
             file_name, mips,
-            TextureAsset::CreateInfos{
+            CreateInfos{
                 .width = image.width,
                 .height = image.height,
                 .depth = image.depth,
@@ -112,7 +112,7 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
         uint32_t y = FreeImage_GetHeight(converted);
 
         const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, std::vector{Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4)},
-                                                                              TextureAsset::CreateInfos{
+                                                                              CreateInfos{
                                                                                   .width = x,
                                                                                   .height = y,
                                                                                   .format = Gfx::ColorFormat::R8G8B8A8_UNORM,

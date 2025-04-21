@@ -1,4 +1,3 @@
-#include "cmaa.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
 #include "assets/mesh_asset.hpp"
@@ -6,6 +5,7 @@
 #include "config.hpp"
 #include "engine.hpp"
 #include "spinlock.hpp"
+#include "assets/package.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
@@ -13,10 +13,9 @@
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx_types/format.hpp"
 #include "import/assimp_import.hpp"
-#include "procedural_planet/planet_component.hpp"
+#include "import/image_import.hpp"
 #include "widgets/profiler.hpp"
 #include "scene/components/camera_component.hpp"
-#include "scene/components/mesh_component.hpp"
 #include "scene/scene.hpp"
 #include "scene/scene_view.hpp"
 #include "scene/components/directional_light_component.hpp"
@@ -29,6 +28,9 @@
 #include <numbers>
 #include <GLFW/glfw3.h>
 #include <gfx/window.hpp>
+#include "assets/texture_asset.hpp"
+
+#define TEST_EDITOR_PACKAGE "TestEditor"
 
 using namespace Eng;
 
@@ -242,7 +244,7 @@ public:
 class TestApp : public Application
 {
 public:
-    void init(Engine& engine, const std::weak_ptr<Gfx::Window>& in_default_window) override
+    void init(Engine&, const std::weak_ptr<Gfx::Window>& in_default_window) override
     {
         scene = std::make_shared<Scene>();
 
@@ -278,134 +280,17 @@ public:
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
         directional_light->enable_shadow(ELightType::Movable, true);
 
+
         
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto                            new_scene = importer->load_from_path("./resources/models/plane/plane.glb");
-                float                           pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
-        
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto                            new_scene = importer->load_from_path("./resources/models/searsia_lucida_4k/searsia_lucida_4k.gltf");
-                float                           pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
+        ImageImport                     importer  = ImageImport();
+        auto                            new_texture = importer.load_from_path("./resources/screenshot.png");
 
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto                            new_scene = importer->load_from_path("./resources/models/jacaranda_tree_4k/jacaranda_tree_4k.gltf");
-                float                           pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
+        Package::get(TEST_EDITOR_PACKAGE)->store(new_texture.cast<AssetBase>(), "test_image.tda");
 
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto                            new_scene = importer->load_from_path("./resources/models/island_tree_03_4k/island_tree_03_4k.gltf");
-                float                           pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
 
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto                            new_scene = importer->load_from_path("./resources/models/othonna_cerarioides_4k/othonna_cerarioides_4k.gltf");
-                float                           pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
+        auto demo_scene = Package::get(TEST_EDITOR_PACKAGE)->load("test/main_scene.tda");
+        //scene->merge(demo_scene);
 
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto  new_scene = importer->load_from_path("./resources/models/fir_tree_01_4k/fir_tree_01_4k.gltf");
-                float pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto  new_scene = importer->load_from_path("./resources/models/fir_sapling_medium_4k/fir_sapling_medium_4k.gltf");
-                float pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
-        
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto  new_scene = importer->load_from_path("./resources/models/pine_sapling_medium_4k_2/pine_sapling_medium_4k_2.gltf");
-                float pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
-        
-        engine.jobs().schedule(
-            [&]
-            {
-                std::shared_ptr<AssimpImporter> importer  = std::make_shared<AssimpImporter>();
-                auto  new_scene = importer->load_from_path("./resources/models/pine_tree_01_4k/pine_tree_01_4k.gltf");
-                float pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
-
-        //TObjectRef<PlanetComponent> planet_0 = scene->add_component<PlanetComponent>("Planet0");
-
-        /*
-        std::shared_ptr<AssimpImporter> importer = std::make_shared<AssimpImporter>();
-        engine.jobs().schedule(
-            [&, importer]
-            {
-                auto  new_scene = importer->load_from_path("./resources/models/samples/Sponza/glTF/Sponza.gltf");
-                float pi        = std::numbers::pi_v<float>;
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_rotation(glm::quat({pi / 2, 0, 0}));
-                scene->merge(std::move(new_scene));
-            });
-         engine.jobs().schedule(
-            [&, importer]
-            {
-                auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroExterior.fbx");
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_position({-4600, -370, 0});
-                scene->merge(std::move(new_scene));
-            });
-        engine.jobs().schedule(
-            [&, importer]
-            {
-                auto new_scene = importer->load_from_path("./resources/models/samples/Bistro_v5_2/BistroInterior_Wine.fbx");
-                for (const auto& root : new_scene.get_nodes())
-                    root->set_position({-4600, -370, 0});
-                scene->merge(std::move(new_scene));
-            });*/
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)
             {
@@ -498,6 +383,11 @@ int main()
     config.gfx.aggressive_validation_layers = false;
     config.gfx.v_sync                       = true;
     config.auto_update_materials            = true;
+
+    // Initialize base packages
+    Package::create<DirectoryPackage>(PACKAGE_ENGINE, "./resources/engine/");
+    Package::create<DirectoryPackage>(TEST_EDITOR_PACKAGE, "./resources/test_editor/");
+
     Engine engine(config);
     engine.run<TestApp>(Gfx::WindowConfig{.name = "Taranis Editor - Alpha"});
 }

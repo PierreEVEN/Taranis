@@ -22,9 +22,9 @@ void MaterialAsset::set_shader_code(const std::filesystem::path& code, const std
     permutations.clear();
     compiler_session = ShaderCompiler::Compiler::get().create_session(code);
 
-    if (auto path = compiler_session->get_filesystem_path())
+    if (auto p = compiler_session->get_filesystem_path())
     {
-        shader_real_path = *path;
+        shader_real_path = *p;
         if (!exists(shader_real_path))
             LOG_ERROR("The file {} does not exists", shader_real_path.string());
         last_update = last_write_time(shader_real_path);

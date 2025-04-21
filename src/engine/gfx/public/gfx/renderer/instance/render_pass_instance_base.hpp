@@ -12,7 +12,6 @@
 
 #include <shared_mutex>
 
-
 namespace Eng::Gfx
 {
 class SecondaryCommandBuffer;
@@ -65,7 +64,6 @@ private:
     std::mutex                 lock;
     std::vector<FrameCommands> per_frame_data;
 };
-
 
 class RenderPassInstanceBase : public DeviceResource
 {
@@ -232,3 +230,8 @@ private:
     ankerl::unordered_dense::map<RenderPassGenericId, ankerl::unordered_dense::map<RenderPassRef, std::shared_ptr<RenderPassInstanceBase>>> temporary_dependencies;
 };
 } // namespace Eng::Gfx
+
+
+inline void _Refl_Register_Function__Eng_Gfx_RenderPassInstanceBase_TEST()
+{
+}

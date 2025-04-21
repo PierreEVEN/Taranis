@@ -492,7 +492,7 @@ ImGuiWrapper::ImGuiWrapper(std::string in_name, const std::string& render_pass, 
         for (const auto& error : compilation_result.errors)
             LOG_ERROR("Imgui shader compilation failed : {}", error.message);
     }
-
+    
     if (compilation_result.stages.empty())
         LOG_ERROR("Imgui material is not compatible with render pass : {}", render_pass);
 

@@ -125,7 +125,7 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
             assert(embed->achFormatHint == std::string("rgba8888"));
             auto new_mat = Engine::get().asset_registry().create<TextureAsset>(
                 embed->mFilename.C_Str(), std::vector{Gfx::BufferData(embed->pcData, 1, embed->mWidth * embed->mHeight * 4)},
-                TextureAsset::CreateInfos{.width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight),
+                CreateInfos{.width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight),
                                           .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
 
             auto new_tex = ImageImport::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
@@ -177,7 +177,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
             0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
         default_normal = Engine::get().asset_registry().create<TextureAsset>("DefaultNormal", std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
-                                                                             TextureAsset::CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
+                                                                             CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
 
     }
     if (!default_mrao)
@@ -186,7 +186,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
             0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0,
         };
         default_mrao = Engine::get().asset_registry().create<TextureAsset>("DefaultMrao", std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
-                                                                           TextureAsset::CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
+                                                                           CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
     }
 
     new_mat->set_sampler("sSampler", get_sampler());

@@ -18,21 +18,27 @@ class ImageView;
 class Image;
 } // namespace Gfx
 
+struct CreateInfos
+{
+public:
+    uint32_t width = 1;
+
+    uint32_t height = 1;
+
+    uint32_t depth = 1;
+
+    Eng::Gfx::ColorFormat format = Eng::Gfx::ColorFormat::UNDEFINED;
+
+    Eng::Gfx::GenerateMips generate_mips = Eng::Gfx::GenerateMips::none();
+
+    uint32_t array_size = 1;
+};
+
 class TextureAsset : public AssetBase
 {
     REFLECT_BODY()
 
 public:
-    struct CreateInfos
-    {
-        uint32_t          width         = 1;
-        uint32_t          height        = 1;
-        uint32_t          depth         = 1;
-        Gfx::ColorFormat  format        = Gfx::ColorFormat::UNDEFINED;
-        Gfx::GenerateMips generate_mips = Gfx::GenerateMips::none();
-        uint32_t          array_size    = 1;
-    };
-
     const std::shared_ptr<Gfx::ImageView>& get_view() const
     {
         return view;
@@ -52,16 +58,20 @@ public:
         return {0.5, 0.4, 1};
     }
 
-private:
+//private:
     friend class AssetRegistry;
     TextureAsset(const std::vector<Gfx::BufferData>& mips, const CreateInfos& create_infos);
 
     std::shared_ptr<Gfx::Image>     image;
     std::shared_ptr<Gfx::ImageView> view;
 
-    uint32_t    width    = 0;
-    uint32_t    height   = 0;
-    uint32_t    channels = 0;
-    CreateInfos infos;
+    RPROPERTY()
+    uint32_t width = 0;
+    RPROPERTY()
+    uint32_t height = 0;
+    RPROPERTY()
+    uint32_t channels = 0;
+    RPROPERTY()
+    Eng::CreateInfos infos;
 };
 } // namespace Eng

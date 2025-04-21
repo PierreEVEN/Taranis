@@ -1,6 +1,7 @@
 #include "content_browser.hpp"
 
 #include "engine.hpp"
+#include "assets/package.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "import/assimp_import.hpp"
 #include "import/image_import.hpp"
@@ -19,7 +20,7 @@ static std::optional<std::filesystem::path> get_file(const std::vector<std::stri
 {
     NFD_Init();
 
-    nfdu8char_t*          outPath;
+    nfdu8char_t* outPath;
 
     std::string exts;
     for (const auto& ext : extensions)
@@ -27,7 +28,6 @@ static std::optional<std::filesystem::path> get_file(const std::vector<std::stri
 
     std::vector<nfdu8filteritem_t> filter_items;
     filter_items.emplace_back("available extensions", exts.c_str());
-
 
     nfdopendialogu8args_t args = {0};
     args.filterList            = filter_items.data();
@@ -140,46 +140,38 @@ void ContentBrowser::drawHierarchy()
 {
     // Initialize left side size
     if (ImGui::BeginChild("folders"))
-        drawHierarchy("./resources");
+        for (const auto& package_name : Eng::Package::get_all_packages())
+        {
+            if (Eng::Package* package = Eng::Package::get(package_name))
+                drawHierarchy(package, {});
+        }
     ImGui::EndChild();
 }
 
-void ContentBrowser::drawHierarchy(const std::filesystem::path& f)
+void ContentBrowser::drawHierarchy(Eng::Package* package, const Eng::PackagePath& item_path)
 {
-    if (!exists(f))
-        return;
-    int  flags           = ImGuiTreeNodeFlags_OpenOnDoubleClick;
-    bool bHasFolderChild = false;
+    auto content = package->get_directory_content(item_path);
 
-    for (auto const& dir_entry : std::filesystem::directory_iterator{f})
-    {
-        if (dir_entry.is_directory())
-            for (auto const& child : std::filesystem::directory_iterator{dir_entry})
-            {
-                if (child.is_directory())
-                {
-                    bHasFolderChild = true;
-                    break;
-                }
-            }
-    }
-    if (!bHasFolderChild)
+    int flags = ImGuiTreeNodeFlags_OpenOnDoubleClick;
+    if (content.empty())
         flags |= ImGuiTreeNodeFlags_Leaf;
-    if (selected_file == f)
+    if (selected_package == package && selected_package_path == item_path)
         flags |= ImGuiTreeNodeFlags_Selected;
-    bool bExpand = ImGui::TreeNodeEx(f.filename().string().c_str(), flags);
+    std::string name = item_path.name();
+    if (name.empty())
+        name = package->get_name();
+
+    bool bExpand = ImGui::TreeNodeEx(name.c_str(), flags);
     if (ImGui::IsItemClicked())
     {
-        selected_file    = f;
-        show_all_content = false;
+        selected_package      = package;
+        selected_package_path = item_path;
+        show_all_content      = false;
     }
     if (bExpand)
     {
-        for (auto const& child : std::filesystem::directory_iterator{f})
-        {
-            if (child.is_directory())
-                drawHierarchy(child);
-        }
+        for (auto const& child : content)
+            drawHierarchy(package, child);
         ImGui::TreePop();
     }
 }
