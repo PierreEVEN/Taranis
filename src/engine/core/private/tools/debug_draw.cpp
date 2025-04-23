@@ -31,7 +31,7 @@ void DebugDraw::draw(Gfx::CommandBuffer& command_buffer, const SceneView& view)
     {
 
         auto device    = Engine::get().get_device().lock();
-        debug_material = Engine::get().asset_registry().create<MaterialAsset>("DebugMaterial");
+        debug_material = Engine::get().asset_registry().create<MaterialAsset>("DebugMaterial", AssetFlags::TRANSIENT, PackageRef::transient());
         debug_material->update_options({
             .culling = Gfx::ECulling::None,
             .topology = Gfx::ETopology::Lines,
@@ -40,7 +40,7 @@ void DebugDraw::draw(Gfx::CommandBuffer& command_buffer, const SceneView& view)
                                             StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
                                             StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32B32_SFLOAT}
                                         });
-        debug_material_instance = Engine::get().asset_registry().create<MaterialInstanceAsset>("DebugMaterialInst", debug_material);
+        debug_material_instance = Engine::get().asset_registry().create<MaterialInstanceAsset>("DebugMaterialInst", AssetFlags::TRANSIENT, PackageRef::transient(), debug_material);
 
         debug_mesh_lines = Gfx::Mesh::create("DebugMeshLine", device, sizeof(WireframePoint), Gfx::EBufferType::IMMEDIATE);
     }
@@ -82,7 +82,7 @@ void DebugDraw::flush()
         last_clear = std::make_unique<std::chrono::steady_clock::time_point>(now);
 
     const float elapsed = static_cast<float>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - *last_clear).count()) / 1000000000.f;
-    *last_clear          = now;
+    *last_clear         = now;
 
     for (int64_t i = static_cast<int64_t>(stored_segments.size()) - 1; i >= 0; --i)
     {

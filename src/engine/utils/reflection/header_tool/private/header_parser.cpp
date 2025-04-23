@@ -137,6 +137,27 @@ std::string HeaderParser::ReflectedEnum::namespace_path() const
     return name;
 }
 
+std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::Block& block, ReflectedEnum& data)
+{
+    Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl});
+    while (parser && parser.get_current_token_type() != Llp::ELexerToken::Null)
+    {
+        if (auto key = parser.consume<Llp::WordToken>())
+        {
+            if (key->word == "EnumFlags")
+                data.enum_flag = true;
+            else
+                return Llp::ParserError{parser.current_location(), std::format("Unknown word token '{}'", key->word)};
+        }
+        else
+            return Llp::ParserError{parser.current_location(), std::format("Expected word")};
+        if (parser && !parser.consume<Llp::ComaToken>())
+            return Llp::ParserError{parser.current_location(), "Expected coma token"};
+    }
+
+    return {};
+}
+
 std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Block& block, ReflectedEnum& data)
 {
     Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl});
@@ -146,8 +167,18 @@ std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Block& 
         {
             data.fields.emplace_back(key->word);
             if (parser.consume<Llp::EqualsToken>())
+            {
                 if (!parser.consume<Llp::IntegerToken>())
                     return Llp::ParserError{parser.current_location(), "Expected number here"};
+                if (parser.consume<Llp::SymbolToken>('<'))
+                {
+                    if (!parser.consume<Llp::SymbolToken>('<'))
+                        return Llp::ParserError{parser.current_location(), "Expected symbol '<'"};
+
+                    if (!parser.consume<Llp::IntegerToken>())
+                        return Llp::ParserError{parser.current_location(), "Expected number here"};
+                }
+            }
         }
         else
             return Llp::ParserError{parser.current_location(), std::format("Expected enum field name, got {}", token_type_to_string(parser.get_current_token_type()))};
@@ -305,7 +336,13 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
             }
             if (word == "RENUM")
             {
-                if (!parser.consume<Llp::ArgumentsToken>())
+                ReflectedEnum enum_data;
+                if (auto args = parser.consume<Llp::ArgumentsToken>())
+                {
+                    if (auto error = parse_enum_args(args->content, enum_data))
+                        return error;
+                }
+                else
                     return Llp::ParserError{parser.current_location(), "'(args...)' expected after RENUM"};
                 if (!parser.consume<Llp::WordToken>("enum"))
                     return Llp::ParserError{parser.current_location(), "'enum' word expected"};
@@ -324,7 +361,6 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
 
                     if (auto enum_content = parser.consume<Llp::BlockToken>())
                     {
-                        ReflectedEnum enum_data;
                         enum_data.context   = context;
                         enum_data.type      = enum_type;
                         enum_data.scoped    = scoped;

@@ -33,4 +33,5 @@ protected:
     std::array<char, 50>        filter;
     size_t                      internal_draw_id = 0;
     std::shared_ptr<Eng::Scene> scene;
+    bool                        b_display_transient_package = false;
 };

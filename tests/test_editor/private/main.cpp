@@ -83,11 +83,11 @@ public:
 
     void init(const Gfx::RenderPassInstanceBase&) override
     {
-        auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat");
+        auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat", AssetFlags::TRANSIENT, PackageRef::transient());
         base_mat->set_shader_code("gbuffer_resolve");
 
-        sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler");
-        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", base_mat);
+        sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler", AssetFlags::TRANSIENT, PackageRef::transient());
+        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", AssetFlags::TRANSIENT, PackageRef::transient(), base_mat);
         material->set_sampler("sSampler", sampler);
     }
 
@@ -283,7 +283,7 @@ public:
 
         
         ImageImport                     importer  = ImageImport();
-        auto                            new_texture = importer.load_from_path("./resources/screenshot.png");
+        auto        new_texture = importer.load_from_path("./resources/screenshot.png", PackageRef(TEST_EDITOR_PACKAGE, ""));
 
         Package::get(TEST_EDITOR_PACKAGE)->store(new_texture.cast<AssetBase>(), "test_image.tda");
 

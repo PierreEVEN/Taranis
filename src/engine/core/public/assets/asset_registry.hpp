@@ -12,7 +12,7 @@ namespace Eng
 {
 class AssetBase;
 
-class AssetRegistry
+class AssetRegistry final
 {
     friend class AssetBase;
 
@@ -20,7 +20,7 @@ public:
     AssetRegistry();
     ~AssetRegistry();
 
-    template <typename T, typename... Args> TObjectRef<T> create(std::string name, Args&&... args)
+    template <typename T, typename... Args> TObjectRef<T> create(const std::string& name, AssetFlags flags, PackageRef package, Args&&... args)
     {
         std::unique_lock lock(asset_lock);
         static_assert(std::is_base_of_v<AssetBase, T>, "This type is not an asset");
@@ -28,6 +28,10 @@ public:
         data->name = new char[name.size() + 1];
         memcpy(data->name, name.c_str(), name.size() + 1);
         data->registry = this;
+        data->flags    = flags;
+        if (package.is_transient_package())
+            data->flags |= AssetFlags::TRANSIENT;
+        data->package  = package;
         new(data) T(std::forward<Args>(args)...);
         if (!data->name)
             LOG_FATAL("Asset {} does not contains any constructor", typeid(T).name())

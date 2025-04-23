@@ -9,13 +9,14 @@ enum TestEnum
     Test2,
 };
 
-RENUM()
 
-enum class TestEnum2
+RENUM(EnumFlags)
+
+enum class AssetFlags
 {
-    Test4 = 5,
-    Test3 = 8,
-    Test2 = 1,
+    Test4 = 1,
+    Test3 = 1 << 1,
+    Test2 = 1 << 2,
 };
 
 RENUM()

@@ -42,14 +42,14 @@ struct FreeImageInitializer
 
 static FreeImageInitializer _initializer;
 
-TObjectRef<TextureAsset> ImageImport::load_from_path(const std::filesystem::path& path)
+TObjectRef<TextureAsset> ImageImport::load_from_path(const std::filesystem::path& path, const PackageRef& package)
 {
     std::ifstream        input(path, std::ios::binary);
     std::vector<uint8_t> buffer(std::istreambuf_iterator(input), {});
-    return load_raw(path.filename().string(), Gfx::BufferData(buffer.data(), 1, buffer.size()));
+    return load_raw(path.filename().string(), Gfx::BufferData(buffer.data(), 1, buffer.size()), package);
 }
 
-TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, const Gfx::BufferData& raw)
+TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, const Gfx::BufferData& raw, const PackageRef& package)
 {
     PROFILER_SCOPE_NAMED(LoadImage, std::format("Load image {}", file_name));
 
@@ -71,16 +71,15 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
             for (const auto& mip : image.mipmaps)
                 mips.emplace_back(mip.data(), 1, mip.size());
 
-        const auto text = Engine::get().asset_registry().create<TextureAsset>(
-            file_name, mips,
-            CreateInfos{
-                .width = image.width,
-                .height = image.height,
-                .depth = image.depth,
-                .format = static_cast<Gfx::ColorFormat>(dds::getVulkanFormat(image.format, image.supportsAlpha)),
-                .generate_mips = Gfx::GenerateMips::max(),
-                .array_size = image.arraySize,
-            });
+        const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, AssetFlags::NONE, package, mips,
+                                                                              CreateInfos{
+                                                                                  .width = image.width,
+                                                                                  .height = image.height,
+                                                                                  .depth = image.depth,
+                                                                                  .format = static_cast<Gfx::ColorFormat>(dds::getVulkanFormat(image.format, image.supportsAlpha)),
+                                                                                  .generate_mips = Gfx::GenerateMips::max(),
+                                                                                  .array_size = image.arraySize,
+                                                                              });
 
         return text;
     }
@@ -111,7 +110,7 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
         uint32_t x = FreeImage_GetWidth(converted);
         uint32_t y = FreeImage_GetHeight(converted);
 
-        const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, std::vector{Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4)},
+        const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, AssetFlags::NONE, package, std::vector{Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4)},
                                                                               CreateInfos{
                                                                                   .width = x,
                                                                                   .height = y,

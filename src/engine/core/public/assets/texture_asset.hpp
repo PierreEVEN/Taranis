@@ -58,7 +58,7 @@ public:
         return {0.5, 0.4, 1};
     }
 
-//private:
+    //private:
     friend class AssetRegistry;
     TextureAsset(const std::vector<Gfx::BufferData>& mips, const CreateInfos& create_infos);
 
@@ -72,8 +72,12 @@ public:
     RPROPERTY()
     uint32_t height = 0;
     RPROPERTY()
-    uint32_t channels = 0;
+    uint32_t depth = 0;
     RPROPERTY()
-    Eng::CreateInfos infos;
+    uint32_t array_size = 1;
+    RPROPERTY()
+    Eng::Gfx::ColorFormat format = Eng::Gfx::ColorFormat::UNDEFINED;
+    RPROPERTY()
+    Eng::Gfx::GenerateMips generate_mips = Eng::Gfx::GenerateMips::none();
 };
 } // namespace Eng

@@ -4,13 +4,51 @@
 #include <glm/vec3.hpp>
 #include "assets/asset_base.gen.hpp"
 
-namespace Eng::Gfx
+namespace Eng
+{
+
+namespace Gfx
 {
 class ImageView;
 }
 
-namespace Eng
+RENUM(EnumFlags)
+
+enum class AssetFlags
 {
+    NONE = 0,
+    TRANSIENT = 1,
+};
+
+class PackageRef
+{
+public:
+    PackageRef() = default;
+
+    PackageRef(std::string package_name, std::filesystem::path path) : package(std::move(package_name)), internal_path(std::move(path))
+    {
+    }
+
+    operator bool() const
+    {
+        return !is_transient_package();
+    }
+
+    static PackageRef transient()
+    {
+        return {};
+    }
+
+    bool is_transient_package() const
+    {
+        return package.empty();
+    }
+
+private:
+    std::string           package;
+    std::filesystem::path internal_path;
+};
+
 class AssetBase
 {
     REFLECT_BODY()
@@ -43,7 +81,12 @@ public:
         return {1, 1, 1};
     }
 
-protected:
+    AssetFlags get_flags() const
+    {
+        return flags;
+    }
+
+  protected:
     AssetBase() = default;
 
 private:
@@ -51,7 +94,8 @@ private:
     char*                 name;
     AssetRegistry*        registry;
 
-    std::string           package;
-    std::filesystem::path path;
+    AssetFlags flags;
+
+    PackageRef package;
 };
 } // namespace Eng

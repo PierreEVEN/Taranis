@@ -79,3 +79,6 @@
 
 // Don't serialize this item
 #define Transient
+
+// Generate enum flags
+#define EnumFlags

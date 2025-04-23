@@ -111,6 +111,8 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 3});
     ImGui::InputText("##searchBox", filter.data(), filter.size());
+    ImGui::SameLine();
+    ImGui::Checkbox("Show transient package", &b_display_transient_package);
 
     // drawFilters();
     ImGui::Dummy({0, 5});
@@ -124,9 +126,20 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
         int widthItems = static_cast<int>(sizeX / 70);
         ImGui::Columns(std::max(widthItems, 1), "", false);
 
+        std::string filter_string = filter.data();
+
         registry->for_each(
-            [this, &ctx](const TObjectPtr<Eng::AssetBase>& asset)
+            [this, &ctx, &filter_string](const TObjectPtr<Eng::AssetBase>& asset)
             {
+                // skip transient package
+                if ((asset->get_flags() & Eng::AssetFlags::TRANSIENT) != Eng::AssetFlags::NONE && !b_display_transient_package)
+                    return;
+
+                // filter by name
+                if (!filter_string.empty())
+                    if (std::string(asset->get_name()).find(filter_string) == std::string::npos)
+                        return;
+
                 draw_asset_thumbnail(asset, ctx);
                 ImGui::NextColumn();
             });

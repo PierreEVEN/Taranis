@@ -121,9 +121,9 @@ public:
         friend class HeaderParser;
         ParserContext context;
 
-        std::string              enum_path() const;
-        std::string              sanitized_enum_path() const;
-        std::string              namespace_path() const;
+        std::string enum_path() const;
+        std::string sanitized_enum_path() const;
+        std::string namespace_path() const;
 
         const std::vector<std::string>& get_fields() const
         {
@@ -140,11 +140,17 @@ public:
             return scoped;
         }
 
+        bool is_enum_flag() const
+        {
+            return enum_flag;
+        }
+
     private:
         std::string              enum_name;
         bool                     scoped;
         std::string              type;
         std::vector<std::string> fields;
+        bool                     enum_flag = false;
 
     };
 
@@ -163,8 +169,9 @@ public:
         return reflected_enums;
     }
 
-  private:
+private:
     std::optional<Llp::ParserError>        parse_block(const Llp::Block& block, const ParserContext& context);
+    static std::optional<Llp::ParserError> parse_enum_args(const Llp::Block& block, ReflectedEnum& data);
     static std::optional<Llp::ParserError> parse_enum_body(const Llp::Block& block, ReflectedEnum& data);
     static bool                            parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
 

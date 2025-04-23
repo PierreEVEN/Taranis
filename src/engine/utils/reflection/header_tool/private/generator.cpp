@@ -114,7 +114,8 @@ void Generator::generate(size_t                       timestamp,
 
     for (const auto& gen_enums : parser->get_enums())
     {
-        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", gen_enums.first));
+        auto enum_name = gen_enums.second.enum_path();
+        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", enum_name));
         header.indent();
         {
             header.new_line(1);
@@ -129,7 +130,15 @@ void Generator::generate(size_t                       timestamp,
                 header.unindent();
                 header.write_line("}");
             }
-            header.write_line(std::format("REFL_DECLARE_ENUM_TYPENAME({}); // declare type name for {}", gen_enums.first, gen_enums.first));
+            header.write_line(std::format("REFL_DECLARE_ENUM_TYPENAME({}); // declare type name for {}", enum_name, enum_name));
+
+            if (gen_enums.second.is_enum_flag())
+            {
+                header.write_line(std::format("inline {} operator&({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); }}", enum_name, enum_name, enum_name, enum_name));
+                header.write_line(std::format("inline {} operator|({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); }}", enum_name, enum_name, enum_name, enum_name));
+                header.write_line(std::format("inline {} operator&=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); return a; }}", enum_name, enum_name, enum_name, enum_name));
+                header.write_line(std::format("inline {} operator|=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); return a; }}", enum_name, enum_name, enum_name, enum_name));
+            }
             header.new_line(2);
         }
         header.unindent();
@@ -174,7 +183,8 @@ void Generator::generate(size_t                       timestamp,
 
     for (const auto& gen_enum : parser->get_enums())
     {
-        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", gen_enum.first));
+        auto enum_name = gen_enum.second.enum_path();
+        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", enum_name));
         source.indent();
         {
             // Populate enum definition
@@ -182,7 +192,7 @@ void Generator::generate(size_t                       timestamp,
             source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", gen_enum.second.sanitized_enum_path()));
             source.indent();
             {
-                source.write_line(std::format("Reflection::Enum* _Static_Item_Enum_{} = Reflection::Enum::register_enum<{}>();", gen_enum.second.sanitized_enum_path(), gen_enum.first));
+                source.write_line(std::format("Reflection::Enum* _Static_Item_Enum_{} = Reflection::Enum::register_enum<{}>();", gen_enum.second.sanitized_enum_path(), enum_name));
 
                 if (gen_enum.second.get_fields().empty())
                     source.write_line(std::format("(void)_Static_Item_Enum_{};", gen_enum.second.sanitized_enum_path()));
@@ -194,7 +204,7 @@ void Generator::generate(size_t                       timestamp,
             source.write_line("}");
             source.new_line(2);
 
-            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", gen_enum.second.sanitized_enum_path(), gen_enum.first));
+            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", gen_enum.second.sanitized_enum_path(), enum_name));
             source.indent();
             {
                 source.write_line(std::format("_Static_Item_Builder_{}() {{", gen_enum.second.sanitized_enum_path()));
@@ -207,8 +217,7 @@ void Generator::generate(size_t                       timestamp,
             }
             source.unindent();
             source.write_line("};");
-            source.write_line(
-                std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", gen_enum.second.sanitized_enum_path(), gen_enum.second.sanitized_enum_path(), gen_enum.first));
+            source.write_line(std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", gen_enum.second.sanitized_enum_path(), gen_enum.second.sanitized_enum_path(), enum_name));
 
             source.new_line(2);
         }
