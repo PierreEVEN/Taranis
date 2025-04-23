@@ -157,11 +157,11 @@ void ContentBrowser::drawHierarchy(Eng::Package* package, const Eng::PackagePath
         flags |= ImGuiTreeNodeFlags_Leaf;
     if (selected_package == package && selected_package_path == item_path)
         flags |= ImGuiTreeNodeFlags_Selected;
-    std::string name = item_path.name();
-    if (name.empty())
-        name = package->get_name();
+    std::string object_name = item_path.name();
+    if (object_name.empty())
+        object_name = package->get_name();
 
-    bool bExpand = ImGui::TreeNodeEx(name.c_str(), flags);
+    bool bExpand = ImGui::TreeNodeEx(object_name.c_str(), flags);
     if (ImGui::IsItemClicked())
     {
         selected_package      = package;

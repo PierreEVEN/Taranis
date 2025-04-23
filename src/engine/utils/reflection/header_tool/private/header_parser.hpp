@@ -116,6 +116,26 @@ public:
         }
     };
 
+    struct ReflectedEnum
+    {
+        ParserContext context;
+
+        std::string              enum_path() const;
+        std::string              sanitized_class_path() const;
+        std::vector<std::string> get_parent_paths() const;
+        std::string              class_name() const;
+        std::string              namespace_path() const;
+
+        const std::vector<std::string>& get_fields() const
+        {
+            return fields;
+        }
+
+    private:
+        std::vector<std::string> fields;
+
+    };
+
     std::optional<size_t> get_include_line_to_add() const
     {
         return b_found_include ? std::optional<size_t>{} : line_after_last_include;
@@ -127,14 +147,16 @@ public:
     }
 
 private:
-    std::optional<Llp::ParserError> parse_block(const Llp::Block& block, const ParserContext& context);
-    static bool                     parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
+    std::optional<Llp::ParserError>        parse_block(const Llp::Block& block, const ParserContext& context);
+    static std::optional<Llp::ParserError> parse_enum_body(const Llp::Block& block, ReflectedEnum& data);
+    static bool                            parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
 
     void error(const std::string& message, size_t line, size_t column) const;
 
     std::filesystem::path                                     generated_header_include_path;
     std::filesystem::path                                     header_path;
     ankerl::unordered_dense::map<std::string, ReflectedClass> reflected_classes;
+    ankerl::unordered_dense::map<std::string, ReflectedEnum>  reflected_enums;
     size_t                                                    line_after_last_include = 1;
     bool                                                      b_found_include         = false;
 };

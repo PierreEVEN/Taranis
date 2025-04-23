@@ -65,6 +65,10 @@ public:
     std::shared_ptr<Gfx::Image>     image;
     std::shared_ptr<Gfx::ImageView> view;
 
+
+    RPROPERTY()
+    std::vector<uint8_t> raw_data;
+
     RPROPERTY()
     uint32_t width = 0;
     RPROPERTY()

@@ -1,6 +1,21 @@
 #pragma once
 #include "test_class.gen.hpp"
 
+RENUM()
+enum TestEnum
+{
+    
+};
+RENUM()
+enum class TestEnum2
+{
+};
+
+RENUM()
+enum class TestEnum3 : size_t
+{
+};
+
 class TestChild : public std::vector<float>
 {
     REFLECT_BODY()
