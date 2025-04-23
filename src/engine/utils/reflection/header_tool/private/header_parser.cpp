@@ -103,8 +103,57 @@ std::string HeaderParser::ReflectedClass::namespace_path() const
     return name;
 }
 
+std::string HeaderParser::ReflectedEnum::enum_path() const
+{
+    std::string name;
+    for (const auto& ns : context.namespace_stack)
+        name += "::" + ns;
+    for (const auto& class_name : context.class_stack)
+        name += "::" + class_name->name;
+    name += "::" + enum_name;
+    return name;
+}
+
+std::string HeaderParser::ReflectedEnum::sanitized_enum_path() const
+{
+    std::string name;
+    for (const auto& ns : context.namespace_stack)
+        name += "_" + ns;
+    for (const auto& class_name : context.class_stack)
+        name += "_" + class_name->name;
+    name += "_" + enum_name;
+    return name;
+}
+
+std::string HeaderParser::ReflectedEnum::namespace_path() const
+{
+    std::string name;
+    bool        b_is_first = true;
+    for (const auto& ns : context.namespace_stack)
+    {
+        name += (b_is_first ? "" : "::") + ns;
+        b_is_first = false;
+    }
+    return name;
+}
+
 std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Block& block, ReflectedEnum& data)
 {
+    Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl});
+    while (parser && parser.get_current_token_type() != Llp::ELexerToken::Null)
+    {
+        if (auto key = parser.consume<Llp::WordToken>())
+        {
+            data.fields.emplace_back(key->word);
+            if (parser.consume<Llp::EqualsToken>())
+                if (!parser.consume<Llp::IntegerToken>())
+                    return Llp::ParserError{parser.current_location(), "Expected number here"};
+        }
+        else
+            return Llp::ParserError{parser.current_location(), std::format("Expected enum field name, got {}", token_type_to_string(parser.get_current_token_type()))};
+        if (parser && !parser.consume<Llp::ComaToken>())
+            return Llp::ParserError{parser.current_location(), "Expected coma token"};
+    }
     return {};
 }
 
@@ -226,11 +275,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                 if (context.class_stack.empty())
                     return Llp::ParserError{parser.current_location(), "RPROPERTY() should not be used outside class context"};
 
-                if (auto args = parser.consume<Llp::ArgumentsToken>())
-                {
-                    // @TODO : handle arguments
-                }
-                else
+                if (!parser.consume<Llp::ArgumentsToken>())
                     return Llp::ParserError{parser.current_location(), "'(args...)' expected after RPROPERTY"};
 
                 TypeDefinition type;
@@ -260,19 +305,15 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
             }
             if (word == "RENUM")
             {
-                if (auto args = parser.consume<Llp::ArgumentsToken>())
-                {
-                    // @TODO : handle arguments
-                }
-                else
+                if (!parser.consume<Llp::ArgumentsToken>())
                     return Llp::ParserError{parser.current_location(), "'(args...)' expected after RENUM"};
                 if (!parser.consume<Llp::WordToken>("enum"))
                     return Llp::ParserError{parser.current_location(), "'enum' word expected"};
-                parser.consume<Llp::WordToken>("class");
+                bool scoped = parser.consume<Llp::WordToken>("class");
 
                 if (auto enum_name = parser.consume<Llp::WordToken>())
                 {
-                    std::string enum_type = 'uint8_t';
+                    std::string enum_type = "int";
                     if (parser.consume<Llp::SymbolToken>(':'))
                     {
                         if (auto t    = parser.consume<Llp::WordToken>())
@@ -284,8 +325,13 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                     if (auto enum_content = parser.consume<Llp::BlockToken>())
                     {
                         ReflectedEnum enum_data;
-                        parse_enum_body(block, enum_data);
-                        reflected_enums.emplace(enum_name, enum_data);
+                        enum_data.context   = context;
+                        enum_data.type      = enum_type;
+                        enum_data.scoped    = scoped;
+                        enum_data.enum_name = enum_name->word;
+                        if (auto error = parse_enum_body(enum_content->content, enum_data))
+                            return error;
+                        reflected_enums.emplace(enum_name->word, enum_data);
                     }
                 }
                 else

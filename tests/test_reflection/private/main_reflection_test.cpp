@@ -1,3 +1,4 @@
+#include "enum.hpp"
 #include "test_class.hpp"
 #include "logger.hpp"
 #include "property.hpp"
@@ -99,6 +100,14 @@ int main()
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
     //native_type_recorder = new Reflection::NativeTypeRecorder();
+
+    LOG_INFO("{} enums registered :", Reflection::Enum::get_enums().size());
+    for (const auto& type : Reflection::Enum::get_enums())
+    {
+        LOG_INFO("\t- {} : {}b", type.second->name(), type.second->stride());
+        for (const auto& field : type.second->fields())
+            LOG_INFO("\t\t>{}", field);
+    }
 
     LOG_INFO("{} types registered :", Reflection::Type::get_types().size());
     for (const auto& type : Reflection::Type::get_types())

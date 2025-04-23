@@ -109,9 +109,31 @@ void Generator::generate(size_t                       timestamp,
     header.write_line(std::format("#ifndef _REFL_{}", include_guard_name));
     header.write_line(std::format("#define _REFL_{}", include_guard_name));
     header.new_line(1);
-    header.write_line("#include \"macros.hpp\"");
+    header.write_line("#include <macros.hpp>");
     header.new_line(3);
 
+    for (const auto& gen_enums : parser->get_enums())
+    {
+        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", gen_enums.first));
+        header.indent();
+        {
+            header.new_line(1);
+            if (!gen_enums.second.context.namespace_stack.empty())
+            {
+                header.write_line(std::format("namespace {} {{", gen_enums.second.namespace_path()));
+                header.indent();
+            }
+            header.write_line(std::format("enum {}{} : {}; // forward declaration", gen_enums.second.is_scoped() ? "class " : "", gen_enums.first, gen_enums.second.get_type()));
+            if (!gen_enums.second.context.namespace_stack.empty())
+            {
+                header.unindent();
+                header.write_line("}");
+            }
+            header.write_line(std::format("REFL_DECLARE_ENUM_TYPENAME({}); // declare type name for {}", gen_enums.first, gen_enums.first));
+            header.new_line(2);
+        }
+        header.unindent();
+    }
     for (const auto& gen_class : parser->get_classes())
     {
         std::string class_name = gen_class.second.class_path();
@@ -147,7 +169,51 @@ void Generator::generate(size_t                       timestamp,
     source.new_line();
     source.write_line(std::format("#include \"{}\"", generated_header_include_path.lexically_normal().string()));
     source.write_line(std::format("#include \"{}\"", base_header_path.lexically_normal().string()));
+    source.write_line("#include <enum.hpp>");
     source.new_line(3);
+
+    for (const auto& gen_enum : parser->get_enums())
+    {
+        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", gen_enum.first));
+        source.indent();
+        {
+            // Populate enum definition
+            source.new_line(1);
+            source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", gen_enum.second.sanitized_enum_path()));
+            source.indent();
+            {
+                source.write_line(std::format("Reflection::Enum* _Static_Item_Enum_{} = Reflection::Enum::register_enum<{}>();", gen_enum.second.sanitized_enum_path(), gen_enum.first));
+
+                if (gen_enum.second.get_fields().empty())
+                    source.write_line(std::format("(void)_Static_Item_Enum_{};", gen_enum.second.sanitized_enum_path()));
+
+                for (const auto& field : gen_enum.second.get_fields())
+                    source.write_line(std::format("_Static_Item_Enum_{}->register_field(\"{}\");", gen_enum.second.sanitized_enum_path(), field));
+            }
+            source.unindent();
+            source.write_line("}");
+            source.new_line(2);
+
+            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", gen_enum.second.sanitized_enum_path(), gen_enum.first));
+            source.indent();
+            {
+                source.write_line(std::format("_Static_Item_Builder_{}() {{", gen_enum.second.sanitized_enum_path()));
+                source.indent();
+                {
+                    source.write_line(std::format("_Refl_Register_Function_{}();", gen_enum.second.sanitized_enum_path()));
+                }
+                source.unindent();
+                source.write_line("}");
+            }
+            source.unindent();
+            source.write_line("};");
+            source.write_line(
+                std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", gen_enum.second.sanitized_enum_path(), gen_enum.second.sanitized_enum_path(), gen_enum.first));
+
+            source.new_line(2);
+        }
+        source.unindent();
+    }
 
     for (const auto& gen_class : parser->get_classes())
     {

@@ -2,18 +2,27 @@
 #include "test_class.gen.hpp"
 
 RENUM()
+
 enum TestEnum
 {
-    
-};
-RENUM()
-enum class TestEnum2
-{
+    Test,
+    Test2,
 };
 
 RENUM()
+
+enum class TestEnum2
+{
+    Test4 = 5,
+    Test3 = 8,
+    Test2 = 1,
+};
+
+RENUM()
+
 enum class TestEnum3 : size_t
 {
+
 };
 
 class TestChild : public std::vector<float>

@@ -26,6 +26,14 @@
         constexpr static bool        is_class = false;                            \
     };
 
+#define REFL_DECLARE_ENUM_TYPENAME(Type)                \
+    template <> struct Reflection::StaticTypeInfos<Type> \
+    {                                                    \
+        constexpr static bool value    = true;           \
+        constexpr static bool is_class = false;          \
+        constexpr static bool is_enum  = true;           \
+    };
+
 #define REFL_DECLARE_CLASS_TYPENAME(Type)                \
     template <> struct Reflection::StaticTypeInfos<Type> \
     {                                                    \
