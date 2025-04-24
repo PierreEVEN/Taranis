@@ -2,6 +2,7 @@
 
 #include "assets/asset_registry.hpp"
 #include "engine.hpp"
+#include "assets/asset_factory.hpp"
 #include "gfx/vulkan/image.hpp"
 #include "gfx/vulkan/image_view.hpp"
 
@@ -22,7 +23,7 @@ TObjectRef<TextureAsset> TextureAsset::get_default_asset()
         std::vector<uint8_t> pixels = {
             0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
-        default_asset = Engine::get().asset_registry().create<TextureAsset>("DefaultTexture", AssetFlags::TRANSIENT, PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+        default_asset = AssetFactory::instantiate_new<TextureAsset>("DefaultTexture", PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
                                                                             CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM});
     }
     return default_asset;

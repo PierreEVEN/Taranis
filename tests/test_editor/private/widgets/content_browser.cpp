@@ -93,7 +93,20 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
     ImGui::SameLine();
 
     if (ImGui::Button("Save All"))
-        LOG_ERROR("Not implemented yet");
+    {
+        for (const auto& package_name: Eng::Package::get_all_packages())
+        {
+            Eng::Package* package = Eng::Package::get(package_name);
+            for (const auto& asset : package->get_loaded_assets())
+            {
+                // Ensure asset is not transient
+                if ((asset->get_flags() & Eng::AssetFlags::TRANSIENT) == Eng::AssetFlags::NONE)
+                {
+                    package->save(asset->get_package().get_path());
+                }
+            }
+        }
+    }
 
     ImGui::PopStyleVar();
     ImGui::Separator();
@@ -135,7 +148,7 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 if ((asset->get_flags() & Eng::AssetFlags::TRANSIENT) != Eng::AssetFlags::NONE && !b_display_transient_package)
                     return;
 
-                // filter by name
+                // filter by package_name
                 if (!filter_string.empty())
                     if (std::string(asset->get_name()).find(filter_string) == std::string::npos)
                         return;

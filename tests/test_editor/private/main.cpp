@@ -5,6 +5,7 @@
 #include "config.hpp"
 #include "engine.hpp"
 #include "spinlock.hpp"
+#include "assets/asset_factory.hpp"
 #include "assets/package.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
@@ -12,7 +13,6 @@
 #include "gfx/vulkan/command_buffer.hpp"
 #include "gfx/vulkan/descriptor_sets.hpp"
 #include "gfx_types/format.hpp"
-#include "import/assimp_import.hpp"
 #include "import/image_import.hpp"
 #include "widgets/profiler.hpp"
 #include "scene/components/camera_component.hpp"
@@ -83,11 +83,11 @@ public:
 
     void init(const Gfx::RenderPassInstanceBase&) override
     {
-        auto base_mat = Engine::get().asset_registry().create<MaterialAsset>("resolve_mat", AssetFlags::TRANSIENT, PackageRef::transient());
+        auto base_mat = AssetFactory::instantiate_new<MaterialAsset>("resolve_mat", PackageRef::transient());
         base_mat->set_shader_code("gbuffer_resolve");
 
-        sampler  = Engine::get().asset_registry().create<SamplerAsset>("gbuffer-sampler", AssetFlags::TRANSIENT, PackageRef::transient());
-        material = Engine::get().asset_registry().create<MaterialInstanceAsset>("gbuffer-resolve", AssetFlags::TRANSIENT, PackageRef::transient(), base_mat);
+        sampler  = AssetFactory::instantiate_new<SamplerAsset>("gbuffer-sampler", PackageRef::transient());
+        material = AssetFactory::instantiate_new<MaterialInstanceAsset>("gbuffer-resolve", PackageRef::transient(), base_mat);
         material->set_sampler("sSampler", sampler);
     }
 
@@ -204,7 +204,7 @@ public:
                 ctx.new_window<Viewport>("Viewport", scene_rp, scene);
 
             if (ImGui::MenuItem("Content Browser"))
-                ctx.new_window<ContentBrowser>("Content Browser", Engine::get().asset_registry(), scene);
+                ctx.new_window<ContentBrowser>("Content Browser", *AssetRegistry::global(), scene);
 
             if (ImGui::MenuItem("Render Graph View"))
                 ctx.new_window<RenderGraphView>("Render Graph View");
@@ -231,7 +231,7 @@ public:
     {
         const Gfx::RenderPassInstance* rp_inst = rp.cast<Gfx::RenderPassInstance>();
         rp_inst->imgui()->new_window<Viewport>("Viewport", rp.get_dependencies("gbuffer_resolve")[0], scene);
-        rp_inst->imgui()->new_window<ContentBrowser>("Content browser", Engine::get().asset_registry(), scene);
+        rp_inst->imgui()->new_window<ContentBrowser>("Content browser", *AssetRegistry::global(), scene);
         rp_inst->imgui()->new_window<SceneOutliner>("Scene Outliner", scene);
         rp_inst->imgui()->new_window<ProfilerWindow>("Profiler");
         rp_inst->imgui()->new_window<RenderGraphView>("Render Graph View");
@@ -285,10 +285,6 @@ public:
         ImageImport                     importer  = ImageImport();
         auto        new_texture = importer.load_from_path("./resources/screenshot.png", PackageRef(TEST_EDITOR_PACKAGE, ""));
 
-        Package::get(TEST_EDITOR_PACKAGE)->store(new_texture.cast<AssetBase>(), "test_image.tda");
-
-
-        auto demo_scene = Package::get(TEST_EDITOR_PACKAGE)->load("test/main_scene.tda");
         //scene->merge(demo_scene);
 
         default_window.lock()->on_scroll.add_lambda(
@@ -382,7 +378,7 @@ int main()
     config.gfx.enable_validation_layers     = false;
     config.gfx.aggressive_validation_layers = false;
     config.gfx.v_sync                       = true;
-    config.auto_update_materials            = true;
+    config.auto_update_materials            = false;
 
     // Initialize base packages
     Package::create<DirectoryPackage>(PACKAGE_ENGINE, "./resources/engine/");

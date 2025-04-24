@@ -5,6 +5,8 @@
 #include "gfx/vulkan/buffer.hpp"
 #include "object_ptr.hpp"
 #include "profiler.hpp"
+#include "assets/asset_factory.hpp"
+
 #include <vulkan/vulkan.h>
 #include "dds_image/dds.hpp"
 
@@ -71,8 +73,8 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
             for (const auto& mip : image.mipmaps)
                 mips.emplace_back(mip.data(), 1, mip.size());
 
-        const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, AssetFlags::NONE, package, mips,
-                                                                              CreateInfos{
+        const auto text = AssetFactory::instantiate_new<TextureAsset>(file_name, package, mips,
+                                                                              TextureAsset::CreateInfos{
                                                                                   .width = image.width,
                                                                                   .height = image.height,
                                                                                   .depth = image.depth,
@@ -110,8 +112,8 @@ TObjectRef<TextureAsset> ImageImport::load_raw(const std::string& file_name, con
         uint32_t x = FreeImage_GetWidth(converted);
         uint32_t y = FreeImage_GetHeight(converted);
 
-        const auto text = Engine::get().asset_registry().create<TextureAsset>(file_name, AssetFlags::NONE, package, std::vector{Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4)},
-                                                                              CreateInfos{
+        const auto text = AssetFactory::instantiate_new<TextureAsset>(file_name, package, std::vector{Gfx::BufferData(FreeImage_GetBits(converted), 1, x * y * 4)},
+                                                                              TextureAsset::CreateInfos{
                                                                                   .width = x,
                                                                                   .height = y,
                                                                                   .format = Gfx::ColorFormat::R8G8B8A8_UNORM,

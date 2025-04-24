@@ -2,6 +2,7 @@
 
 #include "engine.hpp"
 #include "object_ptr.hpp"
+#include "assets/asset_factory.hpp"
 #include "assets/asset_registry.hpp"
 #include "assets/material_asset.hpp"
 #include "assets/material_instance_asset.hpp"
@@ -31,7 +32,7 @@ void DebugDraw::draw(Gfx::CommandBuffer& command_buffer, const SceneView& view)
     {
 
         auto device    = Engine::get().get_device().lock();
-        debug_material = Engine::get().asset_registry().create<MaterialAsset>("DebugMaterial", AssetFlags::TRANSIENT, PackageRef::transient());
+        debug_material = AssetFactory::instantiate_new<MaterialAsset>("DebugMaterial", PackageRef::transient());
         debug_material->update_options({
             .culling = Gfx::ECulling::None,
             .topology = Gfx::ETopology::Lines,
@@ -40,7 +41,7 @@ void DebugDraw::draw(Gfx::CommandBuffer& command_buffer, const SceneView& view)
                                             StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
                                             StageInputOutputDescription{1, 12, Gfx::ColorFormat::R32G32B32_SFLOAT}
                                         });
-        debug_material_instance = Engine::get().asset_registry().create<MaterialInstanceAsset>("DebugMaterialInst", AssetFlags::TRANSIENT, PackageRef::transient(), debug_material);
+        debug_material_instance = AssetFactory::instantiate_new<MaterialInstanceAsset>("DebugMaterialInst", PackageRef::transient(), debug_material);
 
         debug_mesh_lines = Gfx::Mesh::create("DebugMeshLine", device, sizeof(WireframePoint), Gfx::EBufferType::IMMEDIATE);
     }

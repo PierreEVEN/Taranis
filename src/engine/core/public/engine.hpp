@@ -62,8 +62,6 @@ public:
 
     double delta_second;
 
-    AssetRegistry& asset_registry() const;
-
     double get_seconds() const;
 
     JobSystem& jobs()
@@ -91,7 +89,6 @@ private:
 
     std::shared_ptr<Gfx::Instance> gfx_instance;
     std::shared_ptr<Gfx::Device>   gfx_device;
-    std::unique_ptr<AssetRegistry> global_asset_registry;
 
     std::unique_ptr<Application> app;
 

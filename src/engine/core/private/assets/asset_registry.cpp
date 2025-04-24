@@ -16,4 +16,13 @@ AssetRegistry::~AssetRegistry()
         for (auto& asset : cl | std::views::values)
             asset.destroy();
 }
+
+std::shared_ptr<AssetRegistry> AssetRegistry::default_asset_registry;
+
+std::shared_ptr<AssetRegistry> AssetRegistry::global()
+{
+    if (!default_asset_registry)
+        default_asset_registry = std::make_shared<AssetRegistry>();
+    return default_asset_registry;
+}
 } // namespace Eng

@@ -20,7 +20,7 @@ public:
     AssetRegistry();
     ~AssetRegistry();
 
-    template <typename T, typename... Args> TObjectRef<T> create(const std::string& name, AssetFlags flags, PackageRef package, Args&&... args)
+    template <typename T, typename... Args> TObjectRef<T> create(const std::string& name, AssetFlags flags, Args&&... args)
     {
         std::unique_lock lock(asset_lock);
         static_assert(std::is_base_of_v<AssetBase, T>, "This type is not an asset");
@@ -29,9 +29,6 @@ public:
         memcpy(data->name, name.c_str(), name.size() + 1);
         data->registry = this;
         data->flags    = flags;
-        if (package.is_transient_package())
-            data->flags |= AssetFlags::TRANSIENT;
-        data->package  = package;
         new(data) T(std::forward<Args>(args)...);
         if (!data->name)
             LOG_FATAL("Asset {} does not contains any constructor", typeid(T).name())
@@ -60,7 +57,10 @@ public:
                 callback(*asset.second->cast<T>());
     }
 
-private:
+    static std::shared_ptr<AssetRegistry> global();
+
+  private:
+    static std::shared_ptr<AssetRegistry>                                                                              default_asset_registry;
     ankerl::unordered_dense::map<const Reflection::Class*, ankerl::unordered_dense::map<void*, TObjectPtr<AssetBase>>> assets;
     mutable std::shared_mutex                                                                                          asset_lock;
 };

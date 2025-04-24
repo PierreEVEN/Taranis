@@ -6,6 +6,7 @@
 #include "engine.hpp"
 #include "gfx/vulkan/buffer.hpp"
 #include "profiler.hpp"
+#include "assets/asset_factory.hpp"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -65,7 +66,7 @@ void AssimpImporter::SceneLoader::decompose_node(aiNode* node, TObjectRef<SceneC
 
     if (node->mNumMeshes > 0)
     {
-        auto new_mesh = Engine::get().asset_registry().create<MeshAsset>(node->mName.C_Str(), AssetFlags::TRANSIENT, PackageRef::transient());
+        auto new_mesh = AssetFactory::instantiate_new<MeshAsset>(node->mName.C_Str(), PackageRef::transient());
         for (size_t i = 0; i < node->mNumMeshes; ++i)
         {
             auto section = find_or_load_mesh(node->mMeshes[i]);
@@ -123,9 +124,10 @@ TObjectRef<TextureAsset> AssimpImporter::SceneLoader::find_or_load_texture(const
         else
         {
             assert(embed->achFormatHint == std::string("rgba8888"));
-            auto new_mat = Engine::get().asset_registry().create<TextureAsset>(
-                embed->mFilename.C_Str(), AssetFlags::TRANSIENT, PackageRef::transient(), std::vector{Gfx::BufferData(embed->pcData, 1, embed->mWidth * embed->mHeight * 4)},
-                CreateInfos{.width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight),
+            auto new_mat = AssetFactory::instantiate_new<TextureAsset>(
+                embed->mFilename.C_Str(), PackageRef::transient(), std::vector{Gfx::BufferData(embed->pcData, 1, embed->mWidth * embed->mHeight * 4)},
+                TextureAsset::CreateInfos{
+                    .width = static_cast<uint32_t>(embed->mWidth), .height = static_cast<uint32_t>(embed->mHeight),
                                           .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
 
             auto new_tex = ImageImport::load_raw(embed->mFilename.C_Str(), Gfx::BufferData(embed->pcData, 1, embed->mWidth));
@@ -169,7 +171,7 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
     const aiMaterialProperty* two_sided;
     aiGetMaterialProperty(mat, AI_MATKEY_TWOSIDED, &two_sided);
 
-    auto new_mat = Engine::get().asset_registry().create<MaterialInstanceAsset>(std::string("MaterialInstance_") + mat->GetName().C_Str() + "_" + std::to_string(id), AssetFlags::TRANSIENT, PackageRef::transient(),
+    auto new_mat = AssetFactory::instantiate_new<MaterialInstanceAsset>(std::string("MaterialInstance_") + mat->GetName().C_Str() + "_" + std::to_string(id), PackageRef::transient(),
                                                                                 find_or_load_material({.two_sided = two_sided ? true : false}));
 
     if (!default_normal)
@@ -177,8 +179,8 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         std::vector<uint8_t> pixels = {
             0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
-        default_normal = Engine::get().asset_registry().create<TextureAsset>("DefaultNormal", AssetFlags::TRANSIENT, PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
-                                                                             CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
+        default_normal = AssetFactory::instantiate_new<TextureAsset>("DefaultNormal", PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+                                                                             TextureAsset::CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
 
     }
     if (!default_mrao)
@@ -186,8 +188,8 @@ TObjectRef<MaterialInstanceAsset> AssimpImporter::SceneLoader::find_or_load_mate
         std::vector<uint8_t> pixels = {
             0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0,
         };
-        default_mrao = Engine::get().asset_registry().create<TextureAsset>("DefaultMrao", AssetFlags::TRANSIENT, PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
-                                                                           CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
+        default_mrao = AssetFactory::instantiate_new<TextureAsset>("DefaultMrao", PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+                                                                           TextureAsset::CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM, .generate_mips = Gfx::GenerateMips::max()});
     }
 
     new_mat->set_sampler("sSampler", get_sampler());
@@ -246,7 +248,7 @@ TObjectRef<MaterialAsset> AssimpImporter::SceneLoader::find_or_load_material(con
     PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load material"));
     std::vector<std::string> features;
 
-    auto mat = Engine::get().asset_registry().create<MaterialAsset>("default_mesh", AssetFlags::TRANSIENT, PackageRef::transient());
+    auto mat = AssetFactory::instantiate_new<MaterialAsset>("default_mesh", PackageRef::transient());
     mat->update_options(Gfx::PipelineOptions{.culling = type.two_sided ? Gfx::ECulling::None : Gfx::ECulling::Back});
     mat->set_shader_code("default_mesh", std::vector{
                              StageInputOutputDescription{0, 0, Gfx::ColorFormat::R32G32B32_SFLOAT},
@@ -348,7 +350,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
 TObjectRef<SamplerAsset> AssimpImporter::SceneLoader::get_sampler()
 {
     if (!sampler)
-        sampler = Engine::get().asset_registry().create<SamplerAsset>("Sampler", AssetFlags::TRANSIENT, PackageRef::transient());
+        sampler = AssetFactory::instantiate_new<SamplerAsset>("Sampler", PackageRef::transient());
     return sampler;
 }
 } // namespace Eng

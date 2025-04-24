@@ -12,6 +12,7 @@
 #include "gfx/window.hpp"
 #include "profiler.hpp"
 #include "assets/material_asset.hpp"
+#include "assets/package.hpp"
 #include "tools/debug_draw.hpp"
 
 #if _WIN32
@@ -36,7 +37,6 @@ Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::m
     start_time       = std::chrono::steady_clock::now();
 
     gfx_instance          = Gfx::Instance::create(config.gfx);
-    global_asset_registry = std::make_unique<AssetRegistry>();
 }
 
 Engine::~Engine()
@@ -45,7 +45,15 @@ Engine::~Engine()
     job_system = nullptr;
     windows.clear();
     app                   = nullptr;
-    global_asset_registry = nullptr;
+
+    for (const auto& package_name : Package::get_all_packages())
+    {
+        if (auto* package = Package::get(package_name))
+        {
+            LOG_ERROR("TODO : UNLOAD ALL ASSET FROM REGISTRIES");
+        }
+    }
+
     if (gfx_device)
         gfx_device->destroy_resources();
     gfx_device       = nullptr;
@@ -84,11 +92,18 @@ void Engine::run_internal()
         if (app_config.auto_update_materials)
         {
             PROFILER_SCOPE(CheckForMaterialUpdates);
-            asset_registry().for_each<MaterialAsset>(
-                [](MaterialAsset& material)
+            for (const auto& package_name : Package::get_all_packages())
+            {
+                if (auto* package = Package::get(package_name))
                 {
-                    material.check_for_updates();
-                });
+                    LOG_ERROR("TODO : CHECK FOR UPDATE FOR ALL REGISTRY MATERIALS");
+                    /*asset_registry().for_each<MaterialAsset>(
+                        [](MaterialAsset& material)
+                        {
+                            material.check_for_updates();
+                        });*/
+                }
+            }
         }
 
         app->tick_game(*this, delta_second);
@@ -114,11 +129,6 @@ Engine& Engine::get()
     if (!engine_singleton)
         LOG_FATAL("Engine is not initialized")
     return *engine_singleton;
-}
-
-AssetRegistry& Engine::asset_registry() const
-{
-    return *global_asset_registry;
 }
 
 double Engine::get_seconds() const

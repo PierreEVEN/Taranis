@@ -18,27 +18,28 @@ class ImageView;
 class Image;
 } // namespace Gfx
 
-struct CreateInfos
-{
-public:
-    uint32_t width = 1;
-
-    uint32_t height = 1;
-
-    uint32_t depth = 1;
-
-    Eng::Gfx::ColorFormat format = Eng::Gfx::ColorFormat::UNDEFINED;
-
-    Eng::Gfx::GenerateMips generate_mips = Eng::Gfx::GenerateMips::none();
-
-    uint32_t array_size = 1;
-};
-
 class TextureAsset : public AssetBase
 {
     REFLECT_BODY()
 
 public:
+    struct CreateInfos
+    {
+      public:
+        uint32_t width = 1;
+
+        uint32_t height = 1;
+
+        uint32_t depth = 1;
+
+        Gfx::ColorFormat format = Gfx::ColorFormat::UNDEFINED;
+
+        Gfx::GenerateMips generate_mips = Gfx::GenerateMips::none();
+
+        uint32_t array_size = 1;
+    };
+
+
     const std::shared_ptr<Gfx::ImageView>& get_view() const
     {
         return view;
@@ -76,8 +77,8 @@ public:
     RPROPERTY()
     uint32_t array_size = 1;
     RPROPERTY()
-    Eng::Gfx::ColorFormat format = Eng::Gfx::ColorFormat::UNDEFINED;
+    Eng::Gfx::ColorFormat format = Gfx::ColorFormat::UNDEFINED;
     RPROPERTY()
-    Eng::Gfx::GenerateMips generate_mips = Eng::Gfx::GenerateMips::none();
+    Eng::Gfx::GenerateMips generate_mips = Gfx::GenerateMips::none();
 };
 } // namespace Eng

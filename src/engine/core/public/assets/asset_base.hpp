@@ -1,6 +1,8 @@
 #pragma once
 
 #include "object_ptr.hpp"
+#include "package.hpp"
+
 #include <glm/vec3.hpp>
 #include "assets/asset_base.gen.hpp"
 
@@ -20,40 +22,13 @@ enum class AssetFlags
     TRANSIENT = 1,
 };
 
-class PackageRef
-{
-public:
-    PackageRef() = default;
-
-    PackageRef(std::string package_name, std::filesystem::path path) : package(std::move(package_name)), internal_path(std::move(path))
-    {
-    }
-
-    operator bool() const
-    {
-        return !is_transient_package();
-    }
-
-    static PackageRef transient()
-    {
-        return {};
-    }
-
-    bool is_transient_package() const
-    {
-        return package.empty();
-    }
-
-private:
-    std::string           package;
-    std::filesystem::path internal_path;
-};
-
 class AssetBase
 {
     REFLECT_BODY()
 
     friend class AssetRegistry;
+    friend class Package;
+    friend class AssetFactory;
 
 public:
     AssetBase(AssetBase&)  = delete;
@@ -86,7 +61,12 @@ public:
         return flags;
     }
 
-  protected:
+    const PackageRef& get_package() const
+    {
+        return package;
+    }
+
+protected:
     AssetBase() = default;
 
 private:
