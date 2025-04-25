@@ -83,11 +83,11 @@ public:
 
     void init(const Gfx::RenderPassInstanceBase&) override
     {
-        auto base_mat = AssetFactory::instantiate_new<MaterialAsset>("resolve_mat", PackageRef::transient());
+        auto base_mat = AssetFactory::instantiate_new<MaterialAsset>("resolve_mat", PackageRef::transient("resolve_mat"));
         base_mat->set_shader_code("gbuffer_resolve");
 
-        sampler  = AssetFactory::instantiate_new<SamplerAsset>("gbuffer-sampler", PackageRef::transient());
-        material = AssetFactory::instantiate_new<MaterialInstanceAsset>("gbuffer-resolve", PackageRef::transient(), base_mat);
+        sampler  = AssetFactory::instantiate_new<SamplerAsset>("gbuffer-sampler", PackageRef::transient("gbuffer-sampler"));
+        material = AssetFactory::instantiate_new<MaterialInstanceAsset>("gbuffer-resolve", PackageRef::transient("gbuffer-resolve"), base_mat);
         material->set_sampler("sSampler", sampler);
     }
 

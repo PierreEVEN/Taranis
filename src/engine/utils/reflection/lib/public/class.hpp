@@ -31,8 +31,7 @@ public:
         {
             new_class->construct_at = [](void* ptr)
             {
-                new(ptr) ClassName();
-                return true;
+                return new(ptr) ClassName();
             };
         }
 
@@ -50,28 +49,25 @@ public:
         CastFuncConst const_fn;
     };
 
-    template <typename T = void, typename... Args> T* instantiate(Args&&... args) const
-    {
-        static_assert(T::static_class() == this, "Cannot instantiate : invalid class");
-        return static_cast<T*>(instantiate(std::forward<Args>(args)...));
-    }
-
     bool placement_new(void* target) const
     {
-        return construct_at(target);
+        return construct_at && construct_at(target);
     }
 
-    void* instantiate() const
+    template <typename T = void> T* instantiate() const
     {
+        if (!construct_at)
+            return nullptr;
         void* memory = calloc(1, stride());
         if (!construct_at(memory))
         {
             free(memory);
             return nullptr;
         }
-        return memory;
+        return static_cast<T*>(memory);
     }
-    std::function<bool(void*)> construct_at = nullptr;
+
+    std::function<void*(void*)> construct_at = nullptr;
 
     /**
      * Add function that FromPtr from ThisClass to ParentClass

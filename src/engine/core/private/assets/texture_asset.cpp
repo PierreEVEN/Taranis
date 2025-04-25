@@ -23,7 +23,8 @@ TObjectRef<TextureAsset> TextureAsset::get_default_asset()
         std::vector<uint8_t> pixels = {
             0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
         };
-        default_asset = AssetFactory::instantiate_new<TextureAsset>("DefaultTexture", PackageRef::transient(), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
+        static_assert(Reflection::StaticTypeInfos<TextureAsset>::value, "Cast of non reflected object is not allowed");
+        default_asset = AssetFactory::instantiate_new<TextureAsset>("DefaultTexture", PackageRef::transient("DefaultTexture"), std::vector{Gfx::BufferData(pixels.data(), 1, pixels.size())},
                                                                             CreateInfos{.width = 2, .height = 2, .format = Gfx::ColorFormat::R8G8B8A8_UNORM});
     }
     return default_asset;

@@ -82,7 +82,7 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
                 Eng::Engine::get().jobs().schedule(
                     [path]
                     {
-                        Eng::ImageImport::load_from_path(*path);
+                        Eng::ImageImport::load_from_path(*path, Eng::PackageRef("TestEditor", *path));
                     });
             }
         }

@@ -168,7 +168,7 @@ PlanetComponent::PlanetComponent()
     planet_data = std::make_shared<PrecomputedPlanetData>();
 
     auto device   = Eng::Engine::get().get_device().lock();
-    base_material = Eng::AssetFactory::instantiate_new<Eng::MaterialAsset>("PlanetMaterial", Eng::PackageRef::transient());
+    base_material = Eng::AssetFactory::instantiate_new<Eng::MaterialAsset>("PlanetMaterial", Eng::PackageRef::transient("PlanetMaterial"));
     base_material->set_shader_code("planet_mat", std::vector{
                                        StageInputOutputDescription{0, 0, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                                        StageInputOutputDescription{1, 12, Eng::Gfx::ColorFormat::R32G32_SFLOAT},
@@ -178,7 +178,7 @@ PlanetComponent::PlanetComponent()
                                        StageInputOutputDescription{5, 48, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                                        StageInputOutputDescription{6, 60, Eng::Gfx::ColorFormat::R32G32B32_SFLOAT},
                                    });
-    base_material_instance = Eng::AssetFactory::instantiate_new<Eng::MaterialInstanceAsset>("PlanetMaterialInst", Eng::PackageRef::transient(), base_material);
+    base_material_instance = Eng::AssetFactory::instantiate_new<Eng::MaterialInstanceAsset>("PlanetMaterialInst", Eng::PackageRef::transient("PlanetMaterialInst"), base_material);
 
     PlanetSampleMesh                                   sm(50);
     std::vector<HalfEdgeMeshStructure::PublicMeshData> vertices;

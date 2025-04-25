@@ -1,92 +1,16 @@
 #pragma once
+#include "asset_base.hpp"
 #include "object_ptr.hpp"
+#include "package_ref.hpp"
 
 #include <string>
 #include <vector>
-
-#define PACKAGE_ENGINE "Engine"
 
 namespace Eng
 {
 class Package;
 class AssetRegistry;
-class AssetBase;
 
-class PackagePath
-{
-    friend struct std::hash<Eng::PackagePath>;
-
-public:
-    PackagePath() = default;
-    PackagePath(const std::filesystem::path& fs_path);
-    PackagePath(const std::string& str_path);
-    PackagePath(const char* chr_path);
-
-    bool operator==(const PackagePath&) const = default;
-
-    std::string to_string() const;
-
-    std::string name() const
-    {
-        return path.empty() ? "" : path.back();
-    }
-
-private:
-    std::vector<std::string> path;
-};
-
-class PackageRef
-{
-public:
-    PackageRef() = default;
-
-    PackageRef(std::string package_name, PackagePath path) : internal_package(std::move(package_name)), internal_path(std::move(path))
-    {
-    }
-
-    operator bool() const
-    {
-        return !is_transient_package();
-    }
-
-    static PackageRef transient()
-    {
-        return {};
-    }
-
-    bool is_transient_package() const
-    {
-        return internal_package.empty();
-    }
-
-    const PackagePath& get_path() const
-    {
-        return internal_path;
-    }
-
-    Package* package() const;
-
-    std::string to_string() const;
-
-private:
-    std::string internal_package;
-    PackagePath internal_path;
-};
-}
-
-template <> struct std::hash<Eng::PackagePath>
-{
-    size_t operator()(const Eng::PackagePath& ctx) const noexcept
-    {
-        size_t hash = 0;
-        for (const auto& item : ctx.path)
-            hash += std::hash<std::string>()(item);
-        return hash;
-    }
-};
-
-namespace Eng
-{
 class Package
 {
     friend class AssetFactory;
@@ -108,15 +32,13 @@ public:
     virtual bool                     is_directory(const PackagePath& package) const = 0;
     virtual std::vector<PackagePath> scan() const = 0;
 
+    void force_unload() const;
+
     static Package*                 get_transient_package();
     static Package*                 get(const std::string& name);
     static std::vector<std::string> get_all_packages();
 
-    TObjectRef<AssetBase> get_asset(const PackagePath& path)
-    {
-        auto it = loaded_assets.find(path);
-        return it == loaded_assets.end() ? TObjectRef<AssetBase>{} : it->second;
-    }
+    TObjectRef<AssetBase> get_asset(const PackagePath& path);
 
     const std::string& get_name() const
     {
@@ -135,12 +57,12 @@ public:
 protected:
     static void create_package_internal(Package* package, std::string name, std::shared_ptr<AssetRegistry> asset_registry);
 
-    void on_asset_loaded_internal(const PackagePath& path, const TObjectPtr<AssetBase>& asset_ptr);
+    void on_asset_loaded_internal(const PackagePath& path, const TObjectRef<AssetBase>& asset_ptr);
 
 private:
     static ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> packages;
 
-    ankerl::unordered_dense::map<PackagePath, TObjectPtr<AssetBase>> loaded_assets;
+    ankerl::unordered_dense::map<PackagePath, TObjectRef<AssetBase>> loaded_assets;
     std::shared_ptr<AssetRegistry>                                   asset_registry;
     std::string                                                      package_name;
 };

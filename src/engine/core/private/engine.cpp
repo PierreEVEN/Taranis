@@ -47,12 +47,8 @@ Engine::~Engine()
     app                   = nullptr;
 
     for (const auto& package_name : Package::get_all_packages())
-    {
         if (auto* package = Package::get(package_name))
-        {
-            LOG_ERROR("TODO : UNLOAD ALL ASSET FROM REGISTRIES");
-        }
-    }
+            package->force_unload();
 
     if (gfx_device)
         gfx_device->destroy_resources();

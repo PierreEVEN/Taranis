@@ -247,6 +247,13 @@ template <typename T> class TObjectPtr final : public IObject
         return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
     }
 
+    template <typename V> bool operator==(const void* ptr) const
+    {
+        if (!allocation)
+            return !ptr;
+        return allocation->ptr == ptr;
+    }
+
     T* operator->() const
     {
         assert(*this);
@@ -403,7 +410,6 @@ template <typename T> class TObjectRef final : public IObject
     /**
      * OTHER OPERATORS
      */
-
     template <typename V> bool operator==(const TObjectPtr<V>& other) const
     {
         if (!allocation)

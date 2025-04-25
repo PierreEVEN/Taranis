@@ -1,7 +1,7 @@
 #pragma once
 
 #include "object_ptr.hpp"
-#include "package.hpp"
+#include "package_ref.hpp"
 
 #include <glm/vec3.hpp>
 #include "assets/asset_base.gen.hpp"
@@ -70,12 +70,12 @@ protected:
     AssetBase() = default;
 
 private:
+    /// SET FROM FACTORY
     TObjectRef<AssetBase> this_ref_obj;
     char*                 name;
     AssetRegistry*        registry;
-
-    AssetFlags flags;
-
-    PackageRef package;
+    AssetFlags            flags;
+    PackageRef            package;
+    /// SET FROM FACTORY
 };
 } // namespace Eng

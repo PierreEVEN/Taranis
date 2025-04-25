@@ -2,6 +2,7 @@
 #include "asset_base.hpp"
 #include "asset_registry.hpp"
 #include "object_ptr.hpp"
+#include "package.hpp"
 
 namespace Eng
 {

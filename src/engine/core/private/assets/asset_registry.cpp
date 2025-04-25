@@ -13,8 +13,8 @@ AssetRegistry::~AssetRegistry()
     std::unique_lock lock(asset_lock);
     auto             assets_copy = assets;
     for (auto& cl : assets_copy | std::views::values)
-        for (auto& asset : cl | std::views::values)
-            asset.destroy();
+        for (auto& asset : cl)
+            asset.second.destroy();
 }
 
 std::shared_ptr<AssetRegistry> AssetRegistry::default_asset_registry;

@@ -23,7 +23,7 @@ class TextureAsset;
 class ImageImport
 {
   public:
-    static TObjectRef<TextureAsset> load_from_path(const std::filesystem::path& path, const PackageRef& package = PackageRef::transient());
-    static TObjectRef<TextureAsset> load_raw(const std::string& file_name, const Gfx::BufferData& raw, const PackageRef& package = PackageRef::transient());
+    static TObjectRef<TextureAsset> load_from_path(const std::filesystem::path& path, const PackageRef& package);
+    static TObjectRef<TextureAsset> load_raw(const std::string& file_name, const Gfx::BufferData& raw, const PackageRef& package);
 };
 } // namespace Eng

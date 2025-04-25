@@ -6,75 +6,26 @@
 
 namespace Eng
 {
-
-PackagePath::PackagePath(const std::filesystem::path& fs_path) : PackagePath(fs_path.lexically_normal().generic_string())
-{
-}
-
-PackagePath::PackagePath(const std::string& str_path) : PackagePath(str_path.c_str())
-{
-}
-
-PackagePath::PackagePath(const char* chr_path)
-{
-    std::string current;
-    for (size_t i = 0; chr_path[i] != '\0'; ++i)
-    {
-        char chr = chr_path[i];
-
-        if (chr == '/')
-        {
-            if (!current.empty())
-            {
-                path.emplace_back(current);
-                current.clear();
-            }
-            continue;
-        }
-
-        if (!(std::isalnum(chr) || chr == '.' || chr == '_' || chr == '-'))
-            LOG_FATAL("Character '{}' not allowed in package path : {}", chr, chr_path)
-
-        if (chr == '.' && chr_path[i + 1] != '\0' && chr_path[i + 1] == '.')
-            LOG_FATAL("Double dot '..' is not allowed in path : {}", chr_path)
-
-        current += chr;
-    }
-
-    if (!current.empty())
-        path.emplace_back(current);
-}
-
-std::string PackagePath::to_string() const
-{
-    std::string str;
-    for (const auto& p : path)
-        str += "/" + p;
-    return str;
-}
-
-Package* PackageRef::package() const
-{
-    if (internal_package.empty())
-        return Package::get_transient_package();
-
-    return Package::get(internal_package);
-}
-
-std::string PackageRef::to_string() const
-{
-    return std::format("{}:/{}", internal_package, internal_path.to_string());
-}
-
 ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> Package::packages;
+
+void Package::force_unload() const
+{
+    auto asset_copy = loaded_assets;
+    LOG_DEBUG("Unload package {} : {}", get_name(), asset_copy.size());
+    for (auto& asset : asset_copy)
+    {
+        LOG_WARNING("delete {}", asset.second->get_name());
+        asset.second.destroy();
+    }
+}
 
 Package* Package::get_transient_package()
 {
-    Package* transient_package = get("");
+    Package* transient_package = get(PACKAGE_TRANSIENT);
     if (!transient_package)
     {
-        create<TransientPackage>("");
-        transient_package = get("");
+        create<TransientPackage>(PACKAGE_TRANSIENT);
+        transient_package = get(PACKAGE_TRANSIENT);
     }
     assert(transient_package);
     return transient_package;
@@ -96,6 +47,12 @@ std::vector<std::string> Package::get_all_packages()
     return package_names;
 }
 
+TObjectRef<AssetBase> Package::get_asset(const PackagePath& path)
+{
+    auto it = loaded_assets.find(path);
+    return it == loaded_assets.end() ? TObjectRef<AssetBase>{} : it->second;
+}
+
 std::vector<TObjectRef<AssetBase>> Package::get_loaded_assets() const
 {
     std::vector<TObjectRef<AssetBase>> assets;
@@ -112,8 +69,9 @@ void Package::create_package_internal(Package* package, std::string name, std::s
     packages.insert_or_assign(package->package_name, std::unique_ptr<Package>(package));
 }
 
-void Package::on_asset_loaded_internal(const PackagePath& path, const TObjectPtr<AssetBase>& asset_ptr)
+void Package::on_asset_loaded_internal(const PackagePath& path, const TObjectRef<AssetBase>& asset_ptr)
 {
-    loaded_assets.emplace(path, asset_ptr);
+    if (!loaded_assets.emplace(path, asset_ptr).second)
+        LOG_FATAL("Could not register asset {} : there is already an other package with the same path {}", asset_ptr->get_name(), path.to_string());
 }
 }
