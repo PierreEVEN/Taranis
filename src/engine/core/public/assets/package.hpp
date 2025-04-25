@@ -135,12 +135,12 @@ public:
 protected:
     static void create_package_internal(Package* package, std::string name, std::shared_ptr<AssetRegistry> asset_registry);
 
-    void on_asset_loaded_internal(const PackagePath& path, const TObjectRef<AssetBase>& asset_ptr);
+    void on_asset_loaded_internal(const PackagePath& path, const TObjectPtr<AssetBase>& asset_ptr);
 
 private:
     static ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> packages;
 
-    ankerl::unordered_dense::map<PackagePath, TObjectRef<AssetBase>> loaded_assets;
+    ankerl::unordered_dense::map<PackagePath, TObjectPtr<AssetBase>> loaded_assets;
     std::shared_ptr<AssetRegistry>                                   asset_registry;
     std::string                                                      package_name;
 };
@@ -173,30 +173,5 @@ public:
     {
         return {};
     }
-};
-
-class DirectoryPackage : public Package
-{
-public:
-    DirectoryPackage(std::filesystem::path in_root) : root(std::move(in_root))
-    {
-        create_directories(root);
-    }
-
-    TObjectRef<AssetBase> load(const PackagePath& relative_path) override;
-    void                  save(const PackagePath& relative_path) override;
-
-    std::vector<PackagePath> scan() const override
-    {
-        return scan_dir(root, root);
-    }
-
-    std::vector<PackagePath> get_directory_content(const PackagePath& path) const override;
-    bool                     is_directory(const PackagePath& package) const override;
-
-private:
-    static std::vector<PackagePath> scan_dir(const std::filesystem::path& path, const std::filesystem::path& root);
-
-    std::filesystem::path root;
 };
 } // namespace Eng

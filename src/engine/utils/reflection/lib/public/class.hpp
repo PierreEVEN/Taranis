@@ -26,6 +26,16 @@ public:
     {
         static_assert(StaticTypeInfos<ClassName>::value, "Failed to register class : not a reflected class. Please add the REFLECT_BODY macro to it.");
         Class* new_class = new Class(TypeId::create<ClassName>(), sizeof(ClassName));
+
+        if constexpr (std::is_default_constructible<ClassName>::value)
+        {
+            new_class->construct_at = [](void* ptr)
+            {
+                new(ptr) ClassName();
+                return true;
+            };
+        }
+
         register_class_internal(new_class);
         register_type_internal(new_class);
         return new_class;
@@ -39,6 +49,29 @@ public:
         CastFunc      fn;
         CastFuncConst const_fn;
     };
+
+    template <typename T = void, typename... Args> T* instantiate(Args&&... args) const
+    {
+        static_assert(T::static_class() == this, "Cannot instantiate : invalid class");
+        return static_cast<T*>(instantiate(std::forward<Args>(args)...));
+    }
+
+    bool placement_new(void* target) const
+    {
+        return construct_at(target);
+    }
+
+    void* instantiate() const
+    {
+        void* memory = calloc(1, stride());
+        if (!construct_at(memory))
+        {
+            free(memory);
+            return nullptr;
+        }
+        return memory;
+    }
+    std::function<bool(void*)> construct_at = nullptr;
 
     /**
      * Add function that FromPtr from ThisClass to ParentClass
@@ -129,6 +162,7 @@ private:
     std::vector<Class*>                                   parents = {};
     ankerl::unordered_dense::map<std::string, Property>   properties;
     ankerl::unordered_dense::map<TypeId, CastFuncWrapper> cast_functions;
+
 
     static ankerl::unordered_dense::map<TypeId, std::vector<Class*>>& get_class_waiting_type_registration();
     static ankerl::unordered_dense::map<TypeId, Class*>&              get_classes_internal();

@@ -6,7 +6,7 @@
 #include "engine.hpp"
 #include "spinlock.hpp"
 #include "assets/asset_factory.hpp"
-#include "assets/package.hpp"
+#include "assets/directory_package.hpp"
 #include "gfx/renderer/definition/renderer.hpp"
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
