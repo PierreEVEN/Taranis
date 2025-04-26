@@ -72,6 +72,10 @@
 #define LOG_TRACE(format_str, ...)    __SIMPLE_LOG(format_str, Logger::LogType::LOG_LEVEL_TRACE __VA_OPT__(, ) __VA_ARGS__)
 #define LOG_DEBUG(format_str, ...)    __SIMPLE_LOG(format_str, Logger::LogType::LOG_LEVEL_DEBUG __VA_OPT__(, ) __VA_ARGS__)
 #endif
+#define ASSERT(condition, format_str, ...) \
+    if (!condition)                        \
+        LOG_FATAL(format_str, __VA_ARGS__)
+
 
 class Logger
 {

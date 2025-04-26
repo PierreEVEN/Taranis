@@ -94,7 +94,7 @@ void ContentBrowser::draw(Eng::Gfx::ImGuiWrapper& ctx)
 
     if (ImGui::Button("Save All"))
     {
-        for (const auto& package_name: Eng::Package::get_all_packages())
+        for (const auto& package_name : Eng::Package::get_all_packages())
         {
             Eng::Package* package = Eng::Package::get(package_name);
             for (const auto& asset : package->get_loaded_assets())
@@ -169,7 +169,8 @@ void ContentBrowser::drawHierarchy()
         for (const auto& package_name : Eng::Package::get_all_packages())
         {
             if (Eng::Package* package = Eng::Package::get(package_name))
-                drawHierarchy(package, {});
+                if (package->get_name() != PACKAGE_TRANSIENT || b_display_transient_package)
+                    drawHierarchy(package, {});
         }
     ImGui::EndChild();
 }
@@ -177,7 +178,6 @@ void ContentBrowser::drawHierarchy()
 void ContentBrowser::drawHierarchy(Eng::Package* package, const Eng::PackagePath& item_path)
 {
     auto content = package->get_directory_content(item_path);
-
     int flags = ImGuiTreeNodeFlags_OpenOnDoubleClick;
     if (content.empty())
         flags |= ImGuiTreeNodeFlags_Leaf;

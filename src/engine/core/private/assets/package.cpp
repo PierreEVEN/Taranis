@@ -13,6 +13,24 @@ Package::~Package()
     set_asset_registry(nullptr);
 }
 
+ankerl::unordered_dense::set<PackagePath> Package::get_directory_content(const PackagePath& path) const
+{
+    if (auto it = loaded_directories.find(path); it != loaded_directories.end())
+        return it->second;
+    return {};
+}
+
+bool Package::is_directory(const PackagePath& path) const
+{
+    return loaded_directories.contains(path);
+}
+
+std::vector<PackagePath> Package::scan() const
+{
+    LOG_DEBUG("TODO");
+    return {};
+}
+
 void Package::force_unload()
 {
     auto asset_copy = loaded_assets;
@@ -69,13 +87,7 @@ void Package::set_asset_registry(std::shared_ptr<AssetRegistry> new_registry)
         asset_registry->on_asset_removed.clear_object(this);
     asset_registry = std::move(new_registry);
     if (asset_registry)
-        asset_registry->on_asset_removed.add_object(this, &Package::on_asset_registry_removed);
-}
-
-void Package::on_asset_registry_removed(AssetBase* asset)
-{
-    if (asset && asset->package.package_name() == get_name())
-        loaded_assets.erase(asset->package.get_path());
+        asset_registry->on_asset_removed.add_object(this, &Package::on_asset_unloaded);
 }
 
 void Package::create_package_internal(Package* package, std::string name, std::shared_ptr<AssetRegistry> asset_registry)
@@ -88,7 +100,45 @@ void Package::create_package_internal(Package* package, std::string name, std::s
 
 void Package::on_asset_loaded_internal(const PackagePath& path, const TObjectRef<AssetBase>& asset_ptr)
 {
+    if (path.empty())
+        LOG_FATAL("Cannot register asset with an empty package path : {} : {}", asset_ptr->get_name(), path.to_string());
+    load_path(path);
     if (!loaded_assets.emplace(path, asset_ptr).second)
         LOG_FATAL("Could not register asset {} : there is already an other package with the same path {}", asset_ptr->get_name(), path.to_string());
+}
+
+void Package::on_asset_unloaded(AssetBase* asset)
+{
+    PackagePath removed_path = asset->package.get_path();
+    unload_path(removed_path);
+    if (asset && asset->package.package_name() == get_name())
+        loaded_assets.erase(removed_path);
+}
+
+void Package::unload_path(const PackagePath& path)
+{
+    if (auto parent = path.parent())
+    {
+        if (auto it = loaded_directories.find(*parent); it != loaded_directories.end())
+        {
+            it->second.erase(path);
+            if (it->second.empty())
+                unload_path(*parent);
+        }
+    }
+}
+
+void Package::load_path(const PackagePath& path)
+{
+    if (auto parent = path.parent())
+    {
+        if (auto it = loaded_directories.find(*parent); it != loaded_directories.end())
+            it->second.insert(path);
+        else
+        {
+            load_path(*parent);
+            loaded_directories.emplace(*parent, ankerl::unordered_dense::set<PackagePath>{}).first->second.insert(path);
+        }
+    }
 }
 }

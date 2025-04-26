@@ -33,11 +33,8 @@ PackagePath::PackagePath(const char* chr_path)
             continue;
         }
 
-        if (!(std::isalnum(chr) || chr == '.' || chr == '_' || chr == '-'))
+        if (!(std::isalnum(chr) || chr == '_' || chr == '-'))
             LOG_FATAL("Character '{}' not allowed in package path : {}", chr, chr_path)
-
-        if (chr == '.' && chr_path[i + 1] != '\0' && chr_path[i + 1] == '.')
-            LOG_FATAL("Double dot '..' is not allowed in path : {}", chr_path)
 
         current += chr;
     }
@@ -46,12 +43,34 @@ PackagePath::PackagePath(const char* chr_path)
         path.emplace_back(current);
 }
 
+bool PackagePath::is_valid_path(const std::filesystem::path& fs_path)
+{
+    for (const auto& item : fs_path)
+    {
+        if (item.string() == ".")
+            continue;
+        for (const auto& chr : item.string())
+            if (!(isalnum(chr) || chr == '-' || chr == '_'))
+                return false;
+    }
+    return true;
+}
+
 std::string PackagePath::to_string() const
 {
     std::string str;
     for (const auto& p : path)
         str += "/" + p;
     return str;
+}
+
+std::optional<PackagePath> PackagePath::parent() const
+{
+    if (path.empty())
+        return {};
+    PackagePath path_copy = *this;
+    path_copy.path.pop_back();
+    return path_copy;
 }
 
 Package* PackageRef::package() const

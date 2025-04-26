@@ -28,11 +28,12 @@ public:
         Package::create_package_internal(new T(std::forward<Args>(args)...), std::move(in_name), nullptr);
     }
 
-    virtual TObjectRef<AssetBase>    load(const PackagePath& relative_path) = 0;
-    virtual void                     save(const PackagePath& relative_path) = 0;
-    virtual std::vector<PackagePath> get_directory_content(const PackagePath& path = "") const = 0;
-    virtual bool                     is_directory(const PackagePath& package) const = 0;
-    virtual std::vector<PackagePath> scan() const = 0;
+    virtual TObjectRef<AssetBase> load(const PackagePath& relative_path) = 0;
+    virtual void                  save(const PackagePath& relative_path) = 0;
+
+    virtual ankerl::unordered_dense::set<PackagePath> get_directory_content(const PackagePath& path = "") const;
+    virtual bool                                      is_directory(const PackagePath& path) const;
+    virtual std::vector<PackagePath>                  scan() const;
 
     void force_unload();
 
@@ -51,8 +52,7 @@ public:
 
     AssetRegistry& get_asset_registry() const
     {
-        if (!asset_registry)
-            LOG_FATAL("Package '{}' does not point to a valid asset registry which should never happen !", package_name)
+        ASSERT(asset_registry, "Package '{}' does not point to a valid asset registry which should never happen !", package_name)
         return *asset_registry;
     }
 
@@ -62,14 +62,18 @@ protected:
     void on_asset_loaded_internal(const PackagePath& path, const TObjectRef<AssetBase>& asset_ptr);
 
 private:
+    void unload_path(const PackagePath& path);
+    void load_path(const PackagePath& path);
+
     void set_asset_registry(std::shared_ptr<AssetRegistry> new_registry);
-  void on_asset_registry_removed(AssetBase* asset);
+    void on_asset_unloaded(AssetBase* asset);
 
     static ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> packages;
 
-    ankerl::unordered_dense::map<PackagePath, TObjectRef<AssetBase>> loaded_assets;
-    std::shared_ptr<AssetRegistry>                                   asset_registry;
-    std::string                                                      package_name;
+    ankerl::unordered_dense::map<PackagePath, ankerl::unordered_dense::set<PackagePath>> loaded_directories;
+    ankerl::unordered_dense::map<PackagePath, TObjectRef<AssetBase>>                     loaded_assets;
+    std::shared_ptr<AssetRegistry>                                                       asset_registry;
+    std::string                                                                          package_name;
 };
 
 class TransientPackage : public Package
@@ -84,21 +88,6 @@ public:
     void save(const PackagePath&) override
     {
         LOG_ERROR("Cannot save into a transient package");
-    }
-
-    std::vector<PackagePath> get_directory_content(const PackagePath&) const override
-    {
-        return {};
-    }
-
-    bool is_directory(const PackagePath&) const override
-    {
-        return false;
-    }
-
-    std::vector<PackagePath> scan() const override
-    {
-        return {};
     }
 };
 } // namespace Eng

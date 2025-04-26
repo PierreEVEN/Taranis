@@ -280,10 +280,7 @@ public:
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
         directional_light->enable_shadow(ELightType::Movable, true);
 
-
-        
-        ImageImport                     importer  = ImageImport();
-        auto        new_texture = importer.load_from_path("./resources/screenshot.png", PackageRef(TEST_EDITOR_PACKAGE, ""));
+        auto        new_texture = ImageImport::load_from_path("./resources/screenshot.png", PackageRef(TEST_EDITOR_PACKAGE, "/test/directory/demo_asset"));
 
         //scene->merge(demo_scene);
 

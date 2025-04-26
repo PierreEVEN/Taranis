@@ -3,6 +3,7 @@
 #define PACKAGE_ENGINE "Engine"
 #define PACKAGE_TRANSIENT "~Transient"
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace std::filesystem
@@ -24,6 +25,8 @@ class PackagePath
     PackagePath(const std::string& str_path);
     PackagePath(const char* chr_path);
 
+    static bool is_valid_path(const std::filesystem::path& fs_path);
+
     bool operator==(const PackagePath&) const = default;
 
     std::string to_string() const;
@@ -31,6 +34,13 @@ class PackagePath
     std::string name() const
     {
         return path.empty() ? "" : path.back();
+    }
+
+    std::optional<PackagePath> parent() const;
+
+    bool empty() const
+    {
+        return path.empty();
     }
 
   private:
