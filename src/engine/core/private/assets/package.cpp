@@ -16,14 +16,8 @@ Package::~Package()
 void Package::force_unload()
 {
     auto asset_copy = loaded_assets;
-    LOG_DEBUG("Unload package {} : {}", get_name(), asset_copy.size());
     for (auto& asset : asset_copy)
-    {
-        LOG_WARNING("delete {}", asset.first.to_string());
-        if (!asset.second)
-            LOG_DEBUG("ah");
         asset.second.destroy();
-    }
     loaded_assets.clear();
 }
 
@@ -78,15 +72,15 @@ void Package::set_asset_registry(std::shared_ptr<AssetRegistry> new_registry)
         asset_registry->on_asset_removed.add_object(this, &Package::on_asset_registry_removed);
 }
 
-void Package::on_asset_registry_removed(const TObjectRef<AssetBase>& asset)
+void Package::on_asset_registry_removed(AssetBase* asset)
 {
-    if (asset)
+    if (asset && asset->package.package_name() == get_name())
         loaded_assets.erase(asset->package.get_path());
 }
 
 void Package::create_package_internal(Package* package, std::string name, std::shared_ptr<AssetRegistry> asset_registry)
 {
-    package->package_name   = std::move(name);
+    package->package_name = std::move(name);
     package->set_asset_registry(asset_registry ? std::move(asset_registry) : AssetRegistry::global());
     assert(package->asset_registry);
     packages.insert_or_assign(package->package_name, std::unique_ptr<Package>(package));

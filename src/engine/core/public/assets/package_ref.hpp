@@ -83,6 +83,11 @@ class PackageRef
 
     Package* package() const;
 
+    const std::string& package_name() const
+    {
+        return internal_package;
+    }
+
     std::string to_string() const;
 
   private:

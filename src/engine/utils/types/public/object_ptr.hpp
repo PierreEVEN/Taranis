@@ -241,17 +241,17 @@ public:
     {
         if (!allocation)
             return !other.allocation;
-        return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
+        return allocation == other.allocation;
     }
 
     template <typename V> bool operator==(const TObjectRef<V>& other) const
     {
         if (!allocation)
             return !other.allocation;
-        return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
+        return allocation == other.allocation;
     }
 
-    template <typename V> bool operator==(const void* ptr) const
+    template <typename V = void> bool operator==(const V* ptr) const
     {
         if (!allocation)
             return !ptr;
@@ -418,16 +418,22 @@ public:
     {
         if (!allocation)
             return !other.allocation;
-        return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
+        return allocation == other.allocation;
     }
 
     template <typename V> bool operator==(const TObjectRef<V>& other) const
     {
         if (!allocation)
             return !other.allocation;
-        return allocation == other.allocation && allocation->ptr == other.allocation->ptr;
+        return allocation == other.allocation;
     }
 
+    template <typename V = void> bool operator==(const V* ptr) const
+    {
+        if (!allocation)
+            return !ptr;
+        return allocation->ptr == ptr;
+    }
 
     template <typename V> TObjectRef<V> cast() const
     {

@@ -8,8 +8,6 @@
 #include <string>
 #include <ankerl/unordered_dense.h>
 
-DECLARE_DELEGATE_MULTICAST(TOnAssetUpdateEvent, const TObjectRef<Eng::AssetBase>&)
-
 namespace Eng
 {
 class AssetBase;
@@ -19,6 +17,9 @@ class AssetRegistry final
     friend class AssetBase;
 
 public:
+    DECLARE_DELEGATE_MULTICAST(TOnAssetRemovedEven, Eng::AssetBase*)
+    DECLARE_DELEGATE_MULTICAST(TOnAssetAddedEvent, const TObjectRef<Eng::AssetBase>&)
+
     AssetRegistry();
     ~AssetRegistry();
 
@@ -29,8 +30,8 @@ public:
         AssetBase* data = static_cast<AssetBase*>(calloc(1, T::static_class()->stride()));
         data->name      = new char[name.size() + 1];
         memcpy(data->name, name.c_str(), name.size() + 1);
-        data->registry = this;
-        data->flags    = flags;
+        data->registry   = this;
+        data->flags      = flags;
         data->base_class = T::static_class();
         new(data) T(std::forward<Args>(args)...);
         if (!data->name)
@@ -43,7 +44,7 @@ public:
         object_ptr->this_ref_obj = object_ptr;
 
         assets.emplace(T::static_class(), ankerl::unordered_dense::map<AssetBase*, TObjectPtr<AssetBase>>{}).first->second.emplace(data, object_ptr);
-
+        on_asset_created.execute(object_ptr);
         return object_ptr.cast<T>();
     }
 
@@ -54,7 +55,7 @@ public:
         AssetBase* data = static_cast<AssetBase*>(calloc(1, base_class->stride()));
         data->name      = new char[name.size() + 1];
         memcpy(data->name, name.c_str(), name.size() + 1);
-        data->registry = this;
+        data->registry   = this;
         data->flags      = flags;
         data->base_class = base_class;
         base_class->placement_new(data);
@@ -90,8 +91,8 @@ public:
 
     static std::shared_ptr<AssetRegistry> global();
 
-    TOnAssetUpdateEvent on_asset_created;
-    TOnAssetUpdateEvent on_asset_removed;
+    TOnAssetAddedEvent  on_asset_created;
+    TOnAssetRemovedEven on_asset_removed;
 
 private:
     void unregister_object(const Reflection::Class* object_class, AssetBase* object_ptr);

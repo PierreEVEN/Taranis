@@ -63,7 +63,7 @@ protected:
 
 private:
     void set_asset_registry(std::shared_ptr<AssetRegistry> new_registry);
-    void on_asset_registry_removed(const TObjectRef<AssetBase>& asset);
+  void on_asset_registry_removed(AssetBase* asset);
 
     static ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> packages;
 

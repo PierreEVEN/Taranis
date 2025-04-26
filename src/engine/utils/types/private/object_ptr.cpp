@@ -13,7 +13,6 @@ void IObject::destroy()
         if (allocation->object_class)
         {
             allocation->object_class->placement_delete(ptr);
-            allocation->object_class = nullptr;
         }
         // Generated destructor
         else if (allocation->destructor)
@@ -33,6 +32,8 @@ void IObject::destroy()
         }
         else
             std::free(ptr);
+
+        allocation->object_class = nullptr;
 
         // Once smart pointer is no longer in use
         if (allocation->ptr_count == 0 && allocation->ref_count == 0)

@@ -15,11 +15,7 @@ AssetRegistry::~AssetRegistry()
     for (auto& cl : assets_copy | std::views::values)
         for (auto& val : cl)
         {
-            if (!val.second)
-                LOG_DEBUG("FINAL NOT VALId ??? : {:x}", (size_t)val.first);
-            else
-                LOG_DEBUG("? {}", val.second->get_name());
-            on_asset_removed.execute(val.second);
+            on_asset_removed.execute(val.first);
             val.second.destroy();
         }
     assets.clear();
@@ -40,11 +36,7 @@ void AssetRegistry::unregister_object(const Reflection::Class* object_class, Ass
     {
         if (auto it = cl->second.find(object_ptr); it != cl->second.end())
         {
-            if (!it->second)
-                LOG_DEBUG("NOT VALID ??? : {} (caused by the recursive destructor call : it's not correctly unregistered from the registry)", object_ptr ? object_ptr->get_name() : "///");
-            else
-                LOG_DEBUG("? {}", it->second->get_name());
-            on_asset_removed.execute(it->second);
+            on_asset_removed.execute(object_ptr);
             cl->second.erase(it);
             if (cl->second.empty())
                 assets.erase(object_class);
