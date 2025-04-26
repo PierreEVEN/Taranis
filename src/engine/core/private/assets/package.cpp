@@ -8,15 +8,23 @@ namespace Eng
 {
 ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> Package::packages;
 
-void Package::force_unload() const
+Package::~Package()
+{
+    set_asset_registry(nullptr);
+}
+
+void Package::force_unload()
 {
     auto asset_copy = loaded_assets;
     LOG_DEBUG("Unload package {} : {}", get_name(), asset_copy.size());
     for (auto& asset : asset_copy)
     {
-        LOG_WARNING("delete {}", asset.second->get_name());
+        LOG_WARNING("delete {}", asset.first.to_string());
+        if (!asset.second)
+            LOG_DEBUG("ah");
         asset.second.destroy();
     }
+    loaded_assets.clear();
 }
 
 Package* Package::get_transient_package()
@@ -61,10 +69,25 @@ std::vector<TObjectRef<AssetBase>> Package::get_loaded_assets() const
     return assets;
 }
 
+void Package::set_asset_registry(std::shared_ptr<AssetRegistry> new_registry)
+{
+    if (asset_registry)
+        asset_registry->on_asset_removed.clear_object(this);
+    asset_registry = std::move(new_registry);
+    if (asset_registry)
+        asset_registry->on_asset_removed.add_object(this, &Package::on_asset_registry_removed);
+}
+
+void Package::on_asset_registry_removed(const TObjectRef<AssetBase>& asset)
+{
+    if (asset)
+        loaded_assets.erase(asset->package.get_path());
+}
+
 void Package::create_package_internal(Package* package, std::string name, std::shared_ptr<AssetRegistry> asset_registry)
 {
     package->package_name   = std::move(name);
-    package->asset_registry = asset_registry ? std::move(asset_registry) : AssetRegistry::global();
+    package->set_asset_registry(asset_registry ? std::move(asset_registry) : AssetRegistry::global());
     assert(package->asset_registry);
     packages.insert_or_assign(package->package_name, std::unique_ptr<Package>(package));
 }

@@ -71,11 +71,12 @@ protected:
 
 private:
     /// SET FROM FACTORY
-    TObjectRef<AssetBase> this_ref_obj;
-    char*                 name;
-    AssetRegistry*        registry;
-    AssetFlags            flags;
-    PackageRef            package;
+    TObjectRef<AssetBase>    this_ref_obj;
+    char*                    name;
+    AssetRegistry*           registry;
+    AssetFlags               flags;
+    PackageRef               package;
+    const Reflection::Class* base_class;
     /// SET FROM FACTORY
 };
 } // namespace Eng

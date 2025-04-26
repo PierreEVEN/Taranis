@@ -29,7 +29,7 @@ RenderPassInstance::RenderPassInstance(std::weak_ptr<Device> in_device, Renderer
     // Create imgui_context context
     if (get_definition().b_with_imgui)
     {
-        imgui_context = std::make_unique<ImGuiWrapper>(get_definition().render_pass_ref.to_string(), render_pass_resource.lock()->get_name(), device(), get_definition().imgui_input_window);
+        imgui_context = std::make_shared<ImGuiWrapper>(get_definition().render_pass_ref.to_string(), render_pass_resource.lock()->get_name(), device(), get_definition().imgui_input_window);
         imgui_context->begin(resolution());
     }
 }

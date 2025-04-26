@@ -1,4 +1,5 @@
 #pragma once
+#include "logger.hpp"
 #include "test_class.gen.hpp"
 
 RENUM()
@@ -51,6 +52,11 @@ class MyTestClass
     REFLECT_BODY()
 
 public:
+    virtual ~MyTestClass()
+    {
+        LOG_WARNING("my class PARENT : {}", get_class()->name());
+    }
+
     static MyTestClass make_special()
     {
         MyTestClass cl;
@@ -90,4 +96,18 @@ private:
 
     RPROPERTY()
     bool test_bool = false;
+};
+
+class ChildA : public MyTestClass
+{
+    REFLECT_BODY()
+
+public:
+    ~ChildA() override
+    {
+        LOG_WARNING("my class CHILD : {}", get_class()->name());
+    }
+
+    int   value;
+    float test_2;
 };

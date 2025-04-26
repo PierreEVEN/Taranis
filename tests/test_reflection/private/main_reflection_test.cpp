@@ -99,8 +99,6 @@ int main()
 {
     Logger::get().enable_logs(Logger::LOG_LEVEL_DEBUG | Logger::LOG_LEVEL_ERROR | Logger::LOG_LEVEL_FATAL | Logger::LOG_LEVEL_INFO | Logger::LOG_LEVEL_WARNING);
 
-    //native_type_recorder = new Reflection::NativeTypeRecorder();
-
     LOG_INFO("{} enums registered :", Reflection::Enum::get_enums().size());
     for (const auto& type : Reflection::Enum::get_enums())
     {

@@ -49,6 +49,6 @@ protected:
 
 private:
     std::weak_ptr<VkRendererPass> render_pass_resource;
-    std::unique_ptr<ImGuiWrapper> imgui_context;
+    std::shared_ptr<ImGuiWrapper> imgui_context;
 };
 } // namespace Eng::Gfx

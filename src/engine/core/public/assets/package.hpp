@@ -16,6 +16,8 @@ class Package
     friend class AssetFactory;
 
 public:
+    virtual ~Package();
+
     template <typename T, typename... Args> static void create(std::shared_ptr<AssetRegistry> custom_registry, std::string in_name, Args&&... args)
     {
         Package::create_package_internal(new T(std::forward<Args>(args)...), std::move(in_name), std::move(custom_registry));
@@ -32,7 +34,7 @@ public:
     virtual bool                     is_directory(const PackagePath& package) const = 0;
     virtual std::vector<PackagePath> scan() const = 0;
 
-    void force_unload() const;
+    void force_unload();
 
     static Package*                 get_transient_package();
     static Package*                 get(const std::string& name);
@@ -60,6 +62,9 @@ protected:
     void on_asset_loaded_internal(const PackagePath& path, const TObjectRef<AssetBase>& asset_ptr);
 
 private:
+    void set_asset_registry(std::shared_ptr<AssetRegistry> new_registry);
+    void on_asset_registry_removed(const TObjectRef<AssetBase>& asset);
+
     static ankerl::unordered_dense::map<std::string, std::unique_ptr<Package>> packages;
 
     ankerl::unordered_dense::map<PackagePath, TObjectRef<AssetBase>> loaded_assets;

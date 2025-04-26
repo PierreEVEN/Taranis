@@ -35,6 +35,11 @@ public:
             };
         }
 
+        new_class->delete_at = [](void* ptr)
+        {
+            static_cast<ClassName*>(ptr)->~ClassName();
+        };
+
         register_class_internal(new_class);
         register_type_internal(new_class);
         return new_class;
@@ -67,7 +72,22 @@ public:
         return static_cast<T*>(memory);
     }
 
-    std::function<void*(void*)> construct_at = nullptr;
+    void placement_delete(void* alloc) const
+    {
+        if (!alloc)
+            return;
+        assert(delete_at);
+        delete_at(alloc);
+    }
+
+    void delete_instance(void* alloc) const
+    {
+        if (!alloc)
+            return;
+        assert(delete_at);
+        delete_at(alloc);
+        free(alloc);
+    }
 
     /**
      * Add function that FromPtr from ThisClass to ParentClass
@@ -155,7 +175,9 @@ private:
 
     static void register_class_internal(Class* inClass);
 
-    std::vector<Class*>                                   parents = {};
+    std::function<void*(void*)>                           construct_at = nullptr;
+    std::function<void(void*)>                            delete_at    = nullptr;
+    std::vector<Class*>                                   parents      = {};
     ankerl::unordered_dense::map<std::string, Property>   properties;
     ankerl::unordered_dense::map<TypeId, CastFuncWrapper> cast_functions;
 

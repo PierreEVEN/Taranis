@@ -7,8 +7,9 @@ namespace Eng
 
 AssetBase::~AssetBase()
 {
+    registry->unregister_object(base_class, this);
     free(name);
-    registry->unregister_object(get_class(), this);
+    name = nullptr;
 }
 
 } // namespace Eng

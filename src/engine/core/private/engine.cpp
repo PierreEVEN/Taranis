@@ -36,7 +36,7 @@ Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::m
     last_time        = std::chrono::steady_clock::now();
     start_time       = std::chrono::steady_clock::now();
 
-    gfx_instance          = Gfx::Instance::create(config.gfx);
+    gfx_instance = Gfx::Instance::create(config.gfx);
 }
 
 Engine::~Engine()
@@ -44,7 +44,7 @@ Engine::~Engine()
     DebugDraw::get().destroy();
     job_system = nullptr;
     windows.clear();
-    app                   = nullptr;
+    app = nullptr;
 
     for (const auto& package_name : Package::get_all_packages())
         if (auto* package = Package::get(package_name))

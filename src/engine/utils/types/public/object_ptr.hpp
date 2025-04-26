@@ -51,7 +51,8 @@ struct ObjectAllocation final
 
     ~ObjectAllocation()
     {
-        delete destructor;
+        // Ensure object have been correctly deleted
+        assert(!destructor && !object_class);
     }
 };
 
@@ -131,7 +132,7 @@ template <typename T> class TObjectPtr final : public IObject
             // Other is totally valid, we just needs to increment the ref count
             allocation = other;
             ++allocation->ptr_count;
-            if (!allocation->destructor)
+            if (!allocation->destructor && !other->object_class)
                 allocation->destructor = new TObjectDestructor<T>(allocation);
         }
         else if (*this)
@@ -160,7 +161,7 @@ template <typename T> class TObjectPtr final : public IObject
         // else this is null and stays null
     }
 
-  public:
+public:
     TObjectPtr() = default;
 
     ~TObjectPtr() override
@@ -176,7 +177,10 @@ template <typename T> class TObjectPtr final : public IObject
     {
         if (in_object)
         {
-            allocation             = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = nullptr};
+            if constexpr (Reflection::StaticTypeInfos<T>::is_class)
+                allocation = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = T::static_class()};
+            else
+                allocation = new ObjectAllocation{.ptr_count = 1, .ref_count = 0, .ptr = in_object, .allocator = nullptr, .object_class = nullptr};
             allocation->destructor = new TObjectDestructor<T>(allocation);
         }
     }
@@ -332,7 +336,7 @@ template <typename T> class TObjectRef final : public IObject
         // else this is null and stays null
     }
 
-  public:
+public:
     /**
      * INIT OPERATORS
      */
