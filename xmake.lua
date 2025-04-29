@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.vsxmake.autoupdate")
 
 set_project("TaranisEngine")
-set_languages("clatest", "cxx20")
+set_languages("cxx20")
 set_allowedarchs("windows|x64")
 set_warnings("allextra")
 set_allowedmodes("debug", "release")
@@ -281,13 +281,15 @@ function declare_module(module_name, opts)
     end)
 end
 
-
-target("data", function(target)
-    set_kind("object")
-    for _, file in pairs(os.files("resources/**")) do
-        add_extrafiles(file)
-    end
-end)
+-- So resource folder will be available within Visual Studio
+if is_plat("windows") then
+    target("data", function(target)
+        set_kind("object")
+        for _, file in pairs(os.files("resources/**")) do
+            add_extrafiles(file)
+        end
+    end)
+end
 
 if DEBUG then
     print("################ building modules ################")

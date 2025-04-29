@@ -45,3 +45,5 @@ saved/
 build.ninja
 compile_flags.txt
 makefile
+cmake-build-debug
+cmake-build-release
