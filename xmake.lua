@@ -12,7 +12,6 @@ if is_plat("windows") then
     set_runtimes(is_mode("debug") and "MDd" or "MD")
 end
 
-
 DEBUG = false;
 BUILD_MONOLITHIC = false;
 
@@ -42,7 +41,7 @@ add_requires("imgui v1.91.8-docking")
 add_requires("nativefiledialog-extended v1.2.1")
 add_requires("slang v2025.6.4", {verify = false, configs = {slangc = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
 add_requires("unordered_dense v4.5.0")
-add_requires("vulkan-loader 1.4.304+0")
+add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
 
 rule("generated_cpp", function (rule)
@@ -55,7 +54,11 @@ rule("generated_cpp", function (rule)
         local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
 
         -- this is the include string the user should have added to it's class
-        local include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
+
+        local include_path = generated_path
+        if generated_path:match("^[^\\]+\\(.*)$") then
+            include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
+        end
 
         -- replace .hpp extension with .gen.cpp
         local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
@@ -153,7 +156,6 @@ end)
 
 
 function declare_module(module_name, opts)
-
     if (opts == nil) then
         print("Error : invalid options for module "..module_name)
         os.exit(-1)
@@ -279,7 +281,13 @@ if DEBUG then
     print("################ building modules ################")
 end
 
-includes("src/**.lua");
+includes("src/engine/utils/io/**.lua");
+includes("src/engine/utils/llp/**.lua");
+includes("src/engine/utils/reflection/**.lua");
+includes("src/engine/utils/types/**.lua");
+includes("src/engine/utils/shader_compiler/**.lua");
+includes("src/engine/utils/gfx_types/**.lua");
+includes("src/engine/utils/module_manager/**.lua");
 if has_config("build-tests") then
     includes("tests/**.lua")
 end
