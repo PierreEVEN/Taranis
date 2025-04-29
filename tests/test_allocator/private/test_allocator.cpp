@@ -10,11 +10,11 @@ int main()
 
     ContiguousObjectAllocator alloc;
 
-    ankerl::unordered_dense::map<TObjectPtr<TestReflectClass>, int> objects;
+    ankerl::unordered_dense::map<TObjectPtr<TestReflectClassAlloc>, int> objects;
 
     for (int i = 0; i < 10000; ++i)
     {
-        TObjectPtr<TestReflectClass> object(alloc.allocate(TestReflectClass::static_class()));
+        TObjectPtr<TestReflectClassAlloc> object(alloc.allocate(TestReflectClassAlloc::static_class()));
         object->identifier = i;
         assert(!objects.contains(object));
         objects.emplace(object, i);
@@ -37,7 +37,7 @@ int main()
 
     for (int i = 0; i < 10000; ++i)
     {
-        TObjectPtr<TestReflectClass> object(alloc.allocate(TestReflectClass::static_class()));
+        TObjectPtr<TestReflectClassAlloc> object(alloc.allocate(TestReflectClassAlloc::static_class()));
         object->identifier = i;
         assert(!objects.contains(object));
         objects.emplace(object, i);
@@ -52,7 +52,7 @@ int main()
         objects.erase(it);
     }
 
-    std::vector<TObjectPtr<TestReflectClass>> objects_A;
+    std::vector<TObjectPtr<TestReflectClassAlloc>> objects_A;
     for (const auto& object : objects)
         objects_A.emplace_back(object.first);
 
@@ -60,7 +60,7 @@ int main()
 
     auto objects_B = objects_A;
 
-    std::vector<TObjectRef<TestReflectClass>> refs_A;
+    std::vector<TObjectRef<TestReflectClassAlloc>> refs_A;
     for (const auto& object : objects)
         refs_A.emplace_back(object.first);
 

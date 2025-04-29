@@ -4,6 +4,7 @@
 #include "scene/scene_view.hpp"
 
 #include <imgui.h>
+#include <thread>
 
 namespace Eng
 {

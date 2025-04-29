@@ -3,12 +3,12 @@
 #include <cassert>
 #include "test_refl_class.gen.hpp"
 
-class TestReflectClass
+class TestReflectClassAlloc
 {
     REFLECT_BODY()
 
 public:
-    ~TestReflectClass()
+    ~TestReflectClassAlloc()
     {
         assert(identifier >= 0);
         identifier = -1;

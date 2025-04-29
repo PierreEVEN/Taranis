@@ -11,6 +11,7 @@
 #include "gfx/renderer/instance/render_pass_instance_base.gen.hpp"
 
 #include <shared_mutex>
+#include <thread>
 
 namespace Eng::Gfx
 {

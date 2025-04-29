@@ -47,6 +47,7 @@ add_requires("vulkan-memory-allocator v3.2.1")
 rule("generated_cpp", function (rule)
     set_extensions(".hpp")
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
+
         import("core.tool.compiler")
         import("core.project.depend")
 
@@ -54,12 +55,15 @@ rule("generated_cpp", function (rule)
         local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
 
         -- this is the include string the user should have added to it's class
-
         local include_path = generated_path
         if generated_path:match("^[^\\]+\\(.*)$") then
             include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
-        end
+        elseif generated_path:match("^[^/]+/(.*)$") then
 
+            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
+        else
+            print("Error : no match for include path "..include_path) 
+        end
         -- replace .hpp extension with .gen.cpp
         local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
         -- generated classes are always private
@@ -105,7 +109,15 @@ rule("generated_cpp", function (rule)
         local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
 
         -- this is the include string the user should have added to it's class
-        local include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
+        local include_path = generated_path
+        if generated_path:match("^[^\\]+\\(.*)$") then
+            include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
+        elseif generated_path:match("^[^/]+/(.*)$") then
+
+            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
+        else
+            print("Error : no match for include path "..include_path) 
+        end
 
         -- replace .hpp extension with .gen.cpp
         local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
@@ -281,13 +293,7 @@ if DEBUG then
     print("################ building modules ################")
 end
 
-includes("src/engine/utils/io/**.lua");
-includes("src/engine/utils/llp/**.lua");
-includes("src/engine/utils/reflection/**.lua");
-includes("src/engine/utils/types/**.lua");
-includes("src/engine/utils/shader_compiler/**.lua");
-includes("src/engine/utils/gfx_types/**.lua");
-includes("src/engine/utils/module_manager/**.lua");
+includes("src/**.lua");
 if has_config("build-tests") then
     includes("tests/**.lua")
 end

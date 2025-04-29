@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <format>
 
 std::optional<Llp::ParserError> TypeDefinition::try_parse(Llp::Parser& parser)
 {
@@ -270,7 +271,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                     }
 
                     if (auto* class_block = parser.consume<Llp::BlockToken>())
-                        if (auto error = parse_block(class_block->content, context.push_class(ClassDefinition{class_name->word, parents})))
+                        if (auto error = parse_block(class_block->content, context.push_class(ClassDefinition{class_name->word, parents, {}})))
                             return error;
                 }
             }

@@ -1,10 +1,6 @@
 #pragma once
 #include <fstream>
-
-namespace std::filesystem
-{
-class path;
-}
+#include <filesystem>
 
 class HeaderParser;
 

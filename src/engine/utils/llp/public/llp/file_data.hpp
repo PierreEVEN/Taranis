@@ -1,12 +1,8 @@
 #pragma once
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <optional>
-
-namespace std::filesystem
-{
-class path;
-}
 
 struct TextReader
 {

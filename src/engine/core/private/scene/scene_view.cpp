@@ -59,7 +59,7 @@ void SceneView::draw(const Scene& scene, const Gfx::RenderPassInstanceBase&, Gfx
         {
             object.draw(command_buffer, *this);
         },
-        idx, std::max(1llu, num_threads));
+        idx, std::max(static_cast<size_t>(1), num_threads));
 
     DebugDraw::get().draw(command_buffer, *this);
 }

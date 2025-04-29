@@ -36,7 +36,7 @@ public:
 
     TypeInstance& set_ptr_indirections(uint8_t indirections)
     {
-        flags = (indirections << 4) + flags & 0xFF;
+        flags = (indirections << 4) + (flags & 0xFF);
         return *this;
     }
 

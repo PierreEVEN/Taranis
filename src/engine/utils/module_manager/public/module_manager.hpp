@@ -3,6 +3,7 @@
 #include <iostream>
 #include <ankerl/unordered_dense.h>
 
+#if _WIN32
 #define IMPLEMENT_MODULE(ModuleClass, ModuleName)             \
 extern "C" __declspec(dllexport) Module::Module* __INIT_MODULE_##ModuleName() \
 {                                                             \
@@ -15,6 +16,9 @@ struct __ModuleRegisterStatic \
         Module::Module::register_module_static(#ModuleName, __INIT_MODULE_##ModuleName()); \
     }\
 } __ModuleRegisterStatic_Instance;
+#else
+#define IMPLEMENT_MODULE(ModuleClass, ModuleName)
+#endif
 
 
 struct __ModuleRegisterStatic;

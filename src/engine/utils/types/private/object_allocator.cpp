@@ -5,6 +5,8 @@
 #include "object_ptr.hpp"
 #include "profiler.hpp"
 
+#include <cmath>
+
 ObjectAllocation* ContiguousObjectPool::allocate()
 {
     ObjectAllocation* allocation = new ObjectAllocation();

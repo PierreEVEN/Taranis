@@ -4,6 +4,7 @@
 #include "object_ptr.hpp"
 
 #include <memory>
+#include <filesystem>
 
 struct aiTexture;
 
@@ -13,11 +14,6 @@ struct aiNode;
 namespace Assimp
 {
 class Importer;
-}
-
-namespace std::filesystem
-{
-class path;
 }
 
 namespace Eng

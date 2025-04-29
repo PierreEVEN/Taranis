@@ -41,3 +41,7 @@ build/
 resources/models
 doxyfile
 saved/
+
+build.ninja
+compile_flags.txt
+makefile

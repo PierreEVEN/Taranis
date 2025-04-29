@@ -93,6 +93,8 @@ protected:
     ObjectAllocation* allocation = nullptr;
 };
 
+template <typename T> class TObjectRef;
+template <typename T> class TObjectPtr;
 template <typename T> struct std::hash<TObjectPtr<T>>;
 
 template <typename T> class TObjectPtr final : public IObject
@@ -269,7 +271,7 @@ public:
         static_assert(Reflection::StaticTypeInfos<T>::value, "Cast of non reflected object is not allowed");
         static_assert(Reflection::StaticTypeInfos<V>::value, "Cast of non reflected object is not allowed");
 
-        if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
+        if (*this && static_cast<T*>(allocation->ptr)->template cast<V>())
             return TObjectRef<V>(allocation);
 
         return TObjectRef<V>();
@@ -440,7 +442,7 @@ public:
         static_assert(Reflection::StaticTypeInfos<T>::value, "Cast from non reflected object is not allowed");
         static_assert(Reflection::StaticTypeInfos<V>::value, "Cast to non reflected object is not allowed");
 
-        if (*this && static_cast<T*>(allocation->ptr)->cast<V>())
+        if (*this && static_cast<T*>(allocation->ptr)->template cast<V>())
             return TObjectRef<V>(allocation);
         return TObjectRef<V>();
     }

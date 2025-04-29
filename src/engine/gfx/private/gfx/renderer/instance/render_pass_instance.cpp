@@ -8,6 +8,7 @@
 #include "jobsys/job_sys.hpp"
 #include "profiler.hpp"
 #include "gfx/vulkan/image.hpp"
+#include <algorithm>
 
 namespace Eng::Gfx
 {
@@ -86,7 +87,7 @@ void RenderPassInstance::render_internal(SwapchainImageId swapchain_image, Devic
         PROFILER_SCOPE(BuildCommandBufferAsync);
         std::vector<JobHandle<CommandBuffer*>> handles;
         // Jobs for other threads
-        for (size_t i = 0; i < std::max(1ull, render_pass_interface->record_threads()); ++i)
+        for (size_t i = 0; i < std::max(static_cast<size_t>(1), render_pass_interface->record_threads()); ++i)
         {
             handles.emplace_back(JobSystem::get().schedule<CommandBuffer*>(
                 [this, &framebuffer, i, &global_cmd, device_image]

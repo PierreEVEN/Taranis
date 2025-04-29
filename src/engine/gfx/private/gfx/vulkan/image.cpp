@@ -7,6 +7,7 @@
 #include "gfx/vulkan/vk_wrap.hpp"
 
 #include <vk_mem_alloc.h>
+#include <cmath>
 
 namespace Eng::Gfx
 {

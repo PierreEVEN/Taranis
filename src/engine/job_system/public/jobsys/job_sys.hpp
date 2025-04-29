@@ -3,6 +3,7 @@
 #include <concurrentqueue/moodycamel/blockingconcurrentqueue.h>
 #include <iostream>
 #include <shared_mutex>
+#include <condition_variable>
 
 class Worker;
 

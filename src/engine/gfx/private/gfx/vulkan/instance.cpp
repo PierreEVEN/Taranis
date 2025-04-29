@@ -3,6 +3,7 @@
 #include "gfx/gfx.hpp"
 
 #include <GLFW/glfw3.h>
+#include <cstring>
 
 #include "gfx/vulkan/vk_check.hpp"
 
@@ -133,6 +134,7 @@ Instance::Instance(GfxConfig& config)
     auto extensions                        = get_required_extensions(config);
     instance_infos.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
     instance_infos.ppEnabledExtensionNames = extensions.data();
+
     VK_CHECK(vkCreateInstance(&instance_infos, nullptr, &ptr), "Failed to create instance")
 
     if (config.enable_validation_layers)

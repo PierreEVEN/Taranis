@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <ankerl/unordered_dense.h>
 #include <vector>
+#include <filesystem>
 
 namespace Llp
 {
@@ -14,11 +15,6 @@ namespace Llp
 {
 struct ParserError;
 class Block;
-}
-
-namespace std::filesystem
-{
-class path;
 }
 
 class FileReader;

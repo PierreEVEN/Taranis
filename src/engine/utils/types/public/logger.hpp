@@ -2,6 +2,7 @@
 
 #include "simplemacros.hpp"
 
+#include <format>
 #if __has_include("filesystem")
 #include <filesystem>
 #else

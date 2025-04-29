@@ -26,7 +26,7 @@ public:
 
         TObjectRef<AssetT> asset = registry.create<AssetT>(name, flags, std::forward<Args>(args)...);
         asset->package           = package_ref;
-        package->on_asset_loaded_internal(package_ref.get_path(), asset.cast<AssetBase>());
+        package->on_asset_loaded_internal(package_ref.get_path(), asset.template cast<AssetBase>());
         return asset;
     }
 };

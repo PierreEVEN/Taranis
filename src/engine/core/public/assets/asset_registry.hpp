@@ -86,7 +86,7 @@ public:
         std::shared_lock lock(asset_lock);
         if (auto cl = assets.find(T::static_class()); cl != assets.end())
             for (const auto& asset : cl->second)
-                callback(*asset.second->cast<T>());
+                callback(*asset.second->template cast<T>());
     }
 
     static std::shared_ptr<AssetRegistry> global();

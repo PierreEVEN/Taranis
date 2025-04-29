@@ -47,7 +47,13 @@ static FreeImageInitializer _initializer;
 TObjectRef<TextureAsset> ImageImport::load_from_path(const std::filesystem::path& path, const PackageRef& package)
 {
     std::ifstream        input(path, std::ios::binary);
-    std::vector<uint8_t> buffer(std::istreambuf_iterator(input), {});
+
+    input.seekg(0, std::ios::end);
+    size_t fileSize = input.tellg();
+    input.seekg(0, std::ios::beg);
+
+    std::vector<std::ifstream::char_type> buffer(fileSize);
+    input.read((std::ifstream::char_type*)&buffer[0], fileSize);
     return load_raw(path.filename().string(), Gfx::BufferData(buffer.data(), 1, buffer.size()), package);
 }
 

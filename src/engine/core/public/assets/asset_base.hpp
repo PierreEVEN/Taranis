@@ -22,11 +22,13 @@ enum class AssetFlags
     TRANSIENT = 1,
 };
 
+class AssetRegistry;
+
 class AssetBase
 {
     REFLECT_BODY()
 
-    friend class AssetRegistry;
+    friend AssetRegistry;
     friend class Package;
     friend class AssetFactory;
 

@@ -167,7 +167,7 @@ class Block
     std::vector<std::unique_ptr<ILexerToken>> tokens;
 };
 
-/*####[ // /* ]####*/
+/*####[ // / * ]####*/
 struct CommentToken : ILexerToken
 {
     using ILexerToken::ILexerToken;

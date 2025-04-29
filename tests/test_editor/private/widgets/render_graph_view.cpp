@@ -3,6 +3,7 @@
 #include "gfx/renderer/instance/render_pass_instance.hpp"
 #include "gfx/ui/ImGuiWrapper.hpp"
 #include "gfx/vulkan/image_view.hpp"
+#include <cmath>
 
 static ImVec2 operator+(const ImVec2& a, const ImVec2& b)
 {

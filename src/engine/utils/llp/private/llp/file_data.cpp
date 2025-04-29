@@ -1,6 +1,5 @@
 #include "llp/file_data.hpp"
 
-#include <filesystem>
 #include <iostream>
 #include <string>
 
@@ -28,7 +27,7 @@ std::optional<std::string> TextReader::consume_next_word()
 {
     skip_blank();
     std::string word;
-    while (*this && ((word.empty() && std::isalpha(**this)) || (!word.empty() && std::isalnum(**this) || **this == '_')))
+    while (*this && ((word.empty() && std::isalpha(**this)) || ((!word.empty() && std::isalnum(**this)) || **this == '_')))
     {
         word += **this;
         ++*this;
@@ -44,7 +43,7 @@ void TextReader::skip_line()
             return;
         ++*this;
     }
-    if (*this && **this == '\n' || **this == '\r')
+    if ((*this && **this == '\n') || **this == '\r')
         ++*this;
 }
 

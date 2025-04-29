@@ -3,11 +3,8 @@
 #include "assets/asset_base.hpp"
 
 #include <string>
+#include <filesystem>
 
-namespace std::filesystem
-{
-class path;
-}
 
 namespace Eng
 {

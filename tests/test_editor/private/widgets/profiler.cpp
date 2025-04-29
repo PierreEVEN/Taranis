@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <imgui.h>
 #include <ranges>
+#include <cmath>
 
 namespace Eng
 {

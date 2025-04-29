@@ -5,16 +5,10 @@
 #endif
 
 #include <iostream>
-
-namespace std::filesystem
-{
-class path;
-}
+#include <filesystem>
 
 namespace Module
 {
-
-using LoadModuleFn = Module*(__stdcall*)();
 
 ankerl::unordered_dense::map<std::string, Module::ModuleInfo> Module::modules;
 
@@ -32,6 +26,8 @@ Module* Module::load_from_path(const std::filesystem::path& path, const std::str
         return nullptr;
     }
 
+    #if _WIN32
+    using LoadModuleFn = Module*(__stdcall*)();
     HINSTANCE module_dll = LoadLibraryW(TEXT(path.c_str()));
     if (module_dll == nullptr)
     {
@@ -48,6 +44,10 @@ Module* Module::load_from_path(const std::filesystem::path& path, const std::str
     }
 
     Module* loaded_module = load_module_fn();
+    #else
+    Module* loaded_module = nullptr;
+    std::cerr << "TODO : handle linux modules\n";
+    #endif
 
     modules.emplace(name, ModuleInfo{.module = loaded_module});
     return loaded_module;

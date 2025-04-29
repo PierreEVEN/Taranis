@@ -5,11 +5,7 @@
 #include <functional>
 #include <optional>
 #include <string>
-
-namespace std::filesystem
-{
-class path;
-}
+#include <filesystem>
 
 namespace Eng
 {

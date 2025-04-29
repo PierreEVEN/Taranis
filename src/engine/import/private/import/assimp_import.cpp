@@ -270,7 +270,7 @@ std::shared_ptr<AssimpImporter::SceneLoader::MeshSection> AssimpImporter::SceneL
     auto mesh = scene->mMeshes[id];
 
     PROFILER_SCOPE_NAMED(LoadTexture, std::format("Load mesh"));
-    std::vector<MeshAsset::Vertex> vertices(mesh->mNumVertices, {});
+    std::vector<MeshAsset::Vertex> vertices(mesh->mNumVertices, MeshAsset::Vertex{});
 
     for (size_t i = 0; i < mesh->mNumVertices; ++i)
     {

@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
+#if _WIN32
 #include <corecrt_math.h>
+#endif
 #include <vector>
 #include <glm/common.hpp>
 #include <glm/vec2.hpp>

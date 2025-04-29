@@ -9,10 +9,11 @@
 namespace Reflection
 {
 class Property;
+class Archive;
 
 class Field
 {
-    friend class Archive;
+    friend Archive;
 
 public:
     Field(void* in_object, const Property& in_property) : object(in_object), property(in_property)
