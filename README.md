@@ -38,6 +38,7 @@ This engine is built around vulkan. Other backends may be implemented later if n
 - [x] Frustum culling
 - [x] Custom render targets : Allow a shader to retrieve the result of a child render pass
 - [x] Directional Shadows : automatically handle multiple light sources with shadows
+- [x] Property reflection : add properties to reflection system
 - [ ] Implement compute shaders and compute pass
 - [ ] Implement Cmaa V2 antialiasing
 - [ ] Allow concurrent render passes : currently render passes render consecutivelly which is not optimal.
@@ -47,7 +48,6 @@ This engine is built around vulkan. Other backends may be implemented later if n
 - [ ] Planet atmosphere : Basic atmospheric scattering
 - [ ] Foliages : Procedural foliages
 - [ ] Try voxel rendering (test if voxel planet could be a good starting point)
-- [ ] Property reflection : add properties to reflection system
 - [ ] Serialization : automatically serialize assets using reflection
 
 ## Known issues
