@@ -354,7 +354,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
 #if _WIN32
                     std::string enum_type = "int";
 #else
-                    std::string enum_type = "unsigned int";
+                    std::string enum_type = "";
 #endif
                     if (parser.consume<Llp::SymbolToken>(':'))
                     {
