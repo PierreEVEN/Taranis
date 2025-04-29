@@ -2,9 +2,10 @@
 #include "logger.hpp"
 #include "test_class.gen.hpp"
 
+
 RENUM()
 
-enum TestEnum
+enum TestEnum : uint32_t
 {
     Test,
     Test2,
@@ -13,7 +14,7 @@ enum TestEnum
 
 RENUM(EnumFlags)
 
-enum class AssetFlags
+enum class AssetFlags : uint32_t
 {
     Test4 = 1,
     Test3 = 1 << 1,
@@ -36,7 +37,7 @@ public:
     {
         TestChild cl;
         cl.untracked_value = 12.5687f;
-        cl.string_vector   = {"a", "bb", "", "ROH", "Ceci est une très longue", "phrase"};
+        cl.string_vector   = {"a", "bb", "", "ROH", "Ceci est une trï¿½s longue", "phrase"};
         return cl;
     }
 

@@ -125,7 +125,10 @@ void Generator::generate(size_t                       timestamp,
                 header.write_line(std::format("namespace {} {{", gen_enums.second.namespace_path()));
                 header.indent();
             }
-            header.write_line(std::format("enum {}{} : {}; // forward declaration", gen_enums.second.is_scoped() ? "class " : "", gen_enums.first, gen_enums.second.get_type()));
+            if (gen_enums.second.get_type().empty())
+                header.write_line(std::format("enum {}{}; // forward declaration", gen_enums.second.is_scoped() ? "class " : "", gen_enums.first));
+            else
+                header.write_line(std::format("enum {}{} : {}; // forward declaration", gen_enums.second.is_scoped() ? "class " : "", gen_enums.first, gen_enums.second.get_type()));
             if (!gen_enums.second.context.namespace_stack.empty())
             {
                 header.unindent();
