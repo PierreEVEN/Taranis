@@ -96,7 +96,7 @@ rule("generated_cpp", function (rule)
         if DEBUG then
             print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
         end
-        
+
         -- Generate reflection header
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
 
