@@ -1,3 +1,4 @@
+-- Generate and compile source files for the reflection system
 rule("header.tool.generated", function (rule)
     set_extensions(".hpp")
 
@@ -65,7 +66,7 @@ rule("header.tool.generated", function (rule)
         end
 
         -- Generate reflection sources using header tool
-        if DEBUG then print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path) end
+        -- print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path) end
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
         os.exec(header_tool_path.." "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
     end)

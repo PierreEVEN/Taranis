@@ -12,7 +12,6 @@ if is_plat("windows") then
     set_runtimes(is_mode("debug") and "MDd" or "MD")
 end
 
-DEBUG = false;
 BUILD_MONOLITHIC = false;
 
 option("build-tests", { default = true })
@@ -40,29 +39,6 @@ add_requires("vulkan-memory-allocator v3.2.1")
 
 add_defines("ENABLE_PROFILER")
 
-
-rule("test.extension", function (rule)
-    set_extensions(".hpp")
-
-    print("Register test extension")
-
-    before_build_file(function ()
-        print("BEFORE BUILD")
-    end)
-
-    on_build_file(function ()
-        print("ON BUILD")
-    end)
-
-    before_buildcmd_file(function (target, batchcmds, source_header, opt)
-        print("BEFORE BUILD CMD")
-    end)
-    
-    on_buildcmd_file(function (target, batchcmds, source_header, opt)
-        print("ON BUILD CMD")
-    end)
-end)
-
 function declare_module(module_name, opts)
 
     if (opts == nil) then
@@ -77,9 +53,6 @@ function declare_module(module_name, opts)
     local enable_reflection = opts.enable_reflection or false
     local allow_shared_build = opts.allow_shared_build or false
     
-    if DEBUG then
-        print("### "..module_name.." ###")
-    end
     target(module_name, function (target)
 
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
@@ -106,9 +79,6 @@ function declare_module(module_name, opts)
             end)
 
             before_build(function (target)
-                if (DEBUG) then
-                    print("xmake run header_tool "..target:scriptdir().." $(buildir)/reflection/"..module_name)
-                end
                 os.mkdir(target:autogendir().."/private/")
                 os.mkdir(target:autogendir().."/public/")
 
@@ -142,9 +112,6 @@ function declare_module(module_name, opts)
 
         -- add deps
         if deps then
-            if DEBUG then
-                print(table.unpack({ "\t-- dependencies :", table.unpack(deps) }))
-            end
             add_deps(table.unpack(deps))
         end
 
@@ -167,9 +134,6 @@ function declare_module(module_name, opts)
                     end
                     packages_name = packages_name..", "..package
                 end
-            end
-            if DEBUG then
-                print(table.unpack({ "\t-- packages :", packages_name}))
             end
         end
 
@@ -196,10 +160,6 @@ target("data", function(target)
         add_extrafiles(file)
     end
 end)
-
-if DEBUG then
-    print("################ building modules ################")
-end
 
 includes("xmake/**.lua");
 includes("src/**.lua");
