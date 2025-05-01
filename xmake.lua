@@ -139,7 +139,7 @@ function declare_module(module_name, opts)
         if is_executable then
             set_kind("binary")
         elseif #cpp_files == 0 then
-            set_kind("headeronly")
+            set_kind("static")
         elseif BUILD_MONOLITHIC or (not allow_shared_build and not is_module) then
             set_kind("static")
         else
@@ -161,6 +161,10 @@ end)
 
 includes("xmake/**.lua");
 includes("src/**.lua");
+--includes("src/engine/utils/types/**.lua");
+--includes("src/engine/utils/reflection/**.lua");
+--includes("src/engine/utils/io/**.lua");
+--includes("src/engine/utils/llp/**.lua");
 if has_config("build-tests") then
-    includes("tests/**.lua")
+    includes("tests/test_allocator/**.lua")
 end

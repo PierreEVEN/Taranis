@@ -37,7 +37,7 @@ rule("header.tool.generated", function (rule)
         local depvalues = {compinst:program(), compflags}
         return depvalues, compflags, compinst
     end
-
+    
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
         import("core.tool.compiler")
         import("core.project.depend")
@@ -80,13 +80,13 @@ rule("header.tool.generated", function (rule)
         -- print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
         os.exec(header_tool_path.." "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
+        --target:add("files", generated_source)
     end)
 
-    
     on_buildcmd_file(function (target, batchcmds, source_header, opt)
         import("core.tool.compiler")
         import("core.project.depend")
-
+    
         local generated_header, generated_source, include_path, generated_path = compute_generated_source_paths(target, source_header)
         local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
 
