@@ -162,11 +162,11 @@ void Swapchain::create_or_recreate()
 
 void Swapchain::draw()
 {
-    if (!render_internal())
+    if (!render_swapchain_internal())
         return;
 
     create_or_recreate();
-    if (render_internal())
+    if (render_swapchain_internal())
         LOG_ERROR("Failed to draw frame : {}x{}", extent.x, extent.y);
 }
 
@@ -180,7 +180,7 @@ uint8_t Swapchain::get_image_count() const
     return device().lock()->get_image_count() + 1;
 }
 
-bool Swapchain::render_internal()
+bool Swapchain::render_swapchain_internal()
 {
     PROFILER_SCOPE_NAMED(RenderPass_Draw, std::format("Draw swapchain"));
     const auto device_reference = device().lock();

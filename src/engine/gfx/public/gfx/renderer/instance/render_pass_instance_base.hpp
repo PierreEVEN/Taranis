@@ -36,7 +36,7 @@ using DeviceImageId    = uint8_t;
 class FrameResources : public DeviceResource
 {
 public:
-    FrameResources(const std::weak_ptr<Device>& device) : DeviceResource("frame resources", std::move(device))
+    FrameResources(std::weak_ptr<Device> device) : DeviceResource("frame resources", std::move(device))
     {
     }
 

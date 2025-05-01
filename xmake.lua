@@ -59,17 +59,17 @@ rule("generated_cpp", function (rule)
         if generated_path:match("^[^\\]+\\(.*)$") then
             include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
         elseif generated_path:match("^[^/]+/(.*)$") then
-
             include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
         else
             print("Error : no match for include path "..include_path) 
         end
-        -- replace .hpp extension with .gen.cpp
+
+        -- Generated source file path : replace .hpp extension with .gen.cpp
         local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
         -- generated classes are always private
         generated_source = generated_source:gsub("public", "private", 1)
         
-        -- replace .hpp extension with .gen.hpp
+        -- Generated header file path : replace .hpp extension with .gen.hpp
         local generated_header = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.hpp"
         -- generated headers are always public
         generated_header = generated_header:gsub("private", "public", 1)
@@ -88,15 +88,24 @@ rule("generated_cpp", function (rule)
         -- Test if source file was modified (otherwise skip it)
         if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
             if (os.exists(generated_source)) then
-                table.insert(target:objectfiles(), objectfile)
+                --TODO : this should not be required as it add the object file twice : table.insert(target:objectfiles(), objectfile)
             end
             return
         end
 
-        --print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
-
+        if DEBUG then
+            print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
+        end
+        
         -- Generate reflection header
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
+
+        if not os.exists("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool") then
+            print("Warning : header_tool is required but not build. Trying to build header_tool...")
+            os.exec("xmake build header_tool")
+            return
+        end
+
         os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
     end)
 
@@ -184,8 +193,11 @@ function declare_module(module_name, opts)
         print("### "..module_name.." ###")
     end
     target(module_name, function (target)
+
+	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
+
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
-        add_defines(module_name:upper().."_API=__declspec(dllexport)")
+        --add_defines(module_name:upper().."_API=__declspec(dllexport)")
 
         -- enable and generate reflection
         if enable_reflection then
@@ -229,7 +241,7 @@ function declare_module(module_name, opts)
         for _, file in pairs(os.files("private/**.hpp")) do
             add_headerfiles(file)
         end
-        
+
         -- set include dirs
         add_includedirs("private", { public = false })
         if not is_executable then
@@ -268,7 +280,7 @@ function declare_module(module_name, opts)
                 print(table.unpack({ "\t-- packages :", packages_name}))
             end
         end
-        
+
         -- set kind
         if is_executable then
             set_kind("binary")
@@ -299,9 +311,9 @@ if DEBUG then
     print("################ building modules ################")
 end
 
-includes("src/engine/utils/llp/**.lua");
+includes("src/**.lua");
 if has_config("build-tests") then
-    --includes("tests/**.lua")
+    includes("tests/**.lua")
 end
 
 option_end()

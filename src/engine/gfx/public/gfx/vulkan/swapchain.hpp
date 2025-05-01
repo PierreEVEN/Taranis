@@ -83,7 +83,7 @@ private:
     std::shared_ptr<ImageView> create_view_for_attachment(const std::string& attachment) override;
     uint8_t                    get_image_count() const override;
 
-    bool render_internal();
+    bool render_swapchain_internal();
     void destroy();
 
     std::vector<std::shared_ptr<Fence>>     render_finished_fences;

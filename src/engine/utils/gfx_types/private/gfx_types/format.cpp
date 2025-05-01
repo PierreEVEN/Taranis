@@ -691,9 +691,9 @@ bool is_depth_format(ColorFormat format)
     case ColorFormat::D16_UNORM:
     case ColorFormat::D16_UNORM_S8_UINT:
         return true;
+    default:
+        return false;
     }
-
-    return false;
 }
 
 }

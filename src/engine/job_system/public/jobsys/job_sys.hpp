@@ -38,7 +38,10 @@ template <typename Ret> class TJobRet : public IJob
 
     virtual ~TJobRet()
     {
-        delete ret;
+        if constexpr (std::is_same_v<Ret, void>)
+            assert(ret == nullptr);
+        else
+            delete ret;
     }
 
   protected:
