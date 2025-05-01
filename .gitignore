@@ -1,49 +1,20 @@
-# Prerequisites
-*.d
+# toolchain caches
+/.idea
+/.xmake
+/.vscode
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Build tools
+/vsxmake*
+/cmake*
+/compile_commands.json
+/compile_flags.txt
+/CMakeLists.txt
+/build/
+/build.ninja
+/makefile
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-.idea
-.xmake
-imgui.ini
-compile_commands.json
-CMakeLists.txt
-vsxmake*
-build/
-resources/models
-doxyfile
-saved/
-
-build.ninja
-compile_flags.txt
-makefile
-cmake-build-debug
-cmake-build-release
+# tmp generated files
+/imgui.ini
+/saved/
+/doxyfile
+/resources/models

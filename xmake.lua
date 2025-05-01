@@ -67,8 +67,6 @@ function declare_module(module_name, opts)
             set_policy('build.fence', true)
             add_rules("header.tool.generated")
 
-            add_rules("test.extension")
-
             -- add headers to check
             for _, file in pairs(os.files("**.hpp")) do
                 add_files(file)
