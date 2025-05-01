@@ -71,7 +71,7 @@ public:
     }
 
 protected:
-    inline static void register_type_internal(Type* in_type);
+    static void register_type_internal(Type* in_type);
 
     Type(TypeId in_type_id, uint32_t in_type_size) : type_size(in_type_size), type_id(in_type_id)
     {
