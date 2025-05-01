@@ -223,7 +223,7 @@ function declare_module(module_name, opts)
                 end
                 os.mkdir(target:autogendir().."/private/")
                 os.mkdir(target:autogendir().."/public/")
-                --os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..target:scriptdir().." "..target:autogendir().."/")
+                
                 -- will register the generated files in the link process, so we still needs to generate the .obj in a custom rule
                 for _, file in pairs(os.files(target:autogendir().."/private/**.cpp")) do
                     target:add("files", file)
