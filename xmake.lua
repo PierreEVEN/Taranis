@@ -87,9 +87,6 @@ rule("generated_cpp", function (rule)
 
         -- Test if source file was modified (otherwise skip it)
         if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
-            if (os.exists(generated_source)) then
-                --TODO : this should not be required as it add the object file twice : table.insert(target:objectfiles(), objectfile)
-            end
             return
         end
 
@@ -100,13 +97,18 @@ rule("generated_cpp", function (rule)
         -- Generate reflection header
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
 
-        if not os.exists("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool") then
+        local header_tool_path = "$(buildir)/$(plat)/$(arch)/$(mode)/header_tool"
+        if is_plat("windows") then
+            header_tool_path = header_tool_path..".exe"
+        end
+
+        if not os.exists(header_tool_path) then
             print("Warning : header_tool is required but not build. Trying to build header_tool...")
             os.exec("xmake build header_tool")
             return
         end
 
-        os.exec("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
+        os.exec(header_tool_path.." "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
     end)
 
     
