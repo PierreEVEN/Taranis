@@ -218,9 +218,11 @@ function declare_module(module_name, opts)
         end
 
         -- search for files
-        for _, file in pairs(os.files("private/**.cpp")) do
+        cpp_files = os.files("private/**.cpp")
+        for _, file in pairs(cpp_files) do
             add_files(file)
         end
+
         for _, file in pairs(os.files("public/**.hpp")) do
             add_headerfiles(file)
         end
@@ -270,6 +272,8 @@ function declare_module(module_name, opts)
         -- set kind
         if is_executable then
             set_kind("binary")
+        elseif #cpp_files == 0 then
+            set_kind("headeronly")
         elseif BUILD_MONOLITHIC or (not allow_shared_build and not is_module) then
             set_kind("static")
         else
@@ -295,9 +299,9 @@ if DEBUG then
     print("################ building modules ################")
 end
 
-includes("src/**.lua");
+includes("src/engine/utils/llp/**.lua");
 if has_config("build-tests") then
-    includes("tests/**.lua")
+    --includes("tests/**.lua")
 end
 
 option_end()
