@@ -223,7 +223,7 @@ function declare_module(module_name, opts)
                 end
                 os.mkdir(target:autogendir().."/private/")
                 os.mkdir(target:autogendir().."/public/")
-                
+
                 -- will register the generated files in the link process, so we still needs to generate the .obj in a custom rule
                 for _, file in pairs(os.files(target:autogendir().."/private/**.cpp")) do
                     target:add("files", file)
@@ -302,14 +302,12 @@ function declare_module(module_name, opts)
 end
 
 -- So resource folder will be available within Visual Studio
-if is_plat("windows") then
-    target("data", function(target)
-        set_kind("object")
-        for _, file in pairs(os.files("resources/**")) do
-            add_extrafiles(file)
-        end
-    end)
-end
+target("data", function(target)
+    set_kind("phony")
+    for _, file in pairs(os.files("resources/**")) do
+        add_extrafiles(file)
+    end
+end)
 
 if DEBUG then
     print("################ building modules ################")
