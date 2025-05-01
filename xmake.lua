@@ -240,12 +240,14 @@ function declare_module(module_name, opts)
         for _, file in pairs(os.files("public/**.hpp")) do
             add_headerfiles(file)
         end
-        for _, file in pairs(os.files("private/**.hpp")) do
-            add_headerfiles(file)
+        if os.exists("private") then
+            add_includedirs("private", { public = false })
+            for _, file in pairs(os.files("private/**.hpp")) do
+                add_headerfiles(file)
+            end
         end
 
         -- set include dirs
-        add_includedirs("private", { public = false })
         if not is_executable then
             add_includedirs("public", { public = true })
         end
