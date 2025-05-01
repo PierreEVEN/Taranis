@@ -15,22 +15,16 @@ end
 DEBUG = false;
 BUILD_MONOLITHIC = false;
 
-option("build-tests", { default = false })
-option("build-monolithic", { default = true })
+option("build-tests", { default = true })
 
 if is_mode("debug") then
     set_optimize("fastest")
 end
-
 if is_mode("release") then
     set_symbols("hidden")
     set_optimize("fastest")
     set_strip("all")
 end
-
-
-add_defines("ENABLE_VALIDATION_LAYER")
-add_defines("ENABLE_PROFILER")
 
 add_requires("assimp v5.4.3", {configs = {shared = true, no_export = true}})
 add_requires("concurrentqueue v1.0.4")
@@ -44,141 +38,33 @@ add_requires("unordered_dense v4.5.0")
 add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
 
-rule("generated_cpp", function (rule)
+add_defines("ENABLE_PROFILER")
+
+
+rule("test.extension", function (rule)
     set_extensions(".hpp")
-    before_buildcmd_file(function (target, batchcmds, source_header, opt)
 
-        import("core.tool.compiler")
-        import("core.project.depend")
+    print("Register test extension")
 
-        -- Guess generated source file path
-        local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
-
-        -- this is the include string the user should have added to it's class
-        local include_path = generated_path
-        if generated_path:match("^[^\\]+\\(.*)$") then
-            include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
-        elseif generated_path:match("^[^/]+/(.*)$") then
-            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
-        else
-            print("Error : no match for include path "..include_path) 
-        end
-
-        -- Generated source file path : replace .hpp extension with .gen.cpp
-        local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
-        -- generated classes are always private
-        generated_source = generated_source:gsub("public", "private", 1)
-        
-        -- Generated header file path : replace .hpp extension with .gen.hpp
-        local generated_header = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.hpp"
-        -- generated headers are always public
-        generated_header = generated_header:gsub("private", "public", 1)
-
-        local compinst = compiler.load("cxx", {target = target})
-        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
-
-        local objectfile = target:objectfile(generated_source)
-        local dependfile = target:dependfile(objectfile)
-        -- Load existing dep infos (or create if not exists)
-        local dependinfo = target:is_rebuilt() and {} or (depend.load(dependfile, {target = target}) or {})
-
-        local depvalues = {compinst:program(), compflags}
-        local lastmtime = os.isfile(objectfile) and os.mtime(objectfile) or os.isfile(dependfile) and os.mtime(dependfile) or 0
-
-        -- Test if source file was modified (otherwise skip it)
-        if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
-            return
-        end
-
-        if DEBUG then
-            print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
-        end
-
-        -- Generate reflection header
-        batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
-
-        local header_tool_path = "$(buildir)/$(plat)/$(arch)/$(mode)/header_tool"
-        if is_plat("windows") then
-            header_tool_path = header_tool_path..".exe"
-        end
-
-        if not os.exists(header_tool_path) then
-            print("Warning : header_tool is required but not build. Trying to build header_tool...")
-            os.exec("xmake build header_tool")
-            return
-        end
-
-        os.exec(header_tool_path.." "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
+    before_build_file(function ()
+        print("BEFORE BUILD")
     end)
 
+    on_build_file(function ()
+        print("ON BUILD")
+    end)
+
+    before_buildcmd_file(function (target, batchcmds, source_header, opt)
+        print("BEFORE BUILD CMD")
+    end)
     
     on_buildcmd_file(function (target, batchcmds, source_header, opt)
-        import("core.tool.compiler")
-        import("core.project.depend")
-
-        -- Guess generated source file path
-        local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
-
-        -- this is the include string the user should have added to it's class
-        local include_path = generated_path
-        if generated_path:match("^[^\\]+\\(.*)$") then
-            include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
-        elseif generated_path:match("^[^/]+/(.*)$") then
-
-            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
-        else
-            print("Error : no match for include path "..include_path) 
-        end
-
-        -- replace .hpp extension with .gen.cpp
-        local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
-        -- generated classes are always private
-        generated_source = generated_source:gsub("public", "private", 1)
-        
-        local compinst = compiler.load("cxx", {target = target})
-        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
-        local depvalues = {compinst:program(), compflags}
-
-        local objectfile = target:objectfile(generated_source)
-        local dependfile = target:dependfile(objectfile)
-        -- if exists
-        if (os.exists(generated_source)) then
-
-            -- replace .hpp extension with .gen.hpp
-            local generated_header = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.hpp"
-            -- generated headers are always public
-            generated_header = generated_header:gsub("private", "public", 1)
-
-            -- Load existing dep infos (or create if not exists)
-            local dependinfo = target:is_rebuilt() and {} or (depend.load(dependfile, {target = target}) or {})
-
-            local lastmtime = os.isfile(objectfile) and os.mtime(objectfile) or 0
-
-            -- Test if source file was modified (otherwise skip it)
-            if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
-                return
-            end
-
-            batchcmds:show_progress(opt.progress, "${color.build.object}compiling.$(mode) %s", generated_source)
-            -- Compile and fill the dependency list into dependinfo
-            assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
-            
-            -- store build depvalues to detect depvalues changes
-            dependinfo.values = depvalues
-            depend.save(dependinfo, dependfile)
-            table.insert(target:objectfiles(), objectfile)
-        else
-            -- save last update check time
-            local dependinfo = {}
-            dependinfo.files = {source_header}
-            dependinfo.values = depvalues
-            depend.save(dependinfo, dependfile)    
-        end
+        print("ON BUILD CMD")
     end)
 end)
 
-
 function declare_module(module_name, opts)
+
     if (opts == nil) then
         print("Error : invalid options for module "..module_name)
         os.exit(-1)
@@ -206,7 +92,9 @@ function declare_module(module_name, opts)
             add_deps('header_tool')
             add_deps('reflection') 
             set_policy('build.fence', true)
-            add_rules("generated_cpp")
+            add_rules("header.tool.generated")
+
+            add_rules("test.extension")
 
             -- add headers to check
             for _, file in pairs(os.files("**.hpp")) do
@@ -313,10 +201,8 @@ if DEBUG then
     print("################ building modules ################")
 end
 
+includes("xmake/**.lua");
 includes("src/**.lua");
 if has_config("build-tests") then
     includes("tests/**.lua")
 end
-
-option_end()
-    
