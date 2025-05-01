@@ -2,6 +2,7 @@
 #include "type_id.hpp"
 
 #include <assert.h>
+#include <iostream>
 #include <ankerl/unordered_dense.h>
 
 namespace Reflection
@@ -70,7 +71,7 @@ public:
     }
 
 protected:
-    static void register_type_internal(Type* in_type);
+    inline static void register_type_internal(Type* in_type);
 
     Type(TypeId in_type_id, uint32_t in_type_size) : type_size(in_type_size), type_id(in_type_id)
     {
@@ -85,4 +86,6 @@ private:
     static ankerl::unordered_dense::map<TypeId, Type*>& get_types_aliases_internal();
     static ankerl::unordered_dense::map<TypeId, Type*>* types_aliases;
 };
+
+
 } // namespace Reflection

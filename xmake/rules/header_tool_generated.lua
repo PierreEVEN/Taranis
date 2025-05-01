@@ -53,6 +53,17 @@ rule("header.tool.generated", function (rule)
 
         -- Test if source file was modified (otherwise skip it)
         if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
+            -- ensure .obj is included in the project
+            local contains = false
+            for k, p in pairs(target:objectfiles()) do
+                if p == objectfile then
+                    contains = true
+                    break
+                end
+            end
+            if not contains then
+                table.insert(target:objectfiles(), objectfile)
+            end
             return
         end
 
@@ -66,7 +77,7 @@ rule("header.tool.generated", function (rule)
         end
 
         -- Generate reflection sources using header tool
-        -- print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path) end
+        -- print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
         os.exec(header_tool_path.." "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
     end)

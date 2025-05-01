@@ -10,6 +10,7 @@
 /compile_flags.txt
 /CMakeLists.txt
 /build/
+/cbuild/
 /build.ninja
 /makefile
 

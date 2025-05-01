@@ -41,7 +41,7 @@ public:
         };
 
         register_class_internal(new_class);
-        ::Reflection::Type::register_type_internal(new_class);
+        register_type_internal(new_class);
         return new_class;
     }
 
