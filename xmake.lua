@@ -161,12 +161,12 @@ target("data", function(target)
 end)
 
 includes("xmake/**.lua");
---includes("src/**.lua");
-includes("src/engine/utils/types/**.lua");
-includes("src/engine/utils/reflection/**.lua");
-includes("src/engine/utils/io/**.lua");
-includes("src/engine/utils/llp/**.lua");
+includes("src/**.lua");
+--includes("src/engine/utils/types/**.lua");
+--includes("src/engine/utils/reflection/**.lua");
+--includes("src/engine/utils/io/**.lua");
+--includes("src/engine/utils/llp/**.lua");
 if has_config("build-tests") then
-    --includes("tests/**.lua")
-    includes("tests/test_allocator/**.lua")
+    includes("tests/**.lua")
+    --includes("tests/test_allocator/**.lua")
 end

@@ -112,7 +112,6 @@ rule("header.tool.generated", function (rule)
             batchcmds:show_progress(opt.progress, "${color.build.object}compiling.$(mode) %s", generated_source)
             --assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
             
-            batchcmds:show("Compiling %s -> %s", generated_source, objectfile)
             -- Add a compile step to the batch commands
             batchcmds:compile(generated_source, objectfile, {
                 compiler = compinst,
