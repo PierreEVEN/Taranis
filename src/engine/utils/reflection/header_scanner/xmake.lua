@@ -2,7 +2,7 @@ declare_module(
     "header_scanner", 
     
     {
-        packages = {"nlohmann_json"},
+        packages = {"nlohmann_json", "unordered_dense"},
         is_executable = true,
     }
 )
