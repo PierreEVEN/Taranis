@@ -193,6 +193,8 @@ TypeReflection::TypeReflection(slang::TypeReflection* slang_type)
             break;
         }
         break;
+        default:
+        break;
     }
 }
 
