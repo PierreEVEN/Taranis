@@ -56,6 +56,7 @@ function declare_module(module_name, opts)
     target(module_name, function (target)
 
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
+	    add_cxxflags("-Wno-missing-field-initializers", {tools = "gcc"})
 
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
         --add_defines(module_name:upper().."_API=__declspec(dllexport)")
@@ -139,7 +140,7 @@ function declare_module(module_name, opts)
         if is_executable then
             set_kind("binary")
         elseif #cpp_files == 0 then
-            set_kind("static")
+            set_kind("headeronly")
         elseif BUILD_MONOLITHIC or (not allow_shared_build and not is_module) then
             set_kind("static")
         else
@@ -160,12 +161,12 @@ target("data", function(target)
 end)
 
 includes("xmake/**.lua");
-includes("src/**.lua");
---includes("src/engine/utils/types/**.lua");
---includes("src/engine/utils/reflection/**.lua");
---includes("src/engine/utils/io/**.lua");
---includes("src/engine/utils/llp/**.lua");
+--includes("src/**.lua");
+includes("src/engine/utils/types/**.lua");
+includes("src/engine/utils/reflection/**.lua");
+includes("src/engine/utils/io/**.lua");
+includes("src/engine/utils/llp/**.lua");
 if has_config("build-tests") then
-    includes("tests/**.lua")
-    --includes("tests/test_allocator/**.lua")
+    --includes("tests/**.lua")
+    includes("tests/test_allocator/**.lua")
 end

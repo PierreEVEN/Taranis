@@ -14,7 +14,7 @@ rule("header.tool.generated", function (rule)
         elseif generated_path:match("^[^/]+/(.*)$") then
             include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
         else
-            print("Error : no match for include path "..include_path) 
+            raise("Error : no match for include path "..include_path) 
         end
 
         -- Generated source file path : replace .hpp extension with .gen.cpp
@@ -72,7 +72,7 @@ rule("header.tool.generated", function (rule)
 
         -- There are some cases where before_build is called during the generator phase, where the header_tool have still not been built.
         if not os.exists(header_tool_path) then
-            print("Warning : header_tool is required but not built. Trying to build header_tool...")
+            wprint("header_tool is required but not built. Trying to build header_tool...")
             os.exec("xmake build header_tool")
         end
 
@@ -88,7 +88,11 @@ rule("header.tool.generated", function (rule)
         import("core.project.depend")
     
         local generated_header, generated_source, include_path, generated_path = compute_generated_source_paths(target, source_header)
-        local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
+        --local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
+
+        local compinst = compiler.load("cxx", {target = target})
+        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
+        local depvalues = {compinst:program(), compflags}
 
         local objectfile = target:objectfile(generated_source)
         local dependfile = target:dependfile(objectfile)
@@ -106,8 +110,16 @@ rule("header.tool.generated", function (rule)
 
             -- Compile the generated source file
             batchcmds:show_progress(opt.progress, "${color.build.object}compiling.$(mode) %s", generated_source)
-            assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
+            --assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
             
+            batchcmds:show("Compiling %s -> %s", generated_source, objectfile)
+            -- Add a compile step to the batch commands
+            batchcmds:compile(generated_source, objectfile, {
+                compiler = compinst,
+                dependinfo = dependinfo,
+                compflags = compflags
+            })
+
             -- store build depvalues to detect depvalues changes
             dependinfo.values = depvalues
             depend.save(dependinfo, dependfile)
