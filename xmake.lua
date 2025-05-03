@@ -36,6 +36,7 @@ add_requires("slang v2025.6.4", {verify = false, configs = {slangc = true}}) -- 
 add_requires("unordered_dense v4.5.0")
 add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
+add_requires("nlohmann_json v3.11.3")
 
 add_defines("ENABLE_PROFILER")
 

@@ -110,14 +110,12 @@ rule("header.tool.generated", function (rule)
 
             -- Compile the generated source file
             batchcmds:show_progress(opt.progress, "${color.build.object}compiling.$(mode) %s", generated_source)
-            --assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
-            
-            -- Add a compile step to the batch commands
-            batchcmds:compile(generated_source, objectfile, {
+            assert(compinst:compile(generated_source, objectfile, {dependinfo = dependinfo, compflags = compflags}))
+            --[[batchcmds:compile(generated_source, objectfile, {
                 compiler = compinst,
                 dependinfo = dependinfo,
                 compflags = compflags
-            })
+            })]]
 
             -- store build depvalues to detect depvalues changes
             dependinfo.values = depvalues
