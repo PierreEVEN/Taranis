@@ -30,6 +30,48 @@ rule("header.tool.generated", function (rule)
         return generated_header, generated_source, include_path, generated_path
     end
 
+    before_buildcmd_files(function (target, batch_cmds, source_batch, opt)
+        import("core.tool.compiler")
+        import("core.project.config")
+
+        -- build compile batch
+        local args = {}
+        local compinst = compiler.load("cxx", {target = target})
+         for _, header_path in ipairs(source_batch.sourcefiles) do
+            local gen_hpp_path, gen_cpp_path, include_path, generated_path = compute_generated_source_paths(target, header_path)
+            local gen_object_path = target:objectfile(gen_cpp_path)
+            local depend_path = target:dependfile(gen_object_path)
+             table.insert(args, "-f")
+             table.insert(args, header_path)
+             table.insert(args, include_path)
+             table.insert(args, depend_path)
+             table.insert(args, gen_hpp_path)
+             table.insert(args, gen_cpp_path)
+             table.insert(args, gen_object_path)
+        end
+
+        local bin_dir = target:configdir().."/"..target:plat().."/"..target:arch().."/"..config.mode()
+
+        table.insert(args, "-t")
+        local header_tool_path = bin_dir.."/header_tool"
+        if is_plat("windows") then header_tool_path = header_tool_path..".exe" end
+        table.insert(args, header_tool_path)
+
+        local compflags = compinst:compflags({target = target, configs = opt.configs})
+        table.insert(args, "-c")
+        table.insert(args, compinst:program())
+        for _, flag in pairs(compflags) do
+            table.insert(args, flag)
+        end
+
+        -- run header scanner
+        local header_scanner_path = bin_dir.."/header_scanner"
+        if is_plat("windows") then header_scanner_path = header_scanner_path..".exe" end
+        batch_cmds:vexecv(header_scanner_path, args)
+    end)
+
+
+    --[[
     -- Get compiler details
     local function get_compiler_info(compiler, target, generated_source, opt)
         local compinst = compiler.load("cxx", {target = target})
@@ -37,7 +79,7 @@ rule("header.tool.generated", function (rule)
         local depvalues = {compinst:program(), compflags}
         return depvalues, compflags, compinst
     end
-    
+
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
         import("core.tool.compiler")
         import("core.project.depend")
@@ -115,7 +157,7 @@ rule("header.tool.generated", function (rule)
                 compiler = compinst,
                 dependinfo = dependinfo,
                 compflags = compflags
-            })]]
+            })]]--[[
 
             -- store build depvalues to detect depvalues changes
             dependinfo.values = depvalues
@@ -128,5 +170,5 @@ rule("header.tool.generated", function (rule)
             dependinfo.values = depvalues
             depend.save(dependinfo, dependfile)    
         end
-    end)
+    end)]]
 end)

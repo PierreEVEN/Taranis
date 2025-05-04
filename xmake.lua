@@ -65,9 +65,11 @@ function declare_module(module_name, opts)
         -- enable and generate reflection
         if enable_reflection then
             add_deps('header_tool')
-            add_deps('reflection') 
+            add_deps('header_scanner')
             set_policy('build.fence', true)
             add_rules("header.tool.generated")
+
+            add_deps('reflection')
 
             -- add headers to check
             for _, file in pairs(os.files("**.hpp")) do
