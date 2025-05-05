@@ -26,7 +26,7 @@ class DepCache
                         exit(-1);
                     for (const auto& dep : deps)
                     {
-                        auto dep_time = get_last_modification_time(file_path);
+                        auto dep_time = get_last_modification_time(dep);
                         if (dep_time > modification_time)
                             modification_time = dep_time;
                     }
@@ -212,6 +212,15 @@ class Options
                 if (!expect(arg, args.cend()))
                     return false;
                 f.gen_object_path = *arg;
+
+                while (++arg, arg != args.cend() && *arg == "-o")
+                {
+                    if (!expect(arg, args.cend()))
+                        return false;
+                    f.additional_options.emplace_back(*arg);
+                }
+                --arg;
+
                 files.emplace_back(f);
                 break;
             }
@@ -249,12 +258,13 @@ class Options
 
     struct File
     {
-        std::filesystem::path header_path;
-        std::filesystem::path include_path;
-        std::filesystem::path depend_path;
-        std::filesystem::path gen_hpp_path;
-        std::filesystem::path gen_cpp_path;
-        std::filesystem::path gen_object_path;
+        std::filesystem::path    header_path;
+        std::filesystem::path    include_path;
+        std::filesystem::path    depend_path;
+        std::filesystem::path    gen_hpp_path;
+        std::filesystem::path    gen_cpp_path;
+        std::filesystem::path    gen_object_path;
+        std::vector<std::string> additional_options;
     };
     std::vector<File>        files;
     std::filesystem::path    header_tool_path;
@@ -292,7 +302,8 @@ int main(int argc, char** argv)
 
         // Run header tool to generate .gen.hpp and .gen.cpp files
         std::cout << "GENERATE " << file.header_path << "\n";
-        if (const auto code = std::system(std::format("{} {} {} {} {}", opts.header_tool_path.string(), file.header_path.string(), file.gen_cpp_path.string(), file.gen_hpp_path.string(), file.include_path.string()).c_str()))
+        if (const auto code =
+                std::system(std::format("{} {} {} {} {}", opts.header_tool_path.string(), file.header_path.string(), file.gen_cpp_path.string(), file.gen_hpp_path.string(), file.include_path.string()).c_str()))
         {
             std::cerr << "Failed to generate " << file.gen_cpp_path << " : Exit " << code << "\n";
             return -1;
@@ -313,8 +324,11 @@ int main(int argc, char** argv)
         std::string cmd;
         for (const auto& arg : opts.compile_args)
             cmd += arg + " ";
+        for (const auto& arg : file.additional_options)
+            cmd += arg + " ";
 
         std::cout << "COMPILE " << file.header_path << "\n";
+        std::filesystem::create_directories(file.gen_object_path.parent_path());
         if (const auto code = std::system(cmd.c_str()))
         {
             std::cerr << "Failed to compile " << file.gen_cpp_path << " : Exit " << code << "\n";

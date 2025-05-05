@@ -1,63 +1,97 @@
 -- Generate and compile source files for the reflection system
-rule("header.tool.generated", function (rule)
+rule("header.tool.generated", function(rule)
     set_extensions(".hpp")
 
     -- Get the output paths for generated sources for the given input header
     local function compute_generated_source_paths(target, source_header)
         -- Guess generated source file path
-        local generated_path = string.sub(os.projectdir().."/"..source_header, string.len(target:scriptdir()) + 2)
+        local generated_path = string.sub(os.projectdir() .. "/" .. source_header, string.len(target:scriptdir()) + 2)
 
         -- this is the include string the user should have added to it's class
         local include_path = generated_path
         if generated_path:match("^[^\\]+\\(.*)$") then
             include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
         elseif generated_path:match("^[^/]+/(.*)$") then
-            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")   
+            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")
         else
-            raise("Error : no match for include path "..include_path) 
+            raise("Error : no match for include path " .. include_path)
         end
 
         -- Generated source file path : replace .hpp extension with .gen.cpp
-        local generated_source = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.cpp"
+        local generated_source = target:autogendir() .. "/" .. string.sub(generated_path, 1, string.len(generated_path) - 3) .. "gen.cpp"
         -- generated classes are always private
         generated_source = generated_source:gsub("public", "private", 1)
-        
+
         -- Generated header file path : replace .hpp extension with .gen.hpp
-        local generated_header = target:autogendir().."/"..string.sub(generated_path, 1, string.len(generated_path) - 3).."gen.hpp"
+        local generated_header = target:autogendir() .. "/" .. string.sub(generated_path, 1, string.len(generated_path) - 3) .. "gen.hpp"
         -- generated headers are always public
         generated_header = generated_header:gsub("private", "public", 1)
 
         return generated_header, generated_source, include_path, generated_path
     end
 
-    before_buildcmd_files(function (target, batch_cmds, source_batch, opt)
+    local function table_diff(t1, t2, compiler)
+        local diff = {}
+        local count2 = {}
+
+        -- Build a frequency map of elements in t2
+        for _, v in ipairs(t2) do
+            count2[v] = (count2[v] or 0) + 1
+        end
+
+        -- Compare against t1, decrement count if found, otherwise it's unique
+        for _, v in ipairs(t1) do
+            if count2[v] and count2[v] > 0 then
+                count2[v] = count2[v] - 1
+            elseif v ~= compiler then
+                table.insert(diff, v)
+            end
+        end
+
+        return diff
+    end
+
+    before_buildcmd_files(function(target, batch_cmds, source_batch, opt)
         import("core.tool.compiler")
         import("core.project.config")
 
         -- build compile batch
         local args = {}
-        local compinst = compiler.load("cxx", {target = target})
-         for _, header_path in ipairs(source_batch.sourcefiles) do
+        local compinst = compiler.load("cxx", { target = target })
+
+        local compflags = compinst:compflags({ target = target, configs = opt.configs })
+
+        for _, header_path in ipairs(source_batch.sourcefiles) do
             local gen_hpp_path, gen_cpp_path, include_path, generated_path = compute_generated_source_paths(target, header_path)
             local gen_object_path = target:objectfile(gen_cpp_path)
             local depend_path = target:dependfile(gen_object_path)
-             table.insert(args, "-f")
-             table.insert(args, header_path)
-             table.insert(args, include_path)
-             table.insert(args, depend_path)
-             table.insert(args, gen_hpp_path)
-             table.insert(args, gen_cpp_path)
-             table.insert(args, gen_object_path)
+            table.insert(args, "-f")
+            table.insert(args, header_path)
+            table.insert(args, include_path)
+            table.insert(args, depend_path)
+            table.insert(args, gen_hpp_path)
+            table.insert(args, gen_cpp_path)
+            table.insert(args, gen_object_path)
+
+            -- filter source specific arguments
+            local file_args = table.join(compinst:compargv(gen_cpp_path, gen_object_path, { target = target, sourcefile = generated_source, configs = opt.configs }));
+
+            -- add source specific arguments
+            for _, v in pairs(table_diff(file_args, compflags, compinst:program())) do
+                table.insert(args, "-o")
+                table.insert(args, v)
+            end
         end
 
-        local bin_dir = target:configdir().."/"..target:plat().."/"..target:arch().."/"..config.mode()
+        local bin_dir = target:configdir() .. "/" .. target:plat() .. "/" .. target:arch() .. "/" .. config.mode()
 
         table.insert(args, "-t")
-        local header_tool_path = bin_dir.."/header_tool"
-        if is_plat("windows") then header_tool_path = header_tool_path..".exe" end
+        local header_tool_path = bin_dir .. "/header_tool"
+        if is_plat("windows") then
+            header_tool_path = header_tool_path .. ".exe"
+        end
         table.insert(args, header_tool_path)
 
-        local compflags = compinst:compflags({target = target, configs = opt.configs})
         table.insert(args, "-c")
         table.insert(args, compinst:program())
         for _, flag in pairs(compflags) do
@@ -65,8 +99,10 @@ rule("header.tool.generated", function (rule)
         end
 
         -- run header scanner
-        local header_scanner_path = bin_dir.."/header_scanner"
-        if is_plat("windows") then header_scanner_path = header_scanner_path..".exe" end
+        local header_scanner_path = bin_dir .. "/header_scanner"
+        if is_plat("windows") then
+            header_scanner_path = header_scanner_path .. ".exe"
+        end
         batch_cmds:vexecv(header_scanner_path, args)
     end)
 
@@ -128,7 +164,7 @@ rule("header.tool.generated", function (rule)
     on_buildcmd_file(function (target, batchcmds, source_header, opt)
         import("core.tool.compiler")
         import("core.project.depend")
-    
+
         local generated_header, generated_source, include_path, generated_path = compute_generated_source_paths(target, source_header)
         --local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
 
