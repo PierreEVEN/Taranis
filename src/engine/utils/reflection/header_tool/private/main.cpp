@@ -7,9 +7,9 @@
 
 int main(int argc, char** argv)
 {
-    if (argc != 5)
+    if (argc != 6)
     {
-        std::cerr << "[Header tool] Syntax error. Expected 'header_tool <scanned_header> <target_source> <target_header> <include_path>'. Got " << argc << " params \n";
+        std::cerr << "[Header tool] Syntax error. Expected 'header_tool <scanned_header> <target_source> <target_header> <include_path> <depend_path>'. Got " << argc << " params \n";
         return -1;
     }
 
@@ -17,6 +17,7 @@ int main(int argc, char** argv)
     const std::filesystem::path target_source(argv[2]);
     const std::filesystem::path target_header(argv[3]);
     const std::filesystem::path scanned_header_include_path(argv[4]);
+    const std::filesystem::path depend_file_path(argv[5]);
 
     std::filesystem::path generated_include_path = scanned_header_include_path;
     generated_include_path = generated_include_path.replace_extension(".gen.hpp");

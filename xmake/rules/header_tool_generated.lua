@@ -36,7 +36,6 @@ rule("header.tool.generated", function(_)
         -- build compile batch
         for _, header_path in ipairs(source_batch.sourcefiles) do
             local gen_hpp_path, gen_cpp_path, include_path, _ = compute_generated_source_paths(target, header_path)
-            local gen_object_path = target:objectfile(gen_cpp_path)
             target:add("files", gen_cpp_path)
 
             if not os.exists(gen_cpp_path) then
@@ -45,25 +44,28 @@ rule("header.tool.generated", function(_)
             end
 
             local bin_dir = target:configdir() .. "/" .. target:plat() .. "/" .. target:arch() .. "/" .. config.mode()
-            local header_tool_path = bin_dir.."/header_tool"
-            if is_plat("windows") then header_tool_path = header_tool_path..".exe" end
+            local header_tool_path = bin_dir .. "/header_tool"
+            if is_plat("windows") then
+                header_tool_path = header_tool_path .. ".exe"
+            end
 
             if not os.exists(path.absolute(header_tool_path)) then
                 wprint("header_tool is required but not built. Trying to build header_tool...")
                 os.exec("xmake build header_tool")
             end
 
-
+            local objectfile = target:objectfile(gen_cpp_path)
+            local dependfile = target:dependfile(objectfile)
+            print(dependfile)
             batch_cmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
-            batch_cmds:vexecv(path.absolute(header_tool_path).." "..path.absolute(header_path).." "..path.absolute(gen_cpp_path).." "..path.absolute(gen_hpp_path).." "..include_path)
-            --batch_cmds:compile(gen_cpp_path, gen_object_path)
+            batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. path.absolute(header_path) .. " " .. path.absolute(gen_cpp_path) .. " " .. path.absolute(gen_hpp_path) .. " " .. include_path .. " " .. dependfile)
         end
     end)
 
-    on_buildcmd_file(function (target, batch_cmds, header_path, _)
+    on_buildcmd_file(function(target, batch_cmds, header_path, _)
         local _, gen_cpp_path, _, _ = compute_generated_source_paths(target, header_path)
         local gen_object_path = target:objectfile(gen_cpp_path)
-        batch_cmds:compile(gen_cpp_path, gen_object_path)
+        batch_cmds:compile(gen_cpp_path, gen_object_path, { sourcekind = "cxx" })
     end)
 
     --[[
