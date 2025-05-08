@@ -191,7 +191,7 @@ void RenderPassInstanceBase::fill_command_buffer(CommandBuffer& cmd, size_t grou
     }
 }
 
-PassCommandPool::PassCommandPool(std::weak_ptr<Device> in_device, const std::string& name) : DeviceResource(std::move(name), std::move(in_device))
+PassCommandPool::PassCommandPool(std::weak_ptr<Device> in_device, const std::string& name) : DeviceResource(name, std::move(in_device))
 {
 }
 

@@ -16,3 +16,17 @@ public:
 
     int identifier = 0;
 };
+
+class TestReflectClassAlloc2
+{
+    REFLECT_BODY()
+
+public:
+    ~TestReflectClassAlloc2()
+    {
+        assert(identifier >= 0);
+        identifier = -1;
+    }
+
+    int identifier = 0;
+};

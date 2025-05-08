@@ -8,8 +8,9 @@
 
 class DependParser {
 public:
-    DependParser(const std::filesystem::path& path);
+    explicit DependParser(const std::filesystem::path& path);
 
+    [[nodiscard]] std::time_t get_last_write_time() const;
 private:
 
     std::optional<Llp::ParserError> parse(const std::filesystem::path& path);

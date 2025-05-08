@@ -56,16 +56,32 @@ rule("header.tool.generated", function(_)
 
             local objectfile = target:objectfile(gen_cpp_path)
             local dependfile = target:dependfile(objectfile)
-            print(dependfile)
-            batch_cmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
-            batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. path.absolute(header_path) .. " " .. path.absolute(gen_cpp_path) .. " " .. path.absolute(gen_hpp_path) .. " " .. include_path .. " " .. dependfile)
+            --batch_cmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
+            batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. path.absolute(header_path) .. " " .. path.absolute(gen_cpp_path) .. " " .. path.absolute(gen_hpp_path) .. " " .. include_path .. " " .. dependfile .. " " .. objectfile)
         end
     end)
 
-    on_buildcmd_file(function(target, batch_cmds, header_path, _)
+    on_buildcmd_file(function(target, batch_cmds, header_path, opt)
+        import("core.tool.compiler")
+
+        local compinst = compiler.load("cxx", {target = target})
+        local compflags = compinst:compflags({target = target, sourcefile = gen_cpp_path, configs = opt.configs})
+        local depvalues = {compinst:program(), compflags}
+
         local _, gen_cpp_path, _, _ = compute_generated_source_paths(target, header_path)
         local gen_object_path = target:objectfile(gen_cpp_path)
+        batch_cmds:show_progress(opt.progress, "${color.build.object}compile.reflection %s", header_path)
         batch_cmds:compile(gen_cpp_path, gen_object_path, { sourcekind = "cxx" })
+
+        batch_cmds:add_depvalues(depvalues)
+        batch_cmds:add_depfiles(header_path)
+        batch_cmds:set_depmtime(os.mtime(gen_object_path))
+        batch_cmds:set_depcache(target:dependfile(gen_object_path))
+        if (os.exists(target:dependfile(gen_object_path))) then
+            print("OK "..target:dependfile(gen_object_path))
+        else
+            print("BORDERL "..target:dependfile(gen_object_path))
+        end
     end)
 
     --[[
