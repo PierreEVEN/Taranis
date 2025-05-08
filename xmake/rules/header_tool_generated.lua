@@ -30,97 +30,41 @@ rule("header.tool.generated", function(_)
         return generated_header, generated_source, include_path, generated_path
     end
 
-    local function table_diff(t1, t2, compiler)
-        local diff = {}
-        local count2 = {}
-
-        -- Build a frequency map of elements in t2
-        for _, v in ipairs(t2) do
-            count2[v] = (count2[v] or 0) + 1
-        end
-
-        -- Compare against t1, decrement count if found, otherwise it's unique
-        for _, v in ipairs(t1) do
-            if count2[v] and count2[v] > 0 then
-                count2[v] = count2[v] - 1
-            elseif v ~= compiler then
-                table.insert(diff, v)
-            end
-        end
-
-        return diff
-    end
-
     before_buildcmd_files(function(target, batch_cmds, source_batch, opt)
-        import("core.tool.compiler")
         import("core.project.config")
 
         -- build compile batch
-        local args = {}
-        local compinst = compiler.load("cxx", { target = target })
-
-        local compflags = compinst:compflags({ target = target, configs = opt.configs })
-
         for _, header_path in ipairs(source_batch.sourcefiles) do
             local gen_hpp_path, gen_cpp_path, include_path, _ = compute_generated_source_paths(target, header_path)
             local gen_object_path = target:objectfile(gen_cpp_path)
-            local depend_path = target:dependfile(gen_object_path)
-            table.insert(args, "-f")
-            table.insert(args, header_path)
-            table.insert(args, include_path)
-            table.insert(args, depend_path)
-            table.insert(args, gen_hpp_path)
-            table.insert(args, gen_cpp_path)
-            table.insert(args, gen_object_path)
+            target:add("files", gen_cpp_path)
 
-            if not os.exists(gen_object_path) then
-                local empty_obj_file = io.open(gen_object_path, "w")
+            if not os.exists(gen_cpp_path) then
+                local empty_obj_file = io.open(gen_cpp_path, "w")
                 empty_obj_file:close()
             end
 
-            local contains = false
-            for _, p in pairs(target:objectfiles()) do
-                if p == gen_object_path then
-                    contains = true
-                    break
-                end
+            local bin_dir = target:configdir() .. "/" .. target:plat() .. "/" .. target:arch() .. "/" .. config.mode()
+            local header_tool_path = bin_dir.."/header_tool"
+            if is_plat("windows") then header_tool_path = header_tool_path..".exe" end
+
+            if not os.exists(path.absolute(header_tool_path)) then
+                wprint("header_tool is required but not built. Trying to build header_tool...")
+                os.exec("xmake build header_tool")
             end
-            if not contains then
-                table.insert(target:objectfiles(), gen_object_path)
-            end
-            -- filter source specific arguments
-            local file_args = table.join(compinst:compargv(gen_cpp_path, gen_object_path, { target = target, sourcefile = generated_source, configs = opt.configs }));
 
-            -- add source specific arguments
-            for _, v in pairs(table_diff(file_args, compflags, compinst:program())) do
-                table.insert(args, "-o")
-                table.insert(args, v)
-            end
+
+            batch_cmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
+            batch_cmds:vexecv(path.absolute(header_tool_path).." "..path.absolute(header_path).." "..path.absolute(gen_cpp_path).." "..path.absolute(gen_hpp_path).." "..include_path)
+            --batch_cmds:compile(gen_cpp_path, gen_object_path)
         end
-
-        local bin_dir = target:configdir() .. "/" .. target:plat() .. "/" .. target:arch() .. "/" .. config.mode()
-
-        table.insert(args, "-t")
-        local header_tool_path = bin_dir .. "/header_tool"
-        if is_plat("windows") then
-            header_tool_path = header_tool_path .. ".exe"
-        end
-        table.insert(args, header_tool_path)
-
-        table.insert(args, "-c")
-        table.insert(args, compinst:program())
-        for _, flag in pairs(compflags) do
-            table.insert(args, flag)
-        end
-
-        -- run header scanner
-        local header_scanner_path = bin_dir .. "/header_scanner"
-        if is_plat("windows") then
-            header_scanner_path = header_scanner_path .. ".exe"
-        end
-        batch_cmds:vexecv(header_scanner_path, args)
     end)
 
+    on_buildcmd_file(function (target, batch_cmds, header_path, _)
+        local _, gen_cpp_path, _, _ = compute_generated_source_paths(target, header_path)
+        local gen_object_path = target:objectfile(gen_cpp_path)
+        batch_cmds:compile(gen_cpp_path, gen_object_path)
+    end)
 
     --[[
     -- Get compiler details
