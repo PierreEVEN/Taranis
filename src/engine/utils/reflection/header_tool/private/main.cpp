@@ -19,28 +19,84 @@ struct Header
 
 int main(int argc, char** argv)
 {
-    if ((argc - 1) % 6 != 0 || argc == 1)
+    if (argc != 2)
     {
-        std::cerr <<
-            "[Header tool] Syntax error. Expected 'header_tool <scanned_header> <target_source> <target_header> <include_path> <depend_path> <object_path>'. Got "
-            << argc << " params \n";
-        return -1;
+        std::cerr << "[Header tool] Syntax error. Expected 'header_tool <header_tool_targets_file.htt>'. Got " << argc << " params \n";
+        exit(EXIT_FAILURE);
     }
 
-    for (size_t i = 0; i < (argc - 1) % 6; ++i)
+    std::vector<Header> sources;
+
+    if (!std::filesystem::exists(argv[1]))
     {
-        Header header{
+        std::cerr << "Target file " << argv[1] << " does not exists\n";
+        exit(EXIT_FAILURE);
+    }
 
-            .scanned_header = argv[(argc - 1) % 6],
-            .target_source = argv[(argc - 1) % 6 + 1],
-            .target_header = argv[(argc - 1) % 6 + 2],
-            .scanned_header_include_path = argv[(argc - 1) % 6 + 3],
-            .depend_file_path = argv[(argc - 1) % 6 + 4],
-            .gen_object_path = argv[(argc - 1) % 6 + 5],
-        };
+    std::ifstream target_file(argv[1]);
+    std::string   dep_line;
+    if (!target_file.is_open())
+    {
+        std::cerr << "Failed to open file: " << argv[1] << '\n';
+        return 1;
+    }
+    while (std::getline(target_file, dep_line))
+    {
+        Header      header;
+        std::string tmp;
+        size_t      state = 0;
+        for (const auto& chr : dep_line)
+        {
+            if (chr == ',')
+            {
+                switch (state++)
+                {
+                case 0:
+                    header.scanned_header = tmp;
+                    break;
+                case 1:
+                    header.target_source = tmp;
+                    break;
+                case 2:
+                    header.target_header = tmp;
+                    break;
+                case 3:
+                    header.scanned_header_include_path = tmp;
+                    break;
+                case 4:
+                    header.depend_file_path = tmp;
+                    break;
+                case 5:
+                    header.gen_object_path = tmp;
+                    break;
+                default:
+                    std::cerr << "Too much arguments\n";
+                    exit(EXIT_FAILURE);
+                }
+                tmp.clear();
+            }
+            else
+                tmp += chr;
+        }
+        if (state == 5)
+            header.gen_object_path = tmp;
+        sources.emplace_back(header);
+    }
 
+    for (const auto& header : sources)
+    {
+        std::cout << "test:\n"
+                  << header.scanned_header << "\n"
+                  << header.target_source << "\n"
+                  << header.target_header << "\n"
+                  << header.scanned_header_include_path << "\n"
+                  << header.depend_file_path << "\n"
+                  << header.gen_object_path << "\n\n\n";
+
+
+        //std::cout << "GEN FOR " << header.target_header << "\n";
         std::filesystem::path generated_include_path = header.scanned_header_include_path;
-        generated_include_path                             = generated_include_path.replace_extension(".gen.hpp");
+        generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
 
         DependParser depend_parser(header.depend_file_path);
         std::time_t  last_depend_write_time = depend_parser.get_last_write_time();
@@ -60,7 +116,9 @@ int main(int argc, char** argv)
         source_header->read();
         HeaderParser parser(source_header->raw_stream(), generated_include_path, header.scanned_header);
         if (parser.get_classes().empty() && parser.get_enums().empty())
+        {
             return 0;
+        }
         std::cout << header.scanned_header << " MODIFY : " << last_depend_write_time << " vs Source : " << last_write_time << "\n";
 
         if (auto include_to_add = parser.get_include_line_to_add())
@@ -84,6 +142,8 @@ int main(int argc, char** argv)
             output << data;
             output.close();
         }
+
+        std::cout << "test ??\n";
 
         Generator generator(parser);
         generator.generate(source_header->timestamp(), header.target_source, header.target_header, header.scanned_header_include_path, generated_include_path);

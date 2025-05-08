@@ -45,7 +45,7 @@ rule("header.tool.generated", function(_)
          end
 
         local tmp_file_path = target:autogendir() .. "/header_tool_targets.htt"
-        local tmp_file = io.open(tmp_file_path, "w")
+        local tmp_file = io.open(tmp_file_path, "wb")
 
         -- build compile batch
         for _, header_path in ipairs(source_batch.sourcefiles) do
@@ -60,11 +60,12 @@ rule("header.tool.generated", function(_)
             local objectfile = target:objectfile(gen_cpp_path)
             local dependfile = target:dependfile(objectfile)
 
-            tmp_file:write(path.absolute(header_path) .. "," .. path.absolute(gen_cpp_path) .. "," .. path.absolute(gen_hpp_path) .. "," .. include_path .. "," .. dependfile .. "," .. objectfile .."\n")
+            tmp_file:write(path.absolute(header_path) .. "," .. path.absolute(gen_cpp_path) .. "," .. path.absolute(gen_hpp_path) .. "," .. include_path .. "," .. dependfile .. "," .. objectfile .."\r\n")
         end
+        tmp_file:close()
         
-        --batch_cmds:show_progress(opt.progress, "${color.build.object}DONE.PRE")
-        batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. tmp_file_path)
+        --batch_cmds:show_progress(opt.progress, "${color.build.object}DONE.PRE %s", path.absolute(header_tool_path) .. " " .. path.absolute(tmp_file_path))
+        batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. path.absolute(tmp_file_path))
         --batch_cmds:show_progress(opt.progress, "${color.build.object}DONE.reflection")
     end)
 
