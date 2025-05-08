@@ -1,23 +1,22 @@
 #include "jobsys/job_sys.hpp"
 
-JobSystem* global_js = nullptr;
+JobSystem *global_js = nullptr;
 
-JobSystem::JobSystem(size_t num_tasks)
-{
-    for (size_t i = 0; i < num_tasks; ++i)
+JobSystem::JobSystem(size_t num_workers) {
+    if (num_workers == 0)
+        num_workers = std::thread::hardware_concurrency();
+    for (size_t i = 0; i < num_workers; ++i)
         workers.emplace_back(std::make_unique<Worker>(this));
     assert(!global_js);
     global_js = this;
 }
 
-JobSystem::~JobSystem()
-{
+JobSystem::~JobSystem() {
     global_js = nullptr;
     workers.clear();
 }
 
-JobSystem& JobSystem::get()
-{
+JobSystem &JobSystem::get() {
     assert(global_js);
     return *global_js;
 }
@@ -26,19 +25,14 @@ JobSystem& JobSystem::get()
 #include "Windows.h"
 #endif
 
-Worker::Worker(JobSystem* job_system) : js(job_system)
-{
+Worker::Worker(JobSystem *job_system) : js(job_system) {
     thread = std::thread(
-        [&]
-        {
-            while (!b_need_stop)
-            {
-                std::shared_ptr<IJob> job = nullptr;
-                {
+        [&] {
+            while (!b_need_stop) {
+                std::shared_ptr<IJob> job = nullptr; {
                     std::unique_lock lk(js->job_add_mutex);
                     js->job_added.wait(lk,
-                                       [&]
-                                       {
+                                       [&] {
                                            if (b_need_stop)
                                                return true;
                                            js->jobs.try_dequeue(job);
@@ -55,14 +49,12 @@ Worker::Worker(JobSystem* job_system) : js(job_system)
 #endif
 }
 
-Worker::~Worker()
-{
+Worker::~Worker() {
     b_need_stop = true;
     js->job_added.notify_all();
     thread.join();
 }
 
-void Worker::stop()
-{
+void Worker::stop() {
     b_need_stop = true;
 }

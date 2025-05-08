@@ -1,5 +1,5 @@
 -- Generate and compile source files for the reflection system
-rule("header.tool.generated", function(rule)
+rule("header.tool.generated", function(_)
     set_extensions(".hpp")
 
     -- Get the output paths for generated sources for the given input header
@@ -62,7 +62,7 @@ rule("header.tool.generated", function(rule)
         local compflags = compinst:compflags({ target = target, configs = opt.configs })
 
         for _, header_path in ipairs(source_batch.sourcefiles) do
-            local gen_hpp_path, gen_cpp_path, include_path, generated_path = compute_generated_source_paths(target, header_path)
+            local gen_hpp_path, gen_cpp_path, include_path, _ = compute_generated_source_paths(target, header_path)
             local gen_object_path = target:objectfile(gen_cpp_path)
             local depend_path = target:dependfile(gen_object_path)
             table.insert(args, "-f")
@@ -73,6 +73,21 @@ rule("header.tool.generated", function(rule)
             table.insert(args, gen_cpp_path)
             table.insert(args, gen_object_path)
 
+            if not os.exists(gen_object_path) then
+                local empty_obj_file = io.open(gen_object_path, "w")
+                empty_obj_file:close()
+            end
+
+            local contains = false
+            for _, p in pairs(target:objectfiles()) do
+                if p == gen_object_path then
+                    contains = true
+                    break
+                end
+            end
+            if not contains then
+                table.insert(target:objectfiles(), gen_object_path)
+            end
             -- filter source specific arguments
             local file_args = table.join(compinst:compargv(gen_cpp_path, gen_object_path, { target = target, sourcefile = generated_source, configs = opt.configs }));
 
