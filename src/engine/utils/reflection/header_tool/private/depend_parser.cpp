@@ -101,8 +101,8 @@ std::optional<Llp::ParserError> DependParser::parse(const std::filesystem::path&
                     {
                         if (auto dep_path = dependencies_block_parser.consume<Llp::StringLiteralToken>())
                             dependencies.emplace_back(dep_path->value);
-                        else if (auto dep_path = dependencies_block_parser.consume<MsvcDependLiteralToken>())
-                            dependencies.emplace_back(dep_path->value);
+                        else if (auto dep_path_msvc = dependencies_block_parser.consume<MsvcDependLiteralToken>())
+                            dependencies.emplace_back(dep_path_msvc->value);
                         else
                             return Llp::ParserError{key_list_block.current_location(), "expected string literal : \"\""};
                         if (dependencies_block_parser.get_current_token_type() == Llp::NULL_TOKEN)
