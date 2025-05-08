@@ -1,6 +1,7 @@
 #pragma once
 #include "gfx_types/pipeline.hpp"
 #include "llp/lexer.hpp"
+#include "llp/native_tokens.hpp"
 
 #include <string>
 #include <ankerl/unordered_dense.h>

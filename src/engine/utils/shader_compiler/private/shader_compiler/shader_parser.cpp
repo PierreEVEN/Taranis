@@ -8,8 +8,9 @@
 namespace ShaderCompiler
 {
 
-ShaderParser::ShaderParser(const std::string& source_shader) : lexer(source_shader), source_code(source_shader)
+ShaderParser::ShaderParser(const std::string& source_shader) : source_code(source_shader)
 {
+    lexer.run(source_shader);
     error = lexer.get_error();
 
     if (error)
@@ -19,7 +20,7 @@ ShaderParser::ShaderParser(const std::string& source_shader) : lexer(source_shad
 
 std::optional<Llp::ParserError> ShaderParser::parse()
 {
-    for (Llp::Parser parser(lexer.get_root(), {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl}); parser; ++parser)
+    for (Llp::Parser parser(lexer.get_root()); parser; ++parser)
     {
         if (parser.consume<Llp::WordToken>("option"))
         {
@@ -65,7 +66,7 @@ std::optional<Llp::ParserError> ShaderParser::parse()
                         passes.insert_or_assign(pass, std::vector<std::shared_ptr<ShaderBlock>>{}).first->second.emplace_back(block_shared);
                 }
                 else
-                    return Llp::ParserError{parser.current_location(), std::string("expected {shader_block}, found ") + Llp::token_type_to_string(parser.get_current_token_type())};
+                    return Llp::ParserError{parser.current_location(), std::string("expected {shader_block}, found ") + lexer.get_context().get_token_name(parser.get_current_token_type())};
             }
             else
                 return Llp::ParserError{parser.current_location(), "expected (args)"};
@@ -91,14 +92,14 @@ std::optional<Llp::ParserError> ShaderParser::parse()
                 return Llp::ParserError{parser.current_location(), "'=' expected"};
         }
         else
-            return Llp::ParserError{parser.current_location(), std::format("Unexpected token : Found {}", Llp::token_type_to_string(parser.get_current_token_type()))};
+            return Llp::ParserError{parser.current_location(), std::format("Unexpected token : Found {}", lexer.get_context().get_token_name(parser.get_current_token_type()))};
     }
     return {};
 }
 
 std::optional<Llp::ParserError> ShaderParser::parse_pass_args(Llp::ArgumentsToken& args, std::vector<std::string>& pass_list)
 {
-    for (Llp::Parser parser(args.content, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl}); parser; ++parser)
+    for (Llp::Parser parser(args.content); parser; ++parser)
     {
         if (auto* name = parser.consume<Llp::WordToken>())
             pass_list.emplace_back(name->word);
@@ -172,7 +173,7 @@ std::optional<std::string> ShaderParser::parse_config_value(const std::string& k
 
 std::optional<Llp::ParserError> ShaderParser::parse_block(const Llp::BlockToken& args, ShaderBlock& block)
 {
-    for (Llp::Parser parser(args.content, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl}); parser; ++parser)
+    for (Llp::Parser parser(args.content); parser; ++parser)
     {
         if (parser.get<Llp::WordToken>(0) && parser.get<Llp::WordToken>(1))
         {
