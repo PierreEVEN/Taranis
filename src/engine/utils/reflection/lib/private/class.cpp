@@ -46,7 +46,7 @@ void Class::register_property(const std::string& property_name, size_t offset, c
     if (!properties.emplace(property_name, Property(property_name, offset, type)).second)
     {
         std::cerr << "Failed to register class property '" << property_name << "' for " << name() << "\n";
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -82,7 +82,7 @@ void Class::register_class_internal(Class* inClass)
     if (!get_classes_internal().emplace(inClass->id(), inClass).second)
     {
         std::cerr << "Failed to register class " << inClass->name() << "\n";
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 }
 } // namespace Reflection

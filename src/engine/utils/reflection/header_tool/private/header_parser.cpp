@@ -2,6 +2,7 @@
 
 #include "llp/file_data.hpp"
 #include "llp/lexer.hpp"
+#include "llp/native_tokens.hpp"
 #include "llp/parser.hpp"
 
 #include <filesystem>
@@ -46,11 +47,13 @@ std::optional<Llp::ParserError> TypeDefinition::try_parse(Llp::Parser& parser)
 HeaderParser::HeaderParser(const std::string& header_data, std::filesystem::path in_generated_header_include_path, std::filesystem::path in_header_path)
     : generated_header_include_path(std::move(in_generated_header_include_path)), header_path(std::move(in_header_path))
 {
-    Llp::Lexer lexer(header_data);
+    Llp::Lexer lexer;
+    lexer.run(header_data);
+    //std::cout << lexer.get_root().to_string(true) << "\n\n";
     if (auto error = parse_block(lexer.get_root(), {}))
     {
         std::cerr << "Failed to generate reflection data for " << header_path.string() << ":" << error->location.line << ":" << error->location.column << " : " << error->message << "\n";
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -138,10 +141,10 @@ std::string HeaderParser::ReflectedEnum::namespace_path() const
     return name;
 }
 
-std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::Block& block, ReflectedEnum& data)
+std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::TokenizedBlock& block, ReflectedEnum& data)
 {
-    Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl});
-    while (parser && parser.get_current_token_type() != Llp::ELexerToken::Null)
+    Llp::Parser parser(block);
+    while (parser && parser.get_current_token_type() != Llp::NULL_TOKEN)
     {
         if (auto key = parser.consume<Llp::WordToken>())
         {
@@ -159,10 +162,10 @@ std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::Block& 
     return {};
 }
 
-std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Block& block, ReflectedEnum& data)
+std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::TokenizedBlock& block, ReflectedEnum& data)
 {
-    Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl});
-    while (parser && parser.get_current_token_type() != Llp::ELexerToken::Null)
+    Llp::Parser parser(block);
+    while (parser && parser.get_current_token_type() != Llp::NULL_TOKEN)
     {
         if (auto key = parser.consume<Llp::WordToken>())
         {
@@ -182,20 +185,19 @@ std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Block& 
             }
         }
         else
-            return Llp::ParserError{parser.current_location(), std::format("Expected enum field name, got {}", token_type_to_string(parser.get_current_token_type()))};
+            return Llp::ParserError{parser.current_location(), std::format("Expected enum field name, got {}", block.get_lexer_context().get_token_name(parser.get_current_token_type()))};
         if (parser && !parser.consume<Llp::ComaToken>())
             return Llp::ParserError{parser.current_location(), "Expected coma token"};
     }
     return {};
 }
 
-std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& block, const ParserContext& context)
+std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBlock& block, const ParserContext& context)
 {
-    for (Llp::Parser parser(block, {Llp::ELexerToken::Whitespace, Llp::ELexerToken::Comment, Llp::ELexerToken::Endl}); parser;)
+    for (Llp::Parser parser(block); parser;)
     {
-        switch (parser.get_current_token_type())
+        if (parser.get_current_token_type() == Llp::TTokenType<Llp::SymbolToken>::id)
         {
-        case Llp::ELexerToken::Symbol:
             if (parser.consume<Llp::SymbolToken>('#'))
             {
                 if (parser.consume<Llp::WordToken>("pragma") && parser.consume<Llp::WordToken>("once"))
@@ -205,8 +207,8 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
             {
                 parser.consume<Llp::SymbolToken>();
             }
-            break;
-        case Llp::ELexerToken::Word:
+        }
+        else if (parser.get_current_token_type() == Llp::TTokenType<Llp::WordToken>::id)
         {
             const std::string& word = parser.consume<Llp::WordToken>()->word;
 
@@ -291,7 +293,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                         break;
                     }
 
-                } while (parser.get_current_token_type() != Llp::ELexerToken::Block);
+                } while (parser.get_current_token_type() != Llp::TTokenType<Llp::BlockToken>::id);
                 if (!b_failed)
                 {
                     ParserContext new_context = context;
@@ -379,23 +381,21 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Block& bloc
                     return Llp::ParserError{parser.current_location(), "Expected enum name"};
             }
         }
-        break;
-        case Llp::ELexerToken::Include:
+        else if (parser.get_current_token_type() == Llp::TTokenType<Llp::IncludeToken>::id)
         {
             line_after_last_include = parser.current_location().line + 2;
             std::string& include    = parser.consume<Llp::IncludeToken>()->path;
             if (std::filesystem::path(include).lexically_normal() == generated_header_include_path)
                 b_found_include = true;
         }
-        break;
-        case Llp::ELexerToken::Block:
+        else if (parser.get_current_token_type() == Llp::TTokenType<Llp::BlockToken>::id)
+        {
             if (auto* class_block = parser.consume<Llp::BlockToken>())
                 if (auto error = parse_block(class_block->content, context))
                     return error;
-            break;
-        default:
-            ++parser;
         }
+        else
+            ++parser;
     }
     return {};
 }
@@ -430,5 +430,5 @@ bool HeaderParser::parse_check_include(TextReader& reader, const std::filesystem
 void HeaderParser::error(const std::string& message, size_t line, size_t column) const
 {
     std::cerr << "Error in " << header_path.lexically_normal().string() << ":" << line << ":" << column << " : " << message << "\n";
-    exit(-1);
+    exit(EXIT_FAILURE);
 }

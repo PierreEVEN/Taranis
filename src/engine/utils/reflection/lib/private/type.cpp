@@ -26,7 +26,7 @@ void Type::register_type_internal(Type* in_type)
     if (!get_types_internal().emplace(in_type->id(), in_type).second)
     {
         std::cerr << "Failed to register type, type is already registered : " << in_type->name() << "\n";
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 }
 

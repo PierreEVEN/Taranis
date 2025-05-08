@@ -34,7 +34,7 @@ Compiler::Compiler()
     if (SLANG_FAILED(createGlobalSession(&global_session)))
     {
         std::cerr << "Failed to create global slang compiler session\n";
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -322,7 +322,7 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
                 {
                     std::cout << std::format("UNUSED PC ISSUE !! {} : type={} / kind={} / cat={}\n", parameter->getName(), (int)parameter->getType()->getKind(),
                                              static_cast<uint32_t>(parameter->getTypeLayout()->getStride(SLANG_PARAMETER_CATEGORY_PUSH_CONSTANT_BUFFER)), static_cast<int>(parameter->getCategory()));
-                    exit(-1);
+                    exit(EXIT_FAILURE);
                 }
             }
 

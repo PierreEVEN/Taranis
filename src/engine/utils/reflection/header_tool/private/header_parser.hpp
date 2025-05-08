@@ -14,7 +14,7 @@ class Parser;
 namespace Llp
 {
 struct ParserError;
-class Block;
+class TokenizedBlock;
 }
 
 class FileReader;
@@ -166,9 +166,9 @@ public:
     }
 
 private:
-    std::optional<Llp::ParserError>        parse_block(const Llp::Block& block, const ParserContext& context);
-    static std::optional<Llp::ParserError> parse_enum_args(const Llp::Block& block, ReflectedEnum& data);
-    static std::optional<Llp::ParserError> parse_enum_body(const Llp::Block& block, ReflectedEnum& data);
+    std::optional<Llp::ParserError>        parse_block(const Llp::TokenizedBlock& block, const ParserContext& context);
+    static std::optional<Llp::ParserError> parse_enum_args(const Llp::TokenizedBlock& block, ReflectedEnum& data);
+    static std::optional<Llp::ParserError> parse_enum_body(const Llp::TokenizedBlock& block, ReflectedEnum& data);
     static bool                            parse_check_include(TextReader& reader, const std::filesystem::path& desired_path);
 
     void error(const std::string& message, size_t line, size_t column) const;

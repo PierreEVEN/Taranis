@@ -57,6 +57,7 @@ rule("header.tool.generated", function(_)
             local objectfile = target:objectfile(gen_cpp_path)
             local dependfile = target:dependfile(objectfile)
             --batch_cmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
+            --print(path.absolute(header_tool_path) .. " " .. path.absolute(header_path) .. " " .. path.absolute(gen_cpp_path) .. " " .. path.absolute(gen_hpp_path) .. " " .. include_path .. " " .. dependfile .. " " .. objectfile)
             batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. path.absolute(header_path) .. " " .. path.absolute(gen_cpp_path) .. " " .. path.absolute(gen_hpp_path) .. " " .. include_path .. " " .. dependfile .. " " .. objectfile)
         end
     end)

@@ -24,7 +24,7 @@ public:
                 try {
                     std::vector<std::filesystem::path> deps;
                     if (!parse_dep_file(file_path, deps))
-                        exit(-1);
+                        exit(EXIT_FAILURE);
                     for (const auto &dep: deps) {
                         auto dep_time = get_last_modification_time(dep);
                         if (dep_time > modification_time)
@@ -32,7 +32,7 @@ public:
                     }
                 } catch (const std::exception &e) {
                     std::cerr << "Failed to parse depend file '" << file_path << "' : " << e.what() << "\n";
-                    exit(-1);
+                    exit(EXIT_FAILURE);
                 }
             }
         } else
@@ -48,7 +48,7 @@ public:
             auto ftime = std::filesystem::last_write_time(file_path);
 
             // Convert to system clock time
-            auto sctp = std::chrono::system_clock::to_time_t(std::chrono::file_clock::to_sys(ftime));
+            auto sctp = std::chrono::system_clock::to_time_t(std::chrono::clock_cast<std::chrono::system_clock>(ftime));
 
             return sctp;
         }
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
                                             file.gen_cpp_path.string(), file.gen_hpp_path.string(),
                                             file.include_path.string()).c_str())) {
                 std::cerr << "Failed to generate " << file.gen_cpp_path << " : Exit " << code << "\n";
-                exit(-1);
+                exit(EXIT_FAILURE);
             }
         });
     };
@@ -301,10 +301,10 @@ int main(int argc, char **argv) {
                 cmd += arg + " ";
 
             std::cout << "COMPILE " << file.header_path << "\n";
-            std::filesystem::create_directories(file.gen_object_path.parent_path());
+            create_directories(file.gen_object_path.parent_path());
             if (const auto code = std::system(cmd.c_str())) {
                 std::cerr << "Failed to compile " << file.gen_cpp_path << " : Exit " << code << "\n";
-                exit(-1);
+                exit(EXIT_FAILURE);
             }
         });
     }
