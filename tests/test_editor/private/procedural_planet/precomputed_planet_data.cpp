@@ -54,7 +54,7 @@ PlanetData::WeatherData PrecomputedPlanetData::get_weather_at_location(const glm
 
 PlanetData::TectonicData PrecomputedPlanetData::get_tectonic_plate_data_at_location(const glm::dvec3& location)
 {
-    double c = 1.0 - noise2.GetCellular(location.x * 200, location.y * 200, location.z * 200);
+    //double c = 1.0 - noise2.GetCellular(location.x * 200, location.y * 200, location.z * 200);
 
     double c2 = noise2.GetCellular(location.x * 178, location.y * 178, location.z * 178);
     //double c3 = noise3.GetCellular(location.x * 178, location.y * 178, location.z * 178);
@@ -73,12 +73,12 @@ PlanetData::TectonicData PrecomputedPlanetData::get_tectonic_plate_data_at_locat
     };
 }
 
-PlanetData::RiverData PrecomputedPlanetData::get_river_data_at_location(const glm::dvec3& location)
+PlanetData::RiverData PrecomputedPlanetData::get_river_data_at_location(const glm::dvec3&)
 {
     return {};
 }
 
-PlanetData::BiomeDataAtLocation PrecomputedPlanetData::get_biome_data_at_location(const glm::dvec3& location)
+PlanetData::BiomeDataAtLocation PrecomputedPlanetData::get_biome_data_at_location(const glm::dvec3&)
 {
     return {};
 }

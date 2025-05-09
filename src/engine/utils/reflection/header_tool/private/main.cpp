@@ -9,117 +9,60 @@
 
 struct Header
 {
-    std::filesystem::path scanned_header;
-    std::filesystem::path target_source;
-    std::filesystem::path target_header;
-    std::filesystem::path scanned_header_include_path;
-    std::filesystem::path depend_file_path;
-    std::filesystem::path gen_object_path;
+    std::filesystem::path header_path;
+    std::filesystem::path gen_cpp_path;
+    std::filesystem::path gen_hpp_path;
+    std::filesystem::path include_path;
 };
 
 int main(int argc, char** argv)
 {
-    if (argc != 2)
+    if (argc != 5)
     {
         std::cerr << "[Header tool] Syntax error. Expected 'header_tool <header_tool_targets_file.htt>'. Got " << argc << " params \n";
         exit(EXIT_FAILURE);
     }
 
-    std::vector<Header> sources;
+    Header header{
+        .header_path = argv[1],
+        .gen_cpp_path = argv[2],
+        .gen_hpp_path = argv[3],
+        .include_path = argv[4]
+    };
 
-    if (!std::filesystem::exists(argv[1]))
-    {
-        std::cerr << "Target file " << argv[1] << " does not exists\n";
-        exit(EXIT_FAILURE);
-    }
+    std::filesystem::path generated_include_path = header.include_path;
+    generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
 
-    std::ifstream target_file(argv[1]);
-    std::string   dep_line;
-    if (!target_file.is_open())
+    auto source_header = std::make_shared<FileReader>(header.header_path);
+    source_header->read();
+    HeaderParser parser(source_header->raw_stream(), generated_include_path, header.header_path);
+    if (parser.get_classes().empty() && parser.get_enums().empty())
+        exit(EXIT_SUCCESS);
+
+    if (auto include_to_add = parser.get_include_line_to_add())
     {
-        std::cerr << "Failed to open file: " << argv[1] << '\n';
-        return 1;
-    }
-    while (std::getline(target_file, dep_line))
-    {
-        Header      header;
-        std::string tmp;
-        size_t      state = 0;
-        for (const auto& chr : dep_line)
+        std::cout << "[ Fix missing include ] : " << generated_include_path.string() << "\n";
+        std::ifstream header_file(header.header_path);
+        std::string   data;
+        std::string   line;
+        size_t        line_index = 1;
+        while (std::getline(header_file, line))
         {
-            if (chr == ',')
+            if (line_index == *include_to_add)
             {
-                switch (state++)
-                {
-                case 0:
-                    header.scanned_header = tmp;
-                    break;
-                case 1:
-                    header.target_source = tmp;
-                    break;
-                case 2:
-                    header.target_header = tmp;
-                    break;
-                case 3:
-                    header.scanned_header_include_path = tmp;
-                    break;
-                case 4:
-                    header.depend_file_path = tmp;
-                    break;
-                case 5:
-                    header.gen_object_path = tmp;
-                    break;
-                default:
-                    std::cerr << "Too much arguments\n";
-                    exit(EXIT_FAILURE);
-                }
-                tmp.clear();
+                data += "#include \"" + generated_include_path.string() + "\"\n";
             }
-            else
-                tmp += chr;
+            data += line + "\n";
+            line_index++;
         }
-        if (state == 5)
-            header.gen_object_path = tmp;
-        sources.emplace_back(header);
+        header_file.close();
+        std::ofstream output(header.header_path);
+        output << data;
+        output.close();
     }
 
-    for (const auto& header : sources)
-    {
-        //std::cout << "GEN FOR " << header.target_header << "\n";
-        std::filesystem::path generated_include_path = header.scanned_header_include_path;
-        generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
-
-        auto source_header = std::make_shared<FileReader>(header.scanned_header);
-        source_header->read();
-        HeaderParser parser(source_header->raw_stream(), generated_include_path, header.scanned_header);
-        if (parser.get_classes().empty() && parser.get_enums().empty())
-            continue;
-
-        if (auto include_to_add = parser.get_include_line_to_add())
-        {
-            std::cout << "[ Fix missing include ] : " << generated_include_path.string() << "\n";
-            std::ifstream header_file(header.scanned_header);
-            std::string   data;
-            std::string   line;
-            size_t        line_index = 1;
-            while (std::getline(header_file, line))
-            {
-                if (line_index == *include_to_add)
-                {
-                    data += "#include \"" + generated_include_path.string() + "\"\n";
-                }
-                data += line + "\n";
-                line_index++;
-            }
-            header_file.close();
-            std::ofstream output(header.scanned_header);
-            output << data;
-            output.close();
-        }
-
-        Generator generator(parser);
-        generator.generate(source_header->timestamp(), header.target_source, header.target_header, header.scanned_header_include_path, generated_include_path);
-    }
+    Generator generator(parser);
+    generator.generate(source_header->timestamp(), header.gen_cpp_path, header.gen_hpp_path, header.include_path, generated_include_path);
 
     return 0;
 }

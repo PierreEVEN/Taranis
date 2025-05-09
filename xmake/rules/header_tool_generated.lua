@@ -22,26 +22,26 @@ rule("header.tool.generated", function(_)
         return generated_header, generated_source, include_path, generated_path
     end
 
+
+    on_config(function (target)
+        local path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "public"))
+        os.mkdir(path)
+        target:add("includedirs", path, { public = true })
+    end)
+
     before_buildcmd_file(function(target, batchcmds, header_path, opt)
         import("core.project.config")
 
         local gen_hpp_path, gen_cpp_path, include_path, _ = compute_generated_source_paths(target, header_path)
-        local gen_object_path = target:objectfile(gen_cpp_path)
-        local depend_file = target:dependfile(gen_object_path)
         target:add("files", gen_cpp_path)
-
-        local build_instruction_file = gen_cpp_path .. ".htt"
-        local build_instrs = io.open(build_instruction_file, "wb")
-        build_instrs:write(path.absolute(header_path) .. "," .. path.absolute(gen_cpp_path) .. "," .. path.absolute(gen_hpp_path) .. "," .. include_path .. "," .. path.absolute(depend_file) .. "," .. path.absolute(object_file) .. "\r\n")
-        build_instrs:close()
 
         local header_tool_path = path.join(target:configdir(), target:plat(), target:arch(), config.mode(), is_host("windows") and "header_tool.exe" or "header_tool");
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", gen_cpp_path)
-        batchcmds:vrunv(path.absolute(header_tool_path), {path.absolute(build_instruction_file)})
+        batchcmds:vrunv(path.absolute(header_tool_path), {path.absolute(header_path), path.absolute(gen_cpp_path), path.absolute(gen_hpp_path), include_path})
 
+         -- Create an empty .gen.cpp file even if we doesn't need to generate reflection data for it
         if not os.exists(gen_cpp_path) then
-            local empty_obj_file = io.open(gen_cpp_path, "w")
-            empty_obj_file:close()
+            io.open(gen_cpp_path, "w"):close()
         end
         
         batchcmds:set_depmtime(os.mtime(gen_cpp_path))

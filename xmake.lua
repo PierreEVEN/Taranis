@@ -1,21 +1,16 @@
-add_rules("mode.debug", "mode.release")
---add_rules("plugin.vsxmake.autoupdate") // trigger to often : wait improvements for the vsxmake generator
 
 set_project("TaranisEngine")
 set_languages("cxx20")
-set_allowedarchs("windows|x64")
+set_allowedarchs("windows|x64", "linux|x64")
 set_warnings("allextra")
+set_rundir(".")
+--add_rules("plugin.vsxmake.autoupdate") // trigger to often : wait improvements for the vsxmake generator
+
+------------[[ MODES ]]--------------
+
+add_rules("mode.debug", "mode.release")
 set_allowedmodes("debug", "release")
 set_defaultmode("release")
-set_rundir(".")
-if is_plat("windows") then
-    set_runtimes(is_mode("debug") and "MDd" or "MD")
-end
-
-BUILD_MONOLITHIC = false;
-
-option("build-tests", { default = true })
-
 if is_mode("debug") then
     set_optimize("fastest")
 end
@@ -24,6 +19,17 @@ if is_mode("release") then
     set_optimize("fastest")
     set_strip("all")
 end
+if is_plat("windows") then
+    set_runtimes(is_mode("debug") and "MDd" or "MD")
+end
+
+------------[[ OPTIONS ]]--------------
+
+option("build-monolithis", { default = false })
+option("build-tests", { default = true })
+option("profiler", { default = true })
+
+------------[[ DEPENDENCIES ]]--------------
 
 add_requires("assimp v5.4.3", {configs = {shared = true, no_export = true}})
 add_requires("concurrentqueue v1.0.4")
@@ -37,8 +43,6 @@ add_requires("unordered_dense v4.5.0")
 add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
 add_requires("nlohmann_json v3.11.3")
-
-add_defines("ENABLE_PROFILER")
 
 function declare_module(module_name, opts)
 
@@ -59,6 +63,10 @@ function declare_module(module_name, opts)
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
 	    add_cxxflags("-Wno-missing-field-initializers", {tools = "gcc"})
 
+        if has_config("profiler") then
+            add_defines("ENABLE_PROFILER")
+        end
+
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
         --add_defines(module_name:upper().."_API=__declspec(dllexport)")
 
@@ -73,12 +81,6 @@ function declare_module(module_name, opts)
             for _, file in pairs(os.files("**.hpp")) do
                 add_files(file)
             end
-
-            on_config(function (target)
-                local path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "public"))
-                target:add("includedirs", path, { public = true })
-            end)
-
         end
 
         -- search for files
@@ -107,19 +109,21 @@ function declare_module(module_name, opts)
             add_deps(table.unpack(deps))
         end
 
+        local build_monolithic = has_config("build-tests")
+
         -- add packages
         if packages then
             packages_name = "";
             for _, package in ipairs(packages) do
                 if type(package) == "table" then
-                    if not BUILD_MONOLITHIC then
+                    if not build_monolithic then
                         add_packages(package.name, {public = true})
                     else
                         add_packages(package.name, {public = package.public})
                     end
                     packages_name = packages_name..", "..package.name
                 else
-                    if not BUILD_MONOLITHIC then
+                    if not build_monolithic then
                         add_packages(package, {public = true})
                     else
                         add_packages(package)
@@ -134,7 +138,7 @@ function declare_module(module_name, opts)
             set_kind("binary")
         elseif #cpp_files == 0 then
             set_kind("headeronly")
-        elseif BUILD_MONOLITHIC or (not allow_shared_build and not is_module) then
+        elseif build_monolithic or (not allow_shared_build and not is_module) then
             set_kind("static")
         else
             if not is_module then
