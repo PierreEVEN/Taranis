@@ -5,27 +5,19 @@ rule("header.tool.generated", function(_)
     -- Get the output paths for generated sources for the given input header
     local function compute_generated_source_paths(target, source_header)
         -- Guess generated source file path
-        local generated_path = string.sub(os.projectdir() .. "/" .. source_header, string.len(target:scriptdir()) + 2)
+        local generated_path = path.relative(source_header, target:scriptdir())
 
         -- this is the include string the user should have added to it's class
         local include_path = generated_path
-        if generated_path:match("^[^\\]+\\(.*)$") then
-            include_path = generated_path:match("^[^\\]+\\(.*)$"):gsub("\\", "/")
-        elseif generated_path:match("^[^/]+/(.*)$") then
-            include_path = generated_path:match("^[^/]+/(.*)$"):gsub("/", "/")
-        else
-            raise("Error : no match for include path " .. include_path)
+        local path_parts = path.split(generated_path)
+        if (path_parts[1] == "public" or path_parts[1] == "private") then -- private/public directories are not required
+            include_path = path.join(table.remove(path_parts, 1))
         end
 
-        -- Generated source file path : replace .hpp extension with .gen.cpp
-        local generated_source = target:autogendir() .. "/" .. string.sub(generated_path, 1, string.len(generated_path) - 3) .. "gen.cpp"
-        -- generated classes are always private
-        generated_source = generated_source:gsub("public", "private", 1)
-
-        -- Generated header file path : replace .hpp extension with .gen.hpp
-        local generated_header = target:autogendir() .. "/" .. string.sub(generated_path, 1, string.len(generated_path) - 3) .. "gen.hpp"
-        -- generated headers are always public
-        generated_header = generated_header:gsub("private", "public", 1)
+        local basename = path.basename(source_header);
+        local directory = path.directory(source_header);
+        local generated_source = target:autogenfile(path.join(directory:gsub("public", "private", 1), basename .. ".gen.cpp"))
+        local generated_header = target:autogenfile(path.join(directory:gsub("private", "public", 1), basename.. ".gen.hpp"))
 
         return generated_header, generated_source, include_path, generated_path
     end
@@ -39,7 +31,7 @@ rule("header.tool.generated", function(_)
          if is_plat("windows") then
              header_tool_path = header_tool_path .. ".exe"
          end
- 
+
          if not os.exists(path.absolute(header_tool_path)) then
              wprint("header_tool is required but not built. Trying to build header_tool...")
              os.exec("xmake build header_tool")
@@ -64,7 +56,7 @@ rule("header.tool.generated", function(_)
             tmp_file:write(path.absolute(header_path) .. "," .. path.absolute(gen_cpp_path) .. "," .. path.absolute(gen_hpp_path) .. "," .. include_path .. "," .. dependfile .. "," .. objectfile .."\r\n")
         end
         tmp_file:close()
-        
+
         --batch_cmds:show_progress(opt.progress, "${color.build.object}DONE.PRE %s", path.absolute(header_tool_path) .. " " .. path.absolute(tmp_file_path))
         batch_cmds:vexecv(path.absolute(header_tool_path) .. " " .. path.absolute(tmp_file_path))
         --batch_cmds:show_progress(opt.progress, "${color.build.object}DONE.reflection")
@@ -189,7 +181,7 @@ rule("header.tool.generated", function(_)
             local dependinfo = {}
             dependinfo.files = {source_header}
             dependinfo.values = depvalues
-            depend.save(dependinfo, dependfile)    
+            depend.save(dependinfo, dependfile)
         end
     end)
 end)
