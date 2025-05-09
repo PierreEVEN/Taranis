@@ -1,6 +1,5 @@
 #pragma once
 #include "render_pass_instance_base.hpp"
-#include "public.gen.hpp"
 #include "gfx/renderer/instance/compute_pass_instance.gen.hpp"
 
 namespace Eng::Gfx

@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include "public.gen.hpp"
 #include "gfx/vulkan/swapchain.gen.hpp"
 
 namespace Eng::Gfx

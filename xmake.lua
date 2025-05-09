@@ -77,9 +77,7 @@ function declare_module(module_name, opts)
             end
 
             on_config(function (target)
-                local path = target:autogenfile(path.join(path.relative(target:scriptdir(), "."), "public"))
-
-                print("PATH = ", path)
+                local path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "public"))
                 target:add("includedirs", path, { public = true })
             end)
 

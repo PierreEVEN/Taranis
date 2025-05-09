@@ -2,11 +2,10 @@
 rule("header.tool.generated", function(_)
     set_extensions(".hpp")
 
-    -- Get the output paths for generated sources for the given input header
+    -- Get the output paths for generated files for the given input header
     local function compute_generated_source_paths(target, source_header)
         -- Guess generated source file path
         local generated_path = path.relative(source_header, target:scriptdir())
-
         -- this is the include string the user should have added to it's class
         local include_path = generated_path
         local path_parts = path.split(generated_path)
@@ -14,8 +13,6 @@ rule("header.tool.generated", function(_)
             table.remove(path_parts, 1) -- remove public or private directory from path
             include_path = table.concat(path_parts, '/')
         end
-        print(include_path)
-
         local basename = path.basename(source_header);
         local directory = path.directory(source_header);
         local generated_source = target:autogenfile(path.join(directory:gsub("public", "private", 1), basename .. ".gen.cpp"))
