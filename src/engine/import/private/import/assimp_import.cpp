@@ -33,7 +33,6 @@ AssimpImporter::SceneLoader::SceneLoader(const std::filesystem::path& in_file_pa
 {
     PROFILER_SCOPE(DecomposeAssimpScene);
     decompose_node(scene->mRootNode, {}, output_scene);
-    scene->mRootNode;
 }
 
 Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
@@ -43,7 +42,7 @@ Scene AssimpImporter::load_from_path(const std::filesystem::path& path) const
     const aiScene* scene = importer->ReadFile(path.string(), 0);
     if (!scene)
     {
-        if (auto error = importer->GetErrorString())
+        if (auto _ = importer->GetErrorString())
             LOG_ERROR("Failed to load scene from path {} : {}", path.string(), importer->GetErrorString());
         else
             LOG_ERROR("Failed to load scene from path {}", path.string());

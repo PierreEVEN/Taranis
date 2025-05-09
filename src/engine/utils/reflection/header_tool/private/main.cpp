@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "generator.hpp"
 #include "header_parser.hpp"
 #include "llp/file_data.hpp"
@@ -83,17 +85,10 @@ int main(int argc, char** argv)
         sources.emplace_back(header);
     }
 
+    std::cout << "BUILD FOR " << argv[1] << " : " << sources.size() << "\n";
+
     for (const auto& header : sources)
     {
-        std::cout << "test:\n"
-                  << header.scanned_header << "\n"
-                  << header.target_source << "\n"
-                  << header.target_header << "\n"
-                  << header.scanned_header_include_path << "\n"
-                  << header.depend_file_path << "\n"
-                  << header.gen_object_path << "\n\n\n";
-
-
         //std::cout << "GEN FOR " << header.target_header << "\n";
         std::filesystem::path generated_include_path = header.scanned_header_include_path;
         generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
@@ -110,15 +105,13 @@ int main(int argc, char** argv)
         if (last_depend_write_time != 0 && last_depend_write_time <= last_write_time)
         {
             std::cout << header.scanned_header << " UP TO DATE : " << last_depend_write_time << " vs Source : " << last_write_time << "\n";
-            return 0;
+            continue;
         }
         auto source_header = std::make_shared<FileReader>(header.scanned_header);
         source_header->read();
         HeaderParser parser(source_header->raw_stream(), generated_include_path, header.scanned_header);
         if (parser.get_classes().empty() && parser.get_enums().empty())
-        {
-            return 0;
-        }
+            continue;
         std::cout << header.scanned_header << " MODIFY : " << last_depend_write_time << " vs Source : " << last_write_time << "\n";
 
         if (auto include_to_add = parser.get_include_line_to_add())
@@ -142,8 +135,6 @@ int main(int argc, char** argv)
             output << data;
             output.close();
         }
-
-        std::cout << "test ??\n";
 
         Generator generator(parser);
         generator.generate(source_header->timestamp(), header.target_source, header.target_header, header.scanned_header_include_path, generated_include_path);

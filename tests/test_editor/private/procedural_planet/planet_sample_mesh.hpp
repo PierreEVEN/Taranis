@@ -385,7 +385,7 @@ private:
             /*
             if (!test_delaunay(F1->hedge->next->twin->face))
                 ;//if (!test_delaunay(F1->hedge->previous->twin->face))
-                    ;/*
+                    ;
                     if (!test_delaunay(F2->hedge->next->twin->face))
                         if (!test_delaunay(F2->hedge->previous->twin->face))
                             ;*/

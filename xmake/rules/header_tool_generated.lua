@@ -30,6 +30,7 @@ rule("header.tool.generated", function(_)
         return generated_header, generated_source, include_path, generated_path
     end
 
+    --[[
     before_buildcmd_files(function(target, batch_cmds, source_batch, opt)
         import("core.project.config")
 
@@ -81,18 +82,19 @@ rule("header.tool.generated", function(_)
         batch_cmds:show_progress(opt.progress, "${color.build.object}compile.reflection %s", header_path)
         batch_cmds:compile(gen_cpp_path, gen_object_path, { sourcekind = "cxx" })
 
+        local depend_file = target:dependfile(gen_object_path);
         batch_cmds:add_depvalues(depvalues)
         batch_cmds:add_depfiles(header_path)
         batch_cmds:set_depmtime(os.mtime(gen_object_path))
-        batch_cmds:set_depcache(target:dependfile(gen_object_path))
-        if (os.exists(target:dependfile(gen_object_path))) then
-            print("OK "..target:dependfile(gen_object_path))
-        else
-            print("BORDERL "..target:dependfile(gen_object_path))
-        end
-    end)
+        batch_cmds:set_depcache(depend_file)
 
-    --[[
+        if (os.exists(target:dependfile(gen_object_path))) then
+            --print("OK "..target:dependfile(gen_object_path))
+        else
+            --print("BORDERL "..target:dependfile(gen_object_path))
+        end
+    end)--]]
+
     -- Get compiler details
     local function get_compiler_info(compiler, target, generated_source, opt)
         local compinst = compiler.load("cxx", {target = target})
@@ -106,7 +108,7 @@ rule("header.tool.generated", function(_)
         import("core.project.depend")
 
         local generated_header, generated_source, include_path, generated_path = compute_generated_source_paths(target, source_header)
-        local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
+        local depvalues, _, _ = get_compiler_info(compiler, target, generated_source, opt)
 
         -- Load existing dep infos (or create if not exists)
         local objectfile = target:objectfile(generated_source)
@@ -118,7 +120,7 @@ rule("header.tool.generated", function(_)
         if not depend.is_changed(dependinfo, {lastmtime = lastmtime, values = depvalues}) then
             -- ensure .obj is included in the project
             local contains = false
-            for k, p in pairs(target:objectfiles()) do
+            for _, p in pairs(target:objectfiles()) do
                 if p == objectfile then
                     contains = true
                     break
@@ -130,7 +132,7 @@ rule("header.tool.generated", function(_)
             return
         end
 
-        local header_tool_path = "$(buildir)/$(plat)/$(arch)/$(mode)/header_tool"
+        local header_tool_path = "$(builddir)/$(plat)/$(arch)/$(mode)/header_tool"
         if is_plat("windows") then header_tool_path = header_tool_path..".exe" end
 
         -- There are some cases where before_build is called during the generator phase, where the header_tool have still not been built.
@@ -139,24 +141,22 @@ rule("header.tool.generated", function(_)
             os.exec("xmake build header_tool")
         end
 
+        local tmp_file_path = generated_source .. ".htt"
+        local tmp_file = io.open(tmp_file_path, "wb")
+        tmp_file:write(path.absolute(source_header) .. "," .. path.absolute(generated_source) .. "," .. path.absolute(generated_header) .. "," .. include_path .. "," .. dependfile .. "," .. objectfile .."\r\n")
+        tmp_file:close()
+
         -- Generate reflection sources using header tool
-        -- print("$(buildir)/$(plat)/$(arch)/$(mode)/header_tool "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", source_header)
-        os.exec(header_tool_path.." "..source_header.." "..generated_source.." "..generated_header.." "..include_path)
-        --target:add("files", generated_source)
+        os.exec(header_tool_path.." "..tmp_file_path)
     end)
 
     on_buildcmd_file(function (target, batchcmds, source_header, opt)
         import("core.tool.compiler")
         import("core.project.depend")
 
-        local generated_header, generated_source, include_path, generated_path = compute_generated_source_paths(target, source_header)
-        --local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
-
-        local compinst = compiler.load("cxx", {target = target})
-        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
-        local depvalues = {compinst:program(), compflags}
-
+        local _, generated_source, _, _ = compute_generated_source_paths(target, source_header)
+        local depvalues, compflags, compinst = get_compiler_info(compiler, target, generated_source, opt)
         local objectfile = target:objectfile(generated_source)
         local dependfile = target:dependfile(objectfile)
 
@@ -178,7 +178,7 @@ rule("header.tool.generated", function(_)
                 compiler = compinst,
                 dependinfo = dependinfo,
                 compflags = compflags
-            })]]--[[
+            })]]
 
             -- store build depvalues to detect depvalues changes
             dependinfo.values = depvalues
@@ -191,5 +191,5 @@ rule("header.tool.generated", function(_)
             dependinfo.values = depvalues
             depend.save(dependinfo, dependfile)    
         end
-    end)]]
+    end)
 end)

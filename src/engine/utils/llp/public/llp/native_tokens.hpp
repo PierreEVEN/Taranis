@@ -1,8 +1,7 @@
 #pragma once
 #include "tokens.hpp"
 
-namespace Llp
-{
+namespace Llp {
 /*####[ // / * ]####*/
 DECLARE_LEXER_TOKEN(CommentToken)
     static std::unique_ptr<CommentToken> consume(Lexer& lexer, Location& in_location, const std::string& source, std::optional<ParserError>& error);

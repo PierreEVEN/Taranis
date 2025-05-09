@@ -212,7 +212,7 @@ static void TextCentered(const std::string& text)
     auto  dl            = ImGui::GetWindowDrawList();
     float start_x       = ImGui::GetCursorScreenPos().x;
     int   current_width = 0;
-    while (current_width < text.size())
+    while (static_cast<size_t>(current_width) < text.size())
     {
         const char* begin = &text[std::min(current_width, static_cast<int>(text.size()))];
         current_width += char_per_line;

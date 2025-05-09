@@ -27,7 +27,7 @@ public:
         auto cr_cmaa2_edges_color_2x2 = session->compile("cmaa2_edges_color_2x2", session->get_default_permutations_description());
         if (!cr_cmaa2_edges_color_2x2.errors.empty())
         {
-            for (const auto err : cr_cmaa2_edges_color_2x2.errors)
+            for (const auto& err : cr_cmaa2_edges_color_2x2.errors)
                 LOG_ERROR("Failed to compile cmaa2_edges_color_2x2 shader : {}:{} : {}", err.line + 1, err.column, err.message);
             return;
         }
@@ -38,7 +38,7 @@ public:
         auto cr_cmaa2_compute_dispatch_args = session->compile("cmaa2_compute_dispatch_args", session->get_default_permutations_description());
         if (!cr_cmaa2_compute_dispatch_args.errors.empty())
         {
-            for (const auto err : cr_cmaa2_compute_dispatch_args.errors)
+            for (const auto& err : cr_cmaa2_compute_dispatch_args.errors)
                 LOG_ERROR("Failed to compile cmaa2_compute_dispatch_args shader : {}:{} : {}", err.line + 1, err.column, err.message);
             return;
         }
@@ -49,7 +49,7 @@ public:
         auto cr_cmaa2_process_candidates = session->compile("cmaa2_process_candidates", session->get_default_permutations_description());
         if (!cr_cmaa2_process_candidates.errors.empty())
         {
-            for (const auto err : cr_cmaa2_process_candidates.errors)
+            for (const auto& err : cr_cmaa2_process_candidates.errors)
                 LOG_ERROR("Failed to compile cmaa2_process_candidates shader : {}:{} : {}", err.line + 1, err.column, err.message);
             return;
         }
@@ -60,7 +60,7 @@ public:
         auto cr_cmaa2_deferred_color_apply2x2 = session->compile("cmaa2_deferred_color_apply2x2", session->get_default_permutations_description());
         if (!cr_cmaa2_deferred_color_apply2x2.errors.empty())
         {
-            for (const auto err : cr_cmaa2_deferred_color_apply2x2.errors)
+            for (const auto& err : cr_cmaa2_deferred_color_apply2x2.errors)
                 LOG_ERROR("Failed to compile cmaa2_deferred_color_apply2x2 shader : {}:{} : {}", err.line + 1, err.column, err.message);
             return;
         }
@@ -71,7 +71,7 @@ public:
         auto cr_cmaa2_debug_draw_edges = session->compile("cmaa2_debug_draw_edges", session->get_default_permutations_description());
         if (!cr_cmaa2_debug_draw_edges.errors.empty())
         {
-            for (const auto err : cr_cmaa2_debug_draw_edges.errors)
+            for (const auto& err : cr_cmaa2_debug_draw_edges.errors)
                 LOG_ERROR("Failed to compile cmaa2_debug_draw_edges shader : {}:{} : {}", err.line + 1, err.column, err.message);
             return;
         }

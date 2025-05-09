@@ -69,6 +69,8 @@ TextureAsset::TextureAsset(const std::vector<Gfx::BufferData>& mips, const Creat
                                    rgba_mips);
         break;
     }
+        default:
+            LOG_FATAL("Unhandled texture format")
     }
 
     if (!image)

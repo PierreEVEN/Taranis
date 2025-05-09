@@ -134,20 +134,20 @@ protected:
     }
 };
 
-#define DECLARE_LEXER_TOKEN(Token)                                      \
-    template <> struct ::Llp::TTokenType<class Token>                          \
-    {                                                                   \
-        static constexpr const char*      name        = #Token;         \
-        static constexpr ::Llp::LexerTokenTypeId id   = ::Llp::_token_type_id_generator<Token>; \
-    };\
-    class Token : public ::Llp::ILexerToken                                                     \
-    { \
-    public: \
-        ::Llp::LexerTokenTypeId get_type() const override \
-        { \
-            return ::Llp::TTokenType<Token>::id; \
-        } \
-    using ::Llp::ILexerToken::ILexerToken;
+#define DECLARE_LEXER_TOKEN(Token)                                                              \
+    template <> struct TTokenType<class Token>                                                  \
+    {                                                                                           \
+        static constexpr const char*      name        = #Token;                                 \
+        static constexpr LexerTokenTypeId id   = _token_type_id_generator<Token>;               \
+    };                                                                                          \
+    class Token : public ILexerToken                                                            \
+    {                                                                                           \
+    public:                                                                                     \
+        LexerTokenTypeId get_type() const override                                              \
+        {                                                                                       \
+            return TTokenType<Token>::id;                                                       \
+        }                                                                                       \
+    using ILexerToken::ILexerToken;
 
 class TokenizedBlock
 {

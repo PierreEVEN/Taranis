@@ -15,7 +15,7 @@ void DirectoryPackage::save(const PackagePath& relative_path)
 {
     if (auto asset = get_asset(relative_path))
     {
-        if (auto serializer = Reflection::Serializer::get(asset->get_class()->id()))
+        if (auto _ = Reflection::Serializer::get(asset->get_class()->id()))
             LOG_WARNING("TODO STORE PACKAGE {}", relative_path.to_string());
         else
             LOG_ERROR("Cannot save {} : no serializer for {}", relative_path.to_string(), asset->get_class()->name());

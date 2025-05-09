@@ -90,7 +90,7 @@ void Engine::run_internal()
             PROFILER_SCOPE(CheckForMaterialUpdates);
             for (const auto& package_name : Package::get_all_packages())
             {
-                if (auto* package = Package::get(package_name))
+                if (auto* _ = Package::get(package_name))
                 {
                     LOG_ERROR("TODO : CHECK FOR UPDATE FOR ALL REGISTRY MATERIALS");
                     /*asset_registry().for_each<MaterialAsset>(
