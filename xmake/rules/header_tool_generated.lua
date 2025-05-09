@@ -9,18 +9,80 @@ rule("header.tool.generated", function(_)
         -- this is the include string the user should have added to it's class
         local include_path = generated_path
         local path_parts = path.split(generated_path)
-        if (path_parts[1] == "public" or path_parts[1] == "private") then -- private/public directories are not required
+        if (path_parts[1] == "public" or path_parts[1] == "private") then
+            -- private/public directories are not required
             table.remove(path_parts, 1) -- remove public or private directory from path
             include_path = table.concat(path_parts, '/')
         end
         local basename = path.basename(source_header);
         local directory = path.directory(source_header);
         local generated_source = target:autogenfile(path.join(directory:gsub("public", "private", 1), basename .. ".gen.cpp"))
-        local generated_header = target:autogenfile(path.join(directory:gsub("private", "public", 1), basename.. ".gen.hpp"))
+        local generated_header = target:autogenfile(path.join(directory:gsub("private", "public", 1), basename .. ".gen.hpp"))
 
         return generated_header, generated_source, include_path, generated_path
     end
 
+    -- Get compiler details
+    local function get_compiler_info(compiler, target, generated_source, opt)
+        local compinst = compiler.load("cxx", { target = target })
+        local compflags = compinst:compflags({ target = target, sourcefile = generated_source, configs = opt.configs })
+        local depvalues = { compinst:program(), compflags }
+        return depvalues, compflags, compinst
+    end
+
+    before_buildcmd_file(function(target, batchcmds, header_path, opt)
+        import("core.project.config")
+        import("core.tool.compiler")
+        import("core.project.depend")
+
+        local header_tool_path = path.join(target:configdir(), target:plat(), target:arch(), config.mode(), is_host("windows") and "header_tool.exe" or "header_tool");
+        if not os.exists(path.absolute(header_tool_path)) then
+            wprint("header_tool is required but not built. Trying to build header_tool...")
+            os.exec("xmake build header_tool")
+        end
+
+        local gen_hpp_path, gen_cpp_path, include_path, _ = compute_generated_source_paths(target, header_path)
+        local depvalues, compflags, compinst = get_compiler_info(compiler, target, gen_cpp_path, opt)
+        local gen_object_path = target:objectfile(gen_cpp_path)
+        local depend_file = target:dependfile(gen_object_path)
+        target:add("files", gen_cpp_path)
+
+        local build_instruction_file = gen_cpp_path .. ".htt"
+        local build_instrs = io.open(build_instruction_file, "wb")
+        build_instrs:write(path.absolute(header_path) .. "," .. path.absolute(gen_cpp_path) .. "," .. path.absolute(gen_hpp_path) .. "," .. include_path .. "," .. path.absolute(depend_file) .. "," .. path.absolute(object_file) .. "\r\n")
+        build_instrs:close()
+
+        batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
+        batchcmds:vrunv(path.absolute(header_tool_path), {path.absolute(build_instruction_file)})
+
+        batchcmds:set_depmtime(os.mtime(gen_cpp_path))
+        batchcmds:set_depcache(target:dependfile(gen_cpp_path))
+        batchcmds:add_depfiles(header_path)
+
+        --batchcmds:add_depvalues(depvalues)
+        --batchcmds:set_depmtime(os.mtime(gen_object_path))
+        --batchcmds:set_depcache(depend_file)
+        --batchcmds:add_depfiles(header_path)
+    end)
+
+    on_buildcmd_file(function(target, batchcmds, header_path, opt)
+        import("core.project.config")
+        import("core.tool.compiler")
+        import("core.project.depend")
+
+        local gen_hpp_path, gen_cpp_path, include_path, _ = compute_generated_source_paths(target, header_path)
+        local depvalues, compflags, compinst = get_compiler_info(compiler, target, gen_cpp_path, opt)
+        local gen_object_path = target:objectfile(gen_cpp_path)
+        local depend_file = target:dependfile(gen_object_path)
+
+        batchcmds:show_progress(opt.progress, "${color.build.object}compile.reflection %s", header_path)
+        batchcmds:compile(gen_cpp_path, gen_object_path, { sourcekind = "cxx" })
+
+
+        batchcmds:set_depmtime(os.mtime(gen_object_path))
+        batchcmds:set_depcache(target:dependfile(gen_object_path))
+        batchcmds:add_depfiles(header_path)
+    end)
     --[[
     before_buildcmd_files(function(target, batch_cmds, source_batch, opt)
         import("core.project.config")
@@ -86,13 +148,7 @@ rule("header.tool.generated", function(_)
         end
     end)--]]
 
-    -- Get compiler details
-    local function get_compiler_info(compiler, target, generated_source, opt)
-        local compinst = compiler.load("cxx", {target = target})
-        local compflags = compinst:compflags({target = target, sourcefile = generated_source, configs = opt.configs})
-        local depvalues = {compinst:program(), compflags}
-        return depvalues, compflags, compinst
-    end
+    --[[
 
     before_buildcmd_file(function (target, batchcmds, source_header, opt)
         import("core.tool.compiler")
@@ -169,7 +225,7 @@ rule("header.tool.generated", function(_)
                 compiler = compinst,
                 dependinfo = dependinfo,
                 compflags = compflags
-            })]]
+            })
 
             -- store build depvalues to detect depvalues changes
             dependinfo.values = depvalues
@@ -182,5 +238,5 @@ rule("header.tool.generated", function(_)
             dependinfo.values = depvalues
             depend.save(dependinfo, dependfile)
         end
-    end)
+    end)]]
 end)
