@@ -11,8 +11,10 @@ rule("header.tool.generated", function(_)
         local include_path = generated_path
         local path_parts = path.split(generated_path)
         if (path_parts[1] == "public" or path_parts[1] == "private") then -- private/public directories are not required
-            include_path = path.join(table.remove(path_parts, 1))
+            table.remove(path_parts, 1) -- remove public or private directory from path
+            include_path = table.concat(path_parts, '/')
         end
+        print(include_path)
 
         local basename = path.basename(source_header);
         local directory = path.directory(source_header);

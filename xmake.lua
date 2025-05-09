@@ -54,7 +54,7 @@ function declare_module(module_name, opts)
     local enable_reflection = opts.enable_reflection or false
     local allow_shared_build = opts.allow_shared_build or false
     
-    target(module_name, function (target)
+    target(module_name, function (_)
 
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
 	    add_cxxflags("-Wno-missing-field-initializers", {tools = "gcc"})
@@ -77,7 +77,10 @@ function declare_module(module_name, opts)
             end
 
             on_config(function (target)
-                target:add("includedirs", target:autogendir().."/public/", { public = true })
+                local path = target:autogenfile(path.join(path.relative(target:scriptdir(), "."), "public"))
+
+                print("PATH = ", path)
+                target:add("includedirs", path, { public = true })
             end)
 
             before_build(function (target)
