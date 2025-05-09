@@ -34,11 +34,15 @@ public:
         data->flags      = flags;
         data->base_class = T::static_class();
         new(data) T(std::forward<Args>(args)...);
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
         if (!data->name)
             LOG_FATAL("Asset {} does not contains any constructor", T::static_class()->name())
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
         ObjectAllocation* allocation = new ObjectAllocation();
         allocation->ptr              = data;

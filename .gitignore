@@ -5,6 +5,7 @@
 
 # Build tools
 /vsxmake*
+/vs*
 /cmake*
 /compile_commands.json
 /compile_flags.txt

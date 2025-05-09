@@ -1,5 +1,5 @@
 add_rules("mode.debug", "mode.release")
-add_rules("plugin.vsxmake.autoupdate")
+--add_rules("plugin.vsxmake.autoupdate") // trigger to often : wait improvements for the vsxmake generator
 
 set_project("TaranisEngine")
 set_languages("cxx20")
@@ -65,10 +65,8 @@ function declare_module(module_name, opts)
         -- enable and generate reflection
         if enable_reflection then
             add_deps('header_tool')
-            add_deps('header_scanner')
             set_policy('build.fence', true)
             add_rules("header.tool.generated")
-
             add_deps('reflection')
 
             -- add headers to check
@@ -81,15 +79,6 @@ function declare_module(module_name, opts)
                 target:add("includedirs", path, { public = true })
             end)
 
-            before_build(function (target)
-                os.mkdir(target:autogendir().."/private/")
-                os.mkdir(target:autogendir().."/public/")
-
-                -- will register the generated files in the link process, so we still needs to generate the .obj in a custom rule
-                for _, file in pairs(os.files(target:autogendir().."/private/**.cpp")) do
-                    target:add("files", file)
-                end
-            end)
         end
 
         -- search for files
