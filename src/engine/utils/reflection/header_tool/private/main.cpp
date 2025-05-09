@@ -1,8 +1,5 @@
-#include <chrono>
-
 #include "generator.hpp"
 #include "header_parser.hpp"
-#include "llp/file_data.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -19,7 +16,7 @@ int main(int argc, char** argv)
 {
     if (argc != 5)
     {
-        std::cerr << "[Header tool] Syntax error. Expected 'header_tool <header_tool_targets_file.htt>'. Got " << argc << " params \n";
+        std::cerr << "[Header tool] Syntax error. Expected 'header_tool <header_path> <gen_cpp_path> <gen_hpp_path> <include_path>'. Got " << argc << " arguments \n";
         exit(EXIT_FAILURE);
     }
 
