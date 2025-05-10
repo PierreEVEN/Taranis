@@ -14,8 +14,11 @@ class ILexerToken;
 
 using LexerTokenTypeId = void (*)();
 
+inline size_t _token_type_id_gen_function_dummy_value = 0;
 template <typename T> void _token_type_id_gen_function()
 {
+    // Required otherwise the compiler could factorize this function
+    _token_type_id_gen_function_dummy_value += typeid(T).hash_code();
 }
 
 template <typename T> constexpr LexerTokenTypeId _token_type_id_generator = &_token_type_id_gen_function<T>;
@@ -26,6 +29,21 @@ template <typename T> struct TTokenType
     static constexpr const char*      name = "Null";
     static constexpr LexerTokenTypeId id   = NULL_TOKEN;
 };
+
+#define DECLARE_LEXER_TOKEN(Token)                                                              \
+    template <> struct TTokenType<class Token>                                                  \
+    {                                                                                           \
+        static constexpr const char*      name        = #Token;                                 \
+        static constexpr LexerTokenTypeId id   = _token_type_id_generator<Token>;               \
+    };                                                                                          \
+    class Token : public ILexerToken                                                            \
+    {                                                                                           \
+    public:                                                                                     \
+        LexerTokenTypeId get_type() const override                                              \
+        {                                                                                       \
+            return TTokenType<Token>::id;                                                       \
+        }                                                                                       \
+    using ILexerToken::ILexerToken;
 
 struct Location
 {
@@ -133,21 +151,6 @@ protected:
         return loc.index != str.size();
     }
 };
-
-#define DECLARE_LEXER_TOKEN(Token)                                                              \
-    template <> struct TTokenType<class Token>                                                  \
-    {                                                                                           \
-        static constexpr const char*      name        = #Token;                                 \
-        static constexpr LexerTokenTypeId id   = _token_type_id_generator<Token>;               \
-    };                                                                                          \
-    class Token : public ILexerToken                                                            \
-    {                                                                                           \
-    public:                                                                                     \
-        LexerTokenTypeId get_type() const override                                              \
-        {                                                                                       \
-            return TTokenType<Token>::id;                                                       \
-        }                                                                                       \
-    using ILexerToken::ILexerToken;
 
 class TokenizedBlock
 {

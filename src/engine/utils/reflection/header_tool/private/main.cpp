@@ -41,8 +41,10 @@ int main(int argc, char** argv)
     auto source_header = std::make_shared<FileReader>(header.header_path);
     source_header->read();
     HeaderParser parser(source_header->raw_stream(), generated_include_path, header.header_path);
-    if (parser.get_classes().empty() && parser.get_enums().empty())
+    if (parser.get_classes().empty() && parser.get_enums().empty()) {
+        std::cout << "UP TO DATE\n";
         exit(EXIT_SUCCESS);
+    }
 
     if (auto include_to_add = parser.get_include_line_to_add())
     {

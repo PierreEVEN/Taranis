@@ -271,7 +271,6 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
 
                             } while (parser.consume<Llp::ComaToken>());
                     }
-
                     if (auto* class_block = parser.consume<Llp::BlockToken>())
                         if (auto error = parse_block(class_block->content, context.push_class(ClassDefinition{class_name->word, parents, {}})))
                             return error;
