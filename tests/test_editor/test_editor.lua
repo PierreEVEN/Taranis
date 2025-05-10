@@ -10,3 +10,4 @@ declare_module(
 
 target("test_editor")
     set_group("test")
+    set_default(true)

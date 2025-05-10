@@ -71,8 +71,10 @@ public:
     {
         light_buffer = Gfx::Buffer::create("light_buffer", Engine::get().get_device(), Gfx::Buffer::CreateInfos{.usage = Gfx::EBufferUsage::GPU_MEMORY, .type = Gfx::EBufferType::IMMEDIATE}, sizeof(Light), 1);
     }
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4324)
+#endif
     struct Light
     {
         glm::mat4            shadow_matrix;
@@ -81,7 +83,9 @@ public:
         alignas(4) uint32_t  has_shadows;
         alignas(4) uint32_t  type;
     };
-#pragma warning(pop) 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     void init(const Gfx::RenderPassInstanceBase&) override
     {

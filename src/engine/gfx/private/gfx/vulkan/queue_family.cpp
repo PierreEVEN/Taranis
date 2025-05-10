@@ -75,7 +75,7 @@ void Queues::update_specializations()
         {
             no_graphic_queue_map = queue_map;
             no_graphic_queue_map.erase(graphic_queue->index());
-            if (found_present_queue = find_best_suited_queue_family(no_graphic_queue_map, 0, true, {}))
+            if ((found_present_queue = find_best_suited_queue_family(no_graphic_queue_map, 0, true, {})))
                 present_queue = found_present_queue;
         }
     }
@@ -215,15 +215,15 @@ auto Queues::find_best_suited_queue_family(const ankerl::unordered_dense::map<ui
             continue;
         if (required_flags && !(family->flags() & required_flags))
             continue;
-        uint32_t score     = 0;
+        size_t score     = 0;
         best_queue         = family;
-        uint32_t max_value = static_cast<uint32_t>(desired_queue_flags.size());
-        for (int power = 0; power < desired_queue_flags.size(); ++power)
+        size_t max_value = desired_queue_flags.size();
+        for (size_t power = 0; power < desired_queue_flags.size(); ++power)
             if (family->flags() & desired_queue_flags[power])
                 score += max_value - power;
         if (score > high_score)
         {
-            high_score = score;
+            high_score = static_cast<uint32_t>(score);
             best_queue = family;
         }
     }

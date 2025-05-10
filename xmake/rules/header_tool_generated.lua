@@ -36,7 +36,7 @@ rule("header.tool.generated", function(_)
         target:add("files", gen_cpp_path)
 
         local header_tool_path = path.join(target:configdir(), target:plat(), target:arch(), config.mode(), is_host("windows") and "header_tool.exe" or "header_tool");
-        batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", gen_cpp_path)
+        batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
         batchcmds:vrunv(path.absolute(header_tool_path), {path.absolute(header_path), path.absolute(gen_cpp_path), path.absolute(gen_hpp_path), include_path})
 
          -- Create an empty .gen.cpp file even if we doesn't need to generate reflection data for it
@@ -53,10 +53,19 @@ rule("header.tool.generated", function(_)
         local _, gen_cpp_path, _, _ = compute_generated_source_paths(target, header_path)
         local gen_object_path = target:objectfile(gen_cpp_path)
 
-        batchcmds:show_progress(opt.progress, "${color.build.object}compile.reflection %s", header_path)
+        batchcmds:show_progress(opt.progress, "${color.build.object}compile.reflection %s", gen_cpp_path)
         batchcmds:compile(gen_cpp_path, gen_object_path, { sourcekind = "cxx" })
 
-        table.insert(target:objectfiles(), gen_object_path)
+        local contains_object = false
+        for _, v in ipairs(target:objectfiles()) do
+            if v == gen_object_path then
+                contains_object = true
+                break
+            end
+        end
+        if not contains_object then
+            table.insert(target:objectfiles(), gen_object_path)
+        end
 
         batchcmds:set_depmtime(os.mtime(gen_object_path))
         batchcmds:set_depcache(target:dependfile(gen_object_path))

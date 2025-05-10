@@ -285,13 +285,12 @@ CompilationResult Session::compile(const std::string& render_pass, const Eng::Gf
         Slang::ComPtr<slang::IBlob>          diagnostics;
         program->link(linkedProgram.writeRef(), diagnostics.writeRef());
         if (diagnostics)
-            return result.push_error({static_cast<const char*>(diagnostics->getBufferPointer())});
+            return result.push_error({std::format("Failed to link {}", static_cast<const char*>(diagnostics->getBufferPointer()))});
 
         slang::IMetadata* metadata;
         linkedProgram->getEntryPointMetadata(0, 0, &metadata, diagnostics.writeRef());
         if (diagnostics)
-            return result.push_error({static_cast<const char*>(diagnostics->getBufferPointer())});
-
+            return result.push_error({std::format("Failed to get entry point metadata {}", static_cast<const char*>(diagnostics->getBufferPointer()))});
         StageData data;
 
         switch (entry_point->getLayout()->getEntryPointByIndex(0)->getStage())

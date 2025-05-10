@@ -217,7 +217,7 @@ void ProfilerWindow::Frames::draw(DisplayData& display_data)
                     dl->AddRectFilled(min_top, max, ImGui::ColorConvertFloat4ToU32({1, 0, 0, 0.5f}));
                     if (ImGui::BeginTooltip())
                     {
-                        ImGui::Text("frame %d : %fms", i, duration_ms);
+                        ImGui::Text("frame %ld : %fms", i, duration_ms);
                         ImGui::EndPopup();
                     }
                     r = 1;

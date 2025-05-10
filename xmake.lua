@@ -1,7 +1,7 @@
 
 set_project("TaranisEngine")
 set_languages("cxx20")
-set_allowedarchs("windows|x64", "linux|x64")
+set_allowedarchs("windows|x64", "linux|x86_64")
 set_warnings("allextra")
 set_rundir(".")
 --add_rules("plugin.vsxmake.autoupdate") // trigger to often : wait improvements for the vsxmake generator
@@ -38,7 +38,7 @@ add_requires("glfw 3.4", {configs = {shared = true}})
 add_requires("glm 1.0.1")
 add_requires("imgui v1.91.8-docking")
 add_requires("nativefiledialog-extended v1.2.1")
-add_requires("slang v2025.6.4", {verify = false, configs = {slangc = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
+add_requires("slang v2025.8.1", {verify = false, configs = {slangc = true, slang_glslang = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
 add_requires("unordered_dense v4.5.0")
 add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
