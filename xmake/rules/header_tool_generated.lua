@@ -46,15 +46,16 @@ rule("header.tool.generated", function(_)
         local gen_hpp_path, gen_cpp_path, include_path = compute_generated_source_paths(target, header_path)
         local depend_file = target:dependfile(gen_cpp_path)
 
-        local header_tool_path = path.join(target:configdir(), target:plat(), target:arch(), config.mode(), is_host("windows") and "header_tool.exe" or "header_tool");
+        local header_tool_path = path.absolute(path.join(target:configdir(), target:plat(), target:arch(), config.mode(), is_host("windows") and "header_tool.exe" or "header_tool"));
 
         if not os.exists(header_tool_path) then
-            wprint("Header is not compiled yet !")
+            cprint("${color.warning}warning: Header tool is not built yet. Building from sources...")
+            os.exec("xmake f -m "..config.mode())
             os.exec("xmake build header_tool")
         end
 
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
-        batchcmds:vrunv(path.absolute(header_tool_path), { path.absolute(header_path), path.absolute(gen_cpp_path), path.absolute(gen_hpp_path), include_path })
+        batchcmds:vrunv(header_tool_path, { path.absolute(header_path), path.absolute(gen_cpp_path), path.absolute(gen_hpp_path), include_path })
 
         batchcmds:set_depmtime(os.mtime(gen_cpp_path))
         batchcmds:add_depfiles(header_path)

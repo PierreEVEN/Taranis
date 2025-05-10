@@ -28,10 +28,8 @@ int main(int argc, char** argv)
         .include_path = argv[4]
     };
 
-    //DependParser depend_parser(header.depend_path);
     auto  last_depend_write_time = exists(header.gen_cpp_path) ? std::filesystem::last_write_time(header.gen_cpp_path) : std::filesystem::file_time_type{};
     auto  last_write_time        = std::filesystem::last_write_time(header.header_path);
-    //last_write_time = std::chrono::system_clock::to_time_t(std::chrono::clock_cast<std::chrono::system_clock>(ftime));
     if (last_depend_write_time == last_write_time)
         exit(EXIT_SUCCESS);
 
@@ -41,10 +39,8 @@ int main(int argc, char** argv)
     auto source_header = std::make_shared<FileReader>(header.header_path);
     source_header->read();
     HeaderParser parser(source_header->raw_stream(), generated_include_path, header.header_path);
-    if (parser.get_classes().empty() && parser.get_enums().empty()) {
-        std::cout << "UP TO DATE\n";
+    if (parser.get_classes().empty() && parser.get_enums().empty())
         exit(EXIT_SUCCESS);
-    }
 
     if (auto include_to_add = parser.get_include_line_to_add())
     {
