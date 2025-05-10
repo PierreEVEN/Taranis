@@ -22,7 +22,7 @@ rule("header.tool.generated", function(_)
         return generated_header, generated_source, include_path
     end
 
-    on_config(function (target)
+    on_config(function(target)
         -- add include dir to generated headers
         local include_path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "public"))
         os.mkdir(include_path)
@@ -36,7 +36,7 @@ rule("header.tool.generated", function(_)
             if not os.exists(generated_source) then
                 io.open(generated_source, "w"):close()
             end
-            target:add("files", generated_source, {always_added = true})
+            target:add("files", generated_source, { always_added = true })
         end
     end)
 
@@ -47,9 +47,15 @@ rule("header.tool.generated", function(_)
         local depend_file = target:dependfile(gen_cpp_path)
 
         local header_tool_path = path.join(target:configdir(), target:plat(), target:arch(), config.mode(), is_host("windows") and "header_tool.exe" or "header_tool");
+
+        if not os.exists(header_tool_path) then
+            wprint("Header is not compiled yet !")
+            os.exec("xmake build header_tool")
+        end
+
         batchcmds:show_progress(opt.progress, "${color.build.object}generate.reflection %s", header_path)
-        batchcmds:vrunv(path.absolute(header_tool_path), {path.absolute(header_path), path.absolute(gen_cpp_path), path.absolute(gen_hpp_path), include_path})
-        
+        batchcmds:vrunv(path.absolute(header_tool_path), { path.absolute(header_path), path.absolute(gen_cpp_path), path.absolute(gen_hpp_path), include_path })
+
         batchcmds:set_depmtime(os.mtime(gen_cpp_path))
         batchcmds:add_depfiles(header_path)
         batchcmds:set_depcache(depend_file)
