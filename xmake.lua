@@ -58,7 +58,7 @@ function declare_module(module_name, opts)
     local enable_reflection = opts.enable_reflection or false
     local allow_shared_build = opts.allow_shared_build or false
     
-    target(module_name, function (_)
+    target(module_name, function (current_target)
 
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
 	    add_cxxflags("-Wno-missing-field-initializers", {tools = "gcc"})

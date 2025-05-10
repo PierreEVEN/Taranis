@@ -1,6 +1,7 @@
 #include "generator.hpp"
 #include "header_parser.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 
@@ -26,6 +27,13 @@ int main(int argc, char** argv)
         .gen_hpp_path = argv[3],
         .include_path = argv[4]
     };
+
+    //DependParser depend_parser(header.depend_path);
+    auto  last_depend_write_time = exists(header.gen_cpp_path) ? std::filesystem::last_write_time(header.gen_cpp_path) : std::filesystem::file_time_type{};
+    auto  last_write_time        = std::filesystem::last_write_time(header.header_path);
+    //last_write_time = std::chrono::system_clock::to_time_t(std::chrono::clock_cast<std::chrono::system_clock>(ftime));
+    if (last_depend_write_time == last_write_time)
+        exit(EXIT_SUCCESS);
 
     std::filesystem::path generated_include_path = header.include_path;
     generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
@@ -61,5 +69,6 @@ int main(int argc, char** argv)
     Generator generator(parser);
     generator.generate(source_header->timestamp(), header.gen_cpp_path, header.gen_hpp_path, header.include_path, generated_include_path);
 
+    std::filesystem::last_write_time(header.gen_cpp_path, std::filesystem::last_write_time(header.header_path));
     return 0;
 }
