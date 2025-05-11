@@ -1,0 +1,40 @@
+From b15ecc256a051c0a33020fdc02ae80bbc2883d27 Mon Sep 17 00:00:00 2001
+From: PierreEVEN <spam@evenpierre.fr>
+Date: Sun, 11 May 2025 10:58:54 +0200
+Subject: [PATCH] add missing namespace std:: for nullptr_t (error while
+ building with clang)
+
+---
+ source/slang/slang-serialize-ast.cpp | 2 +-
+ source/slang/slang-serialize.h       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/source/slang/slang-serialize-ast.cpp b/source/slang/slang-serialize-ast.cpp
+index b91fac89a..84278650f 100644
+--- a/source/slang/slang-serialize-ast.cpp
++++ b/source/slang/slang-serialize-ast.cpp
+@@ -495,7 +495,7 @@ public:
+ 
+     void encodeValue(uint8_t value) { encoder->encode(UInt32(value)); }
+ 
+-    void encodeValue(nullptr_t) { encoder->encode(nullptr); }
++    void encodeValue(std::nullptr_t) { encoder->encode(nullptr); }
+ 
+     template<typename T>
+     void encodeEnum(T value)
+diff --git a/source/slang/slang-serialize.h b/source/slang/slang-serialize.h
+index 4de63471e..b694850ea 100644
+--- a/source/slang/slang-serialize.h
++++ b/source/slang/slang-serialize.h
+@@ -83,7 +83,7 @@ public:
+         encodeData(SerialBinary::kDataFourCC, data, size);
+     }
+ 
+-    void encode(nullptr_t) { encodeData(SerialBinary::kNullFourCC, nullptr, 0); }
++    void encode(std::nullptr_t) { encodeData(SerialBinary::kNullFourCC, nullptr, 0); }
+ 
+     void encodeBool(bool value)
+     {
+-- 
+2.49.0
+
