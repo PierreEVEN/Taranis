@@ -36,7 +36,7 @@ int main(int argc, char** argv)
     std::filesystem::path generated_include_path = header.include_path;
     generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
 
-    auto source_header = std::make_shared<FileReader>(header.header_path);
+    auto source_header = std::make_shared<Llp::FileReader>(header.header_path);
     source_header->read();
     HeaderParser parser(source_header->raw_stream(), generated_include_path, header.header_path);
     if (parser.get_classes().empty() && parser.get_enums().empty())

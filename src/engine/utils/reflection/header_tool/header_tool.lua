@@ -2,8 +2,8 @@ declare_module(
     "header_tool", 
     
     {
-        deps = {"llp"}, 
         packages = {
+            "llp",
             {name = "unordered_dense", public = true}
         },
         is_executable = true,

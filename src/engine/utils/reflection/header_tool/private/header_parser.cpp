@@ -399,7 +399,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
     return {};
 }
 
-bool HeaderParser::parse_check_include(TextReader& reader, const std::filesystem::path& desired_path)
+bool HeaderParser::parse_check_include(Llp::TextReader& reader, const std::filesystem::path& desired_path)
 {
     bool        started = false;
     std::string include;

@@ -1,8 +1,9 @@
 declare_module(
     "shader_compiler",
     {
-        deps = {"llp", "gfx_types"}, 
+        deps = {"gfx_types"},
         packages = {
+            "llp",
             "slang",
             "unordered_dense"
         },
