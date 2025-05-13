@@ -1,7 +1,7 @@
 declare_module(
     "import", 
     {
-        deps = {"core"}, 
+        deps = {"core"},
         packages = {
             "freeimage",
             "assimp",

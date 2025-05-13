@@ -1,6 +1,5 @@
 #pragma once
 
-#include "logger.hpp"
 #include "spinlock.hpp"
 
 #include <thread>

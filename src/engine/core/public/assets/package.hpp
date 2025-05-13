@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "logger.hpp"
+
 namespace Eng
 {
 class Package;

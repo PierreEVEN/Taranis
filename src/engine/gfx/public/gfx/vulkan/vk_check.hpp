@@ -14,7 +14,7 @@
 #define VK_CHECK(condition, text, ...)                                                                                              \
     if (auto __condition_res = condition; __condition_res != VK_SUCCESS)                                                            \
     {                                                                                                                               \
-        LOG_FATAL("{} : {}", magic_enum::enum_name(static_cast<VkResult>(__condition_res)), stringutils::format(text, ##__VA_ARGS__)) \
+        LOG_FATAL("{} : {}", magic_enum::enum_name(static_cast<VkResult>(__condition_res)), std::format(text, ##__VA_ARGS__)) \
     }
 #elif CXX_CLANG
 #define VK_CHECK(condition, text, ...)                                                                                              \

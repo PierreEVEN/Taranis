@@ -1,7 +1,7 @@
 declare_module(
     "core", 
     {
-        deps = {"types", "gfx", "job-sys"},
+        deps = {"types", "gfx", "job-sys", {"io", public = true}},
         packages = {{name = "unordered_dense", public = true}},
         enable_reflection = true
     }

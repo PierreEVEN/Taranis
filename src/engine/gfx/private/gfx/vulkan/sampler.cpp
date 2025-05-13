@@ -35,12 +35,10 @@ Sampler::Sampler(const std::string& name, std::weak_ptr<Device> in_device, const
         .imageView   = VK_NULL_HANDLE,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
-    LOG_WARNING("Create sampler {:x}", (size_t)ptr);
 }
 
 Sampler::~Sampler()
 {
-    LOG_WARNING("DEL SAMPLER : {:x} / {:x}", (size_t)ptr, (size_t)this);
     vkDestroySampler(device.lock()->raw(), ptr, nullptr);
 }
 } // namespace Eng::Gfx

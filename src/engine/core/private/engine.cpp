@@ -36,7 +36,7 @@ Engine::Engine(Config config) : app_config(std::move(config)), job_system(std::m
     last_time        = std::chrono::steady_clock::now();
     start_time       = std::chrono::steady_clock::now();
 
-    gfx_instance = Gfx::Instance::create(config.gfx);
+    gfx_instance = Gfx::Instance::create(app_config.gfx);
 }
 
 Engine::~Engine()
@@ -52,6 +52,7 @@ Engine::~Engine()
 
     if (gfx_device)
         gfx_device->destroy_resources();
+
     gfx_device       = nullptr;
     gfx_instance     = nullptr;
     engine_singleton = nullptr;

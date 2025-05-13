@@ -124,6 +124,7 @@ function declare_module(module_name, opts)
 
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = "gcc"})
 	    add_cxxflags("-Wno-missing-field-initializers", {tools = "gcc"})
+	    add_cxxflags("-Wno-invalid-offsetof", {tools = "clang"})
 
         if has_config("profiler") then
             add_defines("ENABLE_PROFILER")

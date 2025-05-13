@@ -33,10 +33,17 @@ std::vector<PackagePath> Package::scan() const
 
 void Package::force_unload()
 {
+for (const auto& asset : loaded_assets) {
+    LOG_DEBUG("Will unload : {}", asset.first.to_string());
+    if (!asset.second)
+        LOG_DEBUG("OH BORDERL : {}", asset.first.to_string());
+}
+
     auto asset_copy = loaded_assets;
     for (auto& asset : asset_copy)
         asset.second.destroy();
     loaded_assets.clear();
+    LOG_WARNING("Unloaded package {}", package_name);
 }
 
 Package* Package::get_transient_package()

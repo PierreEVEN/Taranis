@@ -1,7 +1,7 @@
 declare_module(
     "types",
     {
-        deps = {"reflection"}, 
+        deps = {"reflection", "io"},
         packages = {
             {name = "unordered_dense", public = true},
             {name = "glm", public = true}

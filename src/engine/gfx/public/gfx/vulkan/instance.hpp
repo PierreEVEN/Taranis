@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <ankerl/unordered_dense.h>
 #include <vulkan/vulkan_core.h>
 
 namespace Eng::Gfx
@@ -31,7 +32,10 @@ class Instance
     void begin_debug_marker(const VkCommandBuffer& cmd, const std::string& name, const std::array<float, 4>& color) const;
     void end_debug_marker(const VkCommandBuffer& cmd) const;
 
+    static ankerl::unordered_dense::set<std::string> get_supported_extensions();
+
   private:
+
     Instance(GfxConfig& config);
     VkInstance               ptr             = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;

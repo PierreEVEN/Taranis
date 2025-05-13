@@ -9,47 +9,6 @@
 
 namespace stringutils
 {
-/**
- * Format string.
- * stringutils::format("%d is not a string, %s is a string, 10, "this");
- * \param format format
- * \param ...args arguments
- * \return string
- */
-template <size_t N, typename... Params> [[nodiscard]] std::string format(const char (&format)[N], const Params... args)
-{
-#if CXX_CLANG
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-security"
-#endif
-    const int size = snprintf(nullptr, 0, format, args...) + 1;
-    if (size <= 0)
-        return format;
-    const std::unique_ptr<char[]> buffer(new char[size]);
-    snprintf(buffer.get(), size, format, args...);
-#if CXX_CLANG
-#pragma clang diagnostic pop
-#endif
-    return std::string(buffer.get());
-}
-
-template <typename... Params> [[nodiscard]] std::string format_insecure(const char* format, const Params... args)
-{
-#if CXX_CLANG
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-security"
-#endif
-    const int size = snprintf(nullptr, 0, format, args...) + 1;
-    if (size <= 0)
-        return format;
-    const std::unique_ptr<char[]> buffer(new char[size]);
-    snprintf(buffer.get(), size, format, args...);
-#if CXX_CLANG
-#pragma clang diagnostic pop
-#endif
-    return std::string(buffer.get());
-}
-
 typedef bool (*TrimFilterFunction)(char);
 [[nodiscard]] bool        default_trim_func(char chr);
 [[nodiscard]] std::string trim(const std::string& source, const TrimFilterFunction filter = default_trim_func);

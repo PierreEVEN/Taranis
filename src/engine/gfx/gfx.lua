@@ -1,7 +1,7 @@
 declare_module(
     "gfx", 
     {
-        deps = {"types", "job-sys", "shader_compiler", "gfx_types"}, 
+        deps = {"types", "job-sys", "shader_compiler", "gfx_types", "io"},
         packages = {
             "glfw",
             "vulkan-memory-allocator",

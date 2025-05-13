@@ -56,8 +56,9 @@ public:
         if constexpr (!std::is_same_v<Ret, void>) {
             TJobRet<Ret>::ret = static_cast<Ret *>(std::calloc(1, sizeof(Ret)));
             *TJobRet<Ret>::ret = std::move(cb());
-        } else
-            cb(); {
+        } else {
+            cb();
+        } {
             std::lock_guard lk(TJobRet<Ret>::wait_mutex);
             TJobRet<Ret>::ready = true;
         }

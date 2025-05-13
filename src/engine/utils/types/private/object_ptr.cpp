@@ -1,4 +1,6 @@
 #include "object_ptr.hpp"
+
+#include "logger.hpp"
 #include "object_allocator.hpp"
 
 void IObject::destroy()

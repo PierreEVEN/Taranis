@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_base.hpp"
+#include "logger.hpp"
 
 #include "assets/sampler_asset.gen.hpp"
 
