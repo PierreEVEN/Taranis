@@ -4,7 +4,8 @@ set_languages("cxx20")
 set_allowedarchs("windows|x64", "linux|x86_64")
 set_warnings("allextra")
 set_rundir(".")
---add_rules("plugin.vsxmake.autoupdate") // trigger to often : wait improvements for the vsxmake generator
+
+includes("xmake/rules/**.lua")
 
 ------------[[ MODES ]]--------------
 
@@ -30,7 +31,7 @@ option("build-tests", { default = true })
 option("profiler", { default = true })
 
 ------------[[ DEPENDENCIES ]]--------------
-
+add_repositories("taranis-repo xmake")
 add_requires("assimp v5.4.3", {configs = {shared = true, no_export = true}})
 add_requires("concurrentqueue v1.0.4")
 add_requires("freeimage 3.18.0", {configs = {rgb = true, shared = true}})
@@ -39,10 +40,9 @@ add_requires("llp", {configs = {shared = true}})
 add_requires("glm 1.0.1")
 add_requires("imgui v1.91.8-docking")
 add_requires("nativefiledialog-extended v1.2.1")
-add_requires("slang v2025.8.1", {verify = false, configs = {slangc = true, slang_glslang = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
 
-package("slang", function(package)
-    set_homepage("https://github.com/shader-slang/slang")
+package("slang-fix", function(package)
+    --[[set_homepage("https://github.com/shader-slang/slang")
     set_description("Making it easier to work with shaders")
     set_license("MIT")
 
@@ -66,7 +66,7 @@ package("slang", function(package)
     add_deps("cmake")
 
     on_install("windows|x64", "macosx", "linux|x86_64", function (package)
-        io.replace("cmake/SlangTarget.cmake", [[set_property(TARGET ${target} PROPERTY SUFFIX ".dylib")]], "", {plain = true})
+        io.replace("cmake/SlangTarget.cmake", [[set_property(TARGET ${target} PROPERTY SUFFIX ".dylib")] ], "", {plain = true})
         local configs = {"-DSLANG_ENABLE_TESTS=OFF", "-DSLANG_ENABLE_EXAMPLES=OFF"}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
         table.insert(configs, "-DSLANG_LIB_TYPE=" .. (package:config("shared") and "SHARED" or "STATIC"))
@@ -94,11 +94,12 @@ package("slang", function(package)
                 Slang::ComPtr<slang::IGlobalSession> global_session;
                 slang::createGlobalSession(global_session.writeRef());
             }
-        ]] }, {configs = {languages = "c++17"}}))
-    end)
-
+        ] ] }, {configs = {languages = "c++17"}}))
+    end)]]
+    set_base("slang")
     add_patches("v2025.8.1", path.join(os.projectdir(), "xmake/patches/slang/v2025.8.1/fix_std-nullptr_t.patch"))
 end)
+add_requires("slang-fix v2025.8.1", {verify = false, configs = {slangc = true, slang_glslang = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
 add_requires("unordered_dense v4.5.0")
 add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
@@ -217,7 +218,6 @@ target("data", function(target)
     end
 end)
 
-includes("xmake/**.lua");
 includes("src/**.lua");
 if has_config("build-tests") then
     includes("tests/**.lua")

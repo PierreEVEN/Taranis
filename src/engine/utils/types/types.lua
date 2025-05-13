@@ -10,4 +10,4 @@ declare_module(
 )
 
 target("types")
-    set_group("engine")
+    set_group("utils")

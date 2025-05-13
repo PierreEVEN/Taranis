@@ -4,7 +4,7 @@ declare_module(
         deps = {"gfx_types"},
         packages = {
             "llp",
-            "slang",
+            "slang-fix",
             "unordered_dense"
         },
     }

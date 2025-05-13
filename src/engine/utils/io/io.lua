@@ -9,4 +9,4 @@ declare_module(
 )
 
 target("io")
-    set_group("engine")
+    set_group("utils")
