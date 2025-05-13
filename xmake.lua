@@ -40,9 +40,10 @@ add_requires("llp", {configs = {shared = true}})
 add_requires("glm 1.0.1")
 add_requires("imgui v1.91.8-docking")
 add_requires("nativefiledialog-extended v1.2.1")
+add_requires("slang v2025.8.1", {verify = false, configs = {slangc = true, slang_glslang = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
 
-package("slang-fix", function(package)
-    --[[set_homepage("https://github.com/shader-slang/slang")
+package("slang", function(package)
+    set_homepage("https://github.com/shader-slang/slang")
     set_description("Making it easier to work with shaders")
     set_license("MIT")
 
@@ -66,7 +67,7 @@ package("slang-fix", function(package)
     add_deps("cmake")
 
     on_install("windows|x64", "macosx", "linux|x86_64", function (package)
-        io.replace("cmake/SlangTarget.cmake", [[set_property(TARGET ${target} PROPERTY SUFFIX ".dylib")] ], "", {plain = true})
+        io.replace("cmake/SlangTarget.cmake", [[set_property(TARGET ${target} PROPERTY SUFFIX ".dylib")]], "", {plain = true})
         local configs = {"-DSLANG_ENABLE_TESTS=OFF", "-DSLANG_ENABLE_EXAMPLES=OFF"}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
         table.insert(configs, "-DSLANG_LIB_TYPE=" .. (package:config("shared") and "SHARED" or "STATIC"))
@@ -94,12 +95,12 @@ package("slang-fix", function(package)
                 Slang::ComPtr<slang::IGlobalSession> global_session;
                 slang::createGlobalSession(global_session.writeRef());
             }
-        ] ] }, {configs = {languages = "c++17"}}))
-    end)]]
-    set_base("slang")
+        ]] }, {configs = {languages = "c++17"}}))
+    end)
+
     add_patches("v2025.8.1", path.join(os.projectdir(), "xmake/patches/slang/v2025.8.1/fix_std-nullptr_t.patch"))
 end)
-add_requires("slang-fix v2025.8.1", {verify = false, configs = {slangc = true, slang_glslang = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
+--add_requires("slang-fix v2025.8.1", {verify = false, configs = {slangc = true, slang_glslang = true}}) -- //@TODO Slangc is not required by the engine but fails to compile otherwise : https://github.com/shader-slang/slang/issues/6868)
 add_requires("unordered_dense v4.5.0")
 add_requires("vulkan-loader")
 add_requires("vulkan-memory-allocator v3.2.1")
