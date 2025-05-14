@@ -27,7 +27,6 @@ end
 ------------[[ OPTIONS ]]--------------
 
 option("build-monolithis", { default = false })
-option("build-tests", { default = true })
 option("profiler", { default = true })
 
 ------------[[ DEPENDENCIES ]]--------------
@@ -120,7 +119,7 @@ function declare_module(module_name, opts)
     local enable_reflection = opts.enable_reflection or false
     local allow_shared_build = opts.allow_shared_build or false
     
-    target(module_name, function (current_target)
+    target(module_name, function ()
 
 	    add_cxxflags("-Wno-invalid-offsetof", {tools = {"gcc", "clang"}})
 	    add_cxxflags("-Wno-missing-field-initializers", {tools = "gcc"})
@@ -132,7 +131,7 @@ function declare_module(module_name, opts)
         add_defines("GLM_FORCE_LEFT_HANDED", "GLM_FORCE_DEPTH_ZERO_TO_ONE")
         --add_defines(module_name:upper().."_API=__declspec(dllexport)")
 
-        -- enable and generate reflection
+        -----------------[[ REFLECTION ]]-----------------
         if enable_reflection then
             add_deps('header_tool')
             set_policy('build.fence', true)
@@ -145,14 +144,18 @@ function declare_module(module_name, opts)
             end
         end
 
-        -- search for files
+        -----------------[[ SOURCES ]]-----------------
         cpp_files = os.files("private/**.cpp")
         for _, file in pairs(cpp_files) do
             add_files(file)
         end
 
-        for _, file in pairs(os.files("public/**.hpp")) do
-            add_headerfiles(file)
+        -----------------[[ HEADERS ]]-----------------
+        if os.exists("public") then
+            add_includedirs("public", { public = not is_executable })
+            for _, file in pairs(os.files("public/**.hpp")) do
+                add_headerfiles(file)
+            end
         end
         if os.exists("private") then
             add_includedirs("private", { public = false })
@@ -161,19 +164,40 @@ function declare_module(module_name, opts)
             end
         end
 
-        -- set include dirs
-        if not is_executable then
-            add_includedirs("public", { public = true })
+        -----------------[[ TESTS ]]-----------------
+        if os.exists("tests") then
+            for _, file in pairs(os.files("tests/test_**.cpp")) do
+                local name = path.basename(file)
+                target("test_" .. module_name .. "_" .. name, function ()
+                    set_kind("binary")
+                    add_includedirs("tests", { public = false })
+                    add_deps(module_name)
+                    set_default(false)
+                    add_files(file)
+                    add_tests("default")
+
+                    -- Reflection : //@TODO : make reflection optional
+                    add_cxxflags("-Wno-invalid-offsetof", {tools = {"gcc", "clang"}})
+                    add_deps('header_tool')
+                    set_policy('build.fence', true)
+                    add_rules("header.tool.generated")
+                    add_deps('reflection')
+
+                    -- add headers to check
+                    for _, file in pairs(os.files("tests/**.hpp")) do
+                        add_files(file)
+                    end
+                end)
+            end
         end
 
-        -- add deps
+        -----------------[[ REQUIRED MODULES ]]-----------------
         if deps then
             add_deps(table.unpack(deps))
         end
 
+        -----------------[[ LIBRARIES ]]-----------------
         local build_monolithic = has_config("build-tests")
-
-        -- add packages
         if packages then
             packages_name = "";
             for _, package in ipairs(packages) do
@@ -195,7 +219,7 @@ function declare_module(module_name, opts)
             end
         end
 
-        -- set kind
+        -----------------[[ SET TYPE ]]-----------------
         if is_executable then
             set_kind("binary")
         elseif #cpp_files == 0 then
@@ -220,6 +244,3 @@ target("data", function(target)
 end)
 
 includes("src/**.lua");
-if has_config("build-tests") then
-    includes("tests/**.lua")
-end

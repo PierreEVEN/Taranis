@@ -9,7 +9,7 @@ rule("header.tool.generated", function(_)
         -- this is the include string the user should have added to it's class
         local include_path = generated_path
         local path_parts = path.split(generated_path)
-        if (path_parts[1] == "public" or path_parts[1] == "private") then
+        if (path_parts[1] == "public" or path_parts[1] == "private" or path_parts[1] == "tests") then
             -- private/public directories are not required
             table.remove(path_parts, 1) -- remove public or private directory from path
             include_path = table.concat(path_parts, '/')
@@ -23,10 +23,13 @@ rule("header.tool.generated", function(_)
     end
 
     on_config(function(target)
-        -- add include dir to generated headers
-        local include_path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "public"))
-        os.mkdir(include_path)
-        target:add("includedirs", include_path, { public = true })
+        local public_include_path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "public"))
+        os.mkdir(public_include_path)
+        target:add("includedirs", public_include_path, { public = true })
+
+        local test_include_path = target:autogenfile(path.join(path.relative(target:scriptdir(), os.projectdir()), "tests"))
+        os.mkdir(test_include_path)
+        target:add("includedirs", test_include_path, { public = true })
 
         -- Add generated cpp files (generate empty one if not exists)
         for _, file in pairs(os.files(target:scriptdir() .. "/**.hpp")) do

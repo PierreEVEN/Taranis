@@ -1,6 +1,6 @@
 #pragma once
 #include "logger.hpp"
-#include "test_class.gen.hpp"
+#include "example_class.gen.hpp"
 
 
 RENUM()

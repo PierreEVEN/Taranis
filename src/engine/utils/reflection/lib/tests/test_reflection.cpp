@@ -1,5 +1,5 @@
 #include "enum.hpp"
-#include "test_class.hpp"
+#include "example_class.hpp"
 #include "logger.hpp"
 #include "property.hpp"
 #include "serialization.hpp"

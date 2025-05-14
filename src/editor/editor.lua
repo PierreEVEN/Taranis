@@ -1,5 +1,5 @@
 declare_module(
-    "test_editor",
+    "editor",
     {
         deps = {"core", "types", "import"},
         packages = {"glfw", "nativefiledialog-extended"},
@@ -8,6 +8,6 @@ declare_module(
     }
 )
 
-target("test_editor")
-    set_group("test")
+target("editor")
+    set_group("editor")
     set_default(true)
