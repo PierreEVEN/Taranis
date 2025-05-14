@@ -6,6 +6,8 @@
 #include <vector>
 #include <filesystem>
 
+struct ParserContext;
+
 namespace Llp
 {
 class Parser;
@@ -21,14 +23,15 @@ class FileReader;
 
 struct TypeDefinition
 {
-private:
+  private:
     std::string                 name;
     std::vector<TypeDefinition> template_args;
 
-public:
-    bool     is_const         = false;
-    bool     is_ref           = false;
-    uint32_t ptr_indirections = 0;
+  public:
+    bool     b_is_global_namespace = false;
+    bool     is_const              = false;
+    bool     is_ref                = false;
+    uint32_t ptr_indirections      = 0;
 
     const std::string& name_short() const
     {
@@ -40,24 +43,9 @@ public:
         return template_args;
     }
 
-    std::string full_name_string() const
-    {
-        std::string full_name = name; // is_const ? "const " + name : name;
-        if (!template_args.empty())
-        {
-            full_name += '<';
-            for (size_t i = 0; i < template_args.size(); ++i)
-                full_name += i == template_args.size() - 1 ? template_args[i].full_name_string() : template_args[i].full_name_string() + ", ";
-            full_name += '>';
-        }
-        for (size_t i = 0; i < ptr_indirections; ++i)
-            full_name += '*';
-        /*if (is_ref)
-            full_name += '&';*/
-        return full_name;
-    }
+    std::string full_name_string() const;
 
-    std::optional<Llp::ParserError> try_parse(Llp::Parser& parser);
+    std::optional<Llp::ParserError> try_parse(Llp::Parser& parser, const ParserContext& context);
 };
 
 struct ClassDefinition
@@ -67,29 +55,29 @@ struct ClassDefinition
     ankerl::unordered_dense::map<std::string, TypeDefinition> properties;
 };
 
+struct ParserContext
+{
+    std::vector<std::string>                      namespace_stack;
+    std::vector<std::shared_ptr<ClassDefinition>> class_stack;
+
+    ParserContext push_namespace(const std::string& last_namespace) const
+    {
+        ParserContext copy = *this;
+        copy.namespace_stack.push_back(last_namespace);
+        return copy;
+    }
+
+    ParserContext push_class(const ClassDefinition& last_class) const
+    {
+        ParserContext copy = *this;
+        copy.class_stack.push_back(std::make_shared<ClassDefinition>(last_class));
+        return copy;
+    }
+};
 
 class HeaderParser
 {
 public:
-    struct ParserContext
-    {
-        std::vector<std::string>                      namespace_stack;
-        std::vector<std::shared_ptr<ClassDefinition>> class_stack;
-
-        ParserContext push_namespace(const std::string& last_namespace) const
-        {
-            ParserContext copy = *this;
-            copy.namespace_stack.push_back(last_namespace);
-            return copy;
-        }
-
-        ParserContext push_class(const ClassDefinition& last_class) const
-        {
-            ParserContext copy = *this;
-            copy.class_stack.push_back(std::make_shared<ClassDefinition>(last_class));
-            return copy;
-        }
-    };
 
     HeaderParser(const std::string& header_data, std::filesystem::path generated_header_include_path, std::filesystem::path header_path);
 

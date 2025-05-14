@@ -61,21 +61,6 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 {
 }
 
-static void unpack_template_args(Generator::Writer& source, const TypeDefinition& type)
-{
-    return;
-    std::string args;
-    for (size_t i = 0; i < type.get_template_args().size(); ++i)
-    {
-        auto& arg = type.get_template_args()[i];
-        unpack_template_args(source, arg);
-        args += i >= type.get_template_args().size() - 1 ? arg.full_name_string() : arg.full_name_string() + ", ";
-    }
-
-    if (!args.empty())
-        source.write_line(std::format("Reflection::Type::register_type_template<{}, {}>();", type.full_name_string(), args));
-}
-
 static std::string make_type_instance(const TypeDefinition& type)
 {
     std::string base = std::format("Reflection::TypeInstance::create<{}>()", type.full_name_string());
@@ -113,6 +98,36 @@ void Generator::generate(size_t                       timestamp,
     header.write_line("#include <macros.hpp>");
     header.new_line(3);
 
+    /*************** TEMMPLATE TYPES DECLARATIONS ***************/
+    for (const auto& gen_class : parser->get_classes())
+    {
+        for (const auto& property : gen_class.second.properties())
+        {
+            // If not a template type
+            if (property.second.get_template_args().empty())
+                continue;
+            property.second.full_name_string()
+            if (!gen_class.second.context.namespace_stack.empty())
+            {
+                header.write_line(std::format("namespace {} {{", gen_class.second.namespace_path()));
+                header.indent();
+            }
+            header.write_line(std::format("class {}; // forward declaration", gen_class.second.class_name()));
+            if (!gen_class.second.context.namespace_stack.empty())
+            {
+                header.unindent();
+                header.write_line("}");
+            }
+
+            source.write_line(std::format("REFL_DECLARE_TYPENAME_TEMPLATE(%s)"
+                                          "\"{}\", "
+                                          "offsetof({}, {}), "
+                                          "{});",
+                                          gen_class.second.sanitized_class_path(), property.first, class_name, property.first, make_type_instance(property.second)));
+        }
+    }
+
+    /*************** ENUMS HEADERS ***************/
     for (const auto& gen_enums : parser->get_enums())
     {
         auto enum_name = gen_enums.second.enum_path();
@@ -147,6 +162,7 @@ void Generator::generate(size_t                       timestamp,
         }
         header.unindent();
     }
+    /*************** CLASS HEADERS ***************/
     for (const auto& gen_class : parser->get_classes())
     {
         std::string class_name = gen_class.second.class_path();
@@ -155,6 +171,10 @@ void Generator::generate(size_t                       timestamp,
         header.indent();
         {
             header.new_line(1);
+
+            
+            header.write_line(std::format("void _Refl_Register_Function_{}(); // Forward declaration of builder function", gen_class.second.sanitized_class_path()));
+
             if (!gen_class.second.context.namespace_stack.empty())
             {
                 header.write_line(std::format("namespace {} {{", gen_class.second.namespace_path()));
@@ -168,7 +188,13 @@ void Generator::generate(size_t                       timestamp,
             }
             header.write_line(
                 std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // class body content", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
+
+            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_CLASS_TYPENAME_{}", gen_class.second.sanitized_class_path()));
+            header.indent();
+            header.write_line(std::format("#define __DEF_REFL_DECLARE_CLASS_TYPENAME_{}", gen_class.second.sanitized_class_path()));
             header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", class_name, class_name));
+            header.unindent();
+            header.write_line(std::format("#endif"));
             header.new_line(2);
         }
         header.unindent();
@@ -254,7 +280,6 @@ void Generator::generate(size_t                       timestamp,
 
                 for (const auto& property : gen_class.second.properties())
                 {
-                    unpack_template_args(source, property.second);
                     source.write_line(std::format(
                         "_Static_Item_Class_{}->register_property("
                         "\"{}\", "

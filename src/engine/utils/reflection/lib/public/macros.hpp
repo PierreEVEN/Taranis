@@ -18,7 +18,9 @@
     {                                                     \
         constexpr static bool        value    = true;     \
         constexpr static bool        is_class = false;    \
-    };
+        constexpr static const char* name     = #Type;    \
+    }; \
+
 #define REFL_DECLARE_TYPENAME_TEMPLATE(Type)                                      \
     template <typename... Args> struct Reflection::StaticTypeInfos<Type<Args...>> \
     {                                                                             \
@@ -32,6 +34,7 @@
         constexpr static bool value    = true;           \
         constexpr static bool is_class = false;          \
         constexpr static bool is_enum  = true;           \
+        constexpr static const char* name     = #Type;   \
     };
 
 #define REFL_DECLARE_CLASS_TYPENAME(Type)                \
@@ -39,6 +42,7 @@
     {                                                    \
         constexpr static bool        value    = true;    \
         constexpr static bool        is_class = true;    \
+        constexpr static const char* name     = #Type;   \
     };
 #define REFL_DECLARE_CLASS_TYPENAME_TEMPLATE(Type)                                \
     template <typename... Args> struct Reflection::StaticTypeInfos<Type<Args...>> \
@@ -49,7 +53,7 @@
 
 #define REFL_DECLARE_CLASS(className)                                                                \
   public:                                                                                            \
-    friend void                      CONCAT_MACRO_TWO_PARAMS(_Refl_Register_Function_, className)(); \
+    friend void                      CONCAT_MACRO_TWO_PARAMS(::_Refl_Register_Function_, className)(); \
     static const Reflection::Class*  static_class();                                                 \
     virtual const Reflection::Class* get_class() const;                                              \
     template <typename T> T*         cast()                                                          \
