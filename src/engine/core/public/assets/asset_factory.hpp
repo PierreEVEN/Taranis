@@ -25,6 +25,7 @@ public:
             flags |= AssetFlags::TRANSIENT;
 
         TObjectRef<AssetT> asset = registry.create<AssetT>(name, flags, std::forward<Args>(args)...);
+        ASSERT(asset, "Failed to create asset {} of type {}", name, AssetT::static_class()->name());
         asset->package           = package_ref;
         package->on_asset_loaded_internal(package_ref.get_path(), asset.template cast<AssetBase>());
         return asset;

@@ -37,8 +37,9 @@ void Class::add_parent(const TypeId& parent)
 {
     if (Class* FoundClass = get(parent))
         parents.push_back(FoundClass);
-    else
-        get_class_waiting_type_registration().insert_or_assign(parent, std::vector<Class*>{}).first->second.push_back(this);
+    else {
+        get_class_waiting_type_registration().emplace(parent, std::vector<Class*>{}).first->second.push_back(this);
+    }
 }
 
 void Class::register_property(const std::string& property_name, size_t offset, const TypeInstance& type)

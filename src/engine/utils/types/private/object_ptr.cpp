@@ -10,7 +10,6 @@ void IObject::destroy()
         // avoid double call when calling delete operator
         void* ptr       = allocation->ptr;
         allocation->ptr = nullptr;
-
         // Class destructor
         if (allocation->object_class)
         {
