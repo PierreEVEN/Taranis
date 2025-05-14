@@ -106,6 +106,7 @@ void Generator::generate(size_t                       timestamp,
             // If not a template type
             if (property.second.get_template_args().empty())
                 continue;
+
             property.second.full_name_string()
             if (!gen_class.second.context.namespace_stack.empty())
             {
