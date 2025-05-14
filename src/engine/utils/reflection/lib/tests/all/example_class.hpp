@@ -11,7 +11,7 @@ public:
     {
         TestChild cl;
         cl.untracked_value = 12.5687f;
-        cl.string_vector   = {"a", "bb", "", "ROH", "Ceci est une tr�s longue", "phrase"};
+        cl.string_vector   = {"a", "bb", "", "ROH", "Ceci est une tres longue", "phrase"};
         return cl;
     }
 

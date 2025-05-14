@@ -1,5 +1,6 @@
 #include "gfx/vulkan/instance.hpp"
 
+#include "stringutils.hpp"
 #include "gfx/gfx.hpp"
 
 #include <GLFW/glfw3.h>

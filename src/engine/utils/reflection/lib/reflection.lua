@@ -2,6 +2,7 @@ declare_module(
     "reflection", 
     {
         deps = {"io"},
+        enable_test_reflection = true,
         packages = {
             {name = "unordered_dense", public = true}
         },
@@ -9,4 +10,4 @@ declare_module(
 )
 
 target("reflection")
-    set_group("utils")
+    set_group("engine/utils")

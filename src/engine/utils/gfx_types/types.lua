@@ -9,4 +9,4 @@ declare_module(
 )
 
 target("gfx_types")
-    set_group("engine")
+    set_group("engine/utils")

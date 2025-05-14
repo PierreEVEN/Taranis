@@ -11,7 +11,7 @@ declare_module(
 )
 
 target("shader_compiler")
-    set_group("utils")
+    set_group("engine/utils")
     if is_plat("linux") then
         add_syslinks("pthread")
     end

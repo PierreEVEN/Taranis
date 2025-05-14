@@ -11,5 +11,5 @@ declare_module(
 )
 
 target("header_tool")
-    set_group("utils")
+    set_group("engine/utils")
     set_policy('build.fence', true)

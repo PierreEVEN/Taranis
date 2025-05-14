@@ -57,6 +57,9 @@
 #define ASSERT(condition, format_str, ...) \
     if (!(condition))                      \
         LOG_FATAL(format_str, __VA_ARGS__)
+#define ASSERT_EQ(A, B, ...)  ASSERT((A) == (B), __VA_ARGS__)
+#define ASSERT_NEQ(A, B, ...) ASSERT((A) != (B), __VA_ARGS__)
+#define ASSERT_FALSE(A, ...) ASSERT(!(A), __VA_ARGS__)
 #elif CXX_GCC
 #define LOG_FATAL(format_str, ...)    __LOG_FULL_ASSERT(format_str, Logger::LogType::LOG_LEVEL_FATAL, ##__VA_ARGS__)
 #define LOG_VALIDATE(format_str, ...) __SIMPLE_LOG(format_str, Logger::LogType::LOG_LEVEL_VALIDATE, ##__VA_ARGS__)
@@ -68,6 +71,9 @@
 #define ASSERT(condition, format_str, ...) \
     if (!(condition))                      \
         LOG_FATAL(format_str, ##__VA_ARGS__)
+#define ASSERT_EQ(A, B, ...)  ASSERT((A) == (B), ##__VA_ARGS__)
+#define ASSERT_NEQ(A, B, ...) ASSERT((A) != (B), ##__VA_ARGS__)
+#define ASSERT_FALSE(A, ...)  ASSERT(!(A), ##__VA_ARGS__)
 #elif CXX_CLANG
 #define LOG_FATAL(format_str, ...)    __LOG_FULL_ASSERT(format_str, Logger::LogType::LOG_LEVEL_FATAL __VA_OPT__(, ) __VA_ARGS__)
 #define LOG_VALIDATE(format_str, ...) __SIMPLE_LOG(format_str, Logger::LogType::LOG_LEVEL_VALIDATE __VA_OPT__(, ) __VA_ARGS__)
@@ -79,6 +85,9 @@
 #define ASSERT(condition, format_str, ...) \
     if (!(condition))                      \
         LOG_FATAL(format_str __VA_OPT__(, ) __VA_ARGS__)
+#define ASSERT_EQ(A, B, ...)  ASSERT((A) == (B)__VA_OPT__(, ) __VA_ARGS__)
+#define ASSERT_NEQ(A, B, ...) ASSERT((A) != (B)__VA_OPT__(, ) __VA_ARGS__)
+#define ASSERT_FALSE(A, ...)  ASSERT(!(A)__VA_OPT__(, ) __VA_ARGS__)
 
 #endif
 

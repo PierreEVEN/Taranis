@@ -117,6 +117,7 @@ function declare_module(module_name, opts)
     local is_executable = opts.is_executable or false
     local is_module = opts.is_module or false
     local enable_reflection = opts.enable_reflection or false
+    local enable_test_reflection = opts.enable_test_reflection or false
     local allow_shared_build = opts.allow_shared_build or false
     
     target(module_name, function ()
@@ -166,7 +167,7 @@ function declare_module(module_name, opts)
 
         -----------------[[ TESTS ]]-----------------
         if os.exists("tests") then
-            for _, file in pairs(os.files("tests/test_**.cpp")) do
+            for _, file in pairs(os.files("tests/**test_*.cpp")) do
                 local name = path.basename(file)
                 target("test_" .. module_name .. "_" .. name, function ()
                     set_kind("binary")
@@ -175,17 +176,22 @@ function declare_module(module_name, opts)
                     set_default(false)
                     add_files(file)
                     add_tests("default")
+                    set_group("tests")
+                    for _, file in pairs(os.files(path.join(path.directory(file), "**.hpp"))) do
+                        add_headerfiles(file)
+                    end
 
-                    -- Reflection : //@TODO : make reflection optional
-                    add_cxxflags("-Wno-invalid-offsetof", {tools = {"gcc", "clang"}})
-                    add_deps('header_tool')
-                    set_policy('build.fence', true)
-                    add_rules("header.tool.generated")
-                    add_deps('reflection')
+                    if (enable_reflection or enable_test_reflection) then
+                        add_cxxflags("-Wno-invalid-offsetof", {tools = {"gcc", "clang"}})
+                        add_deps('header_tool')
+                        set_policy('build.fence', true)
+                        add_rules("header.tool.generated")
+                        add_deps('reflection')
 
-                    -- add headers to check
-                    for _, file in pairs(os.files("tests/**.hpp")) do
-                        add_files(file)
+                        -- add headers to check
+                        for _, file in pairs(os.files(path.join(path.directory(file), "**.hpp"))) do
+                            add_files(file)
+                        end
                     end
                 end)
             end

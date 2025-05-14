@@ -25,7 +25,6 @@
 #include "widgets/scene_outliner.hpp"
 #include "widgets/viewport.hpp"
 
-#include <numbers>
 #include <GLFW/glfw3.h>
 #include <gfx/window.hpp>
 #include "assets/texture_asset.hpp"
@@ -184,7 +183,6 @@ public:
     std::shared_ptr<Gfx::Buffer>      light_buffer;
 };
 
-
 class GlobalMainMenu : public Gfx::MainMenuItem
 {
 public:
@@ -286,9 +284,7 @@ public:
         directional_light->set_rotation(glm::vec3{0, 1.5f, 0.2f});
         directional_light->enable_shadow(ELightType::Movable, true);
 
-        auto        new_texture = ImageImport::load_from_path("./resources/screenshot.png", PackageRef(TEST_EDITOR_PACKAGE, "/test/directory/demo_asset"));
-
-        //scene->merge(demo_scene);
+        auto new_texture = ImageImport::load_from_path("./resources/screenshot.png", PackageRef(TEST_EDITOR_PACKAGE, "/test/directory/demo_asset"));
 
         default_window.lock()->on_scroll.add_lambda(
             [&](double, double y)

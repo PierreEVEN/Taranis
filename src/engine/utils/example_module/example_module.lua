@@ -7,4 +7,4 @@ declare_module("example_module",
 )
 
 target("example_module")
-set_group("test")
+    set_group("tests")
