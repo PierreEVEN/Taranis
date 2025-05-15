@@ -24,7 +24,7 @@ class TextureAsset : public AssetBase
 public:
     struct CreateInfos
     {
-      public:
+    public:
         uint32_t width = 1;
 
         uint32_t height = 1;
@@ -66,7 +66,7 @@ public:
     std::shared_ptr<Gfx::ImageView> view;
 
     RPROPERTY()
-    std::vector<uint8_t> raw_data;
+    ::std::vector<uint8_t> raw_data;
     RPROPERTY()
     uint32_t width = 0;
     RPROPERTY()
@@ -76,8 +76,8 @@ public:
     RPROPERTY()
     uint32_t array_size = 1;
     RPROPERTY()
-    Eng::Gfx::ColorFormat format = Gfx::ColorFormat::UNDEFINED;
+    ::Eng::Gfx::ColorFormat format = Gfx::ColorFormat::UNDEFINED;
     RPROPERTY()
-    Eng::Gfx::GenerateMips generate_mips = Gfx::GenerateMips::none();
+    ::Eng::Gfx::GenerateMips generate_mips = Gfx::GenerateMips::none();
 };
 } // namespace Eng

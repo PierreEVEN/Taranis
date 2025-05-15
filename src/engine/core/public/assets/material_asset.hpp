@@ -6,8 +6,8 @@
 
 #include <filesystem>
 
-#include "assets/material_asset.gen.hpp"
 #include "gfx/renderer/definition/render_pass_ref.hpp"
+#include "assets/material_asset.gen.hpp"
 
 namespace ShaderCompiler
 {

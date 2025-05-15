@@ -16,7 +16,7 @@ ShaderParser::ShaderParser(const std::string& source_shader) : source_code(sourc
     error = parse(token_set);
 }
 
-std::optional<Llp::ParserError> ShaderParser::parse(const Llp::TokenSet& token_set)
+Llp::ParserError ShaderParser::parse(const Llp::TokenSet& token_set)
 {
     for (Llp::Parser parser(lexer); parser; ++parser)
     {
@@ -24,7 +24,7 @@ std::optional<Llp::ParserError> ShaderParser::parse(const Llp::TokenSet& token_s
         {
             if (Llp::WordToken* option_name = parser.consume<Llp::WordToken>())
             {
-                if (parser.consume<Llp::EqualsToken>())
+                if (parser.consume<Llp::SymbolToken>('='))
                 {
                     if (parser.consume<Llp::WordToken>("true"))
                         options.insert_or_assign(option_name->word, true);
@@ -33,10 +33,10 @@ std::optional<Llp::ParserError> ShaderParser::parse(const Llp::TokenSet& token_s
                     else
                         return Llp::ParserError{parser.current_location(), "expected true or false"};
 
-                    if (!parser.consume<Llp::SemicolonToken>())
+                    if (!parser.consume<Llp::SymbolToken>(';'))
                         return Llp::ParserError{parser.current_location(), "; expected"};
                 }
-                else if (parser.consume<Llp::SemicolonToken>())
+                else if (parser.consume<Llp::SymbolToken>(';'))
                     options.emplace(option_name->word, false);
                 else
                     return Llp::ParserError{parser.current_location(), "; expected"};
@@ -57,7 +57,7 @@ std::optional<Llp::ParserError> ShaderParser::parse(const Llp::TokenSet& token_s
                     auto block_shared      = std::make_shared<ShaderBlock>();
                     block_shared->start    = block->location;
                     block_shared->end      = block->end;
-                    block_shared->raw_code = source_code.substr(block->location.index, block->end.index - block->location.index);
+                    block_shared->raw_code = source_code.substr(block->location.get_index(), block->end.get_index() - block->location.get_index());
                     if (auto block_error = parse_block(*block, *block_shared))
                         return block_error;
                     for (const auto& pass : pass_list)
@@ -71,11 +71,11 @@ std::optional<Llp::ParserError> ShaderParser::parse(const Llp::TokenSet& token_s
         }
         else if (auto* config_name = parser.consume<Llp::WordToken>())
         {
-            if (parser.consume<Llp::EqualsToken>())
+            if (parser.consume<Llp::SymbolToken>('='))
             {
                 if (auto* config_value = parser.consume<Llp::WordToken>())
                 {
-                    if (parser.consume<Llp::SemicolonToken>())
+                    if (parser.consume<Llp::SymbolToken>(';'))
                     {
                         if (const auto config_error = parse_config_value(config_name->word, config_value->word))
                             return Llp::ParserError{parser.current_location(), *config_error};
@@ -95,13 +95,13 @@ std::optional<Llp::ParserError> ShaderParser::parse(const Llp::TokenSet& token_s
     return {};
 }
 
-std::optional<Llp::ParserError> ShaderParser::parse_pass_args(Llp::ParenthesisBlockToken& args, std::vector<std::string>& pass_list)
+Llp::ParserError ShaderParser::parse_pass_args(Llp::ParenthesisBlockToken& args, std::vector<std::string>& pass_list)
 {
     for (Llp::Parser parser(args.content); parser; ++parser)
     {
         if (auto* name = parser.consume<Llp::WordToken>())
             pass_list.emplace_back(name->word);
-        else if (!parser.consume<Llp::ComaToken>())
+        else if (!parser.consume<Llp::SymbolToken>(','))
             return Llp::ParserError{parser.current_location(), "unexpected token"};
     }
     return {};
@@ -169,7 +169,7 @@ std::optional<std::string> ShaderParser::parse_config_value(const std::string& k
     return {};
 }
 
-std::optional<Llp::ParserError> ShaderParser::parse_block(const Llp::BraceBlockToken& args, ShaderBlock& block)
+Llp::ParserError ShaderParser::parse_block(const Llp::BraceBlockToken& args, ShaderBlock& block)
 {
     for (Llp::Parser parser(args.content); parser; ++parser)
     {

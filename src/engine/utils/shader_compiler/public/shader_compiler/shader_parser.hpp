@@ -26,7 +26,7 @@ class ShaderParser
 public:
     ShaderParser(const std::string& source_shader);
 
-    std::optional<Llp::ParserError> get_error() const
+    Llp::ParserError get_error() const
     {
         return error;
     }
@@ -47,16 +47,16 @@ public:
     }
 
 private:
-    std::optional<Llp::ParserError>        parse(const Llp::TokenSet& token_set);
-    static std::optional<Llp::ParserError> parse_pass_args(Llp::ParenthesisBlockToken& args, std::vector<std::string>& pass_list);
+    Llp::ParserError        parse(const Llp::TokenSet& token_set);
+    static Llp::ParserError parse_pass_args(Llp::ParenthesisBlockToken& args, std::vector<std::string>& pass_list);
     std::optional<std::string>             parse_config_value(const std::string& key, const std::string& value);
 
-    static std::optional<Llp::ParserError> parse_block(const Llp::BraceBlockToken& args, ShaderBlock& block);
+    static Llp::ParserError parse_block(const Llp::BraceBlockToken& args, ShaderBlock& block);
 
     ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<ShaderBlock>>> passes;
     ankerl::unordered_dense::map<std::string, bool>                                      options;
     Llp::Tokenizer                                                                       lexer;
-    std::optional<Llp::ParserError>                                                      error;
+    Llp::ParserError                                                      error;
     Eng::Gfx::PipelineOptions                                                            pipeline_options;
     const std::string                                                                    source_code;
 };

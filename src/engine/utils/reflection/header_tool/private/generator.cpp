@@ -3,24 +3,18 @@
 #include "header_parser.hpp"
 
 #include <filesystem>
-#include <iostream>
 #include <random>
 #include <format>
 
-static size_t global_refl_uid = rand();
-
-struct RandInit
+static size_t random_init()
 {
-    RandInit()
-    {
-        std::random_device                    rd;
-        std::mt19937_64                       eng(rd());
-        std::uniform_int_distribution<size_t> random;
-        global_refl_uid = random(eng) / 2;
-    }
-};
+    std::random_device                    rd;
+    std::mt19937_64                       eng(rd());
+    std::uniform_int_distribution<size_t> random;
+    return random(eng);
+}
 
-static RandInit _rnd_init;
+static size_t global_refl_uid = random_init();
 
 Generator::Writer::Writer(const std::filesystem::path& file) : fs(file)
 {
@@ -64,15 +58,14 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 static std::string make_type_instance(const Type& type)
 {
     std::string base = std::format("Reflection::TypeInstance::create<{}>()", type.cpp_name());
-    if (type.b_is_const)
+    if (type.is_const())
         base += ".set_const()";
-    if (type.b_is_ref)
+    if (type.is_ref())
         base += ".set_ref()";
     return base;
 }
 
-void Generator::generate(size_t                       timestamp,
-                         const std::filesystem::path& source_path,
+void Generator::generate(const std::filesystem::path& source_path,
                          const std::filesystem::path& header_path,
                          const std::filesystem::path& base_header_path,
                          const std::filesystem::path& generated_header_include_path) const
@@ -85,8 +78,6 @@ void Generator::generate(size_t                       timestamp,
     std::string include_guard_name = header_path.filename().replace_extension("").replace_extension("").string() + "_gen_hpp";
 
     Writer header(header_path);
-    header.write_line(std::format("/// VERSION : {}", timestamp));
-    header.new_line();
     header.write_line("/**** GENERATED FILE BY REFLECTION TOOL, DO NOT MODIFY ****/");
     header.new_line();
     header.write_line("#undef _REFL_FILE_UNIQUE_ID_");
@@ -98,102 +89,106 @@ void Generator::generate(size_t                       timestamp,
     header.write_line("#include <macros.hpp>");
     header.new_line(3);
 
-    /*************** TEMMPLATE TYPES DECLARATIONS ***************/
+    /*************** TEMPLATE TYPES DECLARATIONS ***************/
     for (const auto& gen_class : parser->get_classes())
     {
-        for (const auto& property : gen_class.second.properties())
+        for (const auto& property_kp : gen_class.second->get_properties())
         {
+            std::string property_name = property_kp.first;
+            const Type& property      = property_kp.second;
             // If not a template type
-            if (property.second.get_template_args().empty())
+            if (!property.is_template())
                 continue;
 
-            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", property.second.sanitized_name()));
+            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", property.sanitized_name()));
             header.indent();
-            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", property.second.sanitized_name()));
-            
-            if (!gen_class.second.context.namespace_stack.empty())
+            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", property.sanitized_name()));
+
+            if (property.name().has_namespace())
             {
-                header.write_line(std::format("namespace {} {{", property.second.cpp_namespace()));
+                header.write_line(std::format("namespace {} {{", property.name().cpp_namespace()));
                 header.indent();
             }
-            header.write_line(std::format("template<typename V, typename U> class {}; // forward declaration", property.second.name_short()));
-            if (!gen_class.second.context.namespace_stack.empty())
+            header.write_line(std::format("template<typename V, typename U> class {}; // forward declaration", property.name().short_name()));
+            if (property.name().has_namespace())
             {
                 header.unindent();
                 header.write_line("}");
             }
-            header.write_line(std::format("REFL_DECLARE_TYPENAME({}) // declare template type name for {}", property.second.cpp_name(), property.second.cpp_name()));
+            header.write_line(std::format("REFL_DECLARE_TYPENAME({}) // declare template type name for {}", property.cpp_name(), property.cpp_name()));
             header.unindent();
             header.write_line(std::format("#endif"));
         }
     }
 
     /*************** ENUMS HEADERS ***************/
-    for (const auto& gen_enums : parser->get_enums())
+    for (const auto& gen_enums_kp : parser->get_enums())
     {
-        auto enum_name = gen_enums.second.enum_path();
-        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", enum_name));
+        const auto& gen_enum      = gen_enums_kp.second;
+        auto enum_cpp_name = gen_enum.name().cpp_name();
+        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", enum_cpp_name));
         header.indent();
         {
             header.new_line(1);
-            if (!gen_enums.second.context.namespace_stack.empty())
+            if (gen_enum.name().has_namespace())
             {
-                header.write_line(std::format("namespace {} {{", gen_enums.second.namespace_path()));
+                header.write_line(std::format("namespace {} {{", gen_enum.name().cpp_namespace()));
                 header.indent();
             }
-            if (gen_enums.second.get_type().empty())
-                header.write_line(std::format("enum {}{}; // forward declaration", gen_enums.second.is_scoped() ? "class " : "", gen_enums.first));
+            if (gen_enum.get_type().empty())
+                header.write_line(std::format("enum {}{}; // forward declaration", gen_enum.is_scoped() ? "class " : "", gen_enum.name().short_name()));
             else
-                header.write_line(std::format("enum {}{} : {}; // forward declaration", gen_enums.second.is_scoped() ? "class " : "", gen_enums.first, gen_enums.second.get_type()));
-            if (!gen_enums.second.context.namespace_stack.empty())
+                header.write_line(std::format("enum {}{} : {}; // forward declaration", gen_enum.is_scoped() ? "class " : "", gen_enum.name().short_name(), gen_enum.get_type()));
+            if (gen_enum.name().has_namespace())
             {
                 header.unindent();
                 header.write_line("}");
             }
-            header.write_line(std::format("REFL_DECLARE_ENUM_TYPENAME({}); // declare type name for {}", enum_name, enum_name));
+            header.write_line(std::format("REFL_DECLARE_ENUM_TYPENAME({}); // declare type name for {}", enum_cpp_name, enum_cpp_name));
 
-            if (gen_enums.second.is_enum_flag())
+            if (gen_enum.is_enum_flag())
             {
-                header.write_line(std::format("inline {} operator&({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); }}", enum_name, enum_name, enum_name, enum_name));
-                header.write_line(std::format("inline {} operator|({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); }}", enum_name, enum_name, enum_name, enum_name));
-                header.write_line(std::format("inline {} operator&=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); return a; }}", enum_name, enum_name, enum_name, enum_name));
-                header.write_line(std::format("inline {} operator|=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); return a; }}", enum_name, enum_name, enum_name, enum_name));
+                header.write_line(std::format("inline {} operator&({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(std::format("inline {} operator|({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(std::format("inline {} operator&=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); return a; }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(std::format("inline {} operator|=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); return a; }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
             }
             header.new_line(2);
         }
         header.unindent();
     }
     /*************** CLASS HEADERS ***************/
-    for (const auto& gen_class : parser->get_classes())
+    for (const auto& class_kp : parser->get_classes())
     {
-        std::string class_name = gen_class.second.class_path();
+        const auto& gen_class = class_kp.second;
+        std::string cpp_name = gen_class->name().cpp_name();
+        std::string sanitized_name = gen_class->name().sanitized_name();
 
-        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", class_name));
+        header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", cpp_name));
         header.indent();
         {
             header.new_line(1);
 
-            
-            header.write_line(std::format("void _Refl_Register_Function_{}(); // Forward declaration of builder function", gen_class.second.sanitized_class_path()));
+            header.write_line(std::format("void _Refl_Register_Function_{}(); // Forward declaration of builder function", sanitized_name));
 
-            if (!gen_class.second.context.namespace_stack.empty())
+            if (gen_class->name().has_namespace())
             {
-                header.write_line(std::format("namespace {} {{", gen_class.second.namespace_path()));
+                header.write_line(std::format("namespace {} {{", gen_class->name().cpp_namespace()));
                 header.indent();
             }
-            header.write_line(std::format("class {}; // forward declaration", gen_class.second.class_name()));
-            if (!gen_class.second.context.namespace_stack.empty())
+            header.write_line(std::format("class {}; // forward declaration", gen_class->name().short_name()));
+            if (gen_class->name().has_namespace())
             {
                 header.unindent();
                 header.write_line("}");
             }
             header.write_line(
-                std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // class body content", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
+                std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}, {}); // class body content", global_refl_uid, gen_class->get_implementation_line(), cpp_name, sanitized_name));
 
-            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", gen_class.second.sanitized_class_path()));
+            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", sanitized_name));
             header.indent();
-            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", gen_class.second.sanitized_class_path()));
-            header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", class_name, class_name));
+            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", sanitized_name));
+            header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", cpp_name, cpp_name));
             header.unindent();
             header.write_line(std::format("#endif"));
             header.new_line(2);
@@ -212,83 +207,87 @@ void Generator::generate(size_t                       timestamp,
     source.write_line("#include <enum.hpp>");
     source.new_line(3);
 
-    for (const auto& gen_enum : parser->get_enums())
+    for (const auto& enum_kp : parser->get_enums())
     {
-        auto enum_name = gen_enum.second.enum_path();
-        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", enum_name));
+        const auto& gen_enum = enum_kp.second;
+        auto cpp_name = gen_enum.name().cpp_name();
+        auto sanitized_name = gen_enum.name().sanitized_name();
+        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", cpp_name));
         source.indent();
         {
             // Populate enum definition
             source.new_line(1);
-            source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", gen_enum.second.sanitized_enum_path()));
+            source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", sanitized_name));
             source.indent();
             {
-                source.write_line(std::format("Reflection::Enum* _Static_Item_Enum_{} = Reflection::Enum::register_enum<{}>();", gen_enum.second.sanitized_enum_path(), enum_name));
+                source.write_line(std::format("Reflection::Enum* _Static_Item_Enum_{} = Reflection::Enum::register_enum<{}>();", sanitized_name, cpp_name));
 
-                if (gen_enum.second.get_fields().empty())
-                    source.write_line(std::format("(void)_Static_Item_Enum_{};", gen_enum.second.sanitized_enum_path()));
+                if (gen_enum.get_fields().empty())
+                    source.write_line(std::format("(void)_Static_Item_Enum_{};", sanitized_name));
 
-                for (const auto& field : gen_enum.second.get_fields())
-                    source.write_line(std::format("_Static_Item_Enum_{}->register_field(\"{}\");", gen_enum.second.sanitized_enum_path(), field));
+                for (const auto& field : gen_enum.get_fields())
+                    source.write_line(std::format("_Static_Item_Enum_{}->register_field(\"{}\");", sanitized_name, field));
             }
             source.unindent();
             source.write_line("}");
             source.new_line(2);
 
-            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", gen_enum.second.sanitized_enum_path(), enum_name));
+            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", sanitized_name, cpp_name));
             source.indent();
             {
-                source.write_line(std::format("_Static_Item_Builder_{}() {{", gen_enum.second.sanitized_enum_path()));
+                source.write_line(std::format("_Static_Item_Builder_{}() {{", sanitized_name));
                 source.indent();
                 {
-                    source.write_line(std::format("_Refl_Register_Function_{}();", gen_enum.second.sanitized_enum_path()));
+                    source.write_line(std::format("_Refl_Register_Function_{}();", sanitized_name));
                 }
                 source.unindent();
                 source.write_line("}");
             }
             source.unindent();
             source.write_line("};");
-            source.write_line(std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", gen_enum.second.sanitized_enum_path(), gen_enum.second.sanitized_enum_path(), enum_name));
+            source.write_line(std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", sanitized_name, sanitized_name, cpp_name));
 
             source.new_line(2);
         }
         source.unindent();
     }
 
-    for (const auto& gen_class : parser->get_classes())
+    for (const auto& class_kp : parser->get_classes())
     {
-        std::string class_name = gen_class.second.class_path();
+        const auto& gen_class = class_kp.second;
+        std::string cpp_name = gen_class->name().cpp_name();
+        std::string sanitized_name = gen_class->name().sanitized_name();
 
-        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", class_name));
+        source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", cpp_name));
         source.indent();
         {
             source.new_line(1);
-            source.write_line(std::format("Reflection::Class* _Static_Item_Class_{} = nullptr; // static class reference", gen_class.second.sanitized_class_path()));
-            source.write_line(std::format("const Reflection::Class* {}::static_class() {{ return Reflection::Class::get<{}>(); }}", class_name, class_name));
-            source.write_line(std::format("const Reflection::Class* {}::get_class() const {{ return Reflection::Class::get<{}>(); }}", class_name, class_name));
+            source.write_line(std::format("Reflection::Class* _Static_Item_Class_{} = nullptr; // static class reference", sanitized_name));
+            source.write_line(std::format("const Reflection::Class* {}::static_class() {{ return Reflection::Class::get<{}>(); }}", cpp_name, cpp_name));
+            source.write_line(std::format("const Reflection::Class* {}::get_class() const {{ return Reflection::Class::get<{}>(); }}", cpp_name, cpp_name));
 
             // Populate class definition
             source.new_line(1);
-            source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", gen_class.second.sanitized_class_path()));
+            source.write_line(std::format("void _Refl_Register_Function_{}() {{ // Builder function", sanitized_name));
             source.indent();
             {
-                source.write_line(std::format("_Static_Item_Class_{} = Reflection::Class::register_class<{}>();", gen_class.second.sanitized_class_path(), class_name));
-                for (const auto& parent : gen_class.second.get_parent_paths())
+                source.write_line(std::format("_Static_Item_Class_{} = Reflection::Class::register_class<{}>();", sanitized_name, cpp_name));
+                for (const auto& parent : gen_class->get_parents())
                 {
-                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Reflection::TypeId::create<{}>());", gen_class.second.sanitized_class_path(), parent));
-                    source.write_line(std::format("_Static_Item_Class_{}->add_cast_function<{},{}>();", gen_class.second.sanitized_class_path(), class_name, parent));
+                    source.write_line(std::format("_Static_Item_Class_{}->add_parent(Reflection::TypeId::create<{}>());", sanitized_name, parent.cpp_name()));
+                    source.write_line(std::format("_Static_Item_Class_{}->add_cast_function<{},{}>();", sanitized_name, cpp_name, parent.cpp_name()));
                 }
 
-                for (const auto& property : gen_class.second.properties())
+                for (const auto& property : gen_class->get_properties())
                 {
                     source.write_line(std::format(
                         "_Static_Item_Class_{}->register_property("
                         "\"{}\", "
                         "offsetof({}, {}), "
                         "{});",
-                        gen_class.second.sanitized_class_path(),
+                        sanitized_name,
                         property.first,
-                        class_name, property.first,
+                        cpp_name, property.first,
                         make_type_instance(property.second)));
                 }
             }
@@ -297,13 +296,13 @@ void Generator::generate(size_t                       timestamp,
             source.new_line(1);
 
             source.new_line(1);
-            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", gen_class.second.sanitized_class_path(), class_name));
+            source.write_line(std::format("struct _Static_Item_Builder_{} {{ // Builder for {}", sanitized_name, cpp_name));
             source.indent();
             {
-                source.write_line(std::format("_Static_Item_Builder_{}() {{", gen_class.second.sanitized_class_path()));
+                source.write_line(std::format("_Static_Item_Builder_{}() {{", sanitized_name));
                 source.indent();
                 {
-                    source.write_line(std::format("_Refl_Register_Function_{}();", gen_class.second.sanitized_class_path()));
+                    source.write_line(std::format("_Refl_Register_Function_{}();", sanitized_name));
                 }
                 source.unindent();
                 source.write_line("}");
@@ -311,7 +310,7 @@ void Generator::generate(size_t                       timestamp,
             source.unindent();
             source.write_line("};");
             source.write_line(
-                std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", gen_class.second.sanitized_class_path(), gen_class.second.sanitized_class_path(), class_name));
+                std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", sanitized_name, sanitized_name, cpp_name));
 
             source.new_line(2);
         }

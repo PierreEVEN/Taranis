@@ -4,9 +4,9 @@
 #include "object_ptr.hpp"
 #include "spinlock.hpp"
 
-#include "assets/material_instance_asset.gen.hpp"
 #include "gfx/renderer/definition/render_pass_id.hpp"
 #include "gfx/renderer/definition/render_pass_ref.hpp"
+#include "assets/material_instance_asset.gen.hpp"
 
 namespace Eng
 {

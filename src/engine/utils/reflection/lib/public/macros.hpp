@@ -51,9 +51,9 @@
         constexpr static bool        is_class = true;                             \
     };
 
-#define REFL_DECLARE_CLASS(className)                                                                \
+#define REFL_DECLARE_CLASS(className, class_sanitized_name)                                                                \
   public:                                                                                            \
-    friend void                      CONCAT_MACRO_TWO_PARAMS(::_Refl_Register_Function_, className)(); \
+    friend void                      _Refl_Register_Function_##class_sanitized_name(); \
     static const Reflection::Class*  static_class();                                                 \
     virtual const Reflection::Class* get_class() const;                                              \
     template <typename T> T*         cast()                                                          \

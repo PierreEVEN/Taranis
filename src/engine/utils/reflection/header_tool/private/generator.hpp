@@ -25,7 +25,7 @@ class Generator
 
     Generator(HeaderParser& parser);
 
-    void generate(size_t timestamp, const std::filesystem::path& source, const std::filesystem::path& header, const std::filesystem::path& base_header_path,
+    void generate(const std::filesystem::path& source, const std::filesystem::path& header, const std::filesystem::path& base_header_path,
                   const std::filesystem::path& generated_header_include_path) const;
 
   private:

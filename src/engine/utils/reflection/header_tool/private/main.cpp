@@ -36,9 +36,7 @@ int main(int argc, char** argv)
     std::filesystem::path generated_include_path = header.include_path;
     generated_include_path                       = generated_include_path.replace_extension(".gen.hpp");
 
-    auto source_header = std::make_shared<Llp::FileReader>(header.header_path);
-    source_header->read();
-    HeaderParser parser(source_header->raw_stream(), generated_include_path, header.header_path);
+    HeaderParser parser(Llp::FileReaderHelper::from_path(header.header_path), generated_include_path, header.header_path);
     if (parser.get_classes().empty() && parser.get_enums().empty())
         exit(EXIT_SUCCESS);
 
@@ -65,7 +63,7 @@ int main(int argc, char** argv)
     }
 
     Generator generator(parser);
-    generator.generate(source_header->timestamp(), header.gen_cpp_path, header.gen_hpp_path, header.include_path, generated_include_path);
+    generator.generate(header.gen_cpp_path, header.gen_hpp_path, header.include_path, generated_include_path);
 
     std::filesystem::last_write_time(header.gen_cpp_path, std::filesystem::last_write_time(header.header_path));
     return 0;
