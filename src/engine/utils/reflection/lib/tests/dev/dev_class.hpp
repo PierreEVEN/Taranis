@@ -14,11 +14,11 @@ namespace Test
 class TestCl2
 {
     REFLECT_BODY()
+public:
 
     RPROPERTY()
     float test;
 
-    
     RPROPERTY()
         ::std::vector<float> test_vec;
 

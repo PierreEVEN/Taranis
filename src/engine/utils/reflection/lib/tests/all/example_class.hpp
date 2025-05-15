@@ -1,6 +1,6 @@
 #pragma once
 #include "logger.hpp"
-#include "example_class.gen.hpp"
+#include "all/example_class.gen.hpp"
 
 class TestChild : public std::vector<float>
 {

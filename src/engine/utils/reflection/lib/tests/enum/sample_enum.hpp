@@ -1,6 +1,5 @@
 #pragma once
 #include "enum/sample_enum.gen.hpp"
-#include "sample_enum.gen.hpp"
 
 RENUM()
 enum TestEnum : uint32_t
