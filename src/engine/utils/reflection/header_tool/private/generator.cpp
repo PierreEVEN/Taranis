@@ -3,8 +3,8 @@
 #include "header_parser.hpp"
 
 #include <filesystem>
-#include <random>
 #include <format>
+#include <random>
 
 static size_t random_init()
 {
@@ -65,9 +65,7 @@ static std::string make_type_instance(const Type& type)
     return base;
 }
 
-void Generator::generate(const std::filesystem::path& source_path,
-                         const std::filesystem::path& header_path,
-                         const std::filesystem::path& base_header_path,
+void Generator::generate(const std::filesystem::path& source_path, const std::filesystem::path& header_path, const std::filesystem::path& base_header_path,
                          const std::filesystem::path& generated_header_include_path) const
 {
     create_directories(source_path.parent_path());
@@ -109,7 +107,15 @@ void Generator::generate(const std::filesystem::path& source_path,
                 header.write_line(std::format("namespace {} {{", property.name().cpp_namespace()));
                 header.indent();
             }
-            header.write_line(std::format("template<typename V, typename U> class {}; // forward declaration", property.name().short_name()));
+            size_t param_count = 1;
+            if (property.name().short_name() == "vector")
+                param_count = 2;
+            std::string params;
+            char chr = 'A';
+            for (size_t i = 0; i < param_count; ++i)
+                params += std::format("typename {},", chr++);
+
+            header.write_line(std::format("template<{}> class {}; // forward declaration", params, property.name().short_name()));
             if (property.name().has_namespace())
             {
                 header.unindent();
@@ -125,7 +131,7 @@ void Generator::generate(const std::filesystem::path& source_path,
     for (const auto& gen_enums_kp : parser->get_enums())
     {
         const auto& gen_enum      = gen_enums_kp.second;
-        auto enum_cpp_name = gen_enum.name().cpp_name();
+        auto        enum_cpp_name = gen_enum.name().cpp_name();
         header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", enum_cpp_name));
         header.indent();
         {
@@ -148,10 +154,14 @@ void Generator::generate(const std::filesystem::path& source_path,
 
             if (gen_enum.is_enum_flag())
             {
-                header.write_line(std::format("inline {} operator&({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
-                header.write_line(std::format("inline {} operator|({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
-                header.write_line(std::format("inline {} operator&=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); return a; }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
-                header.write_line(std::format("inline {} operator|=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); return a; }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(
+                    std::format("inline {} operator&({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(
+                    std::format("inline {} operator|({} a, {} b) {{ return static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(
+                    std::format("inline {} operator&=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) & static_cast<size_t>(b)); return a; }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
+                header.write_line(
+                    std::format("inline {} operator|=({}& a, {} b) {{ a = static_cast<{}>(static_cast<size_t>(a) | static_cast<size_t>(b)); return a; }}", enum_cpp_name, enum_cpp_name, enum_cpp_name, enum_cpp_name));
             }
             header.new_line(2);
         }
@@ -160,8 +170,8 @@ void Generator::generate(const std::filesystem::path& source_path,
     /*************** CLASS HEADERS ***************/
     for (const auto& class_kp : parser->get_classes())
     {
-        const auto& gen_class = class_kp.second;
-        std::string cpp_name = gen_class->name().cpp_name();
+        const auto& gen_class      = class_kp.second;
+        std::string cpp_name       = gen_class->name().cpp_name();
         std::string sanitized_name = gen_class->name().sanitized_name();
 
         header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", cpp_name));
@@ -182,8 +192,7 @@ void Generator::generate(const std::filesystem::path& source_path,
                 header.unindent();
                 header.write_line("}");
             }
-            header.write_line(
-                std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}, {}); // class body content", global_refl_uid, gen_class->get_implementation_line(), cpp_name, sanitized_name));
+            header.write_line(std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}, {}); // class body content", global_refl_uid, gen_class->get_implementation_line(), cpp_name, sanitized_name));
 
             header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", sanitized_name));
             header.indent();
@@ -209,9 +218,9 @@ void Generator::generate(const std::filesystem::path& source_path,
 
     for (const auto& enum_kp : parser->get_enums())
     {
-        const auto& gen_enum = enum_kp.second;
-        auto cpp_name = gen_enum.name().cpp_name();
-        auto sanitized_name = gen_enum.name().sanitized_name();
+        const auto& gen_enum       = enum_kp.second;
+        auto        cpp_name       = gen_enum.name().cpp_name();
+        auto        sanitized_name = gen_enum.name().sanitized_name();
         source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", cpp_name));
         source.indent();
         {
@@ -254,8 +263,8 @@ void Generator::generate(const std::filesystem::path& source_path,
 
     for (const auto& class_kp : parser->get_classes())
     {
-        const auto& gen_class = class_kp.second;
-        std::string cpp_name = gen_class->name().cpp_name();
+        const auto& gen_class      = class_kp.second;
+        std::string cpp_name       = gen_class->name().cpp_name();
         std::string sanitized_name = gen_class->name().sanitized_name();
 
         source.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", cpp_name));
@@ -280,15 +289,11 @@ void Generator::generate(const std::filesystem::path& source_path,
 
                 for (const auto& property : gen_class->get_properties())
                 {
-                    source.write_line(std::format(
-                        "_Static_Item_Class_{}->register_property("
-                        "\"{}\", "
-                        "offsetof({}, {}), "
-                        "{});",
-                        sanitized_name,
-                        property.first,
-                        cpp_name, property.first,
-                        make_type_instance(property.second)));
+                    source.write_line(std::format("_Static_Item_Class_{}->register_property("
+                                                  "\"{}\", "
+                                                  "offsetof({}, {}), "
+                                                  "{});",
+                                                  sanitized_name, property.first, cpp_name, property.first, make_type_instance(property.second)));
                 }
             }
             source.unindent();
@@ -309,8 +314,7 @@ void Generator::generate(const std::filesystem::path& source_path,
             }
             source.unindent();
             source.write_line("};");
-            source.write_line(
-                std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", sanitized_name, sanitized_name, cpp_name));
+            source.write_line(std::format("_Static_Item_Builder_{} _Static_Item_Builder_{}_Var; //  Register {} on execution", sanitized_name, sanitized_name, cpp_name));
 
             source.new_line(2);
         }
