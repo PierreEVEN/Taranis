@@ -61,12 +61,12 @@ Generator::Generator(HeaderParser& in_parser) : parser(&in_parser)
 {
 }
 
-static std::string make_type_instance(const TypeDefinition& type)
+static std::string make_type_instance(const Type& type)
 {
-    std::string base = std::format("Reflection::TypeInstance::create<{}>()", type.full_name_string());
-    if (type.is_const)
+    std::string base = std::format("Reflection::TypeInstance::create<{}>()", type.cpp_name());
+    if (type.b_is_const)
         base += ".set_const()";
-    if (type.is_ref)
+    if (type.b_is_ref)
         base += ".set_ref()";
     return base;
 }
@@ -107,24 +107,24 @@ void Generator::generate(size_t                       timestamp,
             if (property.second.get_template_args().empty())
                 continue;
 
-            property.second.full_name_string()
+            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", property.second.sanitized_name()));
+            header.indent();
+            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", property.second.sanitized_name()));
+            
             if (!gen_class.second.context.namespace_stack.empty())
             {
-                header.write_line(std::format("namespace {} {{", gen_class.second.namespace_path()));
+                header.write_line(std::format("namespace {} {{", property.second.cpp_namespace()));
                 header.indent();
             }
-            header.write_line(std::format("class {}; // forward declaration", gen_class.second.class_name()));
+            header.write_line(std::format("template<typename V, typename U> class {}; // forward declaration", property.second.name_short()));
             if (!gen_class.second.context.namespace_stack.empty())
             {
                 header.unindent();
                 header.write_line("}");
             }
-
-            source.write_line(std::format("REFL_DECLARE_TYPENAME_TEMPLATE(%s)"
-                                          "\"{}\", "
-                                          "offsetof({}, {}), "
-                                          "{});",
-                                          gen_class.second.sanitized_class_path(), property.first, class_name, property.first, make_type_instance(property.second)));
+            header.write_line(std::format("REFL_DECLARE_TYPENAME({}) // declare template type name for {}", property.second.cpp_name(), property.second.cpp_name()));
+            header.unindent();
+            header.write_line(std::format("#endif"));
         }
     }
 
@@ -190,9 +190,9 @@ void Generator::generate(size_t                       timestamp,
             header.write_line(
                 std::format("#define _REFLECTION_BODY_RUID_{}_LINE_{} REFL_DECLARE_CLASS({}); // class body content", global_refl_uid, gen_class.second.implementation_line, gen_class.second.sanitized_class_path()));
 
-            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_CLASS_TYPENAME_{}", gen_class.second.sanitized_class_path()));
+            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", gen_class.second.sanitized_class_path()));
             header.indent();
-            header.write_line(std::format("#define __DEF_REFL_DECLARE_CLASS_TYPENAME_{}", gen_class.second.sanitized_class_path()));
+            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", gen_class.second.sanitized_class_path()));
             header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", class_name, class_name));
             header.unindent();
             header.write_line(std::format("#endif"));

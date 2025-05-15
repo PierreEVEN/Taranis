@@ -1,6 +1,5 @@
 #pragma once
 #include "gfx_types/pipeline.hpp"
-#include "llp/lexer.hpp"
 #include "llp/native_tokens.hpp"
 
 #include <string>
@@ -24,7 +23,7 @@ struct ShaderBlock
 
 class ShaderParser
 {
-  public:
+public:
     ShaderParser(const std::string& source_shader);
 
     std::optional<Llp::ParserError> get_error() const
@@ -47,18 +46,18 @@ class ShaderParser
         return options;
     }
 
-  private:
-    std::optional<Llp::ParserError>        parse();
-    static std::optional<Llp::ParserError> parse_pass_args(Llp::ArgumentsToken& args, std::vector<std::string>& pass_list);
+private:
+    std::optional<Llp::ParserError>        parse(const Llp::TokenSet& token_set);
+    static std::optional<Llp::ParserError> parse_pass_args(Llp::ParenthesisBlockToken& args, std::vector<std::string>& pass_list);
     std::optional<std::string>             parse_config_value(const std::string& key, const std::string& value);
 
-    static std::optional<Llp::ParserError> parse_block(const Llp::BlockToken& args, ShaderBlock& block);
+    static std::optional<Llp::ParserError> parse_block(const Llp::BraceBlockToken& args, ShaderBlock& block);
 
     ankerl::unordered_dense::map<std::string, std::vector<std::shared_ptr<ShaderBlock>>> passes;
     ankerl::unordered_dense::map<std::string, bool>                                      options;
-    Llp::Lexer                                                                 lexer;
-    std::optional<Llp::ParserError>                                            error;
-    Eng::Gfx::PipelineOptions                                                  pipeline_options;
-    const std::string                                                          source_code;
+    Llp::Tokenizer                                                                       lexer;
+    std::optional<Llp::ParserError>                                                      error;
+    Eng::Gfx::PipelineOptions                                                            pipeline_options;
+    const std::string                                                                    source_code;
 };
 } // namespace ShaderCompiler

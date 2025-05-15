@@ -2,11 +2,12 @@
 
 #include "dev/dev_class.gen.hpp"
 
+REFL_DECLARE_TYPENAME(float)
+
 class TestCl1
 {
+    REFLECT_BODY()
 };
-
-REFL_DECLARE_TYPENAME(TestCl1)
 
 namespace Test
 {
@@ -16,6 +17,10 @@ class TestCl2
 
     RPROPERTY()
     float test;
+
+    
+    RPROPERTY()
+        ::std::vector<float> test_vec;
 
     RPROPERTY()
     ::TestCl1 test2;

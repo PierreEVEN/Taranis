@@ -1,195 +1,25 @@
 #include "header_parser.hpp"
 
-#include "llp/file_data.hpp"
-#include "llp/lexer.hpp"
 #include "llp/native_tokens.hpp"
 #include "llp/parser.hpp"
 
 #include <filesystem>
-#include <iostream>
 #include <format>
-
-static ankerl::unordered_dense::set<std::string> builtin_types = {"bool", "void", "float", "double", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"};
-
-namespace Llp
-{
-/*####[ :: ]####*/
-DECLARE_LEXER_TOKEN(ScopeOperator)
-
-    static std::unique_ptr<ScopeOperator> consume(Lexer&, Location& in_location, const std::string& source, std::optional<ParserError>&)
-    {
-        if (source[in_location.index] == ':' && source[in_location.index + 1] == ':')
-        {
-            ++++in_location;
-            return std::make_unique<ScopeOperator>(in_location);
-        }
-        return nullptr;
-    }
-
-    std::string to_string(bool) const override
-    {
-        return "::";
-    }
-};
-}
-
-std::string TypeDefinition::full_name_string() const
-{
-    std::string full_name = name; // is_const ? "const " + name : name;
-    if (!template_args.empty())
-    {
-        full_name += '<';
-        for (size_t i = 0; i < template_args.size(); ++i)
-            full_name += i == template_args.size() - 1 ? template_args[i].full_name_string() : template_args[i].full_name_string() + ", ";
-        full_name += '>';
-    }
-    for (size_t i = 0; i < ptr_indirections; ++i)
-        full_name += '*';
-    /*if (is_ref)
-        full_name += '&';*/
-    return full_name;
-}
-
-std::optional<Llp::ParserError> TypeDefinition::try_parse(Llp::Parser& parser, const ParserContext& context)
-{
-    if (parser.consume<Llp::WordToken>("const"))
-        is_const = true;
-
-    // Ignore first "::"
-    if (parser.consume<Llp::ScopeOperator>())
-        b_is_global_namespace = true;
-
-    do
-    {
-        if (auto found_name = parser.consume<Llp::WordToken>())
-            name += name.empty() ? found_name->word : "::" + found_name->word;
-    } while (parser.consume<Llp::ScopeOperator>());
-
-    if (parser.consume<Llp::SymbolToken>('<'))
-    {
-        do
-        {
-            TypeDefinition type;
-            if (auto error = type.try_parse(parser, context))
-                return error;
-            template_args.push_back(type);
-        } while (parser.consume<Llp::ComaToken>());
-        if (!parser.consume<Llp::SymbolToken>('>'))
-            return Llp::ParserError{parser.current_location(), "'>' expected"};
-    }
-    while (parser.consume<Llp::SymbolToken>('*'))
-        ++ptr_indirections;
-    if (parser.consume<Llp::SymbolToken>('&'))
-        is_ref = true;
-
-    // Requires "::" if not in global namespace
-    if (!context.namespace_stack.empty() && !b_is_global_namespace)
-    {
-        if (!builtin_types.contains(name))
-            return Llp::ParserError{parser.current_location(), "Cannot determine the type of a property that doesn't have an explicit path and is not declared in the global scope (and is not a builtin types)"};
-    }
-    return {};
-}
 
 HeaderParser::HeaderParser(const std::string& header_data, std::filesystem::path in_generated_header_include_path, std::filesystem::path in_header_path)
     : generated_header_include_path(std::move(in_generated_header_include_path)), header_path(std::move(in_header_path))
 {
-    Llp::Lexer lexer;
-    lexer.register_token_before<Llp::ScopeOperator, Llp::SymbolToken>("ScopeOp");
-    lexer.run(header_data);
-    //std::cout << lexer.get_root().to_string(true) << "\n\n";
-    if (auto error = parse_block(lexer.get_root(), {}))
-    {
-        std::cerr << header_path.string() << "(" << error->location.line << "," << error->location.column << "): " << "Error : " << error->message << "\n";
-        exit(EXIT_FAILURE);
-    }
+    Llp::TokenSet token_set;
+
+    Llp::Tokenizer lexer;
+    // Register custom tokens
+    token_set.register_token_before<Llp::ScopeOperator, Llp::SymbolToken>("ScopeOp");
+
+    lexer.tokenize(header_data, token_set);
+    parse_block(lexer, token_set, {})->exit_on_error(header_path);
 }
 
-std::string HeaderParser::ReflectedClass::class_path() const
-{
-    std::string name;
-    for (const auto& ns : context.namespace_stack)
-        name += "::" + ns;
-    for (const auto& class_name : context.class_stack)
-        name += "::" + class_name->name;
-    return name;
-}
-
-std::string HeaderParser::ReflectedClass::sanitized_class_path() const
-{
-    std::string name;
-    for (const auto& ns : context.namespace_stack)
-        name += "_" + ns;
-    for (const auto& class_name : context.class_stack)
-        name += "_" + class_name->name;
-    return name;
-}
-
-std::vector<std::string> HeaderParser::ReflectedClass::get_parent_paths() const
-{
-    std::string path;
-    for (const auto& ns : context.namespace_stack)
-        path += "::" + ns;
-    for (size_t i = 0; i < context.class_stack.size() - 1; ++i)
-        path += "::" + context.class_stack[i]->name;
-    std::vector<std::string> parents;
-    for (const auto& parent : context.class_stack.back()->parents)
-        parents.push_back(path + "::" + parent);
-    return parents;
-}
-
-std::string HeaderParser::ReflectedClass::class_name() const
-{
-    return context.class_stack.back()->name;
-}
-
-std::string HeaderParser::ReflectedClass::namespace_path() const
-{
-    std::string name;
-    bool        b_is_first = true;
-    for (const auto& ns : context.namespace_stack)
-    {
-        name += (b_is_first ? "" : "::") + ns;
-        b_is_first = false;
-    }
-    return name;
-}
-
-std::string HeaderParser::ReflectedEnum::enum_path() const
-{
-    std::string name;
-    for (const auto& ns : context.namespace_stack)
-        name += "::" + ns;
-    for (const auto& class_name : context.class_stack)
-        name += "::" + class_name->name;
-    name += "::" + enum_name;
-    return name;
-}
-
-std::string HeaderParser::ReflectedEnum::sanitized_enum_path() const
-{
-    std::string name;
-    for (const auto& ns : context.namespace_stack)
-        name += "_" + ns;
-    for (const auto& class_name : context.class_stack)
-        name += "_" + class_name->name;
-    name += "_" + enum_name;
-    return name;
-}
-
-std::string HeaderParser::ReflectedEnum::namespace_path() const
-{
-    std::string name;
-    bool        b_is_first = true;
-    for (const auto& ns : context.namespace_stack)
-    {
-        name += (b_is_first ? "" : "::") + ns;
-        b_is_first = false;
-    }
-    return name;
-}
-
-std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::TokenizedBlock& block, ReflectedEnum& data)
+std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::Tokenizer& block, Enum& data)
 {
     Llp::Parser parser(block);
     while (parser && parser.get_current_token_type() != Llp::NULL_TOKEN)
@@ -210,7 +40,7 @@ std::optional<Llp::ParserError> HeaderParser::parse_enum_args(const Llp::Tokeniz
     return {};
 }
 
-std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::TokenizedBlock& block, ReflectedEnum& data)
+std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Tokenizer& block, const Llp::TokenSet& token_set, Enum& data)
 {
     Llp::Parser parser(block);
     while (parser && parser.get_current_token_type() != Llp::NULL_TOKEN)
@@ -233,28 +63,21 @@ std::optional<Llp::ParserError> HeaderParser::parse_enum_body(const Llp::Tokeniz
             }
         }
         else
-            return Llp::ParserError{parser.current_location(), std::format("Expected enum field name, got {}", block.get_lexer_context().get_token_name(parser.get_current_token_type()))};
+            return Llp::ParserError{parser.current_location(), std::format("Expected enum field name, got {}", parser.get_current_token_name(token_set))};
         if (parser && !parser.consume<Llp::ComaToken>())
             return Llp::ParserError{parser.current_location(), "Expected coma token"};
     }
     return {};
 }
 
-std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBlock& block, const ParserContext& context)
+std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::Tokenizer& block, const Llp::TokenSet& token_set, const ParserContext& context)
 {
     for (Llp::Parser parser(block); parser;)
     {
-        if (parser.get_current_token_type() == Llp::TTokenType<Llp::SymbolToken>::id)
+        if (parser.consume<Llp::SymbolToken>('#'))
         {
-            if (parser.consume<Llp::SymbolToken>('#'))
-            {
                 if (parser.consume<Llp::WordToken>("pragma") && parser.consume<Llp::WordToken>("once"))
                     line_after_last_include = parser.current_location().line + 2;
-            }
-            else
-            {
-                parser.consume<Llp::SymbolToken>();
-            }
         }
         else if (parser.get_current_token_type() == Llp::TTokenType<Llp::WordToken>::id)
         {
@@ -318,8 +141,8 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
 
                         } while (parser.consume<Llp::ComaToken>());
                     }
-                    if (auto* class_block = parser.consume<Llp::BlockToken>())
-                        if (auto error = parse_block(class_block->content, context.push_class(ClassDefinition{class_name->word, parents, {}})))
+                    if (auto* class_block = parser.consume<Llp::BraceBlockToken>())
+                        if (auto error = parse_block(class_block->content, context.push_class(Class{class_name->word, parents, {}})))
                             return error;
                 }
             }
@@ -343,14 +166,14 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
                         break;
                     }
 
-                } while (parser.get_current_token_type() != Llp::TTokenType<Llp::BlockToken>::id);
+                } while (parser.get_current_token_type() != Llp::TTokenType<Llp::BraceBlockToken>::id);
                 if (!b_failed)
                 {
                     ParserContext new_context = context;
                     for (const auto& elem : added_namespace_stack)
                         new_context = new_context.push_namespace(elem);
-                    if (auto* class_block = parser.consume<Llp::BlockToken>())
-                        if (auto error = parse_block(class_block->content, new_context))
+                    if (auto* class_block = parser.consume<Llp::BraceBlockToken>())
+                        if (auto error = parse_block(class_block->content, token_set, new_context))
                             return error;
                 }
             }
@@ -359,11 +182,11 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
                 // expect RPROPERTY(...)
                 if (context.class_stack.empty())
                     return Llp::ParserError{parser.current_location(), "RPROPERTY() should not be used outside class context"};
-                if (!parser.consume<Llp::ArgumentsToken>())
+                if (!parser.consume<Llp::ParenthesisBlockToken>())
                     return Llp::ParserError{parser.current_location(), "'(args...)' expected after RPROPERTY"};
 
                 // Try parsing a type
-                TypeDefinition type;
+                Type type;
                 if (auto error = type.try_parse(parser, context))
                     return error;
 
@@ -387,12 +210,12 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
                     absolute_class_name += "::" + elem->name;
                 if (reflected_classes.contains(absolute_class_name))
                     return Llp::ParserError{parser.current_location(), "Cannot implement multiple REFLECT_BODY() for the same class"};
-                reflected_classes.emplace(absolute_class_name, ReflectedClass{context, parser.current_location().line + 1});
+                reflected_classes.emplace(absolute_class_name, Class{context, parser.current_location().line + 1});
             }
             if (word == "RENUM")
             {
-                ReflectedEnum enum_data;
-                if (auto args = parser.consume<Llp::ArgumentsToken>())
+                Enum enum_data;
+                if (auto args = parser.consume<Llp::ParenthesisBlockToken>())
                 {
                     if (auto error = parse_enum_args(args->content, enum_data))
                         return error;
@@ -418,13 +241,13 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
                             return Llp::ParserError{parser.current_location(), "Expected enum type after ':'"};
                     }
 
-                    if (auto enum_content = parser.consume<Llp::BlockToken>())
+                    if (auto enum_content = parser.consume<Llp::BraceBlockToken>())
                     {
                         enum_data.context   = context;
                         enum_data.type      = enum_type;
                         enum_data.scoped    = scoped;
                         enum_data.enum_name = enum_name->word;
-                        if (auto error = parse_enum_body(enum_content->content, enum_data))
+                        if (auto error = parse_enum_body(enum_content->content, token_set, enum_data))
                             return error;
                         reflected_enums.emplace(enum_name->word, enum_data);
                     }
@@ -440,10 +263,10 @@ std::optional<Llp::ParserError> HeaderParser::parse_block(const Llp::TokenizedBl
             if (std::filesystem::path(include).lexically_normal() == generated_header_include_path)
                 b_found_include = true;
         }
-        else if (parser.get_current_token_type() == Llp::TTokenType<Llp::BlockToken>::id)
+        else if (parser.get_current_token_type() == Llp::TTokenType<Llp::BraceBlockToken>::id)
         {
-            if (auto* class_block = parser.consume<Llp::BlockToken>())
-                if (auto error = parse_block(class_block->content, context))
+            if (auto* class_block = parser.consume<Llp::BraceBlockToken>())
+                if (auto error = parse_block(class_block->content, token_set, context))
                     return error;
         }
         else
@@ -477,10 +300,4 @@ bool HeaderParser::parse_check_include(Llp::TextReader& reader, const std::files
         return false;
 
     return std::filesystem::path(include).lexically_normal() == desired_path.lexically_normal();
-}
-
-void HeaderParser::error(const std::string& message, size_t line, size_t column) const
-{
-    std::cerr << "Error in " << header_path.lexically_normal().string() << ":" << line << ":" << column << " : " << message << "\n";
-    exit(EXIT_FAILURE);
 }
