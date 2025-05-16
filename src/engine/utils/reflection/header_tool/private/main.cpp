@@ -1,6 +1,7 @@
 #include "generator.hpp"
 #include "header_parser.hpp"
 
+#include <llp/file_data.hpp>
 #include <chrono>
 #include <filesystem>
 #include <iostream>

@@ -1,34 +1,12 @@
 #pragma once
-#include "cpp_objects.hpp"
-#include "llp/file_data.hpp"
+#include "cpp_objects/refl_class.h"
+#include "cpp_objects/refl_enum.h"
+#include "cpp_objects/refl_template.hpp"
 
-#include <filesystem>
 #include <ankerl/unordered_dense.h>
-#include <vector>
+#include <filesystem>
 #include <llp/token.hpp>
-
-/******* CUSTOM TOKENS *******/
-namespace Llp
-{
-/*####[ :: ]####*/
-DECLARE_LEXER_TOKEN(ScopeOperator)
-
-static std::unique_ptr<ScopeOperator> consume(const TokenSet&, Location& in_location, const std::string& source, ParserError&)
-    {
-        if (source[in_location.get_index()] == ':' && source[in_location.get_index() + 1] == ':')
-        {
-            ++++in_location;
-            return std::make_unique<ScopeOperator>(in_location);
-        }
-        return nullptr;
-    }
-
-    [[nodiscard]] std::string to_string(const TokenSet&, bool) const override
-    {
-        return "::";
-    }
-};
-}
+#include <vector>
 
 struct ParserContext
 {
@@ -52,7 +30,7 @@ struct ParserContext
 
 class HeaderParser
 {
-public:
+  public:
     HeaderParser(const std::string& header_data, std::filesystem::path generated_header_include_path, std::filesystem::path header_path);
 
     [[nodiscard]] std::optional<size_t> get_include_line_to_add() const
@@ -70,8 +48,10 @@ public:
         return reflected_enums;
     }
 
-private:
+  private:
     [[nodiscard]] Llp::ParserError parse_block(const Llp::Tokenizer& block, const Llp::TokenSet& token_set, const ParserContext& context);
+
+    std::optional<TemplateDeclaration> last_template_declaration;
 
     std::filesystem::path                                             generated_header_include_path;
     std::filesystem::path                                             header_path;

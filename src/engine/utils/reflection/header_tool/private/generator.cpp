@@ -1,5 +1,7 @@
 #include "generator.hpp"
 
+#include "cpp_objects/refl_enum.h"
+#include "cpp_objects/refl_type.h"
 #include "header_parser.hpp"
 
 #include <filesystem>
@@ -90,6 +92,7 @@ void Generator::generate(const std::filesystem::path& source_path, const std::fi
     /*************** TEMPLATE TYPES DECLARATIONS ***************/
     for (const auto& gen_class : parser->get_classes())
     {
+        // Template property type definition
         for (const auto& property_kp : gen_class.second->get_properties())
         {
             std::string property_name = property_kp.first;
@@ -98,34 +101,41 @@ void Generator::generate(const std::filesystem::path& source_path, const std::fi
             if (!property.is_template())
                 continue;
 
-            header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", property.sanitized_name()));
+            header.write_line(std::format("/* ##############################  Reflection for {}  ############################## */", property_name));
             header.indent();
-            header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", property.sanitized_name()));
-
-            if (property.name().has_namespace())
             {
-                header.write_line(std::format("namespace {} {{", property.name().cpp_namespace()));
+                header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", property.sanitized_name()));
                 header.indent();
-            }
-            size_t param_count = 1;
-            if (property.name().short_name() == "vector")
-                param_count = 2;
-            std::string params;
-            char chr = 'A';
-            for (size_t i = 0; i < param_count; ++i)
-                params += std::format("typename {},", chr++);
+                header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", property.sanitized_name()));
 
-            header.write_line(std::format("template<{}> class {}; // forward declaration", params, property.name().short_name()));
-            if (property.name().has_namespace())
-            {
+                if (property.name().has_namespace())
+                {
+                    header.write_line(std::format("namespace {} {{", property.name().cpp_namespace()));
+                    header.indent();
+                }
+                size_t param_count = 1;
+                if (property.name().short_name() == "vector")
+                    param_count = 2;
+                std::string params;
+                char        chr = 'A';
+                for (size_t i = 0; i < param_count; ++i)
+                    params += std::format("typename {}{}", chr++, i < param_count - 1 ? "," : "");
+
+                header.write_line(std::format("template<{}> class {}; // forward declaration", params, property.name().short_name()));
+                if (property.name().has_namespace())
+                {
+                    header.unindent();
+                    header.write_line("}");
+                }
+                header.write_line(std::format("REFL_DECLARE_TYPENAME({}) // declare template type name for {}", property.cpp_name(), property.cpp_name()));
                 header.unindent();
-                header.write_line("}");
+                header.write_line(std::format("#endif"));
             }
-            header.write_line(std::format("REFL_DECLARE_TYPENAME({}) // declare template type name for {}", property.cpp_name(), property.cpp_name()));
             header.unindent();
-            header.write_line(std::format("#endif"));
+            header.new_line(1);
         }
     }
+    header.new_line(1);
 
     /*************** ENUMS HEADERS ***************/
     for (const auto& gen_enums_kp : parser->get_enums())
@@ -186,7 +196,10 @@ void Generator::generate(const std::filesystem::path& source_path, const std::fi
                 header.write_line(std::format("namespace {} {{", gen_class->name().cpp_namespace()));
                 header.indent();
             }
-            header.write_line(std::format("class {}; // forward declaration", gen_class->name().short_name()));
+            if (gen_class->is_template())
+                header.write_line(std::format("{} class {}; // forward declaration", gen_class->get_template_declaration().gen_declaration(), gen_class->name().short_name()));
+            else
+                header.write_line(std::format("class {}; // forward declaration", gen_class->name().short_name()));
             if (gen_class->name().has_namespace())
             {
                 header.unindent();
@@ -197,10 +210,19 @@ void Generator::generate(const std::filesystem::path& source_path, const std::fi
             header.write_line(std::format("#ifndef __DEF_REFL_DECLARE_TYPENAME_{}", sanitized_name));
             header.indent();
             header.write_line(std::format("#define __DEF_REFL_DECLARE_TYPENAME_{}", sanitized_name));
-            header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", cpp_name, cpp_name));
+
+            if (gen_class->is_template())
+                header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME_TEMPLATE({}, MACRO_PACK_ARGS({}), MACRO_PACK_ARGS({})); // declare type name for {}", cpp_name, gen_class->get_template_declaration().gen_values(true), gen_class->get_template_declaration().gen_values(false), cpp_name));
+            else
+                header.write_line(std::format("REFL_DECLARE_CLASS_TYPENAME({}); // declare type name for {}", cpp_name, cpp_name));
             header.unindent();
             header.write_line(std::format("#endif"));
             header.new_line(2);
+
+            if (gen_class->is_template())
+            {
+                header.write_line("//TODO TEMPLATE ");
+            }
         }
         header.unindent();
     }
@@ -263,7 +285,11 @@ void Generator::generate(const std::filesystem::path& source_path, const std::fi
 
     for (const auto& class_kp : parser->get_classes())
     {
-        const auto& gen_class      = class_kp.second;
+        const auto& gen_class = class_kp.second;
+
+        // Should be declared in header
+        if (gen_class->is_template())
+            continue;
         std::string cpp_name       = gen_class->name().cpp_name();
         std::string sanitized_name = gen_class->name().sanitized_name();
 

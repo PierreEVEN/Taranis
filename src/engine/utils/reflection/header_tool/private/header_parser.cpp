@@ -1,18 +1,19 @@
 #include "header_parser.hpp"
 
+#include "cpp_objects/refl_enum.h"
+#include "custom_ops.hpp"
 #include "llp/native_tokens.hpp"
 #include "llp/parser.hpp"
 
 #include <filesystem>
 #include <format>
 
-HeaderParser::HeaderParser(const std::string&    header_data, std::filesystem::path in_generated_header_include_path,
-                           std::filesystem::path in_header_path)
-    : generated_header_include_path(std::move(in_generated_header_include_path)),
-      header_path(std::move(in_header_path))
+HeaderParser::HeaderParser(const std::string& header_data, std::filesystem::path in_generated_header_include_path, std::filesystem::path in_header_path)
+    : generated_header_include_path(std::move(in_generated_header_include_path)), header_path(std::move(in_header_path))
 {
     Llp::TokenSet token_set = Llp::TokenSet::preset_c_like();
     token_set.register_token_before<Llp::ScopeOperator, Llp::SymbolToken>("ScopeOp");
+    token_set.register_token_before<Llp::EllipsisOperator, Llp::SymbolToken>("Ellipsis");
 
     Llp::Tokenizer lexer;
     lexer.tokenize(header_data, token_set).exit_on_error(header_path);
@@ -38,6 +39,10 @@ Llp::ParserError HeaderParser::parse_block(const Llp::Tokenizer& block, const Ll
                 if (auto error = class_info.try_parse(parser, context, token_set))
                     return error;
 
+                if (last_template_declaration)
+                    class_info.set_template_arguments(*last_template_declaration);
+                last_template_declaration = {};
+
                 if (!class_info.is_forward_declaration())
                 {
                     if (auto* class_block = parser.consume<Llp::BraceBlockToken>())
@@ -47,47 +52,13 @@ Llp::ParserError HeaderParser::parse_block(const Llp::Tokenizer& block, const Ll
             }
             else if (word->word == "template")
             {
-                if (!parser.consume<Llp::SymbolToken>('<'))
-                    return Llp::ParserError{parser.current_location(), "'<' expected"};
-
-                if (!parser.consume<Llp::SymbolToken>('>'))
+                if (parser.get<Llp::SymbolToken>('<', 0))
                 {
-                    size_t argument_count = 0;
-                    bool   b_variadics    = false;
-                    do
-                    {
-                        bool valid_type = parser.consume<Llp::WordToken>("typename") || parser.consume<Llp::WordToken>("class");
-                        if (!valid_type)
-                        {
-                            NamespacedName name;
-                            if (auto error = name.try_parse(parser, context))
-                                return error;
-                            valid_type = true;
-                        }
-                        if (valid_type)
-                        {
-                            ++argument_count;
-
-                            if (parser.consume<Llp::SymbolToken>('.'))
-                            {
-                                if (parser.consume<Llp::SymbolToken>('.') && parser.consume<Llp::SymbolToken>('.'))
-                                    b_variadics = true;
-                                else
-                                    return Llp::ParserError{parser.current_location(), "Unexpected token '.'"};
-                            }
-
-                            // Argument name
-                            parser.consume<Llp::WordToken>();
-                        }
-
-                    } while (parser.consume<Llp::SymbolToken>(','));
-
-                    if (!parser.consume<Llp::SymbolToken>('>'))
-                        return Llp::ParserError{parser.current_location(), "'>' expected"};
-
-                    (void)b_variadics;
+                    last_template_declaration = TemplateDeclaration{};
+                    if (auto error = last_template_declaration->try_parse(parser, context))
+                        return error;
+                    continue;
                 }
-                // @TODO : handle templated classes
             }
             else if (word->word == "using" && parser.consume<Llp::WordToken>("namespace"))
             {
@@ -100,9 +71,7 @@ Llp::ParserError HeaderParser::parse_block(const Llp::Tokenizer& block, const Ll
                 {
                     auto namespace_name = parser.consume<Llp::WordToken>();
                     if (!namespace_name)
-                        return Llp::ParserError{
-                            parser.current_location(), "Expected word here. (Global namespace are not supported yet)"
-                        };
+                        return Llp::ParserError{parser.current_location(), "Expected word here. (Global namespace are not supported yet)"};
                     new_context = new_context.push_namespace(namespace_name->word);
                 } while (parser.consume<Llp::ScopeOperator>());
                 auto* namespace_block = parser.consume<Llp::BraceBlockToken>();
@@ -114,18 +83,14 @@ Llp::ParserError HeaderParser::parse_block(const Llp::Tokenizer& block, const Ll
             if (word->word == "RPROPERTY")
             {
                 if (context.class_stack.empty())
-                    return Llp::ParserError{
-                        parser.current_location(), "RPROPERTY() should not be used outside class context"
-                    };
+                    return Llp::ParserError{parser.current_location(), "RPROPERTY() should not be used outside class context"};
                 if (auto error = context.class_stack.back()->parse_property(parser, context))
                     return error;
             }
             if (word->word == "REFLECT_BODY")
             {
                 if (context.class_stack.empty())
-                    return Llp::ParserError{
-                        parser.current_location(), "REFLECT_BODY() should not be declared outside class context"
-                    };
+                    return Llp::ParserError{parser.current_location(), "REFLECT_BODY() should not be declared outside class context"};
 
                 auto refl_class = context.class_stack.back();
                 refl_class->make_reflected(parser);
@@ -155,6 +120,8 @@ Llp::ParserError HeaderParser::parse_block(const Llp::Tokenizer& block, const Ll
         }
         else
             ++parser;
+
+        last_template_declaration = {};
     }
     return {};
 }

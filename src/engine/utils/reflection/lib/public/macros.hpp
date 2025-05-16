@@ -12,28 +12,29 @@
 #define CONCAT_MACRO_FIVE_PARAMS(v, w, x, y, z)    CONCAT_MACRO_FIVE_PARAMS_(v, w, x, y, z)
 #define CONCAT_MACRO_SIX_PARAMS_(u, v, w, x, y, z) v##w##x##y##z
 #define CONCAT_MACRO_SIX_PARAMS(u, v, w, x, y, z)  CONCAT_MACRO_SIX_PARAMS_(u, v, w, x, y, z)
+#define MACRO_PACK_ARGS(...) __VA_ARGS__
 
-#define REFL_DECLARE_TYPENAME(Type)                       \
-    template <> struct Reflection::StaticTypeInfos<Type>  \
-    {                                                     \
-        constexpr static bool        value    = true;     \
-        constexpr static bool        is_class = false;    \
-        constexpr static const char* name     = #Type;    \
-    }; \
+#define REFL_DECLARE_TYPENAME(Type)                      \
+    template <> struct Reflection::StaticTypeInfos<Type> \
+    {                                                    \
+        constexpr static bool        value    = true;    \
+        constexpr static bool        is_class = false;   \
+        constexpr static const char* name     = #Type;   \
+    };
 
 #define REFL_DECLARE_TYPENAME_TEMPLATE(Type)                                      \
     template <typename... Args> struct Reflection::StaticTypeInfos<Type<Args...>> \
     {                                                                             \
-        constexpr static bool        value    = true;                             \
-        constexpr static bool        is_class = false;                            \
+        constexpr static bool value    = true;                                    \
+        constexpr static bool is_class = false;                                   \
     };
 
-#define REFL_DECLARE_ENUM_TYPENAME(Type)                \
+#define REFL_DECLARE_ENUM_TYPENAME(Type)                 \
     template <> struct Reflection::StaticTypeInfos<Type> \
     {                                                    \
-        constexpr static bool value    = true;           \
-        constexpr static bool is_class = false;          \
-        constexpr static bool is_enum  = true;           \
+        constexpr static bool        value    = true;    \
+        constexpr static bool        is_class = false;   \
+        constexpr static bool        is_enum  = true;    \
         constexpr static const char* name     = #Type;   \
     };
 
@@ -44,32 +45,33 @@
         constexpr static bool        is_class = true;    \
         constexpr static const char* name     = #Type;   \
     };
-#define REFL_DECLARE_CLASS_TYPENAME_TEMPLATE(Type)                                \
-    template <typename... Args> struct Reflection::StaticTypeInfos<Type<Args...>> \
-    {                                                                             \
-        constexpr static bool        value    = true;                             \
-        constexpr static bool        is_class = true;                             \
+#define REFL_DECLARE_CLASS_TYPENAME_TEMPLATE(Type, A, B)                          \
+    template <A> struct Reflection::StaticTypeInfos<Type<B>> \
+    {                                                                            \
+        constexpr static bool value    = true;                                   \
+        constexpr static bool is_class = true;                                   \
     };
 
-#define REFL_DECLARE_CLASS(className, class_sanitized_name)                                                                \
-  public:                                                                                            \
-    friend void                      _Refl_Register_Function_##class_sanitized_name(); \
-    static const Reflection::Class*  static_class();                                                 \
-    virtual const Reflection::Class* get_class() const;                                              \
-    template <typename T> T*         cast()                                                          \
-    {                                                                                                \
-        if constexpr (Reflection::StaticTypeInfos<T>::value)                                         \
-            return reinterpret_cast<T*>(get_class()->cast_to(T::static_class(), this));              \
-        else                                                                                         \
-            return nullptr;                                                                          \
-    }                                                                                                \
-    template <typename T> const T* cast() const                                                      \
-    {                                                                                                \
-        if constexpr (Reflection::StaticTypeInfos<T>::value)                                         \
-            return reinterpret_cast<const T*>(get_class()->cast_to_const(T::static_class(), this));  \
-        else                                                                                         \
-            return nullptr;                                                                          \
-    }                                                                                                \
+#define REFL_DECLARE_CLASS(className, class_sanitized_name)                                                             \
+  public:                                                                                                               \
+    friend void                                  _Refl_Register_Function_##class_sanitized_name();                      \
+    static const Reflection::Class*              static_class();                                                        \
+    virtual const Reflection::Class*             get_class() const;                                                     \
+    template <typename _CAST_VAL_T> _CAST_VAL_T* cast()                                                                 \
+    {                                                                                                                   \
+        if constexpr (Reflection::StaticTypeInfos<_CAST_VAL_T>::value)                                                  \
+            return reinterpret_cast<_CAST_VAL_T*>(get_class()->cast_to(_CAST_VAL_T::static_class(), this));             \
+        else                                                                                                            \
+            return nullptr;                                                                                             \
+    }                                                                                                                   \
+    template <typename _CAST_VAL_T> const _CAST_VAL_T* cast() const                                                     \
+    {                                                                                                                   \
+        if constexpr (Reflection::StaticTypeInfos<_CAST_VAL_T>::value)                                                  \
+            return reinterpret_cast<const _CAST_VAL_T*>(get_class()->cast_to_const(_CAST_VAL_T::static_class(), this)); \
+        else                                                                                                            \
+            return nullptr;                                                                                             \
+    }                                                                                                                   \
+                                                                                                                        \
   private:
 
 #define REFLECT(...)
